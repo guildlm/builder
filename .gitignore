@@ -1,0 +1,9 @@
+.venv/
+generated/
+__pycache__/
+*.pyc
+examples/**/*.test
+examples/tasks-api/tasks-api
+bin/
+*.egg-info/
+.pytest_cache/
