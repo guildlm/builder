@@ -15,6 +15,7 @@ Run ``guildlm-build --spec spec.yaml --out ./generated`` to drive it.
 from __future__ import annotations
 
 import dataclasses
+import json
 import os
 import re
 import subprocess
@@ -227,6 +228,55 @@ class RoleRoutingCoder:
 
 
 # --------------------------------------------------------------------------- #
+# Retrieval — ground the small model in known-good verified examples
+# --------------------------------------------------------------------------- #
+
+
+class Retriever:
+    """Few-shot retrieval over a corpus of compile-verified Go examples.
+
+    A small coder writes far better Go when shown a couple of similar, *known
+    to compile* examples than from the instruction alone. Scoring is lexical
+    Jaccard over alphanumeric tokens — no embeddings, no deps, fully offline
+    ($0). Feed it the teacher dataset's go_dev split (instruction/response).
+    """
+
+    _TOK = re.compile(r"[a-z0-9]+")
+
+    def __init__(self, examples: Sequence[tuple[str, str]]) -> None:
+        self._ex = [(i, r, set(self._TOK.findall(i.lower()))) for i, r in examples]
+
+    def top_k(self, query: str, k: int) -> list[tuple[str, str]]:
+        if k <= 0:
+            return []
+        q = set(self._TOK.findall(query.lower()))
+        if not q:
+            return []
+        scored = []
+        for instr, resp, toks in self._ex:
+            inter = len(q & toks)
+            if not inter:
+                continue
+            scored.append((inter / len(q | toks), instr, resp))
+        scored.sort(key=lambda t: t[0], reverse=True)
+        return [(i, r) for _, i, r in scored[:k]]
+
+    @classmethod
+    def from_jsonl(cls, path: str | Path) -> "Retriever":
+        examples: list[tuple[str, str]] = []
+        with open(path, "r", encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                d = json.loads(line)
+                instr, resp = d.get("instruction") or "", d.get("response") or ""
+                if instr and resp:
+                    examples.append((instr, resp))
+        return cls(examples)
+
+
+# --------------------------------------------------------------------------- #
 # Go toolchain wrapper (the compile/test feedback)
 # --------------------------------------------------------------------------- #
 
@@ -300,7 +350,25 @@ class GoToolchain:
 # --------------------------------------------------------------------------- #
 
 
-def _generate_prompt(spec: Spec, task: FileTask, written: dict[str, str]) -> str:
+def _retrieval_block(shots: Sequence[tuple[str, str]] | None) -> str:
+    if not shots:
+        return ""
+    parts = [
+        "Similar verified Go examples for reference (these compile; adapt the "
+        "idiom to the spec, do not copy verbatim):\n"
+    ]
+    for instr, resp in shots:
+        parts.append(f"# Example task: {instr}\n{resp}\n")
+    parts.append("\n")
+    return "".join(parts)
+
+
+def _generate_prompt(
+    spec: Spec,
+    task: FileTask,
+    written: dict[str, str],
+    shots: Sequence[tuple[str, str]] | None = None,
+) -> str:
     """Prompt for first-pass generation of one file."""
     context = _context_block(written)
     reuse_rule = (
@@ -335,6 +403,7 @@ def _generate_prompt(spec: Spec, task: FileTask, written: dict[str, str]) -> str
         f"TARGET_FILE: {task.spec.path}\n"
         f"Purpose of this file: {task.spec.purpose}\n\n"
         f"All files in this project:\n{_file_list(spec)}\n"
+        f"{_retrieval_block(shots)}"
         f"{context}"
         f"{reuse_rule}"
         f"{test_rule}"
@@ -466,6 +535,8 @@ def _generate_file(
     written: dict[str, str],
     candidates: int,
     toolchain: GoToolchain,
+    retriever: "Retriever | None" = None,
+    shots: int = 0,
 ) -> str:
     """Generate one file, best-of-N: sample up to ``candidates`` times and keep
     the first that is syntactically valid Go.
@@ -475,8 +546,16 @@ def _generate_file(
     samples and keep a good one — turning model variance into a quality lift
     instead of a failed build. Non-Go files (go.mod) skip the gate. Falls back
     to the last sample if none parse, so generation always produces something.
+
+    When a ``retriever`` is given, the top-``shots`` similar verified examples
+    are shown to ground the model in known-good idiomatic Go.
     """
-    prompt = _generate_prompt(spec, task, written)
+    examples = (
+        retriever.top_k(f"{task.spec.path} {task.spec.purpose}", shots)
+        if retriever and shots and task.spec.path.endswith(".go")
+        else None
+    )
+    prompt = _generate_prompt(spec, task, written, shots=examples)
     is_go = task.spec.path.endswith(".go")
     last = ""
     for attempt in range(max(1, candidates)):
@@ -498,6 +577,8 @@ def build(
     candidates: int = 1,
     reviewer: "Coder | None" = None,
     review_rounds: int = 1,
+    retriever: "Retriever | None" = None,
+    shots: int = 0,
 ) -> tuple[bool, dict[str, str]]:
     """Run the agentic build loop.
 
@@ -527,7 +608,9 @@ def build(
     # --- Generation pass ---------------------------------------------------- #
     for task in tasks:
         _log(f"generate {task.spec.path} ({task.index + 1}/{len(tasks)})")
-        code = _generate_file(coder, spec, task, written, candidates, toolchain)
+        code = _generate_file(
+            coder, spec, task, written, candidates, toolchain, retriever, shots
+        )
         _write_file(out, task.spec.path, code)
         written[task.spec.path] = code
 
@@ -673,6 +756,12 @@ try:
         review_base_url: str = typer.Option(
             None, "--review-base-url", help="Base URL for --review-model (defaults to --base-url)."
         ),
+        examples: str = typer.Option(
+            None, "--examples", help="JSONL of verified examples for retrieval few-shot."
+        ),
+        shots: int = typer.Option(
+            2, "--shots", help="How many retrieved examples to show (needs --examples)."
+        ),
     ) -> None:
         """Generate a project from SPEC into OUT using a pluggable coder model."""
         spec_obj = Spec.from_yaml(spec)
@@ -689,9 +778,11 @@ try:
             if review_model
             else None
         )
+        retriever = Retriever.from_jsonl(examples) if examples else None
         ok, _ = build(
             spec_obj, coder, out, max_fix_rounds=max_fix_rounds,
             candidates=candidates, reviewer=reviewer,
+            retriever=retriever, shots=shots if examples else 0,
         )
         if not ok:
             raise typer.Exit(code=1)

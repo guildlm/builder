@@ -17,6 +17,7 @@ from src.builder import (
     GoToolchain,
     RoleRoutingCoder,
     Spec,
+    Retriever,
     _fix_prompt,
     _generate_file,
     _generate_prompt,
@@ -412,3 +413,53 @@ def test_review_pass_clean_leaves_file_untouched(tmp_path):
     _review_pass(spec, plan(spec), written, tmp_path, GoToolchain(), reviewer, rounds=1)
 
     assert written["main.go"] == GOOD_GO
+
+
+# --------------------------------------------------------------------------- #
+# Retrieval — ground the small model in similar verified examples
+# --------------------------------------------------------------------------- #
+
+
+def _corpus():
+    return Retriever(
+        [
+            ("Write a Go function to reverse a string by runes", "package p\nfunc Rev(s string) string { return s }\n"),
+            ("Write a Go HTTP server with net/http", "package p\n// http server\n"),
+            ("Write a Go function to sort integers ascending", "package p\nimport \"sort\"\n"),
+        ]
+    )
+
+
+def test_retriever_ranks_most_similar_first():
+    hits = _corpus().top_k("reverse a string by runes in Go", 2)
+    assert hits
+    assert "Rev" in hits[0][1]  # the reverse example ranks top
+
+
+def test_retriever_empty_query_or_zero_k():
+    c = _corpus()
+    assert c.top_k("", 3) == []
+    assert c.top_k("anything", 0) == []
+
+
+def test_retriever_from_jsonl(tmp_path):
+    p = tmp_path / "ex.jsonl"
+    p.write_text(
+        '{"instruction": "reverse a string", "response": "package p\\nfunc Rev() {}\\n"}\n'
+        "\n"  # blank line tolerated
+        '{"instruction": "", "response": "skip me"}\n'  # no instruction -> skipped
+    )
+    r = Retriever.from_jsonl(p)
+    hits = r.top_k("reverse a string", 5)
+    assert len(hits) == 1 and "Rev" in hits[0][1]
+
+
+def test_retrieval_block_injected_into_prompt():
+    spec = _sample_spec()
+    task = FileTask(index=1, spec=FileSpec(path="main.go", purpose="entry"))
+    shots = [("reverse a string", "package p\nfunc Rev() {}\n")]
+    prompt = _generate_prompt(spec, task, {}, shots=shots)
+    assert "Similar verified Go examples" in prompt
+    assert "func Rev()" in prompt
+    # no shots -> no block
+    assert "Similar verified Go examples" not in _generate_prompt(spec, task, {})
