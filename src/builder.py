@@ -548,23 +548,59 @@ def _log(msg: str) -> None:
     print(f"[guildlm-build] {msg}", file=sys.stderr, flush=True)
 
 
-def _is_clean(code: str, is_go: bool, toolchain: GoToolchain) -> bool:
-    """A clean Go candidate parses AND imports only the standard library."""
-    return not is_go or (toolchain.syntax_ok(code) and not nonstdlib_imports(code))
+_TOPLEVEL_RE = re.compile(r"^(?:func|type|var|const)\s+(\w+)", re.MULTILINE)
+_DECL_BLOCK_RE = re.compile(r"^(?:var|const)\s*\((.*?)^\)", re.MULTILINE | re.DOTALL)
+
+
+def top_level_decls(code: str) -> set[str]:
+    """Package-level names a Go file declares: plain funcs (not methods), types,
+    vars and consts, including names inside ``var (...)`` / ``const (...)`` blocks.
+
+    Used to detect the small-model multi-file collapse where a 7B crams the whole
+    project's types into several files, redeclaring symbols across them.
+    """
+    names = set(_TOPLEVEL_RE.findall(code))
+    for block in _DECL_BLOCK_RE.findall(code):
+        for line in block.splitlines():
+            m = re.match(r"\s*(\w+)", line)
+            if m:
+                names.add(m.group(1))
+    return names
+
+
+def _is_clean(
+    code: str, is_go: bool, toolchain: GoToolchain, sibling_decls: set[str] | None = None
+) -> bool:
+    """A clean Go candidate parses, imports only the standard library, and does
+    not redeclare a package-level symbol that already lives in a sibling file."""
+    if not is_go:
+        return True
+    if not toolchain.syntax_ok(code) or nonstdlib_imports(code):
+        return False
+    if sibling_decls and (top_level_decls(code) & sibling_decls):
+        return False
+    return True
 
 
 def _sample_clean(
-    coder: Coder, prompt: str, is_go: bool, candidates: int, toolchain: GoToolchain, what: str
+    coder: Coder,
+    prompt: str,
+    is_go: bool,
+    candidates: int,
+    toolchain: GoToolchain,
+    what: str,
+    sibling_decls: set[str] | None = None,
 ) -> str:
-    """Draw up to ``candidates`` samples; keep the first clean one (parses +
-    stdlib-only). Used for BOTH generation and fixes, so a stubborn small model
-    that re-adds a forbidden import (e.g. gorilla/mux) gets resampled instead of
-    poisoning the build. Falls back to the last sample so progress never stalls.
+    """Draw up to ``candidates`` samples; keep the first clean one (parses,
+    stdlib-only, no cross-file redeclaration). Used for BOTH generation and
+    fixes, so a stubborn small model that re-adds a forbidden import (gorilla/mux)
+    or crams a sibling's types into this file gets resampled instead of poisoning
+    the build. Falls back to the last sample so progress never stalls.
     """
     last = ""
     for attempt in range(max(1, candidates)):
         last = extract_code(coder.generate(prompt))
-        if _is_clean(last, is_go, toolchain):
+        if _is_clean(last, is_go, toolchain, sibling_decls):
             if attempt:
                 _log(f"    best-of-N {what}: kept candidate {attempt + 1}")
             return last
@@ -602,7 +638,12 @@ def _generate_file(
     )
     prompt = _generate_prompt(spec, task, written, shots=examples)
     is_go = task.spec.path.endswith(".go")
-    return _sample_clean(coder, prompt, is_go, candidates, toolchain, "gen")
+    # Symbols already declared by earlier files — reject a candidate that
+    # redeclares any of them (the multi-file collapse).
+    sibling_decls: set[str] = set()
+    for content in written.values():
+        sibling_decls |= top_level_decls(content)
+    return _sample_clean(coder, prompt, is_go, candidates, toolchain, "gen", sibling_decls)
 
 
 def build(
@@ -666,8 +707,12 @@ def build(
                 continue
             _log(f"  fixing {path}")
             fix_prompt = _fix_prompt(task, written[path], output, written)
+            sibling_decls: set[str] = set()
+            for other, content in written.items():
+                if other != path:
+                    sibling_decls |= top_level_decls(content)
             code = _sample_clean(
-                coder, fix_prompt, path.endswith(".go"), candidates, toolchain, "fix"
+                coder, fix_prompt, path.endswith(".go"), candidates, toolchain, "fix", sibling_decls
             )
             _write_file(out, path, code)
             written[path] = code

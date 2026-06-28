@@ -27,6 +27,7 @@ from src.builder import (
     nonstdlib_imports,
     plan,
     role_for_path,
+    top_level_decls,
 )
 
 GO = shutil.which("go")
@@ -321,6 +322,49 @@ def test_nonstdlib_imports_detects_third_party():
     assert nonstdlib_imports(single) == ["golang.org/x/net/http/httpguts"]
     stdlib = "package main\n\nimport (\n\t\"fmt\"\n\t\"encoding/json\"\n)\n"
     assert nonstdlib_imports(stdlib) == []
+
+
+def test_top_level_decls_extracts_package_symbols():
+    code = (
+        "package main\n\n"
+        "import \"fmt\"\n\n"
+        "type Task struct{ ID int }\n"
+        "type Store struct{}\n\n"
+        "var ErrSingle = fmt.Errorf(\"x\")\n\n"
+        "var (\n\tErrInvalidTask = fmt.Errorf(\"a\")\n\tErrNotFound = fmt.Errorf(\"b\")\n)\n\n"
+        "const Limit = 10\n\n"
+        "func NewStore() *Store { return &Store{} }\n"
+        "func (s *Store) Get() {}\n"  # method: NOT a top-level name
+    )
+    decls = top_level_decls(code)
+    assert {"Task", "Store", "ErrSingle", "ErrInvalidTask", "ErrNotFound", "Limit", "NewStore"} <= decls
+    assert "Get" not in decls  # methods are owned by their type, not redeclared
+
+
+@requires_go
+def test_best_of_n_rejects_redeclaring_candidate():
+    # store.go already defines Store/NewStore; the candidate for main.go must not
+    # redeclare them (the multi-file collapse).
+    task = FileTask(index=1, spec=FileSpec(path="main.go", purpose="entry"))
+    written = {"store.go": "package main\n\ntype Store struct{}\n\nfunc NewStore() *Store { return &Store{} }\n"}
+    sibling_decls = set()
+    from src.builder import top_level_decls as tld
+    for c in written.values():
+        sibling_decls |= tld(c)
+    coder = FakeCoder(
+        {
+            "main.go": [
+                # collapses: redeclares Store + NewStore
+                "```go\npackage main\n\ntype Store struct{}\n\nfunc NewStore() *Store { return &Store{} }\n\nfunc main() {}\n```",
+                # clean: just main, references the existing Store
+                "```go\npackage main\n\nfunc main() { _ = NewStore() }\n```",
+            ]
+        }
+    )
+    from src.builder import _sample_clean
+    code = _sample_clean(coder, "TARGET_FILE: main.go\n", True, 2, GoToolchain(), "gen", sibling_decls)
+    assert "type Store struct" not in code  # rejected the collapsing candidate
+    assert "func main()" in code
 
 
 @requires_go
