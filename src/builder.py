@@ -496,11 +496,15 @@ def build(
     max_fix_rounds: int = 4,
     toolchain: GoToolchain | None = None,
     candidates: int = 1,
+    reviewer: "Coder | None" = None,
+    review_rounds: int = 1,
 ) -> tuple[bool, dict[str, str]]:
     """Run the agentic build loop.
 
     plan -> generate each file (best-of-N) -> compile/vet/test -> feed errors
-    back -> fix -> re-check, up to ``max_fix_rounds`` times.
+    back -> fix -> re-check, up to ``max_fix_rounds`` times. When the project is
+    green and a ``reviewer`` is given, a non-regressing review pass then hunts
+    for semantic bugs that survive a green build.
 
     ``candidates`` > 1 enables rejection sampling per file (keep the first that
     parses) — the cheapest way to make a small coder behave like a bigger one.
@@ -514,6 +518,12 @@ def build(
     tasks = plan(spec)
     written: dict[str, str] = {}
 
+    def _finish_green() -> tuple[bool, dict[str, str]]:
+        if reviewer is not None and review_rounds > 0:
+            _log("review pass (catch bugs that survive a green build)")
+            _review_pass(spec, tasks, written, out, toolchain, reviewer, review_rounds)
+        return True, written
+
     # --- Generation pass ---------------------------------------------------- #
     for task in tasks:
         _log(f"generate {task.spec.path} ({task.index + 1}/{len(tasks)})")
@@ -525,7 +535,7 @@ def build(
     ok, output = toolchain.check(out)
     if ok:
         _log("compile/test passed on first try")
-        return True, written
+        return _finish_green()
 
     for rnd in range(1, max_fix_rounds + 1):
         _log(f"compile/test FAILED, fix round {rnd}/{max_fix_rounds}")
@@ -543,10 +553,71 @@ def build(
         ok, output = toolchain.check(out)
         if ok:
             _log(f"converged to green after fix round {rnd}")
-            return True, written
+            return _finish_green()
 
     _log(f"exhausted {max_fix_rounds} fix rounds, still failing")
     return False, written
+
+
+_REVIEW_CLEAN = "CLEAN"
+
+
+def _review_prompt(spec: Spec, task: FileTask, current: str, siblings: dict[str, str]) -> str:
+    """Ask the review specialist to find a real bug compile+test can miss."""
+    others = {p: c for p, c in siblings.items() if p != task.spec.path}
+    sib = "".join(f"--- {p} ---\n{c}\n" for p, c in others.items())
+    return (
+        f"Project: {spec.name}\nDescription: {spec.description}\n\n"
+        f"Review this Go file for a REAL correctness bug that compiles and passes "
+        f"tests but is still wrong against the spec — off-by-one, wrong initial "
+        f"value, boundary/overflow, wrong status code, ignored error, race. "
+        f"Judge against the spec above and the sibling files, not style.\n\n"
+        f"If and only if you find a real bug, output the corrected COMPLETE file "
+        f"as one fenced ```go block. If the file is correct, output exactly the "
+        f"single word {_REVIEW_CLEAN} and nothing else.\n\n"
+        f"TARGET_FILE: {task.spec.path}\nPurpose: {task.spec.purpose}\n\n"
+        f"{sib}--- {task.spec.path} ---\n{current}\n"
+    )
+
+
+def _review_pass(
+    spec: Spec,
+    tasks: Sequence[FileTask],
+    written: dict[str, str],
+    out: Path,
+    toolchain: GoToolchain,
+    reviewer: "Coder",
+    rounds: int,
+) -> None:
+    """Let the review specialist catch semantic bugs that survive a green build.
+
+    Strictly non-regressing: a proposed edit is applied only if the whole project
+    still builds, vets and tests green afterward — review can help, never hurt.
+    """
+    for rnd in range(1, rounds + 1):
+        changed = False
+        for task in tasks:
+            path = task.spec.path
+            if not path.endswith(".go") or path.endswith("_test.go"):
+                continue  # review implementation files only
+            raw = reviewer.generate(_review_prompt(spec, task, written[path], written))
+            if _REVIEW_CLEAN in raw and "```" not in raw:
+                continue
+            candidate = extract_code(raw)
+            if candidate.strip() == written[path].strip():
+                continue
+            prev = written[path]
+            _write_file(out, path, candidate)
+            ok, _ = toolchain.check(out)
+            if ok:
+                _log(f"  review fixed {path}")
+                written[path] = candidate
+                changed = True
+            else:  # regression — revert, keep the known-green version
+                _write_file(out, path, prev)
+        if not changed:
+            _log(f"review pass {rnd}: no further changes")
+            return
 
 
 def _task_for(tasks: Sequence[FileTask], path: str) -> FileTask | None:
@@ -596,6 +667,12 @@ try:
         test_base_url: str = typer.Option(
             None, "--test-base-url", help="Base URL for --test-model (defaults to --base-url)."
         ),
+        review_model: str = typer.Option(
+            None, "--review-model", help="Run a non-regressing review pass with this (Go review) specialist."
+        ),
+        review_base_url: str = typer.Option(
+            None, "--review-base-url", help="Base URL for --review-model (defaults to --base-url)."
+        ),
     ) -> None:
         """Generate a project from SPEC into OUT using a pluggable coder model."""
         spec_obj = Spec.from_yaml(spec)
@@ -607,8 +684,14 @@ try:
             coder: Coder = RoleRoutingCoder({"dev": dev_coder, "test": test_coder})
         else:
             coder = dev_coder
+        reviewer = (
+            OpenAICoder(model=review_model, base_url=review_base_url or base_url)
+            if review_model
+            else None
+        )
         ok, _ = build(
-            spec_obj, coder, out, max_fix_rounds=max_fix_rounds, candidates=candidates
+            spec_obj, coder, out, max_fix_rounds=max_fix_rounds,
+            candidates=candidates, reviewer=reviewer,
         )
         if not ok:
             raise typer.Exit(code=1)

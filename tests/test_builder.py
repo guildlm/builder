@@ -20,6 +20,7 @@ from src.builder import (
     _fix_prompt,
     _generate_file,
     _generate_prompt,
+    _review_pass,
     build,
     extract_code,
     plan,
@@ -354,3 +355,60 @@ def test_role_routing_falls_back_to_default_when_role_absent():
     dev = _TagCoder("DEV")
     coder = RoleRoutingCoder({"dev": dev})  # no test specialist registered
     assert coder.generate("TARGET_FILE: store_test.go\n...") == "DEV"
+
+
+# --------------------------------------------------------------------------- #
+# Review pass — the reviewer catches bugs that survive a green build,
+# and may only help (non-regressing).
+# --------------------------------------------------------------------------- #
+
+
+def _val_spec(desc: str) -> Spec:
+    return Spec(
+        name="demo",
+        description=desc,
+        go_module="example.com/demo",
+        files=(FileSpec(path="go.mod", purpose="module"), FileSpec(path="main.go", purpose="impl")),
+    )
+
+
+@requires_go
+def test_review_pass_applies_non_regressing_fix(tmp_path):
+    (tmp_path / "go.mod").write_text(GO_MOD)
+    buggy = "package main\n\nfunc Val() int { return 0 }\n\nfunc main() { _ = Val() }\n"
+    (tmp_path / "main.go").write_text(buggy)
+    spec = _val_spec("Val() must return 1")
+    written = {"go.mod": GO_MOD, "main.go": buggy}
+    fixed = "package main\n\nfunc Val() int { return 1 }\n\nfunc main() { _ = Val() }\n"
+    reviewer = FakeCoder({"main.go": [f"```go\n{fixed}```"]})
+
+    _review_pass(spec, plan(spec), written, tmp_path, GoToolchain(), reviewer, rounds=1)
+
+    assert "return 1" in written["main.go"]  # the fix stuck (still green)
+
+
+@requires_go
+def test_review_pass_reverts_regressing_edit(tmp_path):
+    (tmp_path / "go.mod").write_text(GO_MOD)
+    (tmp_path / "main.go").write_text(GOOD_GO)
+    spec = _val_spec("prints ok")
+    written = {"go.mod": GO_MOD, "main.go": GOOD_GO}
+    reviewer = FakeCoder({"main.go": ["```go\npackage main\n\nfunc main( {\n```"]})  # breaks build
+
+    _review_pass(spec, plan(spec), written, tmp_path, GoToolchain(), reviewer, rounds=1)
+
+    assert written["main.go"] == GOOD_GO  # regression rejected
+    assert (tmp_path / "main.go").read_text() == GOOD_GO  # file on disk reverted too
+
+
+@requires_go
+def test_review_pass_clean_leaves_file_untouched(tmp_path):
+    (tmp_path / "go.mod").write_text(GO_MOD)
+    (tmp_path / "main.go").write_text(GOOD_GO)
+    spec = _val_spec("prints ok")
+    written = {"go.mod": GO_MOD, "main.go": GOOD_GO}
+    reviewer = FakeCoder({"main.go": ["CLEAN"]})
+
+    _review_pass(spec, plan(spec), written, tmp_path, GoToolchain(), reviewer, rounds=1)
+
+    assert written["main.go"] == GOOD_GO
