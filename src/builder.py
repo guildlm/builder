@@ -548,6 +548,31 @@ def _log(msg: str) -> None:
     print(f"[guildlm-build] {msg}", file=sys.stderr, flush=True)
 
 
+def _is_clean(code: str, is_go: bool, toolchain: GoToolchain) -> bool:
+    """A clean Go candidate parses AND imports only the standard library."""
+    return not is_go or (toolchain.syntax_ok(code) and not nonstdlib_imports(code))
+
+
+def _sample_clean(
+    coder: Coder, prompt: str, is_go: bool, candidates: int, toolchain: GoToolchain, what: str
+) -> str:
+    """Draw up to ``candidates`` samples; keep the first clean one (parses +
+    stdlib-only). Used for BOTH generation and fixes, so a stubborn small model
+    that re-adds a forbidden import (e.g. gorilla/mux) gets resampled instead of
+    poisoning the build. Falls back to the last sample so progress never stalls.
+    """
+    last = ""
+    for attempt in range(max(1, candidates)):
+        last = extract_code(coder.generate(prompt))
+        if _is_clean(last, is_go, toolchain):
+            if attempt:
+                _log(f"    best-of-N {what}: kept candidate {attempt + 1}")
+            return last
+    if candidates > 1:
+        _log(f"    best-of-N {what}: no clean candidate; using last of {candidates}")
+    return last
+
+
 def _generate_file(
     coder: Coder,
     spec: Spec,
@@ -577,17 +602,7 @@ def _generate_file(
     )
     prompt = _generate_prompt(spec, task, written, shots=examples)
     is_go = task.spec.path.endswith(".go")
-    last = ""
-    for attempt in range(max(1, candidates)):
-        last = extract_code(coder.generate(prompt))
-        # A good Go candidate parses AND imports only the standard library (the
-        # Builder forbids external deps). Reject the rest during best-of-N.
-        if not is_go or (toolchain.syntax_ok(last) and not nonstdlib_imports(last)):
-            if attempt:
-                _log(f"    best-of-N: kept candidate {attempt + 1}")
-            return last
-    _log(f"    best-of-N: no clean candidate; using last of {candidates}")
-    return last
+    return _sample_clean(coder, prompt, is_go, candidates, toolchain, "gen")
 
 
 def build(
@@ -650,8 +665,10 @@ def build(
             if task is None:
                 continue
             _log(f"  fixing {path}")
-            raw = coder.generate(_fix_prompt(task, written[path], output, written))
-            code = extract_code(raw)
+            fix_prompt = _fix_prompt(task, written[path], output, written)
+            code = _sample_clean(
+                coder, fix_prompt, path.endswith(".go"), candidates, toolchain, "fix"
+            )
             _write_file(out, path, code)
             written[path] = code
 
