@@ -243,6 +243,26 @@ class GoToolchain:
                 return False, out
         return True, "build, vet and test passed"
 
+    def syntax_ok(self, code: str) -> bool:
+        """True if *code* is syntactically valid Go (parses cleanly).
+
+        Uses ``gofmt`` (always shipped with the toolchain) on stdin — it exits
+        non-zero on a parse error. This is a cheap, whole-project-independent
+        gate for best-of-N generation: reject candidates that don't even parse
+        before paying for a full build.
+        """
+        try:
+            proc = subprocess.run(
+                [self.go_bin.replace("go", "gofmt") if self.go_bin.endswith("go") else "gofmt", "-e"],
+                input=code,
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            return True  # gofmt unavailable -> don't block generation
+        return proc.returncode == 0
+
 
 # --------------------------------------------------------------------------- #
 # Prompt construction
@@ -408,17 +428,51 @@ def _log(msg: str) -> None:
     print(f"[guildlm-build] {msg}", file=sys.stderr, flush=True)
 
 
+def _generate_file(
+    coder: Coder,
+    spec: Spec,
+    task: FileTask,
+    written: dict[str, str],
+    candidates: int,
+    toolchain: GoToolchain,
+) -> str:
+    """Generate one file, best-of-N: sample up to ``candidates`` times and keep
+    the first that is syntactically valid Go.
+
+    This is the small-model leverage: a 7-14B coder misfires more often than a
+    32B, but a cheap ground-truth gate (does it parse?) lets us draw a few
+    samples and keep a good one — turning model variance into a quality lift
+    instead of a failed build. Non-Go files (go.mod) skip the gate. Falls back
+    to the last sample if none parse, so generation always produces something.
+    """
+    prompt = _generate_prompt(spec, task, written)
+    is_go = task.spec.path.endswith(".go")
+    last = ""
+    for attempt in range(max(1, candidates)):
+        last = extract_code(coder.generate(prompt))
+        if not is_go or toolchain.syntax_ok(last):
+            if attempt:
+                _log(f"    best-of-N: kept candidate {attempt + 1}")
+            return last
+    _log(f"    best-of-N: no candidate parsed; using last of {candidates}")
+    return last
+
+
 def build(
     spec: Spec,
     coder: Coder,
     out_dir: str | Path,
     max_fix_rounds: int = 4,
     toolchain: GoToolchain | None = None,
+    candidates: int = 1,
 ) -> tuple[bool, dict[str, str]]:
     """Run the agentic build loop.
 
-    plan -> generate each file -> compile/vet/test -> feed errors back -> fix ->
-    re-check, up to ``max_fix_rounds`` times.
+    plan -> generate each file (best-of-N) -> compile/vet/test -> feed errors
+    back -> fix -> re-check, up to ``max_fix_rounds`` times.
+
+    ``candidates`` > 1 enables rejection sampling per file (keep the first that
+    parses) — the cheapest way to make a small coder behave like a bigger one.
 
     Returns ``(ok, files)`` where ``files`` maps path -> final content.
     """
@@ -432,8 +486,7 @@ def build(
     # --- Generation pass ---------------------------------------------------- #
     for task in tasks:
         _log(f"generate {task.spec.path} ({task.index + 1}/{len(tasks)})")
-        raw = coder.generate(_generate_prompt(spec, task, written))
-        code = extract_code(raw)
+        code = _generate_file(coder, spec, task, written, candidates, toolchain)
         _write_file(out, task.spec.path, code)
         written[task.spec.path] = code
 
@@ -503,11 +556,16 @@ try:
         max_fix_rounds: int = typer.Option(
             4, "--max-fix-rounds", help="Max compile/fix iterations."
         ),
+        candidates: int = typer.Option(
+            1, "--candidates", help="Best-of-N per file: sample N, keep the first that parses."
+        ),
     ) -> None:
         """Generate a project from SPEC into OUT using a pluggable coder model."""
         spec_obj = Spec.from_yaml(spec)
         coder = OpenAICoder(model=model, base_url=base_url)
-        ok, _ = build(spec_obj, coder, out, max_fix_rounds=max_fix_rounds)
+        ok, _ = build(
+            spec_obj, coder, out, max_fix_rounds=max_fix_rounds, candidates=candidates
+        )
         if not ok:
             raise typer.Exit(code=1)
         typer.echo(f"Generated {spec_obj.name} into {out}")

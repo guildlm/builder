@@ -17,6 +17,7 @@ from src.builder import (
     GoToolchain,
     Spec,
     _fix_prompt,
+    _generate_file,
     _generate_prompt,
     build,
     extract_code,
@@ -275,3 +276,40 @@ def test_fix_prompt_normal_compile_error_has_no_import_rule():
     err = "./stringkit_test.go:10: Reverse redeclared in this block"
     prompt = _fix_prompt(_impl_task(), "package stringkit\n", err, None)
     assert "NOT in the Go standard library" not in prompt
+
+
+# --------------------------------------------------------------------------- #
+# Best-of-N generation (small-model leverage: reject candidates that don't parse)
+# --------------------------------------------------------------------------- #
+
+
+@requires_go
+def test_syntax_ok_accepts_valid_rejects_broken():
+    tc = GoToolchain()
+    assert tc.syntax_ok("package main\n\nfunc main() {}\n")
+    assert not tc.syntax_ok("package main\n\nfunc main( {\n")
+
+
+@requires_go
+def test_generate_file_best_of_n_keeps_first_parseable():
+    task = FileTask(index=1, spec=FileSpec(path="main.go", purpose="entry"))
+    coder = FakeCoder(
+        {
+            "main.go": [
+                "```go\npackage main\n\nfunc main( {\n```",  # broken: won't parse
+                "```go\npackage main\n\nfunc main() {}\n```",  # good
+            ]
+        }
+    )
+    code = _generate_file(coder, _sample_spec(), task, {}, candidates=2, toolchain=GoToolchain())
+    assert "func main() {}" in code
+    assert coder.calls.count("main.go") == 2  # it had to draw the second sample
+
+
+def test_generate_file_non_go_is_single_shot():
+    # go.mod isn't .go -> no syntax gate, first sample is used even with candidates=3.
+    task = FileTask(index=0, spec=FileSpec(path="go.mod", purpose="mod"))
+    coder = FakeCoder({"go.mod": ["```mod\nmodule x\n\ngo 1.23\n```"]})
+    code = _generate_file(coder, _sample_spec(), task, {}, candidates=3, toolchain=GoToolchain())
+    assert "module x" in code
+    assert coder.calls.count("go.mod") == 1
