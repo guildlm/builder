@@ -794,7 +794,24 @@ def _task_for(tasks: Sequence[FileTask], path: str) -> FileTask | None:
     return None
 
 
+def gofmt_code(code: str) -> str:
+    """Format Go source with gofmt; return the input unchanged if gofmt is
+    missing or can't parse it (so a syntactically-broken candidate still gets
+    written for the fix loop to repair). Canonicalising every file the way a real
+    Go developer would makes output idiomatic and keeps cross-file checks stable.
+    """
+    try:
+        proc = subprocess.run(
+            ["gofmt"], input=code, capture_output=True, text=True, timeout=20
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return code
+    return proc.stdout if proc.returncode == 0 and proc.stdout else code
+
+
 def _write_file(out: Path, rel_path: str, content: str) -> None:
+    if rel_path.endswith(".go"):
+        content = gofmt_code(content)
     dest = out / rel_path
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(content, encoding="utf-8")

@@ -24,6 +24,7 @@ from src.builder import (
     _review_pass,
     build,
     extract_code,
+    gofmt_code,
     nonstdlib_imports,
     plan,
     role_for_path,
@@ -310,6 +311,21 @@ def test_generate_file_best_of_n_keeps_first_parseable():
     code = _generate_file(coder, _sample_spec(), task, {}, candidates=2, toolchain=GoToolchain())
     assert "func main() {}" in code
     assert coder.calls.count("main.go") == 2  # it had to draw the second sample
+
+
+@requires_go
+def test_gofmt_code_formats_valid_go():
+    ugly = 'package main\nfunc main(){println( "x" )}\n'
+    out = gofmt_code(ugly)
+    # gofmt tabs the body and tightens the call — a real reformat happened.
+    assert "func main() {" in out
+    assert out != ugly
+
+
+@requires_go
+def test_gofmt_code_returns_input_when_unparseable():
+    broken = "package main\n\nfunc main( {\n"  # syntax error
+    assert gofmt_code(broken) == broken
 
 
 def test_nonstdlib_imports_detects_third_party():
