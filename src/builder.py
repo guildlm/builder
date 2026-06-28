@@ -252,6 +252,30 @@ class GoToolchain:
 def _generate_prompt(spec: Spec, task: FileTask, written: dict[str, str]) -> str:
     """Prompt for first-pass generation of one file."""
     context = _context_block(written)
+    reuse_rule = (
+        "The already-written files above are part of THIS SAME package. Every "
+        "function, type, constant and variable they declare already exists — "
+        "call and reference them directly. Do NOT redeclare or reimplement any "
+        "symbol that is already defined in those files (doing so is a Go "
+        "'redeclared in this block' compile error). This matters most for test "
+        "files: do not paste copies of the functions under test, just call "
+        "them.\n\n"
+        if written
+        else ""
+    )
+    # Test files are where models invent edge cases whose expected value
+    # contradicts the spec (e.g. asserting an emoji string is "not a palindrome"
+    # when the spec says only letters/digits count, so it filters to empty ->
+    # true). Anchor the test author to the spec's stated rules.
+    test_rule = (
+        "This is a TEST file. Derive every expected value strictly from the "
+        "behaviour described above for the functions under test — do not invent "
+        "edge cases whose expected result contradicts those stated rules. If you "
+        "are unsure what an exotic input (emoji, combining marks, mixed scripts) "
+        "should produce under the rules, omit that case rather than guess.\n\n"
+        if task.spec.path.endswith("_test.go")
+        else ""
+    )
     return (
         f"Project: {spec.name}\n"
         f"Language: {spec.language}\n"
@@ -261,23 +285,73 @@ def _generate_prompt(spec: Spec, task: FileTask, written: dict[str, str]) -> str
         f"Purpose of this file: {task.spec.purpose}\n\n"
         f"All files in this project:\n{_file_list(spec)}\n"
         f"{context}"
+        f"{reuse_rule}"
+        f"{test_rule}"
         f"Write the complete contents of {task.spec.path}. "
         f"Use only the Go standard library. Output one fenced ```go block."
     )
 
 
-def _fix_prompt(task: FileTask, current: str, error_output: str) -> str:
-    """Prompt asking the coder to repair one file given toolchain errors."""
+def _fix_prompt(
+    task: FileTask,
+    current: str,
+    error_output: str,
+    siblings: dict[str, str] | None = None,
+) -> str:
+    """Prompt asking the coder to repair one file given toolchain errors.
+
+    ``siblings`` are the project's other already-written files. Without them a
+    model cannot tell that a "redeclared in this block" error means *its own*
+    copy of a symbol is the duplicate to delete — it only sees the one file.
+    """
+    sibling_block = ""
+    others = {p: c for p, c in (siblings or {}).items() if p != task.spec.path}
+    if others:
+        parts = [
+            "--- other files in this package (they already exist; reference "
+            "their symbols, do not redeclare them) ---\n"
+        ]
+        for path, content in others.items():
+            parts.append(f"--- {path} ---\n{content}\n")
+        sibling_block = "".join(parts) + "\n"
+    # A failing assertion (the code compiled but a test's want != got) is a
+    # different bug from a compile error: often the implementation is correct
+    # per the spec and the TEST asserted a wrong expected value. Steer the fixer
+    # toward correcting the expectation instead of corrupting a correct impl.
+    is_assertion_failure = _is_test_failure(error_output)
+    assertion_rule = (
+        "This is a FAILING TEST ASSERTION, not a compile error — the code built "
+        "and ran. Decide which side is wrong against the behaviour described in "
+        "the spec: if the implementation already matches the spec's stated "
+        "rules, correct the test's expected value (do not change a "
+        "spec-correct implementation just to satisfy a wrong expectation). "
+        "Only change the implementation if it genuinely violates the spec.\n\n"
+        if is_assertion_failure
+        else ""
+    )
     return (
         f"TARGET_FILE: {task.spec.path}\n"
         f"Purpose: {task.spec.purpose}\n\n"
         f"The Go toolchain reported errors for the project. Fix this file so the "
         f"project builds, vets and tests cleanly. Keep the same package and "
-        f"public API unless the error requires a change.\n\n"
+        f"public API unless the error requires a change. If the error says "
+        f"'redeclared in this block', a symbol defined here already exists in "
+        f"one of the other files below — delete your duplicate and call the "
+        f"existing one instead.\n\n"
+        f"{assertion_rule}"
+        f"{sibling_block}"
         f"--- current {task.spec.path} ---\n{current}\n"
         f"--- toolchain output ---\n{error_output}\n\n"
         f"Output the corrected complete file as one fenced ```go block."
     )
+
+
+def _is_test_failure(error_output: str) -> bool:
+    """True when the output is a failing test (compiled, ran, assertion failed)
+    rather than a build/vet error. Test failures show go's ``--- FAIL`` marker;
+    compile errors do not.
+    """
+    return "--- FAIL" in error_output or "\n--- FAIL" in error_output
 
 
 def _file_list(spec: Spec) -> str:
@@ -357,7 +431,7 @@ def build(
             if task is None:
                 continue
             _log(f"  fixing {path}")
-            raw = coder.generate(_fix_prompt(task, written[path], output))
+            raw = coder.generate(_fix_prompt(task, written[path], output, written))
             code = extract_code(raw)
             _write_file(out, path, code)
             written[path] = code

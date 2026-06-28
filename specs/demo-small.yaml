@@ -1,0 +1,20 @@
+name: stringkit
+language: go
+go_module: guildlm.dev/stringkit
+description: >-
+  A tiny, idiomatic, stdlib-only Go package named "stringkit" with two functions
+  and table-driven tests. No external dependencies. All files use package stringkit.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/stringkit, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+  - path: stringkit.go
+    purpose: >-
+      package stringkit. Reverse(s string) string reverses by runes (Unicode-safe).
+      IsPalindrome(s string) bool reports whether s reads the same forwards and
+      backwards, considering only letters and digits and ignoring case.
+  - path: stringkit_test.go
+    purpose: >-
+      package stringkit. Table-driven tests for Reverse and IsPalindrome covering
+      ASCII, unicode, empty string, and a non-palindrome.
