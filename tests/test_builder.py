@@ -259,3 +259,19 @@ def test_fix_prompt_compile_error_has_no_assertion_rule():
     err = "./stringkit_test.go:10: Reverse redeclared in this block"
     prompt = _fix_prompt(_impl_task(), "package stringkit\n", err, None)
     assert "FAILING TEST ASSERTION" not in prompt
+
+
+def test_fix_prompt_missing_module_demands_stdlib_swap():
+    err = (
+        "handlers.go:8:2: no required module provides package "
+        "golang.org/x/net/http/httpguts; to add it:\n\tgo get golang.org/x/net/..."
+    )
+    prompt = _fix_prompt(_impl_task(), "package main\n", err, None)
+    assert "NOT in the Go standard library" in prompt
+    assert "Remove that import" in prompt
+
+
+def test_fix_prompt_normal_compile_error_has_no_import_rule():
+    err = "./stringkit_test.go:10: Reverse redeclared in this block"
+    prompt = _fix_prompt(_impl_task(), "package stringkit\n", err, None)
+    assert "NOT in the Go standard library" not in prompt

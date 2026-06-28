@@ -329,6 +329,17 @@ def _fix_prompt(
         if is_assertion_failure
         else ""
     )
+    # A missing-module error means the model reached for a third-party import
+    # (e.g. golang.org/x/...) the spec forbids. The fixer otherwise loops
+    # forever re-adding it, so call it out explicitly and demand a stdlib swap.
+    import_rule = (
+        "This file imports a package that is NOT in the Go standard library, "
+        "which the spec forbids — there are no external dependencies. Remove "
+        "that import entirely and reimplement what you needed with the standard "
+        "library only (do not run `go get`).\n\n"
+        if _is_missing_module(error_output)
+        else ""
+    )
     return (
         f"TARGET_FILE: {task.spec.path}\n"
         f"Purpose: {task.spec.purpose}\n\n"
@@ -338,6 +349,7 @@ def _fix_prompt(
         f"'redeclared in this block', a symbol defined here already exists in "
         f"one of the other files below — delete your duplicate and call the "
         f"existing one instead.\n\n"
+        f"{import_rule}"
         f"{assertion_rule}"
         f"{sibling_block}"
         f"--- current {task.spec.path} ---\n{current}\n"
@@ -352,6 +364,14 @@ def _is_test_failure(error_output: str) -> bool:
     compile errors do not.
     """
     return "--- FAIL" in error_output or "\n--- FAIL" in error_output
+
+
+def _is_missing_module(error_output: str) -> bool:
+    """True when the build failed because a file imports a non-stdlib package
+    the module does not provide — go prints ``no required module provides
+    package``. The coder loops re-adding such imports unless told to drop them.
+    """
+    return "no required module provides package" in error_output
 
 
 def _file_list(spec: Spec) -> str:
