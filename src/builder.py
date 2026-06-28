@@ -111,6 +111,26 @@ def extract_code(model_output: str) -> str:
     return model_output.strip("\n") + "\n"
 
 
+_IMPORT_BLOCK_RE = re.compile(r"import\s*\((.*?)\)", re.DOTALL)
+_IMPORT_SINGLE_RE = re.compile(r'import\s+(?:[\w.]+\s+)?"([^"]+)"')
+_QUOTED_RE = re.compile(r'"([^"]+)"')
+
+
+def nonstdlib_imports(code: str) -> list[str]:
+    """Return the import paths in *code* that are NOT standard library.
+
+    A stdlib import path's first segment has no dot (``fmt``, ``net/http``); a
+    third-party one carries a domain (``github.com/...``, ``golang.org/x/...``).
+    Used to reject best-of-N candidates that reach for an external dependency the
+    Builder forbids (small coders love to import ``gorilla/mux`` for a router).
+    """
+    paths: list[str] = []
+    for block in _IMPORT_BLOCK_RE.findall(code):
+        paths.extend(_QUOTED_RE.findall(block))
+    paths.extend(_IMPORT_SINGLE_RE.findall(code))
+    return [p for p in paths if "." in p.split("/")[0]]
+
+
 # --------------------------------------------------------------------------- #
 # Coder protocol + implementations
 # --------------------------------------------------------------------------- #
@@ -560,11 +580,13 @@ def _generate_file(
     last = ""
     for attempt in range(max(1, candidates)):
         last = extract_code(coder.generate(prompt))
-        if not is_go or toolchain.syntax_ok(last):
+        # A good Go candidate parses AND imports only the standard library (the
+        # Builder forbids external deps). Reject the rest during best-of-N.
+        if not is_go or (toolchain.syntax_ok(last) and not nonstdlib_imports(last)):
             if attempt:
                 _log(f"    best-of-N: kept candidate {attempt + 1}")
             return last
-    _log(f"    best-of-N: no candidate parsed; using last of {candidates}")
+    _log(f"    best-of-N: no clean candidate; using last of {candidates}")
     return last
 
 

@@ -24,6 +24,7 @@ from src.builder import (
     _review_pass,
     build,
     extract_code,
+    nonstdlib_imports,
     plan,
     role_for_path,
 )
@@ -308,6 +309,34 @@ def test_generate_file_best_of_n_keeps_first_parseable():
     code = _generate_file(coder, _sample_spec(), task, {}, candidates=2, toolchain=GoToolchain())
     assert "func main() {}" in code
     assert coder.calls.count("main.go") == 2  # it had to draw the second sample
+
+
+def test_nonstdlib_imports_detects_third_party():
+    block = (
+        "package main\n\nimport (\n\t\"fmt\"\n\t\"net/http\"\n"
+        "\t\"github.com/gorilla/mux\"\n)\n"
+    )
+    assert nonstdlib_imports(block) == ["github.com/gorilla/mux"]
+    single = 'package main\n\nimport "golang.org/x/net/http/httpguts"\n'
+    assert nonstdlib_imports(single) == ["golang.org/x/net/http/httpguts"]
+    stdlib = "package main\n\nimport (\n\t\"fmt\"\n\t\"encoding/json\"\n)\n"
+    assert nonstdlib_imports(stdlib) == []
+
+
+@requires_go
+def test_best_of_n_rejects_nonstdlib_candidate():
+    task = FileTask(index=1, spec=FileSpec(path="main.go", purpose="entry"))
+    coder = FakeCoder(
+        {
+            "main.go": [
+                '```go\npackage main\nimport "github.com/gorilla/mux"\nvar _ = mux.NewRouter\n```',
+                "```go\npackage main\n\nimport \"net/http\"\n\nvar _ = http.NewServeMux\n```",
+            ]
+        }
+    )
+    code = _generate_file(coder, _sample_spec(), task, {}, candidates=2, toolchain=GoToolchain())
+    assert "net/http" in code and "gorilla/mux" not in code
+    assert coder.calls.count("main.go") == 2
 
 
 def test_generate_file_non_go_is_single_shot():
