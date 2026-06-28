@@ -15,6 +15,7 @@ from src.builder import (
     FileSpec,
     FileTask,
     GoToolchain,
+    RoleRoutingCoder,
     Spec,
     _fix_prompt,
     _generate_file,
@@ -22,6 +23,7 @@ from src.builder import (
     build,
     extract_code,
     plan,
+    role_for_path,
 )
 
 GO = shutil.which("go")
@@ -313,3 +315,42 @@ def test_generate_file_non_go_is_single_shot():
     code = _generate_file(coder, _sample_spec(), task, {}, candidates=3, toolchain=GoToolchain())
     assert "module x" in code
     assert coder.calls.count("go.mod") == 1
+
+
+# --------------------------------------------------------------------------- #
+# Role routing — the guild splits work between dev and test specialists
+# --------------------------------------------------------------------------- #
+
+
+def test_role_for_path():
+    assert role_for_path("store.go") == "dev"
+    assert role_for_path("main.go") == "dev"
+    assert role_for_path("go.mod") == "dev"
+    assert role_for_path("store_test.go") == "test"
+    assert role_for_path("handlers_test.go") == "test"
+
+
+class _TagCoder:
+    """Minimal Coder that returns its own tag, to prove which one was called."""
+
+    def __init__(self, tag):
+        self.tag = tag
+        self.seen = []
+
+    def generate(self, prompt):
+        self.seen.append(prompt)
+        return self.tag
+
+
+def test_role_routing_dispatches_test_files_to_test_specialist():
+    dev, test = _TagCoder("DEV"), _TagCoder("TEST")
+    coder = RoleRoutingCoder({"dev": dev, "test": test})
+    assert coder.generate("TARGET_FILE: store.go\n...") == "DEV"
+    assert coder.generate("TARGET_FILE: store_test.go\n...") == "TEST"
+    assert coder.generate("TARGET_FILE: go.mod\n...") == "DEV"
+
+
+def test_role_routing_falls_back_to_default_when_role_absent():
+    dev = _TagCoder("DEV")
+    coder = RoleRoutingCoder({"dev": dev})  # no test specialist registered
+    assert coder.generate("TARGET_FILE: store_test.go\n...") == "DEV"

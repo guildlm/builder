@@ -195,6 +195,37 @@ class FakeCoder:
         return match.group(1) if match else "?"
 
 
+def role_for_path(path: str) -> str:
+    """Which Go specialist owns a file: ``test`` for ``*_test.go``, else ``dev``.
+
+    This is the routing key for the guild — implementation files go to the Go
+    *development* specialist, test files to the Go *test* specialist.
+    """
+    return "test" if path.endswith("_test.go") else "dev"
+
+
+class RoleRoutingCoder:
+    """Dispatch each file to the specialist trained for its role.
+
+    The guild working together instead of one generalist: ``_test.go`` files are
+    generated/fixed by the Go *test* specialist, everything else by the Go
+    *development* specialist. Each role is any ``Coder`` (typically an
+    ``OpenAICoder`` pointed at a different Ollama model / adapter). Backward
+    compatible — give it one role and it behaves exactly like that coder.
+    """
+
+    def __init__(self, by_role: dict[str, "Coder"], default: "Coder | None" = None) -> None:
+        if not by_role:
+            raise ValueError("RoleRoutingCoder needs at least one role")
+        self._by_role = dict(by_role)
+        self._default = default or by_role.get("dev") or next(iter(by_role.values()))
+
+    def generate(self, prompt: str) -> str:
+        match = re.search(r"TARGET_FILE:\s*(\S+)", prompt)
+        role = role_for_path(match.group(1) if match else "")
+        return self._by_role.get(role, self._default).generate(prompt)
+
+
 # --------------------------------------------------------------------------- #
 # Go toolchain wrapper (the compile/test feedback)
 # --------------------------------------------------------------------------- #
@@ -559,10 +590,23 @@ try:
         candidates: int = typer.Option(
             1, "--candidates", help="Best-of-N per file: sample N, keep the first that parses."
         ),
+        test_model: str = typer.Option(
+            None, "--test-model", help="Route *_test.go files to this (Go test) specialist model."
+        ),
+        test_base_url: str = typer.Option(
+            None, "--test-base-url", help="Base URL for --test-model (defaults to --base-url)."
+        ),
     ) -> None:
         """Generate a project from SPEC into OUT using a pluggable coder model."""
         spec_obj = Spec.from_yaml(spec)
-        coder = OpenAICoder(model=model, base_url=base_url)
+        dev_coder = OpenAICoder(model=model, base_url=base_url)
+        if test_model:
+            # The guild splits work: dev specialist writes impl, test specialist
+            # writes the tests.
+            test_coder = OpenAICoder(model=test_model, base_url=test_base_url or base_url)
+            coder: Coder = RoleRoutingCoder({"dev": dev_coder, "test": test_coder})
+        else:
+            coder = dev_coder
         ok, _ = build(
             spec_obj, coder, out, max_fix_rounds=max_fix_rounds, candidates=candidates
         )
