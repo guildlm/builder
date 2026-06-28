@@ -22,11 +22,32 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import socket
 import subprocess
 import sys
 import time
+
+_ASSERTION_RE = re.compile(r"\bt\.(?:Error|Errorf|Fatal|Fatalf|Fail|FailNow)\b")
+
+
+def _trivial_test_files(project: str) -> list[str]:
+    """*_test.go files that pass without asserting anything — a green build can
+    lie if its tests never call t.Error/t.Fatal/… so we surface them."""
+    trivial = []
+    for dirpath, _dirs, files in os.walk(project):
+        for f in files:
+            if not f.endswith("_test.go"):
+                continue
+            try:
+                with open(os.path.join(dirpath, f), encoding="utf-8") as fh:
+                    code = fh.read()
+            except OSError:
+                continue
+            if "func Test" in code and not _ASSERTION_RE.search(code):
+                trivial.append(os.path.relpath(os.path.join(dirpath, f), project))
+    return trivial
 
 
 def _go(args: list[str], cwd: str, timeout: int = 120) -> tuple[bool, str]:
@@ -122,6 +143,11 @@ def score(project: str, smoke: str | None) -> dict:
     res["stages"]["vet"] = {"ok": vets, "detail": "" if vets else v_out[:300]}
 
     tests, t_out = _go(["test", "./..."], project) if builds else (False, "skipped (build failed)")
+    # A green test run that asserts nothing is not real coverage — don't credit it.
+    trivial = _trivial_test_files(project) if tests else []
+    if trivial:
+        tests = False
+        t_out = f"tests pass but assert nothing (trivial): {', '.join(trivial)}"
     res["stages"]["test"] = {"ok": tests, "detail": t_out[:300]}
 
     res["score"] = int(builds) + int(vets) + int(tests)
