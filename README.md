@@ -29,6 +29,33 @@ GuildLM is a system for building specialist SLMs — `forge` (data), `anvil`
 (training), `crucible` (eval / Go sandbox), `brain` (router). The Builder is the
 front end that points such a coder model at a whole backend project.
 
+## Capability = model × algorithm
+
+The lever for "a small model writes big backends" is the **algorithm around the
+model**, not raw parameter count. The Builder stacks the techniques that make a
+narrow 7–14B Go specialist punch above a big general model:
+
+- **Retrieval-grounded generation** (`--examples` / `--shots`) — show the coder
+  the top-N *compile-verified* examples most similar to the file it's writing
+  (offline Jaccard few-shot over the teacher dataset). Known-good Go in, idiomatic
+  Go out.
+- **Best-of-N rejection sampling** (`--candidates N`) — draw N samples per file,
+  keep the first that `gofmt`-parses. Turns a small model's variance into a
+  quality lift instead of a failed build.
+- **Verification loop** — `go build`/`vet`/`test` as ground-truth reward; targeted
+  fixes fed back until green.
+- **Role routing** (`--test-model`) — the guild splits the work: the Go *dev*
+  specialist writes implementation files, the Go *test* specialist writes
+  `_test.go`. Each role is its own model/adapter.
+- **Non-regressing review pass** (`--review-model`) — after green, the Go *review*
+  specialist hunts for semantic bugs a green build hides (off-by-one, wrong status
+  code, ignored error). An edit is kept only if the project stays green — review
+  can help, never hurt.
+
+Measure it at the level that matters with [`score_backend.py`](score_backend.py):
+a whole generated backend scored `build + vet + test + server-runs` (0..4) by the
+real toolchain — so you compare coders on *working backends*, not toy functions.
+
 ## Two parts
 
 | Part | Path | What |
@@ -64,6 +91,18 @@ Configuration knobs (CLI flags override env):
 | `GUILDLM_BUILDER_MODEL` | `--model` | `guildlm-go` |
 | `GUILDLM_BUILDER_API_KEY` | — | `ollama` |
 | — | `--max-fix-rounds` | `4` |
+| — | `--candidates` (best-of-N per file) | `1` |
+| — | `--examples` / `--shots` (retrieval few-shot) | — / `2` |
+| — | `--test-model` (route `_test.go` to a test specialist) | — |
+| — | `--review-model` (non-regressing review pass) | — |
+
+The full guild stack on one spec:
+
+```sh
+.venv/bin/guildlm-build --spec specs/tasks-api.yaml --out ./generated \
+  --model guildlm-go-dev --test-model guildlm-go-test --review-model guildlm-go-review \
+  --candidates 2 --examples ../guild-code/go/datasets/specialists/code_guild_go_dev/code_guild_go_dev.train.jsonl --shots 2
+```
 
 ### See the quality target
 
@@ -84,9 +123,17 @@ coder, run through the loop, regenerates something equivalent.
   output, or takes the whole text if it is already code.
 - **`GoToolchain`** — runs the real `go build` / `vet` / `test` via subprocess
   and returns `(ok, combined_output)`. This is the feedback signal.
-- **`build()`** — the loop: generate every file, run the toolchain, and on
-  failure send the offending file(s) back to the coder with the error output for
-  a targeted fix, re-running until green or `max_fix_rounds` is hit.
+- **`build()`** — the loop: generate every file (retrieval-grounded, best-of-N),
+  run the toolchain, and on failure send the offending file(s) back to the coder
+  with the error output for a targeted fix, re-running until green or
+  `max_fix_rounds` is hit; then an optional review pass.
+- **`Retriever`** — offline Jaccard few-shot over a JSONL of verified examples;
+  grounds each file's generation in similar known-good Go.
+- **`RoleRoutingCoder` / `role_for_path`** — dispatch each file to its specialist
+  (`_test.go` → test model, else dev model).
+- **review pass** — after green, the review specialist proposes bug fixes that are
+  applied only if the project stays green (`reviewer=`, `--review-model`).
+- **`score_backend.py`** — project-level objective score (`build+vet+test+run`).
 
 ## Develop / test
 
