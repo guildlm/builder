@@ -568,16 +568,33 @@ def top_level_decls(code: str) -> set[str]:
     return names
 
 
+_ASSERTION_RE = re.compile(r"\bt\.(?:Error|Errorf|Fatal|Fatalf|Fail|FailNow)\b")
+
+
+def has_assertions(code: str) -> bool:
+    """True if a Go test file contains at least one failing assertion. A test
+    with no ``t.Error``/``t.Fatal``/… can pass trivially without testing
+    anything, so we reject such candidates during best-of-N for *_test.go files."""
+    return bool(_ASSERTION_RE.search(code))
+
+
 def _is_clean(
-    code: str, is_go: bool, toolchain: GoToolchain, sibling_decls: set[str] | None = None
+    code: str,
+    is_go: bool,
+    toolchain: GoToolchain,
+    sibling_decls: set[str] | None = None,
+    require_assertions: bool = False,
 ) -> bool:
-    """A clean Go candidate parses, imports only the standard library, and does
-    not redeclare a package-level symbol that already lives in a sibling file."""
+    """A clean Go candidate parses, imports only the standard library, does not
+    redeclare a sibling's package-level symbol, and — for test files — actually
+    asserts something."""
     if not is_go:
         return True
     if not toolchain.syntax_ok(code) or nonstdlib_imports(code):
         return False
     if sibling_decls and (top_level_decls(code) & sibling_decls):
+        return False
+    if require_assertions and not has_assertions(code):
         return False
     return True
 
@@ -590,17 +607,19 @@ def _sample_clean(
     toolchain: GoToolchain,
     what: str,
     sibling_decls: set[str] | None = None,
+    require_assertions: bool = False,
 ) -> str:
     """Draw up to ``candidates`` samples; keep the first clean one (parses,
-    stdlib-only, no cross-file redeclaration). Used for BOTH generation and
-    fixes, so a stubborn small model that re-adds a forbidden import (gorilla/mux)
-    or crams a sibling's types into this file gets resampled instead of poisoning
-    the build. Falls back to the last sample so progress never stalls.
+    stdlib-only, no cross-file redeclaration, and — for test files — actually
+    asserts something). Used for BOTH generation and fixes, so a stubborn small
+    model that re-adds a forbidden import (gorilla/mux), crams a sibling's types
+    into this file, or writes a trivially-passing test gets resampled instead of
+    poisoning the build. Falls back to the last sample so progress never stalls.
     """
     last = ""
     for attempt in range(max(1, candidates)):
         last = extract_code(coder.generate(prompt))
-        if _is_clean(last, is_go, toolchain, sibling_decls):
+        if _is_clean(last, is_go, toolchain, sibling_decls, require_assertions):
             if attempt:
                 _log(f"    best-of-N {what}: kept candidate {attempt + 1}")
             return last
@@ -643,7 +662,10 @@ def _generate_file(
     sibling_decls: set[str] = set()
     for content in written.values():
         sibling_decls |= top_level_decls(content)
-    return _sample_clean(coder, prompt, is_go, candidates, toolchain, "gen", sibling_decls)
+    is_test = task.spec.path.endswith("_test.go")
+    return _sample_clean(
+        coder, prompt, is_go, candidates, toolchain, "gen", sibling_decls, is_test
+    )
 
 
 def build(
@@ -712,7 +734,8 @@ def build(
                 if other != path:
                     sibling_decls |= top_level_decls(content)
             code = _sample_clean(
-                coder, fix_prompt, path.endswith(".go"), candidates, toolchain, "fix", sibling_decls
+                coder, fix_prompt, path.endswith(".go"), candidates, toolchain, "fix",
+                sibling_decls, path.endswith("_test.go"),
             )
             _write_file(out, path, code)
             written[path] = code

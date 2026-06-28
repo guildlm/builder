@@ -25,6 +25,7 @@ from src.builder import (
     build,
     extract_code,
     gofmt_code,
+    has_assertions,
     nonstdlib_imports,
     plan,
     role_for_path,
@@ -311,6 +312,29 @@ def test_generate_file_best_of_n_keeps_first_parseable():
     code = _generate_file(coder, _sample_spec(), task, {}, candidates=2, toolchain=GoToolchain())
     assert "func main() {}" in code
     assert coder.calls.count("main.go") == 2  # it had to draw the second sample
+
+
+def test_has_assertions():
+    real = "package p\nimport \"testing\"\nfunc TestX(t *testing.T){ if 1!=2 { t.Errorf(\"x\") } }\n"
+    trivial = "package p\nimport \"testing\"\nfunc TestX(t *testing.T){ _ = 1 }\n"
+    assert has_assertions(real)
+    assert not has_assertions(trivial)
+
+
+@requires_go
+def test_best_of_n_rejects_trivial_test():
+    task = FileTask(index=2, spec=FileSpec(path="x_test.go", purpose="tests"))
+    coder = FakeCoder(
+        {
+            "x_test.go": [
+                "```go\npackage p\nimport \"testing\"\nfunc TestX(t *testing.T) { _ = 1 }\n```",  # trivial
+                "```go\npackage p\nimport \"testing\"\nfunc TestX(t *testing.T) { if 1 != 1 { t.Fatal(\"x\") } }\n```",  # asserts
+            ]
+        }
+    )
+    code = _generate_file(coder, _sample_spec(), task, {}, candidates=2, toolchain=GoToolchain())
+    assert "t.Fatal" in code  # kept the asserting candidate
+    assert coder.calls.count("x_test.go") == 2
 
 
 @requires_go
