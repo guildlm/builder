@@ -32,7 +32,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from src.builder import (  # noqa: E402
-    GoToolchain, OpenAICoder, maintain, has_assertions, extract_code,
+    GoToolchain, OpenAICoder, maintain, write_tests, extract_code,
 )
 
 _ASSERT = re.compile(r"\bt\.(Error|Errorf|Fatal|Fatalf)\b")
@@ -93,35 +93,19 @@ def bench_review(proj, review_coder) -> bool:
     return any(k in out for k in kws)
 
 
-def bench_test(proj, test_coder, toolchain) -> bool:
+def bench_test(proj, test_coder, toolchain, candidates, max_fix_rounds) -> bool:
+    """Strip the project's own tests, then have go-test write fresh tests for the
+    package — through the verify/repair loop (write_tests), not single-shot. Score
+    1 iff the project (impl + the new tests) is green: tests compile, assert, pass."""
     with tempfile.TemporaryDirectory() as d:
         dd = Path(d)
-        # copy impl only (strip existing tests)
         for p in proj["dir"].rglob("*"):
             if p.is_file() and (p.name == "go.mod" or (p.suffix == ".go" and not p.name.endswith("_test.go"))):
                 q = dd / p.relative_to(proj["dir"])
                 q.parent.mkdir(parents=True, exist_ok=True)
                 q.write_text(p.read_text())
-        # pick the package name from any impl file
-        pkg = "main"
-        for p in dd.rglob("*.go"):
-            m = re.search(r"^package\s+(\w+)", p.read_text(), re.MULTILINE)
-            if m:
-                pkg = m.group(1)
-                break
-        listing = "".join(f"--- {p.relative_to(dd)} ---\n{p.read_text()}\n" for p in sorted(dd.rglob("*.go")))
-        prompt = (
-            f"Write a thorough table-driven Go test (package {pkg}) for this project. "
-            f"Cover the exported behaviour and edge cases with real t.Error/t.Fatal "
-            f"assertions. Standard library only.\n\n{listing}\n"
-            f"Output one complete _test.go file as a single ```go block."
-        )
-        test_code = extract_code(test_coder.generate(prompt))
-        if not _ASSERT.search(test_code):
-            return False
-        (dd / "guild_bench_test.go").write_text(test_code)
-        green, _ = toolchain.check(dd)
-        return bool(green)
+        ok, _ = write_tests(dd, test_coder, toolchain=toolchain, candidates=candidates, max_fix_rounds=max_fix_rounds)
+        return bool(ok)
 
 
 def main(argv):
@@ -160,7 +144,7 @@ def main(argv):
             score["review"] += ok
             row.append(("+" if ok else "-") + "review")
         if "test" in caps:
-            ok = bench_test(proj, test, toolchain)
+            ok = bench_test(proj, test, toolchain, args.candidates, args.max_fix_rounds)
             score["test"] += ok
             row.append(("+" if ok else "-") + "test")
         print(f"  {name:28s} {' '.join(row)}")

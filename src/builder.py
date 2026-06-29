@@ -959,6 +959,62 @@ def maintain(
     return False, current
 
 
+def _pkg_of(files: dict[str, str]) -> str:
+    """The package name declared by the project's Go files (default 'main')."""
+    for content in files.values():
+        m = re.search(r"^package\s+(\w+)", content, re.MULTILINE)
+        if m:
+            return m.group(1)
+    return "main"
+
+
+def write_tests(
+    project_dir: str | Path,
+    coder: Coder,
+    toolchain: GoToolchain | None = None,
+    candidates: int = 1,
+    max_fix_rounds: int = 4,
+    test_filename: str = "guild_test.go",
+) -> tuple[bool, str]:
+    """Write tests for an EXISTING project — the 'test large projects' capability.
+
+    Generate a ``_test.go`` for the package with the whole project as context,
+    then converge it to green with the same verification/repair loop that backs
+    generation — so a test that doesn't compile or asserts a wrong expectation is
+    repaired rather than discarded. Returns ``(ok, test_content)``.
+    """
+    out = Path(project_dir)
+    toolchain = toolchain or GoToolchain()
+    current = _load_project(out)
+    impl = {p: c for p, c in current.items() if not (p.endswith("_test.go"))}
+    if not any(p.endswith(".go") for p in impl):
+        raise ValueError(f"no Go implementation files in {project_dir}")
+    pkg = _pkg_of(impl)
+    sibling_decls: set[str] = set()
+    for p, c in impl.items():
+        if p.endswith(".go"):
+            sibling_decls |= top_level_decls(c)
+    prompt = (
+        f"TARGET_FILE: {test_filename}\n"
+        f"Write a thorough, table-driven Go test in package {pkg} for this existing "
+        f"project. Exercise the exported behaviour and edge cases with REAL "
+        f"t.Error/t.Fatal assertions. Standard library only; do not redeclare any "
+        f"symbol that already exists in the project.\n\n{_project_listing(impl)}\n"
+        f"Output one complete {test_filename} as a single ```go block."
+    )
+    code = _sample_clean(
+        coder, prompt, True, candidates, toolchain, "test", sibling_decls, True
+    )
+    _write_file(out, test_filename, code)
+    current[test_filename] = code
+    tasks = [
+        FileTask(index=i, spec=FileSpec(path=p, purpose="tests for an existing project"))
+        for i, p in enumerate(current)
+    ]
+    ok = _fix_loop(tasks, current, out, toolchain, coder, max_fix_rounds, candidates)
+    return ok, current.get(test_filename, code)
+
+
 _REVIEW_CLEAN = "CLEAN"
 
 
