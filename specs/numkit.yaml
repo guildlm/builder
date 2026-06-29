@@ -1,0 +1,27 @@
+name: numkit
+language: go
+go_module: guildlm.dev/numkit
+description: >-
+  A tiny, idiomatic, stdlib-only Go package named "numkit" with two pure
+  integer functions and table-driven tests. No external dependencies, no
+  unicode. All files use package numkit. Ground-truth values are plain
+  arithmetic the tests can state exactly.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/numkit, go 1.23. No dependencies.
+      Output as a ```mod block, not Go.
+  - path: numkit.go
+    purpose: >-
+      package numkit. GCD(a, b int) int returns the greatest common divisor of
+      the absolute values of a and b using the Euclidean algorithm; GCD(0,0) is
+      0. Clamp(x, lo, hi int) int returns x bounded to the inclusive range
+      [lo, hi]; if lo > hi the function returns x unchanged.
+  - path: numkit_test.go
+    purpose: >-
+      package numkit. Table-driven tests for GCD and Clamp covering: GCD of
+      coprime numbers (GCD(8,15)=1), a common factor (GCD(12,18)=6), a zero
+      operand (GCD(0,5)=5), and negatives (GCD(-12,18)=6); Clamp below range
+      (Clamp(-1,0,10)=0), inside range (Clamp(5,0,10)=5), above range
+      (Clamp(99,0,10)=10), and inverted bounds returning x unchanged
+      (Clamp(7,10,0)=7).

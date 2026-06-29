@@ -18,6 +18,7 @@ import dataclasses
 import json
 import os
 import re
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -628,6 +629,53 @@ def _sample_clean(
     return last
 
 
+def _sample_verified_fix(
+    coder: Coder,
+    prompt: str,
+    path: str,
+    out: Path,
+    written: dict[str, str],
+    candidates: int,
+    toolchain: GoToolchain,
+    sibling_decls: set[str] | None = None,
+    is_test: bool = False,
+) -> str:
+    """Fix-loop best-of-N with a GROUND-TRUTH gate: sample up to ``candidates``
+    repairs, write each in place, and keep the first that makes the *whole
+    project* build, vet and test cleanly. Falls back to the best parse-clean
+    candidate (then the last sample) so a round always makes progress.
+
+    This is verification-driven *selection* — the very ``go`` feedback the loop
+    already trusts, applied at candidate-pick time rather than only after. A
+    stubborn small model that keeps re-emitting the same wrong test expectation
+    (it can't see why `want` is wrong) gets out-voted by the one sampled
+    candidate that actually goes green, instead of the loop keeping whichever
+    parses. Most decisive when a single file is the culprit — exactly when the
+    parse-only gate is blindest.
+    """
+    is_go = path.endswith(".go")
+    best_clean: str | None = None
+    last = written.get(path, "")
+    for attempt in range(max(1, candidates)):
+        cand = extract_code(coder.generate(prompt))
+        last = cand
+        if not _is_clean(cand, is_go, toolchain, sibling_decls, is_test):
+            continue
+        if best_clean is None:
+            best_clean = cand
+        _write_file(out, path, cand)
+        written[path] = cand
+        ok, _ = toolchain.check(out)
+        if ok:
+            if attempt:
+                _log(f"    verified fix: candidate {attempt + 1} turns the project green")
+            return cand
+    chosen = best_clean if best_clean is not None else last
+    _write_file(out, path, chosen)
+    written[path] = chosen
+    return chosen
+
+
 def _generate_file(
     coder: Coder,
     spec: Spec,
@@ -733,12 +781,20 @@ def build(
             for other, content in written.items():
                 if other != path:
                     sibling_decls |= top_level_decls(content)
-            code = _sample_clean(
-                coder, fix_prompt, path.endswith(".go"), candidates, toolchain, "fix",
-                sibling_decls, path.endswith("_test.go"),
-            )
-            _write_file(out, path, code)
-            written[path] = code
+            if candidates > 1:
+                # Ground-truth-gated selection: keep the repair that actually
+                # makes `go build/vet/test` pass, not just the one that parses.
+                code = _sample_verified_fix(
+                    coder, fix_prompt, path, out, written, candidates, toolchain,
+                    sibling_decls, path.endswith("_test.go"),
+                )
+            else:
+                code = _sample_clean(
+                    coder, fix_prompt, path.endswith(".go"), candidates, toolchain,
+                    "fix", sibling_decls, path.endswith("_test.go"),
+                )
+                _write_file(out, path, code)
+                written[path] = code
 
         ok, output = toolchain.check(out)
         if ok:
@@ -817,15 +873,39 @@ def _task_for(tasks: Sequence[FileTask], path: str) -> FileTask | None:
     return None
 
 
+def _goimports_bin() -> str | None:
+    """Resolve a ``goimports`` binary: PATH first, then $GOPATH/bin and $GOROOT/bin
+    (where ``go install golang.org/x/tools/cmd/goimports`` puts it but which may not
+    be on PATH). Returns None if unavailable."""
+    found = shutil.which("goimports")
+    if found:
+        return found
+    for var in ("GOPATH", "GOROOT"):
+        try:
+            root = subprocess.run(
+                ["go", "env", var], capture_output=True, text=True, timeout=10
+            ).stdout.strip()
+        except (FileNotFoundError, subprocess.TimeoutExpired):
+            continue
+        if root:
+            cand = os.path.join(root, "bin", "goimports")
+            if os.path.exists(cand):
+                return cand
+    return None
+
+
 def gofmt_code(code: str) -> str:
-    """Format Go source with gofmt; return the input unchanged if gofmt is
-    missing or can't parse it (so a syntactically-broken candidate still gets
-    written for the fix loop to repair). Canonicalising every file the way a real
-    Go developer would makes output idiomatic and keeps cross-file checks stable.
+    """Canonicalise Go source. Prefer ``goimports`` — it formats like gofmt AND
+    deterministically removes unused imports / adds missing ones, which fixes the
+    single most common small-model failure (a dead ``import`` that blocks compile)
+    without burning a model fix-round. Falls back to ``gofmt`` when goimports is
+    absent, and returns the input unchanged if neither can parse it (so a
+    syntactically-broken candidate still gets written for the fix loop to repair).
     """
+    tool = _goimports_bin() or "gofmt"
     try:
         proc = subprocess.run(
-            ["gofmt"], input=code, capture_output=True, text=True, timeout=20
+            [tool], input=code, capture_output=True, text=True, timeout=20
         )
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return code

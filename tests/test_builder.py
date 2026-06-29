@@ -127,6 +127,9 @@ GO_MOD = "module example.com/demo\n\ngo 1.23\n"
 GOOD_GO = "package main\n\nfunc main() {\n\tprintln(\"ok\")\n}\n"
 # `x` is declared and not used -> a real compile error referencing main.go.
 BAD_GO = "package main\n\nfunc main() {\n\tx := 1\n}\n"
+# Parses cleanly (gofmt-valid) but `go build` fails: undefinedSym is not declared.
+# Used to prove verified fix-selection rejects a candidate that merely PARSES.
+BAD_PARSES_GO = "package main\n\nfunc main() {\n\tprintln(undefinedSym)\n}\n"
 
 
 @requires_go
@@ -350,6 +353,45 @@ def test_gofmt_code_formats_valid_go():
 def test_gofmt_code_returns_input_when_unparseable():
     broken = "package main\n\nfunc main( {\n"  # syntax error
     assert gofmt_code(broken) == broken
+
+
+def test_gofmt_code_removes_unused_import_when_goimports_available():
+    # The single most common small-model failure: a dead import that blocks the
+    # whole compile. goimports prunes it deterministically, no model fix-round.
+    from src.builder import _goimports_bin
+
+    if _goimports_bin() is None:
+        pytest.skip("goimports not installed")
+    src = (
+        'package x\n\nimport (\n\t"testing"\n\t"unicode"\n)\n\n'
+        'func TestA(t *testing.T) {\n\tif 1 != 1 {\n\t\tt.Fatal("x")\n\t}\n}\n'
+    )
+    out = gofmt_code(src)
+    assert '"unicode"' not in out  # the dead import is pruned
+    assert '"testing"' in out  # the used import is kept
+
+
+@requires_go
+def test_verified_fix_selection_prefers_green_candidate(tmp_path):
+    """Fix loop with candidates>1: a repair that merely PARSES but still fails
+    `go build` must lose to a later candidate that actually goes green. Parse-only
+    best-of-N would have kept the first (parsing-but-broken) candidate."""
+    spec = _sample_spec()
+    coder = FakeCoder(
+        {
+            "go.mod": [f"```mod\n{GO_MOD}```"],
+            "main.go": [
+                f"```go\n{BAD_GO}```",  # generation: unused var -> build fails
+                f"```go\n{BAD_PARSES_GO}```",  # fix cand 1: parses, undefined sym -> build fails
+                f"```go\n{GOOD_GO}```",  # fix cand 2: green
+            ],
+        }
+    )
+    ok, _files = build(spec, coder, tmp_path, max_fix_rounds=2, candidates=2)
+    assert ok, "loop should converge using the green candidate"
+    assert (tmp_path / "main.go").read_text() == GOOD_GO  # the green candidate won
+    # main.go: 1 generation call + 2 fix candidates sampled in round 1.
+    assert coder.calls.count("main.go") == 3
 
 
 def test_nonstdlib_imports_detects_third_party():
