@@ -1,0 +1,32 @@
+name: kvservice
+language: go
+go_module: guildlm.dev/kvservice
+description: >-
+  A small, idiomatic, STANDARD-LIBRARY-ONLY HTTP key/value service. No external
+  dependencies whatsoever — use net/http and its ServeMux for routing, never a
+  third-party router. All files use package main. An in-memory, mutex-guarded
+  store backs two endpoints.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/kvservice, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+  - path: store.go
+    purpose: >-
+      package main. An in-memory Store: a struct wrapping a map[string]string and
+      a sync.RWMutex. NewStore() *Store constructs it. Get(key string) (string,
+      bool) reads under RLock. Set(key, value string) writes under Lock. Only the
+      standard library.
+  - path: main.go
+    purpose: >-
+      package main. Wire an http.ServeMux (NOT gorilla/mux or any third-party
+      router) to a Store from store.go. GET /kv/{key} returns the value as
+      text/plain (404 if absent). PUT /kv/{key} reads the request body and stores
+      it (201 on create). func main() listens on :8080. func newMux(s *Store)
+      *http.ServeMux builds the routes so tests can exercise them. Standard
+      library only.
+  - path: main_test.go
+    purpose: >-
+      package main. Table-driven tests using net/http/httptest: PUT a key then GET
+      it back returns the stored value with 200; GET a missing key returns 404.
+      Build the handler with newMux(NewStore()). Standard library only.
