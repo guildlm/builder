@@ -7,6 +7,7 @@ No network and no model are used. The GoToolchain tests DO invoke the real local
 from __future__ import annotations
 
 import shutil
+import sys
 
 import pytest
 
@@ -353,6 +354,25 @@ def test_gofmt_code_formats_valid_go():
 def test_gofmt_code_returns_input_when_unparseable():
     broken = "package main\n\nfunc main( {\n"  # syntax error
     assert gofmt_code(broken) == broken
+
+
+@requires_go
+def test_verified_contracts_corpus_actually_compiles():
+    """The retrieval corpus is the project's highest-leverage asset (Report #6) —
+    a rotten example teaches the model to write broken Go. Guard it: every example
+    in examples/verified_contracts.jsonl must build (and, if a test, pass)."""
+    import subprocess
+    from pathlib import Path
+
+    root = Path(__file__).resolve().parents[1]
+    corpus = root / "examples" / "verified_contracts.jsonl"
+    if not corpus.exists():
+        pytest.skip("no verified_contracts.jsonl yet")
+    proc = subprocess.run(
+        [sys.executable, "verify_corpus.py", str(corpus)],
+        cwd=str(root), capture_output=True, text=True, timeout=300,
+    )
+    assert proc.returncode == 0, proc.stdout + proc.stderr
 
 
 def test_gofmt_code_removes_unused_import_when_goimports_available():
