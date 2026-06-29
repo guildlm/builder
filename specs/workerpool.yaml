@@ -1,0 +1,25 @@
+name: pool
+language: go
+go_module: guildlm.dev/pool
+description: >-
+  A tiny, idiomatic, STANDARD-LIBRARY-ONLY Go package "pool" providing a
+  bounded-concurrency parallel map. No external dependencies. All files use
+  package pool. Must be race-free.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/pool, go 1.23. No dependencies.
+      Output as a ```mod block, not Go.
+  - path: pool.go
+    purpose: >-
+      package pool. ParallelMap[T any, R any](items []T, workers int, fn func(T)
+      R) []R applies fn to every item using at most `workers` goroutines and
+      returns results in INPUT ORDER. Treat workers <= 0 as 1. Must be race-free
+      (each worker writes only its own result index; no shared mutable state
+      needs a mutex). Use a jobs channel of indices, a sync.WaitGroup, and close
+      the channel before Wait. Standard library only.
+  - path: pool_test.go
+    purpose: >-
+      package pool. Tests for ParallelMap: squaring 1..8 with 3 workers returns
+      results in order and calls fn exactly once per item (count with
+      sync/atomic); workers=0 still processes every item. Standard library only.
