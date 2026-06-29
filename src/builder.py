@@ -716,6 +716,60 @@ def _generate_file(
     )
 
 
+def _fix_loop(
+    tasks: Sequence[FileTask],
+    written: dict[str, str],
+    out: Path,
+    toolchain: GoToolchain,
+    coder: Coder,
+    max_fix_rounds: int,
+    candidates: int,
+) -> bool:
+    """Shared ground-truth repair loop: build/vet/test the project, route each
+    failure to the owning file, repair, re-check — up to ``max_fix_rounds``.
+    Mutates ``written`` and the files under ``out``. Returns True iff green.
+
+    Used by both ``build`` (generate-then-fix) and ``maintain`` (edit-then-fix)
+    so the same verification-driven convergence backs both creating and changing
+    a project.
+    """
+    ok, output = toolchain.check(out)
+    if ok:
+        _log("compile/test passed")
+        return True
+    for rnd in range(1, max_fix_rounds + 1):
+        _log(f"compile/test FAILED, fix round {rnd}/{max_fix_rounds}")
+        targets = _offending_files(output, list(written)) or list(written)
+        for path in targets:
+            task = _task_for(tasks, path)
+            if task is None:
+                continue
+            _log(f"  fixing {path}")
+            fix_prompt = _fix_prompt(task, written[path], output, written)
+            sibling_decls: set[str] = set()
+            for other, content in written.items():
+                if other != path:
+                    sibling_decls |= top_level_decls(content)
+            if candidates > 1:
+                code = _sample_verified_fix(
+                    coder, fix_prompt, path, out, written, candidates, toolchain,
+                    sibling_decls, path.endswith("_test.go"),
+                )
+            else:
+                code = _sample_clean(
+                    coder, fix_prompt, path.endswith(".go"), candidates, toolchain,
+                    "fix", sibling_decls, path.endswith("_test.go"),
+                )
+                _write_file(out, path, code)
+                written[path] = code
+        ok, output = toolchain.check(out)
+        if ok:
+            _log(f"converged to green after fix round {rnd}")
+            return True
+    _log(f"exhausted {max_fix_rounds} fix rounds, still failing")
+    return False
+
+
 def build(
     spec: Spec,
     coder: Coder,
@@ -763,46 +817,146 @@ def build(
         written[task.spec.path] = code
 
     # --- Fix loop ----------------------------------------------------------- #
-    ok, output = toolchain.check(out)
-    if ok:
-        _log("compile/test passed on first try")
+    if _fix_loop(tasks, written, out, toolchain, coder, max_fix_rounds, candidates):
         return _finish_green()
-
-    for rnd in range(1, max_fix_rounds + 1):
-        _log(f"compile/test FAILED, fix round {rnd}/{max_fix_rounds}")
-        targets = _offending_files(output, list(written)) or list(written)
-        for path in targets:
-            task = _task_for(tasks, path)
-            if task is None:
-                continue
-            _log(f"  fixing {path}")
-            fix_prompt = _fix_prompt(task, written[path], output, written)
-            sibling_decls: set[str] = set()
-            for other, content in written.items():
-                if other != path:
-                    sibling_decls |= top_level_decls(content)
-            if candidates > 1:
-                # Ground-truth-gated selection: keep the repair that actually
-                # makes `go build/vet/test` pass, not just the one that parses.
-                code = _sample_verified_fix(
-                    coder, fix_prompt, path, out, written, candidates, toolchain,
-                    sibling_decls, path.endswith("_test.go"),
-                )
-            else:
-                code = _sample_clean(
-                    coder, fix_prompt, path.endswith(".go"), candidates, toolchain,
-                    "fix", sibling_decls, path.endswith("_test.go"),
-                )
-                _write_file(out, path, code)
-                written[path] = code
-
-        ok, output = toolchain.check(out)
-        if ok:
-            _log(f"converged to green after fix round {rnd}")
-            return _finish_green()
-
-    _log(f"exhausted {max_fix_rounds} fix rounds, still failing")
     return False, written
+
+
+# --------------------------------------------------------------------------- #
+# Maintain — edit/refactor an EXISTING project against a change request.
+# This is the "maintain large projects" half of the guild: read a whole project,
+# apply a change, and converge back to green with the same verification loop that
+# backs generation. Strictly non-regressing by default — a change that can't stay
+# green is rolled back, so maintenance never leaves the project worse than it was.
+# --------------------------------------------------------------------------- #
+
+def _load_project(project_dir: str | Path) -> dict[str, str]:
+    """Read a Go project's source into {relative_path: content} (*.go + go.mod)."""
+    base = Path(project_dir)
+    files: dict[str, str] = {}
+    for p in sorted(base.rglob("*")):
+        if p.is_file() and (p.suffix == ".go" or p.name == "go.mod"):
+            files[str(p.relative_to(base))] = p.read_text(encoding="utf-8")
+    return files
+
+
+def _project_listing(files: dict[str, str]) -> str:
+    return "".join(f"--- {p} ---\n{c}\n" for p, c in files.items())
+
+
+def _maintain_plan_prompt(request: str, files: dict[str, str]) -> str:
+    return (
+        f"You are maintaining an existing Go project. A change is requested.\n\n"
+        f"CHANGE REQUEST: {request}\n\n"
+        f"Existing files:\n{_project_listing(files)}\n"
+        f"List ONLY the file paths you must create or modify to satisfy the "
+        f"request — one path per line, no commentary, no code. Use an existing "
+        f"path to modify that file, or a new path to add one."
+    )
+
+
+def _parse_plan(text: str, known: set[str]) -> list[str]:
+    """Extract file paths from a plan response, leniently. Falls back to the
+    known non-test .go files if nothing parses."""
+    out: list[str] = []
+    for line in text.splitlines():
+        m = re.search(r"[\w./-]+\.go\b|(?:^|[\s/])go\.mod\b", line)
+        if m:
+            p = m.group(0).strip().lstrip("/")
+            if p and p not in out:
+                out.append(p)
+    if not out:
+        out = [p for p in known if p.endswith(".go") and not p.endswith("_test.go")]
+    return out
+
+
+def _maintain_file_prompt(request: str, path: str, files: dict[str, str], is_new: bool) -> str:
+    verb = "Create" if is_new else "Update"
+    return (
+        f"TARGET_FILE: {path}\n"
+        f"You are maintaining an existing Go project. Apply this change:\n\n"
+        f"CHANGE REQUEST: {request}\n\n"
+        f"All current files:\n{_project_listing(files)}\n"
+        f"{verb} the file `{path}` to satisfy the request. Keep the rest of the "
+        f"project working: do not break callers, do not redeclare symbols that "
+        f"already exist in sibling files, standard library only. Output the "
+        f"COMPLETE new content of `{path}` as one fenced "
+        f"{'```mod' if path.endswith('.mod') else '```go'} block."
+    )
+
+
+def maintain(
+    project_dir: str | Path,
+    request: str,
+    coder: Coder,
+    max_fix_rounds: int = 4,
+    toolchain: GoToolchain | None = None,
+    candidates: int = 1,
+    reviewer: "Coder | None" = None,
+    review_rounds: int = 1,
+    non_regressing: bool = True,
+) -> tuple[bool, dict[str, str]]:
+    """Apply ``request`` to the existing Go project at ``project_dir``.
+
+    plan (which files to touch) -> edit each with full-project context ->
+    verification/repair loop -> optional review. With ``non_regressing`` (default)
+    a change that fails to reach green is rolled back to the original sources.
+
+    Returns ``(ok, files)`` with the final on-disk content.
+    """
+    out = Path(project_dir)
+    toolchain = toolchain or GoToolchain()
+    current = _load_project(out)
+    if not current:
+        raise ValueError(f"no Go project (*.go/go.mod) found in {project_dir}")
+    original = dict(current)
+    _log(f"maintain: {len(current)} files; change: {request}")
+
+    # 1. plan which files to touch
+    targets = _parse_plan(coder.generate(_maintain_plan_prompt(request, current)), set(current))
+    _log(f"maintain plan -> {targets}")
+
+    # 2. edit/create each target with the whole project as context
+    for path in targets:
+        is_new = path not in current
+        _log(f"  {'create' if is_new else 'edit'} {path}")
+        is_go = path.endswith(".go")
+        sibling_decls: set[str] = set()
+        for other, content in current.items():
+            if other != path:
+                sibling_decls |= top_level_decls(content)
+        code = _sample_clean(
+            coder, _maintain_file_prompt(request, path, current, is_new),
+            is_go, candidates, toolchain, "edit", sibling_decls, path.endswith("_test.go"),
+        )
+        _write_file(out, path, code)
+        current[path] = code
+
+    # 3. verify + repair to green
+    tasks = [
+        FileTask(index=i, spec=FileSpec(path=p, purpose=f"maintained for change: {request}"))
+        for i, p in enumerate(current)
+    ]
+    if _fix_loop(tasks, current, out, toolchain, coder, max_fix_rounds, candidates):
+        if reviewer is not None and review_rounds > 0:
+            spec = Spec(
+                name=out.name, description=f"maintained: {request}",
+                files=tuple(t.spec for t in tasks),
+            )
+            _log("review pass on the maintained project")
+            _review_pass(spec, tasks, current, out, toolchain, reviewer, review_rounds)
+        return True, current
+
+    # 4. non-regressing rollback
+    if non_regressing:
+        _log("maintain could not stay green — rolling back to the original sources")
+        for p in list(current):
+            if p not in original:
+                (out / p).unlink(missing_ok=True)
+        for p, c in original.items():
+            _write_file(out, p, c)
+        return False, original
+    return False, current
 
 
 _REVIEW_CLEAN = "CLEAN"
@@ -991,6 +1145,34 @@ try:
         if not ok:
             raise typer.Exit(code=1)
         typer.echo(f"Generated {spec_obj.name} into {out}")
+
+    @app.command()
+    def maintain_cmd(
+        project: str = typer.Option(..., "--project", help="Path to the existing Go project dir."),
+        request: str = typer.Option(..., "--request", help="The change to apply (natural language)."),
+        model: str = typer.Option(None, "--model", help="Coder model (default env/guildlm-go)."),
+        base_url: str = typer.Option(None, "--base-url", help="OpenAI-compatible base URL."),
+        max_fix_rounds: int = typer.Option(4, "--max-fix-rounds", help="Max compile/fix iterations."),
+        candidates: int = typer.Option(1, "--candidates", help="Best-of-N per edited file."),
+        review_model: str = typer.Option(None, "--review-model", help="Non-regressing review pass model."),
+        review_base_url: str = typer.Option(None, "--review-base-url", help="Base URL for --review-model."),
+        allow_regress: bool = typer.Option(False, "--allow-regress", help="Keep a non-green result instead of rolling back."),
+    ) -> None:
+        """Apply a change REQUEST to an existing PROJECT, staying green (maintain)."""
+        coder = OpenAICoder(model=model, base_url=base_url)
+        reviewer = (
+            OpenAICoder(model=review_model, base_url=review_base_url or base_url)
+            if review_model
+            else None
+        )
+        ok, _ = maintain(
+            project, request, coder, max_fix_rounds=max_fix_rounds,
+            candidates=candidates, reviewer=reviewer, non_regressing=not allow_regress,
+        )
+        if not ok:
+            typer.echo("maintain: could not converge to green" + ("" if allow_regress else " — rolled back"))
+            raise typer.Exit(code=1)
+        typer.echo(f"Maintained {project}: {request}")
 
 except ImportError:  # pragma: no cover - typer optional at import time
     app = None  # type: ignore[assignment]

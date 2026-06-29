@@ -638,3 +638,49 @@ def test_retrieval_block_injected_into_prompt():
     assert "func Rev()" in prompt
     # no shots -> no block
     assert "Similar verified Go examples" not in _generate_prompt(spec, task, {})
+
+
+@requires_go
+def test_maintain_applies_change_and_stays_green(tmp_path):
+    """maintain() reads an existing green project, applies a change request via a
+    plan->edit->verify loop, and leaves it green with the change applied."""
+    from src.builder import maintain
+
+    (tmp_path / "go.mod").write_text("module example.com/calc\n\ngo 1.23\n")
+    (tmp_path / "calc.go").write_text(
+        "package sandbox\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n"
+    )
+    (tmp_path / "calc_test.go").write_text(
+        "package sandbox\n\nimport \"testing\"\n\n"
+        "func TestAdd(t *testing.T) { if Add(1, 2) != 3 { t.Fatal(\"x\") } }\n"
+    )
+    coder = FakeCoder({
+        "?": ["calc.go"],  # plan prompt (no TARGET_FILE) -> edit calc.go
+        "calc.go": [
+            "```go\npackage sandbox\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n\n"
+            "func Sub(a, b int) int {\n\treturn a - b\n}\n```"
+        ],
+    })
+    ok, _ = maintain(str(tmp_path), "add a Sub function", coder, toolchain=GoToolchain())
+    assert ok
+    assert "func Sub" in (tmp_path / "calc.go").read_text()
+    green, _ = GoToolchain().check(tmp_path)
+    assert green
+
+
+@requires_go
+def test_maintain_rolls_back_when_not_green(tmp_path):
+    """A non-regressing maintain reverts to the original sources when the edit
+    can't converge to green — maintenance never leaves the project worse."""
+    from src.builder import maintain
+
+    orig = "package sandbox\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n"
+    (tmp_path / "go.mod").write_text("module example.com/calc\n\ngo 1.23\n")
+    (tmp_path / "calc.go").write_text(orig)
+    coder = FakeCoder({
+        "?": ["calc.go"],
+        "calc.go": ["```go\npackage sandbox\n\nfunc Add(a, b int) int { return a + b // oops\n```"],
+    })
+    ok, _ = maintain(str(tmp_path), "break it", coder, toolchain=GoToolchain(), max_fix_rounds=1)
+    assert not ok
+    assert (tmp_path / "calc.go").read_text() == orig  # rolled back
