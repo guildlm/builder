@@ -345,6 +345,16 @@ class GoToolchain:
                 return False, out
         return True, "build, vet and test passed"
 
+    def build_vet(self, cwd: str | Path) -> tuple[bool, str]:
+        """Build + vet only (no test). ``go build ./...`` ignores ``_test.go``
+        files, so this is the right intermediate gate when editing implementation
+        before its tests have caught up — used by staged maintenance."""
+        for stage in (self.build, self.vet):
+            ok, out = stage(cwd)
+            if not ok:
+                return False, out
+        return True, "build and vet passed"
+
     def syntax_ok(self, code: str) -> bool:
         """True if *code* is syntactically valid Go (parses cleanly).
 
@@ -724,16 +734,20 @@ def _fix_loop(
     coder: Coder,
     max_fix_rounds: int,
     candidates: int,
+    check=None,
 ) -> bool:
-    """Shared ground-truth repair loop: build/vet/test the project, route each
-    failure to the owning file, repair, re-check — up to ``max_fix_rounds``.
-    Mutates ``written`` and the files under ``out``. Returns True iff green.
+    """Shared ground-truth repair loop: run ``check`` (default build/vet/test),
+    route each failure to the owning file, repair, re-check — up to
+    ``max_fix_rounds``. Mutates ``written`` and the files under ``out``. Returns
+    True iff ``check`` passes.
 
-    Used by both ``build`` (generate-then-fix) and ``maintain`` (edit-then-fix)
-    so the same verification-driven convergence backs both creating and changing
-    a project.
+    ``check`` lets a caller gate on a weaker signal — e.g. staged maintenance
+    converges the implementation on ``build_vet`` (no tests) before bringing the
+    tests back. Used by ``build`` (generate-then-fix) and ``maintain``
+    (edit-then-fix) so one verification-driven convergence backs both.
     """
-    ok, output = toolchain.check(out)
+    check = check or toolchain.check
+    ok, output = check(out)
     if ok:
         _log("compile/test passed")
         return True
@@ -762,7 +776,7 @@ def _fix_loop(
                 )
                 _write_file(out, path, code)
                 written[path] = code
-        ok, output = toolchain.check(out)
+        ok, output = check(out)
         if ok:
             _log(f"converged to green after fix round {rnd}")
             return True
@@ -916,27 +930,45 @@ def maintain(
     targets = _parse_plan(coder.generate(_maintain_plan_prompt(request, current)), set(current))
     _log(f"maintain plan -> {targets}")
 
-    # 2. edit/create each target with the whole project as context
-    for path in targets:
+    # 2-3. STAGED edit: implementation first (get it building — `go build` ignores
+    # _test.go), then bring the tests up to the new implementation. Editing impl
+    # and tests in one shot makes the fix loop juggle an inconsistent API on both
+    # sides at once; staging gives it a compiling implementation to write tests
+    # against, which is how a human maintains code too.
+    def _edit(path: str) -> None:
         is_new = path not in current
         _log(f"  {'create' if is_new else 'edit'} {path}")
-        is_go = path.endswith(".go")
-        sibling_decls: set[str] = set()
+        sib: set[str] = set()
         for other, content in current.items():
             if other != path:
-                sibling_decls |= top_level_decls(content)
+                sib |= top_level_decls(content)
         code = _sample_clean(
             coder, _maintain_file_prompt(request, path, current, is_new),
-            is_go, candidates, toolchain, "edit", sibling_decls, path.endswith("_test.go"),
+            path.endswith(".go"), candidates, toolchain, "edit", sib, path.endswith("_test.go"),
         )
         _write_file(out, path, code)
         current[path] = code
 
-    # 3. verify + repair to green
-    tasks = [
-        FileTask(index=i, spec=FileSpec(path=p, purpose=f"maintained for change: {request}"))
-        for i, p in enumerate(current)
-    ]
+    def _tasks() -> list[FileTask]:
+        return [
+            FileTask(index=i, spec=FileSpec(path=p, purpose=f"maintained for change: {request}"))
+            for i, p in enumerate(current)
+        ]
+
+    impl_targets = [p for p in targets if not p.endswith("_test.go")]
+    test_targets = [p for p in targets if p.endswith("_test.go")]
+
+    for path in impl_targets:
+        _edit(path)
+    if impl_targets:
+        _log("staged maintain: converging the implementation (build+vet) before tests")
+        _fix_loop(_tasks(), current, out, toolchain, coder, max_fix_rounds, candidates,
+                  check=toolchain.build_vet)
+    for path in test_targets:
+        _edit(path)
+
+    # 4. full verify (build+vet+test) + repair to green
+    tasks = _tasks()
     if _fix_loop(tasks, current, out, toolchain, coder, max_fix_rounds, candidates):
         if reviewer is not None and review_rounds > 0:
             spec = Spec(
