@@ -1,0 +1,25 @@
+name: jsonapi
+language: go
+go_module: guildlm.dev/jsonapi
+description: >-
+  A small, idiomatic, STANDARD-LIBRARY-ONLY JSON HTTP endpoint. No external
+  dependencies — use encoding/json and net/http only. All files use package
+  main.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/jsonapi, go 1.23. No dependencies.
+      Output as a ```mod block, not Go.
+  - path: main.go
+    purpose: >-
+      package main. POST /echo accepts a JSON body {"message": string} and
+      responds with JSON {"echo": <message>, "length": <len of message>} and
+      Content-Type application/json. Return 405 for non-POST, 400 for invalid
+      JSON or an empty message, 200 on success. Expose newMux() *http.ServeMux so
+      tests can drive it. Standard library only (encoding/json, net/http).
+  - path: main_test.go
+    purpose: >-
+      package main. Tests using net/http/httptest and encoding/json: POST a valid
+      message returns 200 with the echoed message and correct length; POST an
+      empty message returns 400. Build the handler with newMux(). Standard
+      library only.
