@@ -1,0 +1,104 @@
+name: taskflow
+language: go
+go_module: guildlm.dev/taskflow
+description: >-
+  A larger, realistic, STANDARD-LIBRARY-ONLY HTTP backend for a task tracker —
+  the kind of multi-resource, layered Go service that stresses cross-file
+  consistency. No external dependencies whatsoever: net/http + ServeMux for
+  routing (never a third-party router), encoding/json for bodies, sync for
+  concurrency. All files use package main. Layers: sentinel errors, domain
+  models with validation, a generic-ish in-memory repository, HTTP middleware,
+  JSON + pagination helpers, two resource handlers (tasks and projects), a
+  router that wires everything, and a main with graceful shutdown.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/taskflow, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+  - path: errors.go
+    purpose: >-
+      package main. Shared sentinel errors used across the store and handlers,
+      all matchable with errors.Is: ErrNotFound, ErrExists, ErrValidation.
+      Standard library only (errors).
+  - path: models.go
+    purpose: >-
+      package main. Domain models. A Task struct {ID string, Title string,
+      Status string, ProjectID string} and a Project struct {ID string, Name
+      string}. Valid Task.Status values are "todo", "doing", "done". A method
+      (Task) Validate() error that returns a wrapped ErrValidation (use
+      fmt.Errorf with %w) when Title is empty or Status is not one of the three
+      allowed values; a (Project) Validate() error that returns ErrValidation
+      when Name is empty. Standard library only.
+  - path: store.go
+    purpose: >-
+      package main. In-memory repository for BOTH resources. A Store struct
+      holding two maps (tasks map[string]Task, projects map[string]Project)
+      guarded by a single sync.RWMutex, built by NewStore(). Methods:
+      CreateTask(Task) error / GetTask(id) (Task, error) / ListTasks() []Task /
+      DeleteTask(id) error and the same four for Project. Create returns ErrExists
+      on duplicate ID; Get/Delete return ErrNotFound. List methods return items
+      sorted by ID. Standard library only (sync, sort, errors as needed).
+  - path: middleware.go
+    purpose: >-
+      package main. A Middleware type func(http.Handler) http.Handler and
+      Chain(h, mws...) where the first listed is outermost. A Logging middleware
+      (method, path, resolved status via a statusRecorder wrapping
+      http.ResponseWriter defaulting to 200, and latency) and a Recover
+      middleware (downstream panic -> 500). Standard library only.
+  - path: httpjson.go
+    purpose: >-
+      package main. HTTP/JSON helpers reused by every handler: writeJSON(w
+      http.ResponseWriter, status int, v any) that sets Content-Type
+      application/json and encodes v; writeError(w, status int, msg string) that
+      writes a JSON {"error": msg}; and decodeJSON(r *http.Request, dst any)
+      error that decodes the request body and returns an error on malformed
+      input. Standard library only (encoding/json, net/http).
+  - path: pagination.go
+    purpose: >-
+      package main. func parsePage(r *http.Request) (limit, offset int) that
+      reads ?limit= and ?offset= query params with strconv, defaulting limit to
+      20 (max 100) and offset to 0, clamping negatives to the default/zero. A
+      GENERIC func paginate[T any](items []T, limit, offset int) []T that safely
+      slices with bounds checks (offset past the end returns empty, never
+      panics) — used for BOTH tasks and projects. Standard library only
+      (net/http, strconv).
+  - path: tasks_handler.go
+    purpose: >-
+      package main. A TaskHandler struct holding *Store, built by
+      NewTaskHandler(*Store). http.HandlerFunc methods using the httpjson +
+      pagination helpers and r.PathValue("id"): Create (decodeJSON a Task, call
+      Task.Validate returning 400 with writeError on ErrValidation via errors.Is,
+      store it returning 201, 409 on ErrExists); List (parsePage then
+      paginate(tasks, limit, offset), 200 with the page as JSON, optional ?status= filter); Get
+      (200 or 404); Delete (204 or 404). Standard library only.
+  - path: projects_handler.go
+    purpose: >-
+      package main. A ProjectHandler struct holding *Store, built by
+      NewProjectHandler(*Store). http.HandlerFunc methods mirroring the task
+      handler for projects: Create (validate -> 400, store -> 201, 409), List
+      (200 JSON array), Get (200/404), Delete (204/404). Reuse the httpjson
+      helpers. Standard library only.
+  - path: router.go
+    purpose: >-
+      package main. func NewRouter(s *Store) http.Handler building an
+      http.ServeMux (NOT a third-party router) wiring both handlers: POST/GET
+      /tasks, GET/DELETE /tasks/{id}, POST/GET /projects, GET/DELETE
+      /projects/{id}, and GET /health -> 200 "ok". Wrap with Chain(mux, Logging,
+      Recover) and return it so tests can drive the fully-wired handler. Standard
+      library only.
+  - path: main.go
+    purpose: >-
+      package main. func main() builds NewStore + NewRouter, runs an
+      *http.Server on :8080 with graceful shutdown via
+      signal.NotifyContext(context.Background(), os.Interrupt) and srv.Shutdown
+      under a short context.WithTimeout. Standard library only.
+  - path: taskflow_test.go
+    purpose: >-
+      package main. Isolated table/flow tests (net/http/httptest) against
+      NewRouter(NewStore()). Each case builds a FRESH router+store (never share
+      state) and a FRESH request body per request (never reuse a drained buffer).
+      Cover: create a task -> 201 and echo; invalid task (bad status) -> 400;
+      duplicate task ID -> 409; GET missing -> 404; list tasks -> 200 with a JSON
+      array; pagination (?limit=1) returns at most 1; delete -> 204 then GET ->
+      404; malformed JSON (truncated bytes, not empty {}) -> 400; and the same
+      create/get happy-path for a project. Standard library only.

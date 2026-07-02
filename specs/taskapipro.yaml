@@ -1,0 +1,178 @@
+name: taskapipro
+language: go
+go_module: guildlm.dev/taskapipro
+description: >-
+  A production-grade, STANDARD-LIBRARY-ONLY Go backend with clean architecture:
+  a proper service layer between HTTP handlers and the repository, so business
+  rules live in one place and every layer depends on an INTERFACE below it
+  (handlers -> service interface -> store interface). No external dependencies:
+  net/http Go 1.22 ServeMux, log/slog structured logging, context, encoding/json,
+  sync. Multi-package layout (cmd/ + internal/{config,models,store,service,api}).
+  Packages depend inward only; cross-package symbols are used by importing the
+  package and qualifying (models.Task, store.Store, service.TaskService,
+  store.ErrNotFound). Only exported names cross package boundaries.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/taskapipro, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+  - path: internal/config/config.go
+    purpose: >-
+      package config. Config struct { Addr string; ReadTimeout, WriteTimeout,
+      ShutdownTimeout time.Duration; DefaultPageSize, MaxPageSize int } and func
+      Load() Config reading env (os.Getenv) with defaults (Addr ":8080",
+      timeouts 5s/10s/10s, DefaultPageSize 20, MaxPageSize 100). A method (c
+      Config) Validate() error returning an error if Addr is empty or MaxPageSize
+      < DefaultPageSize. Imports os, time, fmt (and strconv). No other project
+      package.
+  - path: internal/config/config_test.go
+    purpose: >-
+      package config. Tests: Load() returns the documented defaults; a Config
+      with MaxPageSize < DefaultPageSize fails Validate(); a sane Config passes
+      Validate(). Imports testing only. Do not name any local variable `t`.
+  - path: internal/models/models.go
+    purpose: >-
+      package models. Task struct {ID, Title, Status, ProjectID string} and
+      Project struct {ID, Name string} with JSON tags. Valid Task.Status is
+      "todo"|"doing"|"done". Exported sentinel var ErrInvalid =
+      errors.New("invalid"). Methods (t Task) Validate() error and (p Project)
+      Validate() error wrapping ErrInvalid via fmt.Errorf("%w: ...") on empty
+      Title/Name or bad Status. Imports errors, fmt only.
+  - path: internal/store/store.go
+    purpose: >-
+      package store. Import the models package (guildlm.dev/taskapipro/internal/
+      models) and use models.Task/models.Project qualified. Exported sentinels
+      var ErrNotFound and var ErrExists (errors.New). A CONTEXT-AWARE Store
+      INTERFACE (every method takes context.Context as its FIRST parameter, the
+      production repository convention): CreateTask(ctx context.Context, t
+      models.Task) error, GetTask(ctx context.Context, id string) (models.Task,
+      error), ListTasks(ctx context.Context) ([]models.Task, error),
+      DeleteTask(ctx context.Context, id string) error, and the same four for
+      Project. Imports context, errors, and the models package only.
+  - path: internal/store/memory.go
+    purpose: >-
+      package store. Goroutine-safe in-memory Store impl (same package —
+      reference Store, ErrNotFound, ErrExists directly, do NOT redeclare). Every
+      method takes ctx context.Context as its first parameter to satisfy the
+      Store interface (the in-memory impl may ignore ctx, but MUST accept it).
+      MemStore struct with two maps guarded by one sync.RWMutex, built by
+      NewMemStore() *MemStore. Create->ErrExists on dup id; Get/Delete->
+      ErrNotFound; List returns (items, nil) id-sorted. IMPLEMENT ALL EIGHT
+      METHODS FULLY — the four Project methods (CreateProject/GetProject/
+      ListProjects/DeleteProject) MIRROR the four Task methods with identical
+      map/mutex/error logic on the projects map. Do NOT stub any method with a
+      placeholder (no ErrNotImplemented, no panic, no TODO). Use models types
+      (import models). var _ Store = (*MemStore)(nil). Imports context, sort,
+      sync, and the models package.
+  - path: internal/store/memory_test.go
+    purpose: >-
+      package store. Tests for MemStore (same package; use models via import).
+      Pass context.Background() to every store method call. Fresh NewMemStore per
+      case. Cover create->nil / dup->ErrExists (errors.Is); Get present/missing
+      ->ErrNotFound; List id-sorted; Delete present then Get->ErrNotFound; Delete
+      missing->ErrNotFound. Imports context, errors, testing, and models. Never
+      name a local variable `t`.
+  - path: internal/service/service.go
+    purpose: >-
+      package service. The business-logic layer between handlers and store.
+      Import context and the store and models packages. Every method takes ctx
+      context.Context first and PASSES ctx through to the matching store method
+      (whose signatures are context-first — call them EXACTLY as declared, e.g.
+      s.store.CreateTask(ctx, t)). Define a TaskService INTERFACE (Create(ctx
+      context.Context, t models.Task) (models.Task, error); Get(ctx, id string)
+      (models.Task, error); List(ctx, limit, offset int, status string)
+      ([]models.Task, error); Delete(ctx, id string) error) and a ProjectService
+      INTERFACE (Create/Get/List(ctx, limit, offset int)/Delete). Concrete
+      UNEXPORTED taskService and projectService structs each holding a field
+      named `store` of type store.Store (the INTERFACE, by value). Constructors
+      exported NewTaskService(s store.Store) TaskService returning
+      &taskService{store: s} (the struct-literal field name MUST be `store`, the
+      declared field), and NewProjectService likewise. Create: call
+      t.Validate() and on error return (models.Task{}, err); else call
+      s.store.CreateTask(ctx, t) and on error return (models.Task{}, err); else
+      return (t, nil). Get/Delete delegate to the store. List: fetch via
+      s.store.ListTasks(ctx), apply status filtering, then PAGINATION via a
+      generic helper paginate[T any](items []T, limit, offset int) []T with
+      bounds checks (offset past end -> empty, never panic), return (page, nil).
+      Compile-time assertions var _ TaskService = (*taskService)(nil) etc.
+      Imports context + the store + models packages.
+  - path: internal/service/service_test.go
+    purpose: >-
+      package service. Tests using NewTaskService(store.NewMemStore()) and the
+      models package; pass context.Background() to every service method. Fresh
+      service per case. Cover: Create a valid task -> no error and it is
+      retrievable via Get; Create an invalid task (bad status) -> error is
+      models.ErrInvalid (errors.Is); List with limit=1 returns at most 1 item;
+      List filters by status. Imports context, errors, testing, and the store +
+      models packages. Never name a local variable `t`.
+  - path: internal/api/response.go
+    purpose: >-
+      package api. Helpers: writeJSON(w http.ResponseWriter, status int, v any)
+      (sets application/json, encodes); writeError(w, status int, msg string)
+      (JSON {"error": msg}); decodeJSON(r *http.Request, dst any) error. Imports
+      encoding/json, net/http only.
+  - path: internal/api/middleware.go
+    purpose: >-
+      package api. Middleware type func(http.Handler) http.Handler and Chain(h,
+      mws ...Middleware) (first listed outermost). Logging(logger *slog.Logger)
+      logs method/path/status(via a statusRecorder wrapping ResponseWriter,
+      default 200)/duration with structured slog. Recover(logger *slog.Logger)
+      turns a downstream panic into 500 and logs it. Imports log/slog, net/http,
+      time.
+  - path: internal/api/tasks.go
+    purpose: >-
+      package api. TaskHandler holding a service.TaskService (import the service
+      package; hold the INTERFACE by value, never a pointer), built by
+      NewTaskHandler(svc service.TaskService) *TaskHandler. Methods
+      (http.HandlerFunc) pass r.Context() as the ctx to every svc call and use
+      response helpers, r.PathValue("id") and r.URL.Query() for
+      ?limit=&offset=&status=: Create (decodeJSON a models.Task ->
+      svc.Create(r.Context(), t); 400 on models.ErrInvalid via errors.Is, 201
+      with the created task, 409 on store.ErrExists); List (parse limit/offset
+      with strconv defaulting/clamping, svc.List(r.Context(), ...), 200 JSON);
+      Get (svc.Get(r.Context(), id); 200 or 404 on store.ErrNotFound); Delete
+      (204 or 404). Imports errors, net/http, strconv, and the service + models +
+      store packages.
+  - path: internal/api/projects.go
+    purpose: >-
+      package api. ProjectHandler holding service.ProjectService (by value),
+      NewProjectHandler(svc service.ProjectService) *ProjectHandler, passing
+      r.Context() as the ctx to every svc call: Create (400 on ErrInvalid, 201,
+      409 on store.ErrExists), List (limit/offset, 200), Get (200/404), Delete
+      (204/404). Reuse response helpers. Imports errors, net/http, strconv, and
+      the service + models + store packages.
+  - path: internal/api/router.go
+    purpose: >-
+      package api. func NewRouter(ts service.TaskService, ps service.ProjectService,
+      logger *slog.Logger) http.Handler building an http.ServeMux (NOT a
+      third-party router), constructing the handlers, and registering Go 1.22
+      METHOD+pattern routes (never a bare pattern twice): "POST /tasks",
+      "GET /tasks", "GET /tasks/{id}", "DELETE /tasks/{id}", the same four for
+      /projects, plus "GET /healthz" -> 200 "ok" and "GET /readyz" -> 200
+      "ready". Wrap with Chain(mux, Logging(logger), Recover(logger)). Imports
+      log/slog, net/http, and the service package.
+  - path: internal/api/router_test.go
+    purpose: >-
+      package api. Integration tests (net/http/httptest) against NewRouter built
+      from service.NewTaskService(store.NewMemStore()),
+      service.NewProjectService(store.NewMemStore()) and
+      slog.New(slog.NewTextHandler(io.Discard, nil)). Fresh router+store per
+      case, fresh request body per request. Cover: POST valid task->201+echo;
+      invalid status->400; duplicate->409; GET missing->404; GET->200; list->200
+      JSON array; ?limit=1 returns at most 1; DELETE->204 then GET->404;
+      malformed JSON (truncated)->400; project create/get; GET /healthz->200; GET
+      /readyz->200. Imports bytes, encoding/json, io, log/slog, net/http,
+      net/http/httptest, testing, and the service + store + models packages.
+      Never name a local variable `t`.
+  - path: cmd/server/main.go
+    purpose: >-
+      package main — composition root. Import config, store, service, api and
+      log/slog. main(): logger := slog.New(slog.NewJSONHandler(os.Stdout, nil));
+      cfg := config.Load(); if err := cfg.Validate(); err != nil log and exit; s
+      := store.NewMemStore(); ts := service.NewTaskService(s); ps :=
+      service.NewProjectService(s); handler := api.NewRouter(ts, ps, logger);
+      build *http.Server{Addr: cfg.Addr, Handler, ReadTimeout, WriteTimeout};
+      run in a goroutine; graceful shutdown on os.Interrupt via
+      signal.NotifyContext + srv.Shutdown(context.WithTimeout(cfg.ShutdownTimeout)).
+      Log lifecycle with slog. Imports context, log/slog, net/http, os,
+      os/signal, time, and the four internal packages.

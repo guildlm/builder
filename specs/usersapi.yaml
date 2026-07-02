@@ -1,0 +1,72 @@
+name: usersapi
+language: go
+go_module: guildlm.dev/usersapi
+description: >-
+  A realistic, idiomatic, STANDARD-LIBRARY-ONLY REST backend for a users
+  resource — the kind of multi-file Go service a backend engineer builds. No
+  external dependencies whatsoever: net/http and its ServeMux for routing (never
+  a third-party router), encoding/json for bodies, sync for concurrency. All
+  files use package main. The service layers cleanly: a repository (Store
+  interface + in-memory implementation), HTTP middleware (logging + panic
+  recovery), JSON handlers with correct REST status codes, a router that wires
+  them together, and a main with graceful shutdown.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/usersapi, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+  - path: store.go
+    purpose: >-
+      package main. The repository/data layer. A User struct {ID, Name, Email
+      string}. A Store interface with Create(User) error, Get(id string) (User,
+      error), List() []User, Delete(id string) error. A goroutine-safe in-memory
+      MemStore backed by a map[string]User guarded by sync.RWMutex, built by
+      NewMemStore() *MemStore. Create returns a sentinel ErrExists on duplicate
+      ID; Get and Delete return a sentinel ErrNotFound (both matchable with
+      errors.Is). List returns users sorted by ID for deterministic output. Add a
+      compile-time `var _ Store = (*MemStore)(nil)` assertion. Standard library
+      only.
+  - path: middleware.go
+    purpose: >-
+      package main. HTTP middleware. A Middleware type func(http.Handler)
+      http.Handler and Chain(h http.Handler, mws ...Middleware) http.Handler
+      where the first middleware listed is the outermost layer. A Logging
+      middleware that records method, path, resolved status (via a statusRecorder
+      wrapping http.ResponseWriter, defaulting to 200) and latency. A Recover
+      middleware that turns a downstream panic into a 500. Standard library only.
+  - path: handlers.go
+    purpose: >-
+      package main. JSON handlers over a Store. A UserHandler struct holding a
+      Store, built by NewUserHandler(Store). Methods that are http.HandlerFunc:
+      Create decodes a JSON User from the body and stores it, returning 201 with
+      the created user as JSON, 400 on malformed JSON, and 409 when Store.Create
+      reports ErrExists; Get reads the {id} path value and returns the user as
+      JSON with 200, or 404 (errors.Is ErrNotFound); List returns all users as a
+      JSON array with 200; Delete removes {id} returning 204, or 404 if absent.
+      Use r.PathValue("id") for the path parameter and a small writeJSON(w,
+      status, v) helper. Standard library only.
+  - path: router.go
+    purpose: >-
+      package main. func NewRouter(s Store) http.Handler that builds an
+      http.ServeMux (NOT a third-party router) mapping method+pattern routes to a
+      UserHandler: "POST /users" -> Create, "GET /users" -> List, "GET
+      /users/{id}" -> Get, "DELETE /users/{id}" -> Delete, and "GET /health" ->
+      200 "ok". Wrap the mux with Chain(mux, Logging, Recover) and return it so
+      tests can exercise the fully-wired handler. Standard library only.
+  - path: main.go
+    purpose: >-
+      package main. func main() constructs a MemStore and NewRouter, runs an
+      *http.Server on :8080, and shuts down gracefully: use
+      signal.NotifyContext(context.Background(), os.Interrupt) and on ctx.Done()
+      call srv.Shutdown with a short context.WithTimeout so in-flight requests
+      drain. Standard library only.
+  - path: users_test.go
+    purpose: >-
+      package main. Table/flow tests using net/http/httptest against
+      NewRouter(NewMemStore()). Cover the REST contract: POST a valid user JSON
+      returns 201 and echoes it; POST the same ID again returns 409; GET
+      /users/{id} returns 200 with the stored user; GET a missing id returns 404;
+      GET /users returns a JSON array containing the created users; DELETE an
+      existing id returns 204 and a subsequent GET returns 404; POST malformed
+      JSON returns 400. Decode JSON responses and assert fields. Standard library
+      only.

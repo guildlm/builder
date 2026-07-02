@@ -233,7 +233,7 @@ def test_fix_prompt_includes_sibling_files_for_redeclaration_context():
     )
     # The sibling impl is shown so the fixer can see where Reverse really lives.
     assert "func Reverse" in prompt
-    assert "other files in this package" in prompt
+    assert "other files in THIS package" in prompt
     # The sibling block shows stringkit.go but NOT the target itself; the target
     # appears only once, under the "current" heading.
     assert "--- stringkit.go ---" in prompt

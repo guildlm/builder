@@ -1,0 +1,136 @@
+name: taskapi
+language: go
+go_module: guildlm.dev/taskapi
+description: >-
+  A real, production-shaped, STANDARD-LIBRARY-ONLY Go backend laid out as a
+  proper multi-package project (cmd/ + internal/), the way an experienced Go
+  engineer structures a service. No external dependencies whatsoever: net/http
+  with its Go 1.22 ServeMux method routing, log/slog for STRUCTURED logging,
+  context for cancellation, encoding/json, sync. Clean layering with
+  dependency injection: config -> models -> store (repository interface + memory
+  impl) -> api (handlers + middleware + router) -> cmd/server (composition
+  root). Each package has ONE clear responsibility; packages depend inward only.
+  Cross-package symbols are used by importing the package and qualifying them
+  (models.Task, store.Store, store.ErrNotFound). Only exported (capitalised)
+  names cross package boundaries.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/taskapi, go 1.23. No dependencies.
+      Output as a ```mod block, not Go.
+  - path: internal/config/config.go
+    purpose: >-
+      package config. A Config struct { Addr string; ReadTimeout, WriteTimeout,
+      ShutdownTimeout time.Duration } and func Load() Config that reads env vars
+      (os.Getenv) with sensible defaults (Addr ":8080", timeouts 5s/10s/10s),
+      parsing durations/addresses defensively. Self-contained: imports only os,
+      time (and strconv if needed). No other project package.
+  - path: internal/models/models.go
+    purpose: >-
+      package models. Domain types and their validation. Task struct {ID,
+      Title, Status, ProjectID string} and Project struct {ID, Name string},
+      all with JSON tags. Valid Task.Status is "todo"|"doing"|"done". A sentinel
+      var ErrInvalid = errors.New("invalid") (exported, matchable with
+      errors.Is). Methods (t Task) Validate() error and (p Project) Validate()
+      error that wrap ErrInvalid via fmt.Errorf("%w: ...") when Title/Name is
+      empty or Status is not allowed. Imports only errors, fmt. No other project
+      package.
+  - path: internal/store/store.go
+    purpose: >-
+      package store. The repository abstraction. Import the models package
+      (guildlm.dev/taskapi/internal/models) and use models.Task / models.Project
+      (qualified — do NOT redeclare them here). Exported sentinels var
+      ErrNotFound and var ErrExists (errors.New, matchable with errors.Is). A
+      Store INTERFACE with CreateTask(models.Task) error, GetTask(id string)
+      (models.Task, error), ListTasks() []models.Task, DeleteTask(id string)
+      error, and the same four for Project. Imports errors and the models
+      package only.
+  - path: internal/store/memory.go
+    purpose: >-
+      package store. A goroutine-safe in-memory implementation of the Store
+      interface from store.go (same package — reference Store, ErrNotFound,
+      ErrExists directly, do NOT redeclare them). MemStore struct holding two
+      maps (tasks, projects) keyed by ID guarded by one sync.RWMutex, built by
+      NewMemStore() *MemStore. Create returns ErrExists on duplicate id;
+      Get/Delete return ErrNotFound; List returns items sorted by ID. Use
+      models.Task/models.Project (import the models package). A compile-time
+      var _ Store = (*MemStore)(nil) assertion. Imports sort, sync, and the
+      models package.
+  - path: internal/store/memory_test.go
+    purpose: >-
+      package store. Table/flow tests for MemStore (same package — call
+      NewMemStore, Store methods, ErrNotFound, ErrExists directly; use
+      models.Task via the imported models package). Each case builds a FRESH
+      NewMemStore (never shared). Cover create->nil then duplicate->ErrExists
+      (errors.Is); Get present->value / missing->ErrNotFound; List is id-sorted;
+      Delete present->nil then Get->ErrNotFound; Delete missing->ErrNotFound.
+      Run race-clean. Imports errors, testing, and the models package.
+  - path: internal/api/response.go
+    purpose: >-
+      package api. Small HTTP/JSON helpers reused by every handler: writeJSON(w
+      http.ResponseWriter, status int, v any) sets Content-Type application/json
+      and encodes v; writeError(w http.ResponseWriter, status int, msg string)
+      writes a JSON {"error": msg}; decodeJSON(r *http.Request, dst any) error
+      decodes the body and returns an error on malformed input. Imports
+      encoding/json, net/http only. No other project package.
+  - path: internal/api/middleware.go
+    purpose: >-
+      package api. Middleware type func(http.Handler) http.Handler and Chain(h
+      http.Handler, mws ...Middleware) http.Handler where the first listed is
+      outermost. A Logging(logger *slog.Logger) Middleware that logs method,
+      path, resolved status (via a statusRecorder wrapping http.ResponseWriter,
+      default 200) and duration using STRUCTURED log/slog (logger.Info with
+      slog attributes). A Recover(logger *slog.Logger) Middleware turning a
+      downstream panic into a 500 and logging it. Imports log/slog, net/http,
+      time. No other project package.
+  - path: internal/api/tasks.go
+    purpose: >-
+      package api. TaskHandler struct holding a store.Store (import the store
+      package; hold the INTERFACE by value, never *store.Store), built by
+      NewTaskHandler(s store.Store) *TaskHandler. http.HandlerFunc methods using
+      the response helpers and r.PathValue("id"): Create (decodeJSON a
+      models.Task, call its Validate() returning 400 on ErrInvalid via
+      errors.Is, then store.CreateTask returning 201, or 409 on store.ErrExists);
+      Get (200 or 404 on store.ErrNotFound); List (200 with the slice as JSON);
+      Delete (204 or 404). Imports errors, net/http, and the store + models
+      packages.
+  - path: internal/api/projects.go
+    purpose: >-
+      package api. ProjectHandler mirroring TaskHandler for projects: holds
+      store.Store (by value), NewProjectHandler(s store.Store) *ProjectHandler,
+      with Create (validate->400, CreateProject->201, 409 on store.ErrExists),
+      Get (200/404), List (200), Delete (204/404). Reuse the response helpers.
+      Imports errors, net/http, and the store + models packages.
+  - path: internal/api/router.go
+    purpose: >-
+      package api. func NewRouter(s store.Store, logger *slog.Logger)
+      http.Handler that builds an http.ServeMux (NOT a third-party router),
+      constructs the task and project handlers with s, and registers Go 1.22
+      METHOD+pattern routes (never a bare pattern twice): "POST /tasks",
+      "GET /tasks", "GET /tasks/{id}", "DELETE /tasks/{id}", the same four for
+      /projects, and "GET /healthz" -> 200 "ok". Wrap the mux with Chain(mux,
+      Logging(logger), Recover(logger)) and return it. Imports log/slog,
+      net/http, and the store package.
+  - path: internal/api/router_test.go
+    purpose: >-
+      package api. Integration tests (net/http/httptest) against NewRouter(
+      store.NewMemStore(), slog.New(slog.NewTextHandler(io.Discard, nil))).
+      Import the store + models packages. Each case builds a FRESH router+store
+      and a FRESH request body per request (never reuse a drained buffer).
+      Cover: POST a valid task->201 and echo; invalid task (bad status)->400;
+      duplicate id->409; GET missing->404; GET->200; list->200 JSON array;
+      DELETE->204 then GET->404; malformed JSON (truncated, not empty {})->400;
+      and a project create/get happy path. Imports bytes, encoding/json, io,
+      log/slog, net/http, net/http/httptest, testing, and store + models.
+  - path: cmd/server/main.go
+    purpose: >-
+      package main — the composition root. Import config, store, api (their full
+      module paths) and log/slog. func main() builds logger :=
+      slog.New(slog.NewJSONHandler(os.Stdout, nil)), cfg := config.Load(), s :=
+      store.NewMemStore(), handler := api.NewRouter(s, logger); constructs an
+      *http.Server{Addr: cfg.Addr, Handler: handler, ReadTimeout/WriteTimeout
+      from cfg}; runs it in a goroutine; and shuts down gracefully on
+      os.Interrupt via signal.NotifyContext + srv.Shutdown with a
+      context.WithTimeout(cfg.ShutdownTimeout). Log lifecycle events with slog.
+      Imports context, errors, log/slog, net/http, os, os/signal, time, and the
+      three internal packages.

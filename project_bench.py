@@ -120,6 +120,7 @@ def main(argv):
     ap.add_argument("--candidates", type=int, default=2)
     ap.add_argument("--max-fix-rounds", type=int, default=4)
     ap.add_argument("--capabilities", default="maintain,review,test")
+    ap.add_argument("--limit", type=int, default=0, help="bench only the first N projects (0 = all)")
     args = ap.parse_args(argv[1:])
 
     caps = set(args.capabilities.split(","))
@@ -129,6 +130,8 @@ def main(argv):
     review = OpenAICoder(model=args.review_model or args.model, base_url=args.review_base_url or args.base_url)
 
     projects = _load(Path(args.projects).resolve())
+    if args.limit:
+        projects = projects[: args.limit]
     print(f"project_bench: {len(projects)} projects | capabilities={sorted(caps)}\n")
 
     score = {"maintain": 0, "review": 0, "test": 0}
