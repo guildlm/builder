@@ -1229,6 +1229,12 @@ def _fix_loop(
     if ok:
         _log("compile/test passed")
         return True
+    # Local imports the deterministic requalify pass established, per file.
+    # A model regeneration of that file tends to DROP them again (the run-#6
+    # oscillation); re-pinning after every model fix makes the deterministic
+    # repair stick permanently. An import that becomes unused is pruned by
+    # goimports on write, so re-adding is always safe.
+    pinned: dict[str, set[str]] = {}
     for rnd in range(1, max_fix_rounds + 1):
         _log(f"compile/test FAILED, fix round {rnd}/{max_fix_rounds}")
         # Deterministic pre-pass: fix cross-package misqualified symbols
@@ -1242,6 +1248,10 @@ def _fix_loop(
                 _log(f"  requalified cross-package symbols in {path}")
                 _write_file(out, path, content)
                 written[path] = content
+                if module:
+                    pinned.setdefault(path, set()).update(
+                        re.findall(rf'"({re.escape(module)}/[^"]+)"', content)
+                    )
             ok, output = check(out)
             if ok:
                 _log(f"converged to green after fix round {rnd} (deterministic)")
@@ -1276,6 +1286,13 @@ def _fix_loop(
                 )
                 _write_file(out, path, code)
                 written[path] = code
+            repinned = written[path]
+            for imp in pinned.get(path, ()):
+                repinned = _ensure_import(repinned, imp)
+            if repinned != written[path]:
+                _log(f"  re-pinned local imports in {path}")
+                _write_file(out, path, repinned)
+                written[path] = repinned
         ok, output = check(out)
         if ok:
             _log(f"converged to green after fix round {rnd}")
