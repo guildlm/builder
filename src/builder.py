@@ -584,6 +584,20 @@ def _fix_prompt(
         if is_assertion_failure
         else ""
     )
+    # The dominant runtime-failure mode the fixer faces in subtest suites is
+    # state pollution — and a regenerated fix keeps the same shared-instance
+    # shape unless told the diagnosis explicitly.
+    if is_assertion_failure and task.spec.path.endswith("_test.go"):
+        assertion_rule += (
+            "MOST COMMON ROOT CAUSE in t.Run/table suites: every case SHARES "
+            "one mutable store/server/handler built once at the top, so an "
+            "earlier case's inserts/deletes leak into later cases (symptoms: "
+            "got contains records this case never created; a record the case "
+            "expects is already deleted; counts are off by earlier cases). "
+            "THE FIX: construct a FRESH store/server INSIDE each t.Run subtest "
+            "or loop body and create that case's fixture records there — no "
+            "package-level or top-of-function shared instance.\n\n"
+        )
     # A missing-module error means the model reached for a third-party import
     # (e.g. golang.org/x/...) the spec forbids. The fixer otherwise loops
     # forever re-adding it, so call it out explicitly and demand a stdlib swap.
@@ -696,6 +710,41 @@ def _offending_files(error_output: str, known: Sequence[str]) -> list[str]:
 # --------------------------------------------------------------------------- #
 # The core build loop
 # --------------------------------------------------------------------------- #
+
+
+def _widen_runtime_targets(
+    targets: list[str],
+    written: dict[str, str],
+    runtime_rounds: dict[str, int],
+    error_output: str,
+) -> list[str]:
+    """Root-cause widening for PERSISTENT runtime test failures.
+
+    A failing assertion is attributed to the *test* file, but the genuine bug
+    may live in the package's implementation (config.Load missing a default) —
+    which the fixer can never touch while only the test file is targeted, so
+    the loop stalls. First give the test author a round (the cheap, common
+    case); if the SAME package still fails at runtime on a later round, add its
+    implementation files to the targets so the model can repair whichever side
+    actually violates the spec. Mutates ``runtime_rounds`` (dir -> failures
+    seen). Pure aside from that — unit-testable without a toolchain."""
+    if not _is_test_failure(error_output):
+        return targets
+    out = list(targets)
+    for d in {_dir_of(t) for t in targets if t.endswith("_test.go")}:
+        runtime_rounds[d] = runtime_rounds.get(d, 0) + 1
+        if runtime_rounds[d] < 2:
+            continue
+        extra = [
+            p for p in written
+            if _dir_of(p) == d and p.endswith(".go")
+            and not p.endswith("_test.go") and p not in out
+        ]
+        if extra:
+            _log(f"  widening fix targets to package impl in {d or '.'} "
+                 f"(persistent runtime failure)")
+            out.extend(extra)
+    return out
 
 
 def _log(msg: str) -> None:
@@ -1235,6 +1284,8 @@ def _fix_loop(
     # repair stick permanently. An import that becomes unused is pruned by
     # goimports on write, so re-adding is always safe.
     pinned: dict[str, set[str]] = {}
+    # dir -> runtime-failure rounds seen, for root-cause target widening
+    runtime_rounds: dict[str, int] = {}
     for rnd in range(1, max_fix_rounds + 1):
         _log(f"compile/test FAILED, fix round {rnd}/{max_fix_rounds}")
         # Deterministic pre-pass: fix cross-package misqualified symbols
@@ -1257,6 +1308,7 @@ def _fix_loop(
                 _log(f"converged to green after fix round {rnd} (deterministic)")
                 return True
         targets = _offending_files(output, list(written)) or list(written)
+        targets = _widen_runtime_targets(targets, written, runtime_rounds, output)
         # Don't let the model re-fix (and re-break) a file we JUST repaired
         # deterministically this round — the qualification fix is authoritative
         # and must stick. A residual non-qualification bug in it surfaces next
