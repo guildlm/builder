@@ -54,3 +54,23 @@ def test_infer_types():
     assert _infer_field_type("[]models.Task{{ID: \"1\"}},") == "[]models.Task"
     assert _infer_field_type("models.Task{ID: \"1\"},") == "models.Task"
     assert _infer_field_type("someLocalVar") is None
+
+
+def test_duplicate_field_line_dropped():
+    from src.builder import _fix_duplicate_struct_fields
+    code = (
+        "package store\n\nfunc f() {\n\t_ = []struct {\n\t\tcreate int\n\t}{\n"
+        "\t\t{\n\t\t\tcreate: 1,\n\t\t\tcreate: 2,\n\t\t},\n\t}\n}\n"
+    )
+    err = "internal/store/x_test.go:9:4: duplicate field name create in struct literal"
+    out = _fix_duplicate_struct_fields({"internal/store/x_test.go": code}, err)
+    fixed = out["internal/store/x_test.go"]
+    assert fixed.count("create:") == 1
+    assert "create: 1," in fixed
+
+
+def test_duplicate_field_wrong_line_untouched():
+    from src.builder import _fix_duplicate_struct_fields
+    code = "package store\nvar x = 1\n"
+    err = "internal/store/x_test.go:2:4: duplicate field name create in struct literal"
+    assert _fix_duplicate_struct_fields({"internal/store/x_test.go": code}, err) == {}

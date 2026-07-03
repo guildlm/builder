@@ -1069,6 +1069,38 @@ _UNKNOWN_FIELD_RE = re.compile(
     r"([\w./-]+\.go):(\d+):\d+: unknown field (\w+) in struct literal of type struct\{"
 )
 
+# `duplicate field name create in struct literal` — vet points at the LATER
+# occurrence; deleting that line is the safe idempotent repair.
+_DUP_FIELD_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):\d+: duplicate field name (\w+) in struct literal"
+)
+
+
+def _fix_duplicate_struct_fields(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Drop the duplicated field line vet pinpoints in a struct literal (the
+    same self-inconsistent-table family as _fix_unknown_struct_fields: the 7B
+    sets the same field twice in one row). Only a line that is exactly a
+    ``field: value,`` assignment for the reported field is deleted."""
+    changed: dict[str, str] = {}
+    for m in _DUP_FIELD_RE.finditer(error_output):
+        path, lineno, field = m.group(1).lstrip("./"), int(m.group(2)), m.group(3)
+        if path not in written:
+            cand = [p for p in written if p.endswith(path)]
+            if len(cand) != 1:
+                continue
+            path = cand[0]
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        if not re.match(rf"\s*{re.escape(field)}\s*:", lines[lineno - 1]):
+            continue
+        del lines[lineno - 1]
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+    return changed
+
 
 def _infer_field_type(value: str) -> str | None:
     """Best-effort Go type of a struct-literal row value. None = don't guess."""
@@ -1417,6 +1449,8 @@ def _fix_loop(
         requal.update(arity)
         fields = _fix_unknown_struct_fields({**written, **requal}, output)
         requal.update(fields)
+        dups = _fix_duplicate_struct_fields({**written, **requal}, output)
+        requal.update(dups)
         if requal:
             for path, content in requal.items():
                 _log(f"  requalified cross-package symbols in {path}")
