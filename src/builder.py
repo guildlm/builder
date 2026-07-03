@@ -198,6 +198,14 @@ class OpenAICoder:
             ],
             temperature=0.1,
             max_tokens=max_tokens,
+            # mlx_lm-served Qwen instruct models carry eos_token_id=151643
+            # (<|endoftext|>) in the mlx-community config, so the server never
+            # stops at <|im_end|> — a tuned adapter (which no longer emits
+            # <|endoftext|>) then generates garbage until max_tokens on EVERY
+            # call, costing minutes per file. An explicit stop word fixes it
+            # at the request layer. Override via GUILDLM_BUILDER_STOP ("" to
+            # disable, comma-separated to extend).
+            stop=[w for w in os.environ.get("GUILDLM_BUILDER_STOP", "<|im_end|>").split(",") if w] or None,
         )
         return resp.choices[0].message.content or ""
 
