@@ -946,6 +946,65 @@ def exported_api(code: str) -> str:
 _UNDEF_QUAL_RE = re.compile(r"([\w./-]+\.go):\d+:\d+: undefined: (\w+)\.(\w+)")
 _UNDEF_BARE_RE = re.compile(r"([\w./-]+\.go):\d+:\d+: undefined: (\w+)(?!\s*\.)")
 
+# Stdlib packages a small model plausibly confuses symbols between. Order is
+# the lookup order; first `go doc <pkg>.<Sym>` hit wins.
+_STDLIB_CANDIDATES = (
+    "time", "strings", "strconv", "fmt", "os", "io", "bytes", "errors",
+    "sort", "math", "context", "sync", "bufio", "unicode", "regexp",
+    "net/http", "encoding/json", "path/filepath", "slices", "maps",
+)
+_stdlib_owner_cache: dict[str, str | None] = {}
+
+
+def _stdlib_owner_of(sym: str) -> str | None:
+    """Which stdlib package exports ``sym``? Resolved with the REAL toolchain
+    (`go doc <pkg>.<sym>`), cached; None when no candidate (or several would
+    need guessing — first hit in a deliberate order wins, which matches how
+    ambiguity is rare for exported stdlib names a 7B actually confuses)."""
+    if sym in _stdlib_owner_cache:
+        return _stdlib_owner_cache[sym]
+    owner = None
+    for pkg in _STDLIB_CANDIDATES:
+        try:
+            r = subprocess.run(
+                ["go", "doc", f"{pkg}.{sym}"], capture_output=True, timeout=10
+            )
+        except Exception:
+            continue
+        if r.returncode == 0:
+            owner = pkg
+            break
+    _stdlib_owner_cache[sym] = owner
+    return owner
+
+
+def _requalify_stdlib(written: dict[str, str], error_output: str) -> dict[str, str]:
+    """Deterministically fix a stdlib knowledge slip the compiler pinpoints:
+    `undefined: strconv.ParseDuration` where the symbol actually lives in
+    `time` -> rewrite `strconv.ParseDuration` to `time.ParseDuration` and
+    ensure the owner import (goimports prunes the stale one). Only fires when
+    the wrong qualifier is itself a stdlib candidate (a project package name
+    is _requalify_undefined's job) and `go doc` confirms a unique owner."""
+    changed: dict[str, str] = {}
+    for m in _UNDEF_QUAL_RE.finditer(error_output):
+        path, wrong, sym = m.group(1).lstrip("./"), m.group(2), m.group(3)
+        if wrong not in {c.rsplit("/", 1)[-1] for c in _STDLIB_CANDIDATES}:
+            continue
+        if path not in written:
+            cand = [p for p in written if p.endswith(path)]
+            if len(cand) != 1:
+                continue
+            path = cand[0]
+        owner = _stdlib_owner_of(sym)
+        if not owner or owner.rsplit("/", 1)[-1] == wrong:
+            continue
+        code = changed.get(path, written[path])
+        new = re.sub(rf"\b{re.escape(wrong)}\.{re.escape(sym)}\b",
+                     f"{owner.rsplit('/', 1)[-1]}.{sym}", code)
+        if new != code:
+            changed[path] = _ensure_import(new, owner)
+    return changed
+
 
 def _ensure_import(code: str, import_path: str) -> str:
     """Add ``import "import_path"`` if absent. goimports (run on write)
@@ -1451,6 +1510,8 @@ def _fix_loop(
         requal.update(fields)
         dups = _fix_duplicate_struct_fields({**written, **requal}, output)
         requal.update(dups)
+        std = _requalify_stdlib({**written, **requal}, output)
+        requal.update(std)
         if requal:
             for path, content in requal.items():
                 _log(f"  requalified cross-package symbols in {path}")

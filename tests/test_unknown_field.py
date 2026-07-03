@@ -74,3 +74,23 @@ def test_duplicate_field_wrong_line_untouched():
     code = "package store\nvar x = 1\n"
     err = "internal/store/x_test.go:2:4: duplicate field name create in struct literal"
     assert _fix_duplicate_struct_fields({"internal/store/x_test.go": code}, err) == {}
+
+
+def test_stdlib_requalify_parseduration():
+    from src.builder import _requalify_stdlib
+    code = (
+        'package config\n\nimport "strconv"\n\n'
+        'func f(s string) {\n\t_, _ = strconv.ParseDuration(s)\n}\n'
+    )
+    err = "internal/config/config.go:6:13: undefined: strconv.ParseDuration"
+    out = _requalify_stdlib({"internal/config/config.go": code}, err)
+    fixed = out["internal/config/config.go"]
+    assert "time.ParseDuration" in fixed
+    assert '"time"' in fixed
+    assert "strconv.ParseDuration" not in fixed
+
+
+def test_stdlib_requalify_skips_project_pkgs():
+    from src.builder import _requalify_stdlib
+    err = "internal/api/tasks.go:3:1: undefined: service.ErrExists"
+    assert _requalify_stdlib({"internal/api/tasks.go": "package api\n"}, err) == {}
