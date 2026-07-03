@@ -88,3 +88,51 @@ def test_requalify_undefined_cross_package():
     assert "internal/api/tasks.go" in changed
     assert "store.ErrExists" in changed["internal/api/tasks.go"]
     assert "service.ErrExists" not in changed["internal/api/tasks.go"]
+
+
+def test_method_decls_extraction():
+    from src.builder import method_decls
+    code = (
+        "package store\n\n"
+        "func (s *MemStore) CreateTask(t Task) error { return nil }\n"
+        "func (s MemStore) Len() int { return 0 }\n"
+        "func (MemStore) Unnamed() {}\n"
+        "func (s *Cache[T]) Get(k string) T { var z T; return z }\n"
+        "func Plain() {}\n"
+    )
+    assert method_decls(code) == {
+        "MemStore.CreateTask",
+        "MemStore.Len",
+        "MemStore.Unnamed",
+        "Cache.Get",
+    }
+
+
+def test_strips_method_redeclared_by_sibling():
+    from src.builder import strip_redeclarations
+    # the taskapi-dapt300 failure: store.go re-declares memory.go's MemStore
+    # methods -> "method already declared", unrecoverable for the fix loop
+    code = (
+        "package store\n\n"
+        "type Store interface {\n\tCreateTask(t Task) error\n}\n\n"
+        "// CreateTask stores a task.\n"
+        "func (s *MemStore) CreateTask(t Task) error {\n\treturn nil\n}\n\n"
+        "func (s *MemStore) GetTask(id string) (Task, error) {\n\treturn Task{}, nil\n}\n"
+    )
+    out = strip_redeclarations(code, {"MemStore.CreateTask", "MemStore.GetTask"})
+    assert "func (s *MemStore) CreateTask" not in out
+    assert "func (s *MemStore) GetTask" not in out
+    assert "// CreateTask stores a task." not in out  # doc comment removed too
+    assert "type Store interface" in out              # interface untouched
+    assert "CreateTask(t Task) error" in out          # ...including its method set
+
+
+def test_method_name_sharing_across_types_is_kept():
+    from src.builder import strip_redeclarations
+    # same method NAME on a DIFFERENT receiver is legal Go — must survive
+    code = (
+        "package store\n\n"
+        "func (s *FileStore) CreateTask(t Task) error {\n\treturn nil\n}\n"
+    )
+    out = strip_redeclarations(code, {"MemStore.CreateTask"})
+    assert "func (s *FileStore) CreateTask" in out

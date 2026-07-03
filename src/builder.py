@@ -771,6 +771,18 @@ def top_level_decls(code: str) -> set[str]:
     return names
 
 
+_METHOD_DECL_RE = re.compile(
+    r"^func\s*\(\s*(?:\w+\s+)?\*?(\w+)(?:\[[^\]]*\])?\s*\)\s*(\w+)", re.MULTILINE
+)
+
+
+def method_decls(code: str) -> set[str]:
+    """Methods a Go file declares, as ``Receiver.Name`` strings (pointer/value
+    receivers and generic type parameters normalized away). Dotted, so entries
+    can share a set with ``top_level_decls`` names without colliding."""
+    return {f"{recv}.{name}" for recv, name in _METHOD_DECL_RE.findall(code)}
+
+
 def strip_redeclarations(code: str, forbidden: set[str]) -> str:
     """Delete top-level declarations (and their doc comments) whose name a
     SIBLING file already declares — the dominant failure when a small model
@@ -778,9 +790,10 @@ def strip_redeclarations(code: str, forbidden: set[str]) -> str:
     (e.g. store.go re-declares errors.go's ErrNotFound), an unrecoverable
     "redeclared in this block" error the fix loop bounces on. Deterministically
     removing the duplicate (the sibling owns it, same package) is the goimports-
-    style repair. Only PLAIN funcs are stripped (methods can legitimately share
-    a name across types). Conservative: on any structural ambiguity it keeps the
-    line."""
+    style repair. A METHOD is stripped only on an exact ``Receiver.Name`` match
+    (dotted entries in ``forbidden``) — same receiver type, same package, which
+    Go always rejects; mere name-sharing across types stays legal and is kept.
+    Conservative: on any structural ambiguity it keeps the line."""
     if not forbidden:
         return code
     lines = code.splitlines()
@@ -827,8 +840,12 @@ def strip_redeclarations(code: str, forbidden: set[str]) -> str:
 
         # single decl (possibly brace-delimited: func body, struct/interface type)
         if kw == "func":
-            pm = re.match(r"func\s+(\w+)", stripped)  # plain func only, no receiver
+            pm = re.match(r"func\s+(\w+)", stripped)  # plain func, no receiver
             name = pm.group(1) if pm else None
+            if name is None:  # a method: forbidden as dotted Receiver.Name
+                mm = _METHOD_DECL_RE.match(stripped)
+                if mm:
+                    name = f"{mm.group(1)}.{mm.group(2)}"
         else:
             nm = re.match(r"(?:var|const|type)\s+(\w+)", stripped)
             name = nm.group(1) if nm else None
@@ -1115,7 +1132,7 @@ def _is_clean(
         return True
     if not toolchain.syntax_ok(code) or nonstdlib_imports(code):
         return False
-    if sibling_decls and (top_level_decls(code) & sibling_decls):
+    if sibling_decls and ((top_level_decls(code) | method_decls(code)) & sibling_decls):
         return False
     if require_assertions and not has_assertions(code):
         return False
@@ -1245,7 +1262,7 @@ def _generate_file(
     sibling_decls: set[str] = set()
     for p, content in written.items():
         if p != task.spec.path and _dir_of(p) == target_dir:
-            sibling_decls |= top_level_decls(content)
+            sibling_decls |= top_level_decls(content) | method_decls(content)
     is_test = task.spec.path.endswith("_test.go")
     return _sample_clean(
         coder, prompt, is_go, candidates, toolchain, "gen", sibling_decls, is_test
@@ -1325,7 +1342,7 @@ def _fix_loop(
             sibling_decls: set[str] = set()
             for other, content in written.items():
                 if other != path and _dir_of(other) == fix_dir:
-                    sibling_decls |= top_level_decls(content)
+                    sibling_decls |= top_level_decls(content) | method_decls(content)
             if candidates > 1:
                 code = _sample_verified_fix(
                     coder, fix_prompt, path, out, written, candidates, toolchain,
@@ -1511,7 +1528,7 @@ def maintain(
         sib: set[str] = set()
         for other, content in current.items():
             if other != path:
-                sib |= top_level_decls(content)
+                sib |= top_level_decls(content) | method_decls(content)
         code = _sample_clean(
             coder, _maintain_file_prompt(request, path, current, is_new),
             path.endswith(".go"), candidates, toolchain, "edit", sib, path.endswith("_test.go"),
@@ -1595,7 +1612,7 @@ def write_tests(
     sibling_decls: set[str] = set()
     for p, c in impl.items():
         if p.endswith(".go"):
-            sibling_decls |= top_level_decls(c)
+            sibling_decls |= top_level_decls(c) | method_decls(c)
     prompt = (
         f"TARGET_FILE: {test_filename}\n"
         f"Write a thorough, table-driven Go test in package {pkg} for this existing "
