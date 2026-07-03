@@ -1062,6 +1062,95 @@ _ARITY_RE = re.compile(
     r"(\d+) variables? but [\w.()\[\]*]+ returns (\d+) values?"
 )
 
+# `unknown field createErr in struct literal of type struct{...}` — ANONYMOUS
+# inline structs only; a named type (models.Task) means the row is wrong, not
+# the type, and is left for the model.
+_UNKNOWN_FIELD_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):\d+: unknown field (\w+) in struct literal of type struct\{"
+)
+
+
+def _infer_field_type(value: str) -> str | None:
+    """Best-effort Go type of a struct-literal row value. None = don't guess."""
+    v = value.strip().rstrip(",").strip()
+    if not v:
+        return None
+    if re.fullmatch(r'"(?:[^"\\]|\\.)*"', v) or v.startswith("`"):
+        return "string"
+    if v in ("true", "false"):
+        return "bool"
+    if re.fullmatch(r"-?\d+", v):
+        return "int"
+    if re.fullmatch(r"-?\d*\.\d+", v):
+        return "float64"
+    if v == "nil" or "errors.New(" in v or "fmt.Errorf(" in v or re.search(r"\bErr[A-Z]\w*", v):
+        return "error"
+    m = re.fullmatch(r"(\[\][\w.]+)\{.*\}?", v, re.DOTALL)
+    if m:
+        return m.group(1)
+    m = re.fullmatch(r"([\w.]+)\{.*\}?", v, re.DOTALL)
+    if m and m.group(1)[0].isupper() or (m and "." in m.group(1)):
+        return m.group(1)
+    return None
+
+
+def _fix_unknown_struct_fields(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Deterministically complete an inline table-test struct: when a row uses
+    a field the anonymous ``[]struct{...}`` declaration lacks (`unknown field X
+    in struct literal of type struct{...}` — the 7B's self-inconsistent table),
+    add ``X <type>`` to the declaration, inferring the type from the row value.
+    Anonymous inline structs only; if the type can't be inferred or the decl
+    can't be located unambiguously, the file is left for the model. Returns
+    {path: new_content} for changed files only."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    for m in _UNKNOWN_FIELD_RE.finditer(error_output):
+        path, lineno, field = resolve(m.group(1)), int(m.group(2)), m.group(3)
+        if not path:
+            continue
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        # the row value: everything after `field:` on the error line
+        vm = re.search(rf"\b{re.escape(field)}\s*:\s*(.+)$", lines[lineno - 1])
+        ftype = _infer_field_type(vm.group(1)) if vm else None
+        if not ftype:
+            continue
+        # nearest preceding anonymous struct decl opener
+        decl = None
+        for i in range(lineno - 2, -1, -1):
+            if re.search(r"\[\]struct\s*\{", lines[i]):
+                decl = i
+                break
+        if decl is None:
+            continue
+        # its closing line: the first `}{` (decl ends, literal begins) below
+        close = None
+        for j in range(decl, min(lineno, len(lines))):
+            if re.match(r"\s*\}\s*\{", lines[j]):
+                close = j
+                break
+        if close is None:
+            continue
+        if re.search(rf"\b{re.escape(field)}\b", "\n".join(lines[decl:close])):
+            continue  # already declared (another literal is the culprit)
+        indent = re.match(r"\s*", lines[close - 1 if close > decl else close]).group(0)
+        if close == decl + 1 or not lines[decl + 1:close]:
+            indent = re.match(r"\s*", lines[decl]).group(0) + "\t"
+        lines.insert(close, f"{indent}{field} {ftype}")
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+    return changed
+
 
 def _fix_assignment_arity(
     written: dict[str, str], error_output: str
@@ -1326,6 +1415,8 @@ def _fix_loop(
         requal = _requalify_undefined(written, output, module)
         arity = _fix_assignment_arity({**written, **requal}, output)
         requal.update(arity)
+        fields = _fix_unknown_struct_fields({**written, **requal}, output)
+        requal.update(fields)
         if requal:
             for path, content in requal.items():
                 _log(f"  requalified cross-package symbols in {path}")
