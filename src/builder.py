@@ -874,6 +874,13 @@ def strip_redeclarations(code: str, forbidden: set[str]) -> str:
     return "\n".join(lines[k] for k in range(n) if keep[k]).strip("\n") + "\n"
 
 
+def _gomod_content(module: str) -> str:
+    """The go.mod for a stdlib-only project is fully determined by its module
+    path — generate it deterministically rather than sampling a model (whose
+    one bad sample turns every later diagnostic into go.mod parse noise)."""
+    return f"module {module}\n\ngo 1.23\n"
+
+
 _PKG_RE = re.compile(r"^package\s+(\w+)", re.MULTILINE)
 
 
@@ -1326,6 +1333,16 @@ def _fix_loop(
                 return True
         targets = _offending_files(output, list(written)) or list(written)
         targets = _widen_runtime_targets(targets, written, runtime_rounds, output)
+        # go.mod is fully determined by the module path (stdlib-only projects) —
+        # never hand it to the model (one bad sample poisons EVERY later round:
+        # parse errors mask the real diagnostics). Restore it deterministically.
+        if module and "go.mod" in targets:
+            fresh = _gomod_content(module)
+            if written.get("go.mod") != fresh:
+                _log("  restored go.mod deterministically")
+                _write_file(out, "go.mod", fresh)
+                written["go.mod"] = fresh
+            targets = [t for t in targets if t != "go.mod"]
         # Don't let the model re-fix (and re-break) a file we JUST repaired
         # deterministically this round — the qualification fix is authoritative
         # and must stick. A residual non-qualification bug in it surfaces next
@@ -1410,9 +1427,12 @@ def build(
     # --- Generation pass ---------------------------------------------------- #
     for task in tasks:
         _log(f"generate {task.spec.path} ({task.index + 1}/{len(tasks)})")
-        code = _generate_file(
-            coder, spec, task, written, candidates, toolchain, retriever, shots
-        )
+        if task.spec.path == "go.mod" and spec.go_module:
+            code = _gomod_content(spec.go_module)  # deterministic, never sampled
+        else:
+            code = _generate_file(
+                coder, spec, task, written, candidates, toolchain, retriever, shots
+            )
         _write_file(out, task.spec.path, code)
         written[task.spec.path] = code
 

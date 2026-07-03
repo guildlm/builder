@@ -136,3 +136,8 @@ def test_method_name_sharing_across_types_is_kept():
     )
     out = strip_redeclarations(code, {"MemStore.CreateTask"})
     assert "func (s *FileStore) CreateTask" in out
+
+
+def test_gomod_content_deterministic():
+    from src.builder import _gomod_content
+    assert _gomod_content("guildlm.dev/taskapi") == "module guildlm.dev/taskapi\n\ngo 1.23\n"
