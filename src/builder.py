@@ -755,6 +755,45 @@ def _widen_runtime_targets(
     return out
 
 
+_UNDEF_PKGSYM_RE = re.compile(r"undefined: (\w+)\.(\w+)")
+
+
+def _widen_missing_symbol_targets(
+    targets: list[str], written: dict[str, str], error_output: str
+) -> list[str]:
+    """Compile-time root-cause widening. ``undefined: models.Event`` is reported
+    at the USE site (service.go), but the fix belongs at the DEFINITION site — the
+    ``models`` package, whose file omitted the Event type the spec requires. While
+    only the use-site is targeted the loop oscillates and never adds the type.
+    When a project package is referenced for a symbol NONE of its files declare,
+    add that package's non-test files to the targets so the model regenerates the
+    owner (whose spec lists the missing type). Pure — unit-testable without go."""
+    pkg_dir: dict[str, str] = {}
+    for p, c in written.items():
+        name = pkg_name_of(c)
+        if name and name != "main":
+            pkg_dir.setdefault(name, _dir_of(p))
+    decls_by_dir: dict[str, set[str]] = {}
+    for p, c in written.items():
+        decls_by_dir.setdefault(_dir_of(p), set()).update(top_level_decls(c))
+    out = list(targets)
+    for m in _UNDEF_PKGSYM_RE.finditer(error_output):
+        pkg, sym = m.group(1), m.group(2)
+        d = pkg_dir.get(pkg)
+        if d is None or sym in decls_by_dir.get(d, set()):
+            continue  # not ours, or the symbol exists (a qualification miss)
+        extra = [
+            p for p in written
+            if _dir_of(p) == d and p.endswith(".go")
+            and not p.endswith("_test.go") and p not in out
+        ]
+        if extra:
+            _log(f"  widening fix targets to {d or '.'} — undefined "
+                 f"{pkg}.{sym} (missing from its package)")
+            out.extend(extra)
+    return out
+
+
 def _log(msg: str) -> None:
     print(f"[guildlm-build] {msg}", file=sys.stderr, flush=True)
 
@@ -1586,6 +1625,7 @@ def _fix_loop(
                 return True
         targets = _offending_files(output, list(written)) or list(written)
         targets = _widen_runtime_targets(targets, written, runtime_rounds, output)
+        targets = _widen_missing_symbol_targets(targets, written, output)
         # go.mod is fully determined by the module path (stdlib-only projects) —
         # never hand it to the model (one bad sample poisons EVERY later round:
         # parse errors mask the real diagnostics). Restore it deterministically.

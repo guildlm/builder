@@ -82,7 +82,9 @@ files:
       allocates the channel with capacity size. Start() launches ONE goroutine
       (wg.Add(1); go func(){ defer wg.Done(); for e := range ch { process } }())
       that ranges the channel — ranging a channel exits cleanly when it is closed,
-      which is how drain works. Enqueue(e models.Event) sends e on the channel.
+      which is how drain works. Enqueue(e models.Event) — signature is exactly
+      `Enqueue(e models.Event)` with NO return value (fire-and-forget) — sends e
+      on the channel.
       process increments the atomic counter and logs the event type at debug.
       Stop() closes the channel then wg.Wait() so ALL buffered events are
       processed before it returns (graceful drain). Processed() int64 returns the
@@ -118,8 +120,11 @@ files:
     purpose: >-
       package service. Business-logic layer between handlers and store, and the
       emitter of events. Import context and the store and models packages. Define
-      an EventEnqueuer INTERFACE { Enqueue(e models.Event) } (the worker satisfies
-      it; the service depends on this small interface, NOT on the worker package).
+      an EventEnqueuer INTERFACE { Enqueue(e models.Event) } — the method
+      signature is EXACTLY `Enqueue(e models.Event)` with NO return value, so the
+      worker's Enqueue satisfies it verbatim; the service depends on this small
+      interface, NOT on the worker package. Call events.Enqueue(...) as a plain
+      statement (it returns nothing; do not assign or check a result).
       Define a TaskService INTERFACE (Create(ctx context.Context, t models.Task)
       (models.Task, error); Get(ctx, id string) (models.Task, error); List(ctx,
       limit, offset int, status string) ([]models.Task, error); Delete(ctx, id
@@ -192,10 +197,14 @@ files:
       panic into a 500 and logs it. Imports log/slog, net/http, time.
   - path: internal/api/router_test.go
     purpose: >-
-      package api. Integration tests (net/http/httptest) against NewRouter built
-      from service.NewTaskService(store.NewMemStore(), a no-op EventEnqueuer),
-      auth token "secret", and slog.New(slog.NewTextHandler(io.Discard, nil)).
-      Define a tiny no-op enqueuer in the test. Fresh router+store per case, fresh
+      package api. Integration tests (net/http/httptest). Build the router by
+      calling NewRouter DIRECTLY with the SERVICE as its first argument:
+      NewRouter(service.NewTaskService(store.NewMemStore(), enq), "secret",
+      slog.New(slog.NewTextHandler(io.Discard, nil))) where enq is a no-op
+      EventEnqueuer. NewRouter takes a service.TaskService and constructs the
+      handler ITSELF — do NOT call NewTaskHandler in the test and do NOT wrap the
+      service. Define a tiny no-op enqueuer in the test (a struct with an
+      Enqueue(models.Event) method). Fresh router+store per case, fresh
       request body per request, and set "Authorization: Bearer secret" on every
       MUTATING request. Cover: POST valid task (with token)->201+echo; POST with a
       WRONG token->401; POST with no token->401; invalid status (with token)->400;
