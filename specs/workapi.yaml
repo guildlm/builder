@@ -1,0 +1,222 @@
+name: workapi
+language: go
+go_module: guildlm.dev/workapi
+description: >-
+  A production-grade, STANDARD-LIBRARY-ONLY Go backend that adds two real
+  concerns on top of a clean-architecture task API: BEARER-TOKEN AUTH on
+  mutating routes, and an asynchronous BACKGROUND WORKER that processes events
+  emitted when a task is created, with GRACEFUL DRAIN on shutdown. No external
+  dependencies: net/http Go 1.22 ServeMux, log/slog, context, encoding/json,
+  sync, sync/atomic. Clean layering, dependencies point inward only: handlers ->
+  service interface -> store interface, and service -> an event-enqueuer
+  interface the worker satisfies. Multi-package layout (cmd/ +
+  internal/{config,models,store,worker,auth,service,api}). Cross-package symbols
+  are used by importing the package and qualifying (models.Task, store.Store,
+  service.TaskService, store.ErrNotFound, worker.Worker, auth.TokenAuth). Only
+  exported names cross package boundaries.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/workapi, go 1.23. No dependencies.
+      Output as a ```mod block, not Go.
+  - path: internal/config/config.go
+    purpose: >-
+      package config. Config struct { Addr string; ReadTimeout, WriteTimeout,
+      ShutdownTimeout time.Duration; AuthToken string; QueueSize int } and func
+      Load() Config reading env (os.Getenv) with defaults: Addr ":8080", timeouts
+      5s/10s/10s, AuthToken from AUTH_TOKEN defaulting to "secret", QueueSize from
+      QUEUE_SIZE (strconv.Atoi) defaulting to 64. A method (c Config) Validate()
+      error returning an error if Addr is empty, AuthToken is empty, or QueueSize
+      <= 0. Imports os, strconv, time, fmt. No other project package.
+  - path: internal/config/config_test.go
+    purpose: >-
+      package config. Tests: Load() returns the documented defaults (Addr
+      ":8080", AuthToken "secret", QueueSize 64); a Config with empty AuthToken
+      fails Validate(); a sane Config passes Validate(). Imports testing only. Do
+      not name any local variable `t`.
+  - path: internal/models/models.go
+    purpose: >-
+      package models. Task struct {ID, Title, Status string} with JSON tags;
+      valid Status is "todo"|"doing"|"done". Event struct {Type, TaskID string}
+      with JSON tags (Type is e.g. "task.created"). Exported sentinel var
+      ErrInvalid = errors.New("invalid"). Method (t Task) Validate() error
+      wrapping ErrInvalid via fmt.Errorf("%w: ...") on empty Title or bad Status.
+      Imports errors, fmt only.
+  - path: internal/store/store.go
+    purpose: >-
+      package store. Import the models package (guildlm.dev/workapi/internal/
+      models) and use models.Task qualified. Exported sentinels var ErrNotFound
+      and var ErrExists (errors.New). A CONTEXT-AWARE Store INTERFACE (every
+      method takes context.Context as its FIRST parameter): CreateTask(ctx
+      context.Context, t models.Task) error, GetTask(ctx context.Context, id
+      string) (models.Task, error), ListTasks(ctx context.Context)
+      ([]models.Task, error), DeleteTask(ctx context.Context, id string) error.
+      Imports context, errors, and the models package only.
+  - path: internal/store/memory.go
+    purpose: >-
+      package store. Goroutine-safe in-memory Store impl (same package —
+      reference Store, ErrNotFound, ErrExists directly, do NOT redeclare). Every
+      method takes ctx context.Context first to satisfy the Store interface (the
+      impl may ignore ctx but MUST accept it). MemStore struct with one map
+      guarded by a sync.RWMutex, built by NewMemStore() *MemStore. CreateTask ->
+      ErrExists on dup id; GetTask/DeleteTask -> ErrNotFound when absent;
+      ListTasks returns (items, nil) id-sorted. IMPLEMENT ALL FOUR METHODS FULLY
+      (no stub, no ErrNotImplemented, no panic, no TODO). Use models types
+      (import models). var _ Store = (*MemStore)(nil). Imports context, sort,
+      sync, and the models package.
+  - path: internal/store/memory_test.go
+    purpose: >-
+      package store. Tests for MemStore (same package; use models via import).
+      Pass context.Background() to every store method. Fresh NewMemStore per case.
+      Cover create->nil / dup->ErrExists (errors.Is); Get present/missing
+      ->ErrNotFound; List id-sorted; Delete present then Get->ErrNotFound; Delete
+      missing->ErrNotFound. Imports context, errors, testing, and models. Never
+      name a local variable `t`.
+  - path: internal/worker/worker.go
+    purpose: >-
+      package worker. An asynchronous processor for models.Event with a graceful
+      shutdown. Import context, log/slog, sync, sync/atomic, and the models
+      package. Worker struct holding a buffered `chan models.Event`, a
+      *slog.Logger, a sync.WaitGroup, and an atomic counter (atomic.Int64) of
+      processed events. NewWorker(size int, logger *slog.Logger) *Worker
+      allocates the channel with capacity size. Start() launches ONE goroutine
+      (wg.Add(1); go func(){ defer wg.Done(); for e := range ch { process } }())
+      that ranges the channel — ranging a channel exits cleanly when it is closed,
+      which is how drain works. Enqueue(e models.Event) sends e on the channel.
+      process increments the atomic counter and logs the event type at debug.
+      Stop() closes the channel then wg.Wait() so ALL buffered events are
+      processed before it returns (graceful drain). Processed() int64 returns the
+      counter's Load(). Do not use time.Sleep for synchronization.
+  - path: internal/worker/worker_test.go
+    purpose: >-
+      package worker. Test that the worker drains: build NewWorker(8,
+      slog.New(slog.NewTextHandler(io.Discard, nil))), Start(), Enqueue N=5
+      events, Stop(), then assert Processed() == 5 (Stop blocks until every
+      buffered event is processed, so no sleeps or polling are needed). A second
+      test: Enqueue is safe to call from multiple goroutines (spawn several,
+      each Enqueue once, use a sync.WaitGroup to wait, Stop, assert the total).
+      Imports io, log/slog, sync, testing, and the models package. Never name a
+      local variable `t`.
+  - path: internal/auth/auth.go
+    purpose: >-
+      package auth. Bearer-token middleware. Import net/http (and strings).
+      Exported type key struct{} is unexported; use an unexported context key
+      value. TokenAuth(token string) func(http.Handler) http.Handler returns a
+      middleware: read the "Authorization" header, require exactly "Bearer " +
+      token (use strings.TrimPrefix / equality); on mismatch or missing write
+      http.StatusUnauthorized ("unauthorized") and RETURN without calling next;
+      on match call next.ServeHTTP(w, r). Keep it a pure standard-library
+      middleware. Imports net/http, strings only.
+  - path: internal/auth/auth_test.go
+    purpose: >-
+      package auth. Table test with net/http/httptest: wrap a trivial 200 handler
+      with TokenAuth("secret"); a request with header "Bearer secret" -> 200; a
+      request with "Bearer wrong" -> 401; a request with no Authorization header
+      -> 401. Use httptest.NewRequest and httptest.NewRecorder. Imports net/http,
+      net/http/httptest, testing. Never name a local variable `t`.
+  - path: internal/service/service.go
+    purpose: >-
+      package service. Business-logic layer between handlers and store, and the
+      emitter of events. Import context and the store and models packages. Define
+      an EventEnqueuer INTERFACE { Enqueue(e models.Event) } (the worker satisfies
+      it; the service depends on this small interface, NOT on the worker package).
+      Define a TaskService INTERFACE (Create(ctx context.Context, t models.Task)
+      (models.Task, error); Get(ctx, id string) (models.Task, error); List(ctx,
+      limit, offset int, status string) ([]models.Task, error); Delete(ctx, id
+      string) error). Concrete UNEXPORTED taskService struct holding a field
+      `store` of type store.Store (the INTERFACE, by value) and a field `events`
+      of type EventEnqueuer. Constructor exported NewTaskService(s store.Store, e
+      EventEnqueuer) TaskService returning &taskService{store: s, events: e}
+      (struct-literal field names MUST be the declared `store` and `events`).
+      Create: call t.Validate() and on error return (models.Task{}, err); else
+      s.store.CreateTask(ctx, t) and on error return (models.Task{}, err); else
+      events.Enqueue(models.Event{Type: "task.created", TaskID: t.ID}) and return
+      (t, nil). Get/Delete delegate to the store. List: fetch via
+      s.store.ListTasks(ctx), apply status filtering, then PAGINATION via a
+      generic helper paginate[T any](items []T, limit, offset int) []T with bounds
+      checks (offset past end -> empty, never panic), return (page, nil).
+      Compile-time assertion var _ TaskService = (*taskService)(nil). Imports
+      context + the store + models packages.
+  - path: internal/service/service_test.go
+    purpose: >-
+      package service. Tests using NewTaskService(store.NewMemStore(), a test
+      EventEnqueuer) and the models package; pass context.Background() to every
+      service method. Define a tiny fake enqueuer in the test (a struct with a
+      slice or counter recording Enqueue calls). Fresh service per case. Cover:
+      Create a valid task -> no error, retrievable via Get, AND the enqueuer
+      received exactly one event; Create an invalid task (bad status) -> error is
+      models.ErrInvalid (errors.Is) and NO event enqueued; List with limit=1
+      returns at most 1 item. Imports context, errors, testing, and the store +
+      models packages. Never name a local variable `t`.
+  - path: internal/api/response.go
+    purpose: >-
+      package api. Helpers: writeJSON(w http.ResponseWriter, status int, v any)
+      (sets application/json, encodes); writeError(w, status int, msg string)
+      (JSON {"error": msg}); decodeJSON(r *http.Request, dst any) error. Imports
+      encoding/json, net/http only.
+  - path: internal/api/tasks.go
+    purpose: >-
+      package api. TaskHandler holding a service.TaskService (import the service
+      package; hold the INTERFACE by value, never a pointer), built by
+      NewTaskHandler(svc service.TaskService) *TaskHandler. Methods
+      (http.HandlerFunc) pass r.Context() as the ctx to every svc call and use the
+      response helpers, r.PathValue("id") and r.URL.Query() for
+      ?limit=&offset=&status=: Create (decodeJSON a models.Task ->
+      svc.Create(r.Context(), t); 400 on models.ErrInvalid via errors.Is, 201 with
+      the created task, 409 on store.ErrExists); List (parse limit/offset with
+      strconv defaulting/clamping, svc.List(r.Context(), ...), 200 JSON); Get
+      (svc.Get(r.Context(), id); 200 or 404 on store.ErrNotFound); Delete (204 or
+      404). Imports errors, net/http, strconv, and the service + models + store
+      packages.
+  - path: internal/api/router.go
+    purpose: >-
+      package api. func NewRouter(svc service.TaskService, authToken string,
+      logger *slog.Logger) http.Handler building an http.ServeMux (NOT a
+      third-party router). Construct the TaskHandler and register Go 1.22
+      METHOD+pattern routes: "POST /tasks", "GET /tasks", "GET /tasks/{id}",
+      "DELETE /tasks/{id}", plus "GET /healthz" -> 200 "ok" and "GET /readyz" ->
+      200 "ready". The MUTATING routes (POST, DELETE) must be protected by
+      auth.TokenAuth(authToken): wrap the handler funcs for those two routes with
+      the auth middleware while leaving GET routes and health checks open (e.g.
+      register the write handlers as auth.TokenAuth(authToken)(http.HandlerFunc(
+      h.Create))). Finally wrap the whole mux with Chain(mux, Logging(logger),
+      Recover(logger)) — reuse the Middleware/Chain/Logging/Recover from
+      middleware.go. Imports log/slog, net/http, and the service + auth packages.
+  - path: internal/api/middleware.go
+    purpose: >-
+      package api. Middleware type func(http.Handler) http.Handler and Chain(h
+      http.Handler, mws ...Middleware) http.Handler (first listed is outermost).
+      Logging(logger *slog.Logger) Middleware logs method/path/status (via a
+      statusRecorder wrapping http.ResponseWriter, default 200)/duration with
+      structured slog. Recover(logger *slog.Logger) Middleware turns a downstream
+      panic into a 500 and logs it. Imports log/slog, net/http, time.
+  - path: internal/api/router_test.go
+    purpose: >-
+      package api. Integration tests (net/http/httptest) against NewRouter built
+      from service.NewTaskService(store.NewMemStore(), a no-op EventEnqueuer),
+      auth token "secret", and slog.New(slog.NewTextHandler(io.Discard, nil)).
+      Define a tiny no-op enqueuer in the test. Fresh router+store per case, fresh
+      request body per request, and set "Authorization: Bearer secret" on every
+      MUTATING request. Cover: POST valid task (with token)->201+echo; POST with a
+      WRONG token->401; POST with no token->401; invalid status (with token)->400;
+      duplicate (with token)->409; GET missing->404 (no token needed); GET->200;
+      list->200 JSON array; ?limit=1 returns at most 1; DELETE (with token)->204
+      then GET->404; malformed JSON (truncated, with token)->400; GET
+      /healthz->200; GET /readyz->200. Imports bytes, encoding/json, io, log/slog,
+      net/http, net/http/httptest, testing, and the service + store + models
+      packages. Never name a local variable `t`.
+  - path: cmd/server/main.go
+    purpose: >-
+      package main — composition root. Import config, store, worker, service, api,
+      context, log/slog, net/http, os, os/signal, time. main(): logger :=
+      slog.New(slog.NewJSONHandler(os.Stdout, nil)); cfg := config.Load(); if err
+      := cfg.Validate(); err != nil log and os.Exit(1); s := store.NewMemStore();
+      w := worker.NewWorker(cfg.QueueSize, logger); w.Start(); svc :=
+      service.NewTaskService(s, w) (the worker satisfies service.EventEnqueuer);
+      handler := api.NewRouter(svc, cfg.AuthToken, logger); build
+      *http.Server{Addr: cfg.Addr, Handler: handler, ReadTimeout, WriteTimeout};
+      run ListenAndServe in a goroutine; graceful shutdown on os.Interrupt via
+      signal.NotifyContext — on signal, srv.Shutdown(a context.WithTimeout of
+      cfg.ShutdownTimeout) to stop accepting requests, THEN w.Stop() to drain the
+      worker. Log lifecycle with slog. Imports context, log/slog, net/http, os,
+      os/signal, time, and the config/store/worker/service/api packages.

@@ -1006,6 +1006,63 @@ def _requalify_stdlib(written: dict[str, str], error_output: str) -> dict[str, s
     return changed
 
 
+# `package models is not in std (...)` — the model truncated a LOCAL import to
+# some non-module form (bare "models", "internal/models", or the module tail
+# "workapi/internal/models") instead of the full "guildlm.dev/workapi/internal/
+# models". go reads the truncated path as a std-library lookup and fails.
+# Deterministic and general — the real package directory is right there in the
+# project. Same class as _requalify_stdlib: a mechanical, compiler-pinpointed slip.
+_NOTINSTD_RE = re.compile(
+    r"([\w./-]+\.go):\d+:\d+: package (\S+) is not in std"
+)
+
+
+def _fix_module_prefix(
+    written: dict[str, str], error_output: str, module: str | None
+) -> dict[str, str]:
+    """Repair a local import that lost the module path. Resolves the truncated
+    import to a real project package directory, then rewrites the literal to
+    ``"<module>/<dir>"``. Handles every truncation the 7B produces:
+      * bare basename            "models"                 -> internal/models
+      * repo-relative dir        "internal/models"        -> internal/models
+      * module tail + rest       "workapi/internal/models"-> internal/models
+    A form is only rewritten when it resolves to EXACTLY ONE project package, so
+    an ambiguous or genuinely-third-party miss is left alone."""
+    if not module:
+        return {}
+    tail = module.rsplit("/", 1)[-1] if "/" in module else module
+    dirs = {_dir_of(p) for p in written if _dir_of(p)}
+    by_base: dict[str, list[str]] = {}
+    for d in dirs:
+        by_base.setdefault(d.rsplit("/", 1)[-1], []).append(d)
+
+    def resolve(bad: str) -> str | None:
+        if bad in dirs:                                   # "internal/models"
+            return bad
+        if "/" in bad:                                    # "workapi/internal/models"
+            rest = bad[len(tail):].lstrip("/") if bad.startswith(tail + "/") else ""
+            return rest if rest in dirs else None
+        cand = by_base.get(bad, [])                        # bare "models"
+        return cand[0] if len(cand) == 1 else None
+
+    changed: dict[str, str] = {}
+    for m in _NOTINSTD_RE.finditer(error_output):
+        path, bad = m.group(1).lstrip("./"), m.group(2)
+        target = resolve(bad)
+        if not target:
+            continue
+        if path not in written:
+            cand = [p for p in written if p.endswith(path)]
+            if len(cand) != 1:
+                continue
+            path = cand[0]
+        code = changed.get(path, written[path])
+        new = code.replace(f'"{bad}"', f'"{module}/{target}"')
+        if new != code:
+            changed[path] = new
+    return changed
+
+
 def _ensure_import(code: str, import_path: str) -> str:
     """Add ``import "import_path"`` if absent. goimports (run on write)
     canNOT resolve LOCAL module imports from isolated content, so the Builder
@@ -1512,6 +1569,8 @@ def _fix_loop(
         requal.update(dups)
         std = _requalify_stdlib({**written, **requal}, output)
         requal.update(std)
+        modp = _fix_module_prefix({**written, **requal}, output, module)
+        requal.update(modp)
         if requal:
             for path, content in requal.items():
                 _log(f"  requalified cross-package symbols in {path}")
