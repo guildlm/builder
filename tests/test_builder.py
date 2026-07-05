@@ -706,3 +706,89 @@ def test_write_tests_generates_passing_tests(tmp_path):
     assert ok
     assert "func TestAdd" in content
     assert (tmp_path / "guild_test.go").exists()
+
+
+def test_check_appends_vet_output_when_build_fails(tmp_path):
+    # go build never compiles _test.go files: with the impl broken in one
+    # package, a test-file compile error in ANOTHER package must still be
+    # visible in check() output (vet supplies it), or the fix loop pays one
+    # round per error layer.
+    (tmp_path / "go.mod").write_text("module example.com/m\n\ngo 1.22\n")
+    a = tmp_path / "a"
+    b = tmp_path / "b"
+    a.mkdir()
+    b.mkdir()
+    (a / "a.go").write_text(
+        "package a\n\nfunc F() int { return undefinedSymbol }\n"
+    )
+    (b / "b.go").write_text("package b\n\nfunc G() int { return 1 }\n")
+    (b / "b_test.go").write_text(
+        "package b\n\nimport \"testing\"\n\n"
+        "func TestG(t *testing.T) {\n\t_ = alsoUndefined\n}\n"
+    )
+    ok, output = GoToolchain().check(tmp_path)
+    assert not ok
+    assert "undefinedSymbol" in output  # the build error
+    assert "alsoUndefined" in output  # the test-file error only vet surfaces
+
+
+def test_write_file_returns_what_landed_on_disk(tmp_path):
+    # written[] must hold the gofmt'd content, or compiler line numbers drift
+    # from the stored source and line-indexed gates miss their target lines
+    from src.builder import _write_file
+
+    raw = "package a\n\n\n\nfunc   f(  ) {\n\treturn\n}\n"
+    stored = _write_file(tmp_path, "a.go", raw)
+    on_disk = (tmp_path / "a.go").read_text()
+    assert stored == on_disk
+    assert stored != raw  # gofmt actually reflowed it
+
+
+def test_error_signature_strips_run_noise():
+    from src.builder import _error_signature
+
+    a = (
+        "panic({0x1049b69c0?, 0x14000018108?})\n"
+        "created by testing.(*T).Run in goroutine 6\n"
+        "\tservice_test.go:48 +0x324\n"
+        "FAIL\tguildlm.dev/workapi/internal/service\t1.093s\n"
+    )
+    b = (
+        "panic({0x10027e9c0?, 0x14000124048?})\n"
+        "created by testing.(*T).Run in goroutine 34\n"
+        "\tservice_test.go:48 +0x1c8\n"
+        "FAIL\tguildlm.dev/workapi/internal/service\t0.745s\n"
+    )
+    assert _error_signature(a) == _error_signature(b)
+    c = b.replace("service_test.go:48", "service_test.go:52")
+    assert _error_signature(b) != _error_signature(c)
+
+
+def test_trace_writes_and_harvests(tmp_path, monkeypatch):
+    import json as _json
+    from src.builder import _trace
+
+    trace = tmp_path / "run.jsonl"
+    monkeypatch.setenv("GUILDLM_BUILDER_TRACE", str(trace))
+    _trace({"stage": "generate", "path": "a.go", "prompt": "P1", "response": "old"})
+    _trace({"stage": "fix", "path": "a.go", "prompt": "P2", "response": "mid"})
+    _trace({"event": "green", "spec": "s", "files": {"a.go": "final", "go.mod": "m"}})
+
+    sys_path_hack = None  # harvest is a script, import by path
+    import importlib.util as ilu
+    spec = ilu.spec_from_file_location("harvest_traces", "harvest_traces.py")
+    mod = ilu.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    rows = mod.harvest(trace)
+    # one row per .go file, LAST prompt paired with FINAL green content
+    assert len(rows) == 1
+    assert rows[0]["instruction"] == "P2"
+    assert "final" in rows[0]["response"]
+
+
+def test_trace_disabled_is_noop(tmp_path, monkeypatch):
+    from src.builder import _trace
+
+    monkeypatch.delenv("GUILDLM_BUILDER_TRACE", raising=False)
+    _trace({"stage": "generate"})  # must not raise or create anything
+    assert list(tmp_path.iterdir()) == []

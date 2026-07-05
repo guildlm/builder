@@ -288,22 +288,34 @@ class Retriever:
     _TOK = re.compile(r"[a-z0-9]+")
 
     def __init__(self, examples: Sequence[tuple[str, str]]) -> None:
-        self._ex = [(i, r, set(self._TOK.findall(i.lower()))) for i, r in examples]
+        self._ex = [
+            (i, r, set(self._TOK.findall(i.lower())), "func Test" in r)
+            for i, r in examples
+        ]
 
-    def top_k(self, query: str, k: int) -> list[tuple[str, str]]:
+    def top_k(
+        self, query: str, k: int, prefer_tests: bool | None = None
+    ) -> list[tuple[str, str]]:
+        """``prefer_tests`` ranks role-matching examples first: a *_test.go
+        target learns the assertion SHAPE from test examples (an impl example
+        in that slot teaches it nothing about tables/fakes), and vice versa.
+        Similarity still orders examples within each role."""
         if k <= 0:
             return []
         q = set(self._TOK.findall(query.lower()))
         if not q:
             return []
         scored = []
-        for instr, resp, toks in self._ex:
+        for instr, resp, toks, is_test in self._ex:
             inter = len(q & toks)
             if not inter:
                 continue
-            scored.append((inter / len(q | toks), instr, resp))
-        scored.sort(key=lambda t: t[0], reverse=True)
-        return [(i, r) for _, i, r in scored[:k]]
+            scored.append((inter / len(q | toks), is_test, instr, resp))
+        if prefer_tests is None:
+            scored.sort(key=lambda t: t[0], reverse=True)
+        else:
+            scored.sort(key=lambda t: (t[1] == prefer_tests, t[0]), reverse=True)
+        return [(i, r) for _, _, i, r in scored[:k]]
 
     @classmethod
     def from_jsonl(cls, path: str | Path) -> "Retriever":
@@ -361,8 +373,22 @@ class GoToolchain:
 
         Returns the combined output of the stage that ran. This is the feedback
         signal the agent loop fixes against.
+
+        When BUILD fails, vet's output is appended: ``go build`` never compiles
+        ``_test.go`` files, so a broken impl masks every test-file compile error
+        — the loop then pays one full round per error LAYER instead of seeing
+        the whole mechanical surface at once. ``go vet`` compiles per package
+        (tests included) and keeps going past broken ones, so its diagnostics
+        widen what the deterministic gates and per-file routing can fix in the
+        SAME round.
         """
-        for stage in (self.build, self.vet, self.test):
+        ok, out = self.build(cwd)
+        if not ok:
+            vet_ok, vet_out = self.vet(cwd)
+            if not vet_ok and vet_out:
+                out = f"{out}\n{vet_out}".strip()
+            return False, out
+        for stage in (self.vet, self.test):
             ok, out = stage(cwd)
             if not ok:
                 return False, out
@@ -409,7 +435,11 @@ def _retrieval_block(shots: Sequence[tuple[str, str]] | None) -> str:
         return ""
     parts = [
         "Similar verified Go examples for reference (these compile; adapt the "
-        "idiom to the spec, do not copy verbatim):\n"
+        "idiom to the spec, do not copy verbatim). The examples teach STYLE and "
+        "testing SHAPE only — constructor and function SIGNATURES always come "
+        "from THIS project's own files shown below, never from an example (an "
+        "example's NewX may take fewer or different arguments than this "
+        "project's NewX):\n"
     ]
     for instr, resp in shots:
         parts.append(f"# Example task: {instr}\n{resp}\n")
@@ -542,12 +572,18 @@ def _fix_prompt(
     current: str,
     error_output: str,
     siblings: dict[str, str] | None = None,
+    shots: Sequence[tuple[str, str]] | None = None,
 ) -> str:
     """Prompt asking the coder to repair one file given toolchain errors.
 
     ``siblings`` are the project's other already-written files. Without them a
     model cannot tell that a "redeclared in this block" error means *its own*
     copy of a symbol is the duplicate to delete — it only sees the one file.
+
+    ``shots`` are role-matched verified examples (same retrieval as
+    generation). A fixer without them regresses to its unguided prior on
+    exactly the failures grounding was added to prevent — it repeats the same
+    broken assertion shape round after round.
     """
     sibling_block = ""
     all_sib = {p: c for p, c in (siblings or {}).items() if p != task.spec.path}
@@ -628,6 +664,7 @@ def _fix_prompt(
         f"existing one instead.\n\n"
         f"{import_rule}"
         f"{assertion_rule}"
+        f"{_retrieval_block(shots)}"
         f"{sibling_block}"
         f"--- current {task.spec.path} ---\n{current}\n"
         f"--- toolchain output ---\n{error_output}\n\n"
@@ -796,6 +833,23 @@ def _widen_missing_symbol_targets(
 
 def _log(msg: str) -> None:
     print(f"[guildlm-build] {msg}", file=sys.stderr, flush=True)
+
+
+def _trace(record: dict) -> None:
+    """Append one JSON line to the trace file named by GUILDLM_BUILDER_TRACE.
+
+    The trace is the self-distillation tap: every ACCEPTED (prompt, response)
+    pair is on-policy training data in the Builder's own inference format, and
+    the run-final ``green`` event lets the harvester keep only pairs that a
+    real toolchain verified end-to-end. No env var -> zero overhead."""
+    path = os.environ.get("GUILDLM_BUILDER_TRACE")
+    if not path:
+        return
+    try:
+        with open(path, "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(record, ensure_ascii=False) + "\n")
+    except OSError as e:  # tracing must never kill a build
+        _log(f"trace write failed ({e}); continuing without trace")
 
 
 _TOPLEVEL_RE = re.compile(r"^(?:func|type|var|const)\s+(\w+)", re.MULTILINE)
@@ -1454,6 +1508,345 @@ def _fix_string_int_conversion(
     return {p: _ensure_import(c, "strconv") for p, c in changed.items()}
 
 
+# `undefined: err` where the flagged line assigns to it with plain `=` — the
+# model copied a sibling closure's assignment form into a scope where the name
+# was never declared. The compiler pinpoints file:line:col.
+_UNDEF_LINE_RE = re.compile(r"([\w./-]+\.go):(\d+):(\d+): undefined: (\w+)(?!\s*\.)")
+
+
+def _fix_undefined_assignment(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Promote ``=`` to ``:=`` when the compiler says an LHS name is undefined
+    (``_, err = s.Get(...)`` inside a fresh ``t.Run`` closure). Safe by
+    construction: the compiler just proved the name is new in this scope, so
+    ``:=`` is always legal, and the gate only fires when EVERY comma-separated
+    LHS item is a plain identifier or ``_`` (a selector like ``x.f`` on the
+    left means the line is not a short-var-decl candidate and is left alone)."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    for m in _UNDEF_LINE_RE.finditer(error_output):
+        path, lineno, name = resolve(m.group(1)), int(m.group(2)), m.group(4)
+        if not path:
+            continue
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        em = re.search(r"(?<![:=!<>+\-*/%&|^])=(?!=)", line)
+        if not em or '"' in line[: em.start()]:
+            continue  # no plain assignment, or a string literal muddies the LHS
+        lhs = line[: em.start()].strip()
+        for kw in ("if ", "for "):
+            if lhs.startswith(kw):
+                lhs = lhs[len(kw):]
+        names = [n.strip() for n in lhs.split(",")]
+        if name not in names or not all(
+            re.fullmatch(r"[A-Za-z_]\w*", n) for n in names
+        ):
+            continue
+        lines[lineno - 1] = line[: em.start()] + ":" + line[em.start():]
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+    return changed
+
+
+# `err, _ := svc.Create(...)` where Create returns (T, error) — the model
+# captured the pair in the wrong order, so `err` holds the T and the real error
+# is discarded. The compiler pinpoints the nil-comparison that unmasks it.
+_SWAPPED_ERR_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):\d+: invalid operation: (\w+) [!=]= nil "
+    r"\(mismatched types [\w.\[\]*]+ and untyped nil\)"
+)
+
+
+def _fix_swapped_error_assignment(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Swap a two-element assignment whose flagged variable landed on the
+    non-error slot: ``err, _ := f(...)`` -> ``_, err := f(...)``. Go convention
+    puts the error LAST in a multi-return, so when the compiler proves the
+    variable compared to nil has a non-error struct type, the order — not the
+    call — is the bug. Only fires when the LHS is exactly the flagged name and
+    a blank, so nothing referenced elsewhere can break."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    for m in _SWAPPED_ERR_RE.finditer(error_output):
+        path, lineno, name = resolve(m.group(1)), int(m.group(2)), m.group(3)
+        if not path:
+            continue
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        new = re.sub(
+            rf"(?<![\w.]){re.escape(name)}\s*,\s*_\s*(:?=)(?!=)",
+            rf"_, {name} \1",
+            line,
+        )
+        if new == line:
+            continue
+        lines[lineno - 1] = new
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+    return changed
+
+
+# `mux.HandleFunc(path, authWrap(handler))` — a wrapped http.Handler passed
+# where HandleFunc wants the bare func, or the reverse. The receiver method is
+# simply wrong for the value; the compiler names line and receiver.
+_HANDLEFUNC_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):\d+: cannot use .*\(value of interface type "
+    r"http\.Handler\) as func\(http\.ResponseWriter, \*http\.Request\) value "
+    r"in argument to (\w+)\.HandleFunc"
+)
+_HANDLE_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):\d+: cannot use .*\(value of type "
+    r"func\(http\.ResponseWriter, \*http\.Request\)\) as http\.Handler value "
+    r"in argument to (\w+)\.Handle\b"
+)
+
+
+def _fix_handle_vs_handlefunc(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Swap ``HandleFunc`` <-> ``Handle`` on the flagged line to match the
+    value actually passed: a middleware-wrapped route is an http.Handler and
+    registers with Handle; a bare handler func registers with HandleFunc. Both
+    directions, both compiler-pinpointed."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    def swap(regex: re.Pattern, old: str, new: str) -> None:
+        for m in regex.finditer(error_output):
+            path, lineno, recv = resolve(m.group(1)), int(m.group(2)), m.group(3)
+            if not path:
+                continue
+            code = changed.get(path, written[path])
+            lines = code.splitlines()
+            if lineno > len(lines):
+                continue
+            line = lines[lineno - 1]
+            fixed = line.replace(f"{recv}.{old}(", f"{recv}.{new}(", 1)
+            if fixed == line:
+                continue
+            lines[lineno - 1] = fixed
+            changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+
+    swap(_HANDLEFUNC_RE, "HandleFunc", "Handle")
+    swap(_HANDLE_RE, "Handle", "HandleFunc")
+    return changed
+
+
+# `import "module/internal/middleware"` where no such directory exists — the
+# model hallucinated a local package for symbols that live in a REAL project
+# package (often its own). The toolchain names both the importer and the path.
+_PHANTOM_PKG_RE = re.compile(
+    r"([\w./-]+\.go):\d+:\d+: no required module provides package ([\w./-]+)"
+)
+
+
+def _fix_phantom_local_import(
+    written: dict[str, str], error_output: str, module: str | None
+) -> dict[str, str]:
+    """Rewrite an import of a non-existent LOCAL package to wherever its used
+    symbols actually live: if the importing file's OWN package declares every
+    ``phantom.Sym`` used, drop the qualifier and the import (same-package
+    call); if exactly one OTHER project package exports them all, rewrite the
+    import path and the qualifier to that package. Anything ambiguous is left
+    for the model."""
+    if not module:
+        return {}
+    changed: dict[str, str] = {}
+    dirs = {_dir_of(p) for p in written}
+    for m in _PHANTOM_PKG_RE.finditer(error_output):
+        path, pkg_path = m.group(1).lstrip("./"), m.group(2)
+        if not pkg_path.startswith(module + "/"):
+            continue  # a real third-party module — the stdlib-swap rule's job
+        rel_dir = pkg_path[len(module) + 1:]
+        if rel_dir in dirs:
+            continue  # the package exists; this is a go.mod problem, not ours
+        if path not in written:
+            cand = [p for p in written if p.endswith(path)]
+            if len(cand) != 1:
+                continue
+            path = cand[0]
+        code = changed.get(path, written[path])
+        phantom = rel_dir.rsplit("/", 1)[-1]
+        syms = set(re.findall(rf"\b{re.escape(phantom)}\.(\w+)", code))
+        if not syms:
+            continue
+        drop_import = re.compile(
+            rf'^\s*(?:\w+\s+)?"{re.escape(pkg_path)}"\s*\n', re.MULTILINE
+        )
+        # own package first: same-dir siblings may declare the symbols
+        # unexported, and the fix is simply an unqualified call
+        own_dir = _dir_of(path)
+        own_decls: set[str] = set()
+        for p, c in written.items():
+            if p != path and _dir_of(p) == own_dir:
+                own_decls |= top_level_decls(c) | method_decls(c)
+        if syms <= own_decls:
+            new = drop_import.sub("", code)
+            new = re.sub(rf"\b{re.escape(phantom)}\.(\w+)", r"\1", new)
+            changed[path] = new
+            continue
+        # otherwise: exactly one project package exporting every used symbol
+        owners: list[tuple[str, str]] = []  # (pkg_name, dir)
+        by_dir: dict[str, set[str]] = {}
+        pkg_of_dir: dict[str, str] = {}
+        for p, c in written.items():
+            d = _dir_of(p)
+            if d == own_dir or not p.endswith(".go"):
+                continue
+            by_dir.setdefault(d, set()).update(
+                n for n in top_level_decls(c) if n[:1].isupper()
+            )
+            pkg_of_dir.setdefault(d, pkg_name_of(c))
+        for d, exported in by_dir.items():
+            if syms <= exported and pkg_of_dir.get(d) != "main":
+                owners.append((pkg_of_dir[d], d))
+        if len(owners) != 1:
+            continue
+        owner_pkg, owner_dir = owners[0]
+        new = drop_import.sub("", code)
+        new = re.sub(
+            rf"\b{re.escape(phantom)}\.(\w+)", rf"{owner_pkg}.\1", new
+        )
+        changed[path] = _ensure_import(new, f"{module}/{owner_dir}")
+    return changed
+
+
+# A test that guards a slice length with t.Errorf and then indexes anyway:
+# Errorf CONTINUES, so `X[0]` on an empty slice panics and takes the whole
+# package's test binary down with it. The panic trace pinpoints the line.
+_OOR_PANIC_RE = re.compile(r"panic: runtime error: index out of range")
+_TEST_FRAME_RE = re.compile(r"([\w./-]+_test\.go):(\d+)")
+
+
+def _fix_fatal_guard(written: dict[str, str], error_output: str) -> dict[str, str]:
+    """Promote the ``t.Errorf`` guarding a ``len(...)`` check to ``t.Fatalf``
+    when an index-out-of-range panic points just past it. Errorf-then-index is
+    the mechanical half of the bug (the wrong-assertion half stays with the
+    model): failing FAST turns an opaque panic into a plain assertion failure
+    the fix loop can reason about."""
+    if not _OOR_PANIC_RE.search(error_output):
+        return {}
+
+    def resolve(path: str) -> str | None:
+        # panic traces print ABSOLUTE paths, so match the project-relative
+        # key as a suffix of the frame path (the reverse of compiler output)
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if path.endswith(p)]
+        return max(cand, key=len) if cand else None
+
+    changed: dict[str, str] = {}
+    for m in _TEST_FRAME_RE.finditer(error_output):
+        path, lineno = resolve(m.group(1)), int(m.group(2))
+        if not path:
+            continue
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        # scan upward from the panicking line for the nearest Errorf that sits
+        # under a len(...) condition — that guard should have been fatal
+        for i in range(lineno - 1, max(lineno - 8, 0) - 1, -1):
+            if "t.Errorf(" not in lines[i - 1]:
+                continue
+            window = "\n".join(lines[max(i - 4, 0):i])
+            if "len(" not in window:
+                continue
+            lines[i - 1] = lines[i - 1].replace("t.Errorf(", "t.Fatalf(", 1)
+            changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+            break
+    return changed
+
+
+# `if got, want := x, models.Task{...}; got != want {` — a composite literal in
+# an if/for/switch header must be parenthesized; the parser even hints at it.
+_IFLIT_RE = re.compile(
+    r"([\w./-]+\.go):\d+:\d+: expected boolean expression, found assignment"
+    r".*missing parentheses around composite literal"
+)
+# A named-type composite literal: `T{` or `pkg.T{` (capitalized type name, so a
+# block-open like `want {` never matches).
+_COMPLIT_RE = re.compile(r"(?<![\w.()])((?:[a-z_]\w*\.)?[A-Z]\w*)\s*\{")
+
+
+def _fix_if_composite_literal(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Wrap named-type composite literals in parentheses on every if/for/switch
+    header line of a file the parser flagged with the missing-parentheses hint.
+    Redundant parens are valid Go, so over-wrapping is harmless; fixing the
+    whole file at once avoids paying one round per occurrence (a syntax error
+    masks every later diagnostic in the package)."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    def wrap_literals(line: str) -> str:
+        out, pos = "", 0
+        while True:
+            m = _COMPLIT_RE.search(line, pos)
+            if not m:
+                return out + line[pos:]
+            # balanced-brace scan from the literal's `{`
+            depth, j = 1, line.index("{", m.start()) + 1
+            while j < len(line) and depth:
+                depth += (line[j] == "{") - (line[j] == "}")
+                j += 1
+            if depth:  # runs past the line (multi-line literal) — leave it
+                return out + line[pos:]
+            out += line[pos:m.start()] + "(" + line[m.start():j] + ")"
+            pos = j
+
+    for m in _IFLIT_RE.finditer(error_output):
+        path = resolve(m.group(1))
+        if not path or path in changed:
+            continue
+        code = written[path]
+        lines = code.splitlines()
+        new_lines = [
+            wrap_literals(l)
+            if l.lstrip().startswith(("if ", "for ", "switch ")) else l
+            for l in lines
+        ]
+        if new_lines != lines:
+            changed[path] = "\n".join(new_lines) + (
+                "\n" if code.endswith("\n") else ""
+            )
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -1468,10 +1861,47 @@ def _run_deterministic_gates(
     requal.update(_requalify_stdlib({**written, **requal}, output))
     requal.update(_fix_module_prefix({**written, **requal}, output, module))
     requal.update(_fix_string_int_conversion({**written, **requal}, output))
+    requal.update(_fix_undefined_assignment({**written, **requal}, output))
+    requal.update(_fix_if_composite_literal({**written, **requal}, output))
+    requal.update(_fix_swapped_error_assignment({**written, **requal}, output))
+    requal.update(_fix_fatal_guard({**written, **requal}, output))
+    requal.update(_fix_phantom_local_import({**written, **requal}, output, module))
+    requal.update(_fix_handle_vs_handlefunc({**written, **requal}, output))
     return requal
 
 
 _ASSERTION_RE = re.compile(r"\bt\.(?:Error|Errorf|Fatal|Fatalf|Fail|FailNow)\b")
+
+# `Event struct {Type, TaskID string}` named in a file's PURPOSE — the type is
+# part of the file's contract with the rest of the project. A qualified
+# mention (http.Handler interface) is another package's type, not ours.
+_REQUIRED_TYPE_RE = re.compile(r"(?<![.\w])([A-Z]\w*)\s+(?i:struct|interface)\b")
+
+
+def _required_decls(purpose: str) -> set[str]:
+    """Type names the purpose explicitly promises this file will define. A
+    candidate missing one compiles alone but breaks every package that was
+    told (via the same spec) to reference it — the models.Event omission that
+    no later fix round recovers, because each fix keeps resampling from the
+    same blind prior."""
+    return set(_REQUIRED_TYPE_RE.findall(purpose or ""))
+
+
+def _foreign_owned_decls(
+    files: Sequence[FileSpec], target_path: str, own_purpose: str
+) -> set[str]:
+    """Domain types OWNED by other packages' purposes (models.Task promised by
+    models.go). A candidate for THIS file redeclaring one creates the
+    dup-domain-type collapse — two structurally different store.Task /
+    models.Task that nothing can convert between. Treated like sibling decls:
+    stripped from candidates, and the bare references left behind are then
+    requalified to the owner (models.Task) by the existing gates."""
+    target_dir = _dir_of(target_path)
+    owned: set[str] = set()
+    for f in files:
+        if _dir_of(f.path) != target_dir:
+            owned |= _required_decls(f.purpose)
+    return owned - _required_decls(own_purpose)
 
 
 def has_assertions(code: str) -> bool:
@@ -1487,15 +1917,18 @@ def _is_clean(
     toolchain: GoToolchain,
     sibling_decls: set[str] | None = None,
     require_assertions: bool = False,
+    required_decls: set[str] | None = None,
 ) -> bool:
     """A clean Go candidate parses, imports only the standard library, does not
-    redeclare a sibling's package-level symbol, and — for test files — actually
-    asserts something."""
+    redeclare a sibling's package-level symbol, declares every type its purpose
+    promises, and — for test files — actually asserts something."""
     if not is_go:
         return True
     if not toolchain.syntax_ok(code) or nonstdlib_imports(code):
         return False
     if sibling_decls and ((top_level_decls(code) | method_decls(code)) & sibling_decls):
+        return False
+    if required_decls and not required_decls <= top_level_decls(code):
         return False
     if require_assertions and not has_assertions(code):
         return False
@@ -1511,6 +1944,7 @@ def _sample_clean(
     what: str,
     sibling_decls: set[str] | None = None,
     require_assertions: bool = False,
+    required_decls: set[str] | None = None,
 ) -> str:
     """Draw up to ``candidates`` samples; keep the first clean one (parses,
     stdlib-only, no cross-file redeclaration, and — for test files — actually
@@ -1530,7 +1964,8 @@ def _sample_clean(
             if stripped != last:
                 _log(f"    stripped redeclared symbols from {what} candidate")
                 last = stripped
-        if _is_clean(last, is_go, toolchain, sibling_decls, require_assertions):
+        if _is_clean(last, is_go, toolchain, sibling_decls, require_assertions,
+                     required_decls):
             if attempt:
                 _log(f"    best-of-N {what}: kept candidate {attempt + 1}")
             return last
@@ -1549,11 +1984,17 @@ def _sample_verified_fix(
     toolchain: GoToolchain,
     sibling_decls: set[str] | None = None,
     is_test: bool = False,
+    must_keep: set[str] | None = None,
 ) -> str:
     """Fix-loop best-of-N with a GROUND-TRUTH gate: sample up to ``candidates``
     repairs, write each in place, and keep the first that makes the *whole
     project* build, vet and test cleanly. Falls back to the best parse-clean
     candidate (then the last sample) so a round always makes progress.
+
+    ``must_keep`` are exported symbols OTHER packages reference (``pkg.Sym``).
+    A repair that deletes one fixes this file by breaking every importer — the
+    models.Event collapse — so such candidates are rejected outright, and if
+    every sample deletes them the CURRENT file is kept unchanged.
 
     This is verification-driven *selection* — the very ``go`` feedback the loop
     already trusts, applied at candidate-pick time rather than only after. A
@@ -1564,27 +2005,40 @@ def _sample_verified_fix(
     parse-only gate is blindest.
     """
     is_go = path.endswith(".go")
+
+    def keeps_referenced(code: str) -> bool:
+        if not must_keep or not is_go:
+            return True
+        return must_keep <= (top_level_decls(code) | method_decls(code))
+
+    original = written.get(path, "")
     best_clean: str | None = None
-    last = written.get(path, "")
+    last = original
     for attempt in range(max(1, candidates)):
         cand = extract_code(coder.generate(prompt))
         if is_go and sibling_decls:
             cand = strip_redeclarations(cand, sibling_decls)
         last = cand
+        if not keeps_referenced(cand):
+            continue
         if not _is_clean(cand, is_go, toolchain, sibling_decls, is_test):
             continue
         if best_clean is None:
             best_clean = cand
-        _write_file(out, path, cand)
-        written[path] = cand
+        written[path] = _write_file(out, path, cand)
         ok, _ = toolchain.check(out)
         if ok:
             if attempt:
                 _log(f"    verified fix: candidate {attempt + 1} turns the project green")
             return cand
     chosen = best_clean if best_clean is not None else last
-    _write_file(out, path, chosen)
-    written[path] = chosen
+    if not keeps_referenced(chosen) and keeps_referenced(original):
+        # only guard against DELETION — when the symbols never existed, the
+        # best remaining candidate may still fix something else
+        _log(f"    rejected every fix of {path} — each deletes exported "
+             f"symbols other packages reference; keeping the current file")
+        chosen = original
+    written[path] = _write_file(out, path, chosen)
     return chosen
 
 
@@ -1611,7 +2065,10 @@ def _generate_file(
     are shown to ground the model in known-good idiomatic Go.
     """
     examples = (
-        retriever.top_k(f"{task.spec.path} {task.spec.purpose}", shots)
+        retriever.top_k(
+            f"{task.spec.path} {task.spec.purpose}", shots,
+            prefer_tests=task.spec.path.endswith("_test.go"),
+        )
         if retriever and shots and task.spec.path.endswith(".go")
         else None
     )
@@ -1626,10 +2083,40 @@ def _generate_file(
     for p, content in written.items():
         if p != task.spec.path and _dir_of(p) == target_dir:
             sibling_decls |= top_level_decls(content) | method_decls(content)
+    # domain types other packages' purposes own (models.Task): stripping a
+    # local redeclaration leaves bare references the requalify gate resolves
+    # to the owner — instead of a second, unconvertible store.Task
+    sibling_decls |= _foreign_owned_decls(spec.files, task.spec.path, task.spec.purpose)
     is_test = task.spec.path.endswith("_test.go")
-    return _sample_clean(
-        coder, prompt, is_go, candidates, toolchain, "gen", sibling_decls, is_test
+    required = (
+        _required_decls(task.spec.purpose) - sibling_decls
+        if is_go and not is_test
+        else None
     )
+    code = _sample_clean(
+        coder, prompt, is_go, candidates, toolchain, "gen", sibling_decls,
+        is_test, required
+    )
+    _trace({"stage": "generate", "path": task.spec.path,
+            "prompt": prompt, "response": code})
+    return code
+
+
+# How many progress-gated rounds may follow the flat budget (see _fix_loop).
+_EXTENSION_ROUNDS = 3
+
+# Run-specific noise in toolchain/test output that must not make two otherwise
+# identical error surfaces look different: heap addresses, goroutine ids, test
+# wall times, and the pointer-suffixed frame offsets in panic traces.
+_SIG_NOISE_RE = re.compile(
+    r"0x[0-9a-f]+|goroutine \d+|\d+\.\d+s|\+0x[0-9a-f]+"
+)
+
+
+def _error_signature(output: str) -> str:
+    """A normalized fingerprint of a check's error output, stable across reruns
+    of the SAME failure but different across genuinely new error strata."""
+    return _SIG_NOISE_RE.sub("?", output)
 
 
 def _fix_loop(
@@ -1642,6 +2129,8 @@ def _fix_loop(
     candidates: int,
     check=None,
     module: str | None = None,
+    retriever: "Retriever | None" = None,
+    shots: int = 0,
 ) -> bool:
     """Shared ground-truth repair loop: run ``check`` (default build/vet/test),
     route each failure to the owning file, repair, re-check — up to
@@ -1666,17 +2155,38 @@ def _fix_loop(
     pinned: dict[str, set[str]] = {}
     # dir -> runtime-failure rounds seen, for root-cause target widening
     runtime_rounds: dict[str, int] = {}
-    for rnd in range(1, max_fix_rounds + 1):
-        _log(f"compile/test FAILED, fix round {rnd}/{max_fix_rounds}")
-        # Deterministic pre-pass: fix cross-package misqualified symbols
-        # (`undefined: wrongpkg.Sym`) and blank-fixable assignment-arity
-        # mismatches before spending a model round on them.
-        requal = _run_deterministic_gates(written, output, module)
-        if requal:
+    # Progress-gated extension: a layered project peels one error stratum per
+    # round (build -> vet -> test-compile -> panics -> assertions), so the last
+    # stratum routinely surfaces exactly when the flat budget runs out. Extra
+    # rounds are granted ONLY while each check exposes an error surface never
+    # seen before (normalized: addresses/goroutines/timings stripped) — real
+    # convergence continues, oscillation stops immediately.
+    seen_surfaces: set[str] = set()
+    rnd = 0
+    while rnd < max_fix_rounds + _EXTENSION_ROUNDS:
+        rnd += 1
+        sig = _error_signature(output)
+        if rnd > max_fix_rounds and sig in seen_surfaces:
+            _log("error surface repeats — stopping extension rounds")
+            break
+        seen_surfaces.add(sig)
+        label = (f"fix round {rnd}/{max_fix_rounds}" if rnd <= max_fix_rounds
+                 else f"extension round {rnd} (new error surface)")
+        _log(f"compile/test FAILED, {label}")
+        # Deterministic pre-pass, run to a FIXPOINT: each gate sweep can expose
+        # the next mechanical stratum (a vet repair lets the test stage run at
+        # all, whose panics feed the fatal-guard gate), so sweep until the
+        # gates go quiet. Whatever still fails afterwards is the model's BY
+        # CONSTRUCTION — which also kills the old oscillation where a
+        # gate-repaired file was handed straight back to the model in the same
+        # round (the model re-broke it, the gates re-fixed it, forever).
+        for _ in range(10):
+            requal = _run_deterministic_gates(written, output, module)
+            if not requal:
+                break
             for path, content in requal.items():
-                _log(f"  requalified cross-package symbols in {path}")
-                _write_file(out, path, content)
-                written[path] = content
+                _log(f"  deterministic fix in {path}")
+                written[path] = _write_file(out, path, content)
                 if module:
                     pinned.setdefault(path, set()).update(
                         re.findall(rf'"({re.escape(module)}/[^"]+)"', content)
@@ -1695,45 +2205,76 @@ def _fix_loop(
             fresh = _gomod_content(module)
             if written.get("go.mod") != fresh:
                 _log("  restored go.mod deterministically")
-                _write_file(out, "go.mod", fresh)
-                written["go.mod"] = fresh
+                written["go.mod"] = _write_file(out, "go.mod", fresh)
             targets = [t for t in targets if t != "go.mod"]
-        # Don't let the model re-fix (and re-break) a file we JUST repaired
-        # deterministically this round — the qualification fix is authoritative
-        # and must stick. A residual non-qualification bug in it surfaces next
-        # round, when requalify is idempotent and leaves it to the model.
-        if requal:
-            targets = [t for t in targets if t not in requal] or targets
         for path in targets:
             task = _task_for(tasks, path)
             if task is None:
                 continue
             _log(f"  fixing {path}")
-            fix_prompt = _fix_prompt(task, written[path], output, written)
+            fix_shots = (
+                retriever.top_k(
+                    f"{task.spec.path} {task.spec.purpose}", shots,
+                    prefer_tests=path.endswith("_test.go"),
+                )
+                if retriever and shots
+                else None
+            )
+            fix_prompt = _fix_prompt(task, written[path], output, written,
+                                     shots=fix_shots)
             fix_dir = _dir_of(path)
             sibling_decls: set[str] = set()
             for other, content in written.items():
                 if other != path and _dir_of(other) == fix_dir:
                     sibling_decls |= top_level_decls(content) | method_decls(content)
+            # other packages' purpose-owned domain types: a fix redeclaring
+            # one recreates the dup-domain-type collapse — strip/reject it
+            sibling_decls |= _foreign_owned_decls(
+                [t.spec for t in tasks], path, task.spec.purpose)
+            # Exported symbols of THIS file that other packages reference as
+            # pkg.Sym — a "fix" that deletes one breaks every importer (the
+            # models.Event collapse), so it must never be accepted.
+            must_keep: set[str] = set()
+            if path.endswith(".go") and not path.endswith("_test.go"):
+                own_pkg = pkg_name_of(written[path])
+                if own_pkg and own_pkg != "main":
+                    used: set[str] = set()
+                    for other, content in written.items():
+                        if _dir_of(other) != fix_dir:
+                            used.update(re.findall(
+                                rf"\b{re.escape(own_pkg)}\.(\w+)", content))
+                    must_keep = used & top_level_decls(written[path])
+                # types the PURPOSE promises must exist even if the initial
+                # generation omitted them — otherwise no fix ever adds them
+                must_keep |= _required_decls(task.spec.purpose) - sibling_decls
             if candidates > 1:
                 code = _sample_verified_fix(
                     coder, fix_prompt, path, out, written, candidates, toolchain,
-                    sibling_decls, path.endswith("_test.go"),
+                    sibling_decls, path.endswith("_test.go"), must_keep,
                 )
             else:
                 code = _sample_clean(
                     coder, fix_prompt, path.endswith(".go"), candidates, toolchain,
                     "fix", sibling_decls, path.endswith("_test.go"),
+                    must_keep or None,
                 )
-                _write_file(out, path, code)
-                written[path] = code
+                old_decls = top_level_decls(written[path]) | method_decls(written[path])
+                new_decls = top_level_decls(code) | method_decls(code)
+                if must_keep and not (must_keep <= new_decls) and (
+                    must_keep <= old_decls
+                ):
+                    _log(f"  rejected fix of {path} — it deletes exported "
+                         f"symbols other packages reference")
+                else:
+                    written[path] = _write_file(out, path, code)
             repinned = written[path]
             for imp in pinned.get(path, ()):
                 repinned = _ensure_import(repinned, imp)
             if repinned != written[path]:
                 _log(f"  re-pinned local imports in {path}")
-                _write_file(out, path, repinned)
-                written[path] = repinned
+                written[path] = _write_file(out, path, repinned)
+            _trace({"stage": "fix", "path": path,
+                    "prompt": fix_prompt, "response": written[path]})
         ok, output = check(out)
         if ok:
             _log(f"converged to green after fix round {rnd}")
@@ -1741,18 +2282,24 @@ def _fix_loop(
     # Final deterministic pass: the gates run BEFORE each model fix, so a
     # mechanical bug the model introduces in the LAST round (a re-appeared
     # string(int), a blank-fixable arity, a truncated import) has no later
-    # pre-pass to catch it. Give the deterministic gates the final word.
-    final = _run_deterministic_gates(written, output, module)
-    if final:
+    # pre-pass to catch it. Run the gates to a FIXPOINT, not one shot — fixing
+    # one mechanical layer routinely uncovers the next (a vet repair lets the
+    # TEST stage run at all, whose panics feed yet another gate), and each
+    # iteration costs only a check. Gates are idempotent, and every iteration
+    # must change a file to continue, so the loop always terminates; the cap
+    # only guards against a pathological rewrite cycle.
+    for _ in range(10):
+        final = _run_deterministic_gates(written, output, module)
+        if not final:
+            break
         for path, content in final.items():
             _log(f"  final deterministic fix in {path}")
-            _write_file(out, path, content)
-            written[path] = content
-        ok, _ = check(out)
+            written[path] = _write_file(out, path, content)
+        ok, output = check(out)
         if ok:
             _log("converged to green on the final deterministic pass")
             return True
-    _log(f"exhausted {max_fix_rounds} fix rounds, still failing")
+    _log(f"exhausted {rnd} fix rounds ({max_fix_rounds} budgeted), still failing")
     return False
 
 
@@ -1791,6 +2338,10 @@ def build(
         if reviewer is not None and review_rounds > 0:
             _log("review pass (catch bugs that survive a green build)")
             _review_pass(spec, tasks, written, out, toolchain, reviewer, review_rounds)
+        # the harvester keeps a trace's pairs only when this event closes it —
+        # final file contents are included because a pair's response may have
+        # been superseded by later fixes; the green FILE is the verified truth
+        _trace({"event": "green", "spec": spec.name, "files": written})
         return True, written
 
     # --- Generation pass ---------------------------------------------------- #
@@ -1802,12 +2353,19 @@ def build(
             code = _generate_file(
                 coder, spec, task, written, candidates, toolchain, retriever, shots
             )
-        _write_file(out, task.spec.path, code)
-        written[task.spec.path] = code
+        written[task.spec.path] = _write_file(out, task.spec.path, code)
 
     # --- Fix loop ----------------------------------------------------------- #
-    if _fix_loop(tasks, written, out, toolchain, coder, max_fix_rounds, candidates,
-                 module=spec.go_module):
+    # Scale the round budget with project size: a multi-package project spends
+    # its early rounds on the mechanical compile layers (qualification, arity,
+    # imports), and the semantic test layer only becomes VISIBLE once
+    # everything builds — with a flat budget it surfaces exactly when no
+    # rounds are left. One round per ~4 files, floored at the caller's value.
+    rounds = max(max_fix_rounds, -(-len(tasks) // 4))
+    if rounds > max_fix_rounds:
+        _log(f"fix-round budget scaled to {rounds} for {len(tasks)} files")
+    if _fix_loop(tasks, written, out, toolchain, coder, rounds, candidates,
+                 module=spec.go_module, retriever=retriever, shots=shots):
         return _finish_green()
     return False, written
 
@@ -1922,8 +2480,7 @@ def maintain(
             coder, _maintain_file_prompt(request, path, current, is_new),
             path.endswith(".go"), candidates, toolchain, "edit", sib, path.endswith("_test.go"),
         )
-        _write_file(out, path, code)
-        current[path] = code
+        current[path] = _write_file(out, path, code)
 
     def _tasks() -> list[FileTask]:
         return [
@@ -2013,8 +2570,7 @@ def write_tests(
     code = _sample_clean(
         coder, prompt, True, candidates, toolchain, "test", sibling_decls, True
     )
-    _write_file(out, test_filename, code)
-    current[test_filename] = code
+    current[test_filename] = _write_file(out, test_filename, code)
     tasks = [
         FileTask(index=i, spec=FileSpec(path=p, purpose="tests for an existing project"))
         for i, p in enumerate(current)
@@ -2071,7 +2627,7 @@ def _review_pass(
             if candidate.strip() == written[path].strip():
                 continue
             prev = written[path]
-            _write_file(out, path, candidate)
+            candidate = _write_file(out, path, candidate)
             ok, _ = toolchain.check(out)
             if ok:
                 _log(f"  review fixed {path}")
@@ -2130,12 +2686,20 @@ def gofmt_code(code: str) -> str:
     return proc.stdout if proc.returncode == 0 and proc.stdout else code
 
 
-def _write_file(out: Path, rel_path: str, content: str) -> None:
+def _write_file(out: Path, rel_path: str, content: str) -> str:
+    """Write (gofmt'd) and RETURN the exact content that landed on disk.
+
+    Callers must store the return value in ``written`` — not the pre-gofmt
+    input. gofmt reflows files, so keeping the raw content desynchronizes
+    ``written`` line numbers from the compiler's file:line diagnostics, and
+    every line-indexed deterministic gate (arity, string(int), undefined-
+    assignment) then silently misses its target line."""
     if rel_path.endswith(".go"):
         content = gofmt_code(content)
     dest = out / rel_path
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(content, encoding="utf-8")
+    return content
 
 
 # --------------------------------------------------------------------------- #
