@@ -206,11 +206,15 @@ files:
       service. Define a tiny no-op enqueuer in the test (a struct with an
       Enqueue(models.Event) method). Fresh router+store per case, fresh
       request body per request, and set "Authorization: Bearer secret" on every
-      MUTATING request. Cover: POST valid task (with token)->201+echo; POST with a
+      MUTATING request. The API uses CLIENT-SUPPLIED ids: every POST body MUST
+      include a non-empty unique "id", e.g.
+      {"id":"1","title":"task1","status":"todo"}, and the two tasks in the list
+      test MUST use DIFFERENT ids ("1" and "2"); GET/DELETE /tasks/{id} use that
+      same id. Cover: POST valid task (with token)->201+echo; POST with a
       WRONG token->401; POST with no token->401; invalid status (with token)->400;
-      duplicate (with token)->409; GET missing->404 (no token needed); GET->200;
-      list->200 JSON array; ?limit=1 returns at most 1; DELETE (with token)->204
-      then GET->404; malformed JSON (truncated, with token)->400; GET
+      duplicate (same id, with token)->409; GET missing->404 (no token needed);
+      GET->200; list->200 JSON array; ?limit=1 returns at most 1; DELETE (with
+      token)->204 then GET->404; malformed JSON (truncated, with token)->400; GET
       /healthz->200; GET /readyz->200. Imports bytes, encoding/json, io, log/slog,
       net/http, net/http/httptest, testing, and the service + store + models
       packages. Never name a local variable `t`.

@@ -1399,6 +1399,78 @@ def _fix_assignment_arity(
     return changed
 
 
+# `string(i)` where i is an int yields a one-rune string, not the digits — a
+# classic Go slip the toolchain flags. vet/compile pinpoint file:line:col.
+_STRINT_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):(\d+): conversion from int(?:eger)? "
+    r"to string yields a string of one rune"
+)
+
+
+def _fix_string_int_conversion(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Rewrite the pinpointed ``string(<expr>)`` to ``strconv.Itoa(<expr>)`` and
+    ensure the strconv import. Only the exact conversion the toolchain flags
+    (at the reported column) is touched, so a legitimate ``string(byteslice)``
+    elsewhere is never disturbed. Same mechanical-class repair as the others."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    # Replace the flagged conversions first (same-line edits preserve line
+    # numbers), then add the strconv import ONCE per file — inserting it earlier
+    # would shift the line numbers of any later error in the same file.
+    for m in _STRINT_RE.finditer(error_output):
+        path = resolve(m.group(1))
+        if not path:
+            continue
+        lineno, col = int(m.group(2)), int(m.group(3))
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        idx = line.find("string(", max(col - 1, 0))
+        if idx == -1:
+            idx = line.find("string(")
+        if idx == -1:
+            continue
+        start = idx + len("string(")
+        depth, j = 1, start
+        while j < len(line) and depth:
+            depth += (line[j] == "(") - (line[j] == ")")
+            j += 1
+        if depth:
+            continue  # unbalanced on this line — leave it
+        arg = line[start:j - 1]
+        lines[lineno - 1] = f"{line[:idx]}strconv.Itoa({arg}){line[j:]}"
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+    return {p: _ensure_import(c, "strconv") for p, c in changed.items()}
+
+
+def _run_deterministic_gates(
+    written: dict[str, str], output: str, module: str | None
+) -> dict[str, str]:
+    """Run every deterministic, compiler-pinpointed repair on the current error
+    output and return the merged {path: new_content} for changed files. Each gate
+    sees the accumulated fixes so far so they compose. Pure (no I/O) — the caller
+    writes the result. Shared by the per-round pre-pass and the final pass."""
+    requal = _requalify_undefined(written, output, module)
+    requal.update(_fix_assignment_arity({**written, **requal}, output))
+    requal.update(_fix_unknown_struct_fields({**written, **requal}, output))
+    requal.update(_fix_duplicate_struct_fields({**written, **requal}, output))
+    requal.update(_requalify_stdlib({**written, **requal}, output))
+    requal.update(_fix_module_prefix({**written, **requal}, output, module))
+    requal.update(_fix_string_int_conversion({**written, **requal}, output))
+    return requal
+
+
 _ASSERTION_RE = re.compile(r"\bt\.(?:Error|Errorf|Fatal|Fatalf|Fail|FailNow)\b")
 
 
@@ -1599,17 +1671,7 @@ def _fix_loop(
         # Deterministic pre-pass: fix cross-package misqualified symbols
         # (`undefined: wrongpkg.Sym`) and blank-fixable assignment-arity
         # mismatches before spending a model round on them.
-        requal = _requalify_undefined(written, output, module)
-        arity = _fix_assignment_arity({**written, **requal}, output)
-        requal.update(arity)
-        fields = _fix_unknown_struct_fields({**written, **requal}, output)
-        requal.update(fields)
-        dups = _fix_duplicate_struct_fields({**written, **requal}, output)
-        requal.update(dups)
-        std = _requalify_stdlib({**written, **requal}, output)
-        requal.update(std)
-        modp = _fix_module_prefix({**written, **requal}, output, module)
-        requal.update(modp)
+        requal = _run_deterministic_gates(written, output, module)
         if requal:
             for path, content in requal.items():
                 _log(f"  requalified cross-package symbols in {path}")
@@ -1675,6 +1737,20 @@ def _fix_loop(
         ok, output = check(out)
         if ok:
             _log(f"converged to green after fix round {rnd}")
+            return True
+    # Final deterministic pass: the gates run BEFORE each model fix, so a
+    # mechanical bug the model introduces in the LAST round (a re-appeared
+    # string(int), a blank-fixable arity, a truncated import) has no later
+    # pre-pass to catch it. Give the deterministic gates the final word.
+    final = _run_deterministic_gates(written, output, module)
+    if final:
+        for path, content in final.items():
+            _log(f"  final deterministic fix in {path}")
+            _write_file(out, path, content)
+            written[path] = content
+        ok, _ = check(out)
+        if ok:
+            _log("converged to green on the final deterministic pass")
             return True
     _log(f"exhausted {max_fix_rounds} fix rounds, still failing")
     return False
