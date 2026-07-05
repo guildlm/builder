@@ -792,3 +792,29 @@ def test_trace_disabled_is_noop(tmp_path, monkeypatch):
     monkeypatch.delenv("GUILDLM_BUILDER_TRACE", raising=False)
     _trace({"stage": "generate"})  # must not raise or create anything
     assert list(tmp_path.iterdir()) == []
+
+
+def test_nomethod_widening_targets_type_declaration():
+    from src.builder import _widen_missing_symbol_targets
+
+    written = {
+        "handlers.go": "package main\n\nfunc h() { _ = store.Update }\n",
+        "store.go": "package main\n\ntype Store interface {\n\tCreate() error\n}\n",
+        "store_test.go": "package main\n",
+    }
+    err = (
+        "./handlers.go:80:20: a.store.Update undefined "
+        "(type Store has no field or method Update)"
+    )
+    out = _widen_missing_symbol_targets(["handlers.go"], written, err)
+    assert "store.go" in out  # the declaration site joins the fix targets
+    assert "store_test.go" not in out
+
+
+def test_required_decls_includes_func_main():
+    from src.builder import _required_decls
+
+    assert "main" in _required_decls(
+        "package main. func main() wiring the server with graceful shutdown."
+    )
+    assert "main" not in _required_decls("package api. HTTP handlers.")

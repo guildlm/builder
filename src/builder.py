@@ -794,6 +794,10 @@ def _widen_runtime_targets(
 
 _UNDEF_PKGSYM_RE = re.compile(r"undefined: (\w+)\.(\w+)")
 
+# `x.Update undefined (type Store has no field or method Update)` — the
+# missing method belongs on the TYPE, declared in another file.
+_NOMETHOD_RE = re.compile(r"type (\w+) has no field or method (\w+)")
+
 
 def _widen_missing_symbol_targets(
     targets: list[str], written: dict[str, str], error_output: str
@@ -827,6 +831,22 @@ def _widen_missing_symbol_targets(
         if extra:
             _log(f"  widening fix targets to {d or '.'} — undefined "
                  f"{pkg}.{sym} (missing from its package)")
+            out.extend(extra)
+    # `a.store.Update undefined (type Store has no field or method Update)` —
+    # reported at the CALL site, but the fix is on the type: the interface
+    # (and often its concrete impl) must gain the method. Add the file
+    # DECLARING the type so the model can actually make the change.
+    for m in _NOMETHOD_RE.finditer(error_output):
+        typ = m.group(1)
+        decl_re = re.compile(rf"^type\s+{re.escape(typ)}\b", re.MULTILINE)
+        extra = [
+            p for p, c in written.items()
+            if p.endswith(".go") and not p.endswith("_test.go")
+            and p not in out and decl_re.search(c)
+        ]
+        if extra:
+            _log(f"  widening fix targets to the declaration of type {typ} "
+                 f"(missing method {m.group(2)})")
             out.extend(extra)
     return out
 
@@ -1884,7 +1904,12 @@ def _required_decls(purpose: str) -> set[str]:
     told (via the same spec) to reference it — the models.Event omission that
     no later fix round recovers, because each fix keeps resampling from the
     same blind prior."""
-    return set(_REQUIRED_TYPE_RE.findall(purpose or ""))
+    required = set(_REQUIRED_TYPE_RE.findall(purpose or ""))
+    # `package main` needs its entrypoint: a main.go without func main fails
+    # with a package-level error that carries NO file:line to route on
+    if re.search(r"\bfunc main\b|\bmain\(\)", purpose or ""):
+        required.add("main")
+    return required
 
 
 def _foreign_owned_decls(
