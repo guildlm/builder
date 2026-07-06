@@ -1879,6 +1879,55 @@ def _fix_if_composite_literal(
     return changed
 
 
+_HANDLERFUNC_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):(\d+): cannot use ([\w.]+)"
+    r" \(value of type func\([^)]*\bResponseWriter\b[^)]*\)\)"
+    r" as http\.Handler value"
+    r".*missing method ServeHTTP"
+)
+
+
+def _fix_handlerfunc_wrap(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``cannot use X (value of type func(...ResponseWriter...)) as
+    http.Handler value ... missing method ServeHTTP`` — the model passed a
+    handler-SHAPED func where the http.Handler interface is expected. The
+    idiomatic repair is always the same one-token wrap, yet the 7B burns whole
+    fix rounds resampling around it: rewrite the use site to
+    ``http.HandlerFunc(X)``. Only a func whose reported type mentions
+    ResponseWriter is touched (a non-handler func mismatch is a real bug for
+    the model); goimports on write supplies net/http if missing."""
+    changed: dict[str, str] = {}
+    for m in _HANDLERFUNC_RE.finditer(error_output):
+        path, lineno, col, name = (
+            m.group(1).lstrip("./"), int(m.group(2)), int(m.group(3)), m.group(4),
+        )
+        if path not in written:
+            cand = [p for p in written if p.endswith(path)]
+            if len(cand) != 1:
+                continue
+            path = cand[0]
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        # the identifier as a VALUE (not a call), preferring the reported column
+        pattern = re.compile(rf"(?<![\w.)]){re.escape(name)}\b(?!\s*\()")
+        start = col - 1 if 0 <= col - 1 < len(line) else 0
+        mm = pattern.search(line, start) or pattern.search(line)
+        if not mm:
+            continue
+        if line[:mm.start()].endswith("http.HandlerFunc("):
+            continue  # already wrapped (stale diagnostic)
+        lines[lineno - 1] = (
+            line[:mm.start()] + f"http.HandlerFunc({name})" + line[mm.end():]
+        )
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -1899,6 +1948,7 @@ def _run_deterministic_gates(
     requal.update(_fix_fatal_guard({**written, **requal}, output))
     requal.update(_fix_phantom_local_import({**written, **requal}, output, module))
     requal.update(_fix_handle_vs_handlefunc({**written, **requal}, output))
+    requal.update(_fix_handlerfunc_wrap({**written, **requal}, output))
     return requal
 
 
