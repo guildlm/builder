@@ -1130,7 +1130,8 @@ def _requalify_stdlib(written: dict[str, str], error_output: str) -> dict[str, s
 # Deterministic and general — the real package directory is right there in the
 # project. Same class as _requalify_stdlib: a mechanical, compiler-pinpointed slip.
 _NOTINSTD_RE = re.compile(
-    r"([\w./-]+\.go):\d+:\d+: package (\S+) is not in std"
+    r"([\w./-]+\.go):\d+:\d+: (?:package (\S+) is not in std"
+    r"|no required module provides package (\S+?);)"
 )
 
 
@@ -1156,7 +1157,14 @@ def _fix_module_prefix(
     def resolve(bad: str) -> str | None:
         if bad in dirs:                                   # "internal/models"
             return bad
-        if "/" in bad:                                    # "workapi/internal/models"
+        if "/" in bad:
+            # corruption that still CONTAINS the real module path, e.g. a
+            # hallucinated host prefix "github.com/<module>/internal/api"
+            idx = bad.find(module + "/")
+            if idx != -1:
+                rest = bad[idx + len(module) + 1 :]
+                return rest if rest in dirs else None
+            # module tail + rest      "workapi/internal/models"
             rest = bad[len(tail):].lstrip("/") if bad.startswith(tail + "/") else ""
             return rest if rest in dirs else None
         cand = by_base.get(bad, [])                        # bare "models"
@@ -1164,7 +1172,7 @@ def _fix_module_prefix(
 
     changed: dict[str, str] = {}
     for m in _NOTINSTD_RE.finditer(error_output):
-        path, bad = m.group(1).lstrip("./"), m.group(2)
+        path, bad = m.group(1).lstrip("./"), m.group(2) or m.group(3)
         target = resolve(bad)
         if not target:
             continue

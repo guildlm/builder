@@ -88,3 +88,51 @@ def test_noop_without_module():
     err = "a.go:2:8: package workapi/internal/x is not in std (x)"
     assert _fix_module_prefix(written, err, None) == {}
     assert _fix_module_prefix(written, err, "singlesegment") == {}
+
+def test_strips_hallucinated_host_prefix_on_full_module_path():
+    # The 1.5B hallucinated a "github.com/" host in front of the REAL module
+    # path; go reports it as "no required module provides package".
+    written = {
+        "internal/api/router.go": "package api\n",
+        "cmd/server/main.go": (
+            "package main\n\nimport (\n"
+            '\t"context"\n'
+            '\t"github.com/guildlm.dev/taskapi/internal/api"\n'
+            ")\n"
+        ),
+    }
+    err = (
+        "cmd/server/main.go:5:2: no required module provides package "
+        "github.com/guildlm.dev/taskapi/internal/api; to add it:\n"
+        "\tgo get github.com/guildlm.dev/taskapi/internal/api"
+    )
+    out = _fix_module_prefix(written, err, "guildlm.dev/taskapi")
+    assert '"guildlm.dev/taskapi/internal/api"' in out["cmd/server/main.go"]
+    assert '"github.com/guildlm.dev/taskapi' not in out["cmd/server/main.go"]
+    assert '"context"' in out["cmd/server/main.go"]
+
+
+def test_no_required_module_with_module_tail_form():
+    # same error TEXT family, tail-truncated import form
+    written = {
+        "internal/store/store.go": "package store\n",
+        "internal/api/h.go": 'package api\nimport "taskapi/internal/store"\n',
+    }
+    err = (
+        "internal/api/h.go:2:8: no required module provides package "
+        "taskapi/internal/store; to add it:"
+    )
+    out = _fix_module_prefix(written, err, "guildlm.dev/taskapi")
+    assert '"guildlm.dev/taskapi/internal/store"' in out["internal/api/h.go"]
+
+
+def test_no_required_module_third_party_left_alone():
+    # a genuine third-party miss (no module path inside) must NOT be rewritten
+    written = {
+        "internal/api/h.go": 'package api\nimport "github.com/sirupsen/logrus"\n',
+    }
+    err = (
+        "internal/api/h.go:2:8: no required module provides package "
+        "github.com/sirupsen/logrus; to add it:"
+    )
+    assert _fix_module_prefix(written, err, "guildlm.dev/taskapi") == {}
