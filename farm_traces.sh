@@ -11,7 +11,7 @@ cd "$(dirname "$0")"
 ROUNDS="${1:-1}"
 MODEL="${GUILDLM_FARM_MODEL:-mlx-community/Qwen2.5-Coder-7B-Instruct-4bit}"
 BASE_URL="${GUILDLM_FARM_BASE_URL:-http://localhost:8080/v1}"
-SPECS="${GUILDLM_FARM_SPECS:-usersapi taskflow taskapi taskapipro workapi jsonapi kvservice numkit workerpool tasks-api}"
+SPECS="${GUILDLM_FARM_SPECS:-usersapi taskflow taskapi taskapipro workapi jsonapi kvservice numkit workerpool tasks-api shortener ratelimit logstats}"
 
 mkdir -p traces farm
 

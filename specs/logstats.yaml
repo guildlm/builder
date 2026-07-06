@@ -1,0 +1,63 @@
+name: logstats
+language: go
+go_module: guildlm.dev/logstats
+description: >-
+  A realistic, idiomatic, STANDARD-LIBRARY-ONLY access-log analysis library
+  plus CLI — the io.Reader/bufio/text-processing side of backend Go, no HTTP
+  server at all. No external dependencies. All files use package main. The
+  tool layers cleanly: a line parser for common-log-style records, a streaming
+  aggregator computing per-path and per-status statistics, and a main that
+  reads stdin and prints a deterministic report.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/logstats, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+  - path: parse.go
+    purpose: >-
+      package main. Parsing one access-log line of the exact form
+      `2026-01-02T15:04:05Z GET /path 200 1234` — RFC3339 timestamp, HTTP
+      method, path, status code, latency in milliseconds, single-space
+      separated. An Entry struct {Time time.Time; Method, Path string;
+      Status, LatencyMS int}. ParseLine(line string) (Entry, error) splits
+      the line, parses the timestamp with time.Parse(time.RFC3339, ...) and
+      the two integers with strconv.Atoi, and returns a sentinel ErrBadLine
+      (errors.Is-matchable, wrapped with %w plus a hint of what was wrong)
+      when the field count is not 5 or any field fails to parse. Standard
+      library only.
+  - path: stats.go
+    purpose: >-
+      package main. Streaming aggregation. A PathStat struct {Path string;
+      Count int; ErrorCount int; TotalLatencyMS int} with a method AvgLatencyMS()
+      float64 (0 for an empty stat). A Stats struct holding
+      map[string]*PathStat keyed by path plus total and badLines counters,
+      built by NewStats(). Add(e Entry) updates the path's Count,
+      TotalLatencyMS, and increments ErrorCount when Status >= 500.
+      AddBadLine() increments badLines. Consume(r io.Reader) (lines int, err
+      error) scans r line by line with bufio.Scanner, skipping empty lines,
+      feeding ParseLine results into Add and counting ErrBadLine failures via
+      AddBadLine instead of aborting; it returns the number of non-empty
+      lines seen and any scanner error. Report() []PathStat returns the
+      per-path stats as VALUES sorted by Count descending, ties broken by
+      Path ascending — deterministic output. Totals() (total, bad int)
+      exposes the counters. Standard library only.
+  - path: main.go
+    purpose: >-
+      package main. func main() builds NewStats(), calls Consume(os.Stdin)
+      (exiting non-zero via log.Fatal on a scanner error), then prints the
+      report to stdout: one header line `TOTAL <total> BAD <bad>`, then for
+      each PathStat from Report() a line formatted with fmt.Printf as
+      `<path> count=<count> errors=<errorCount> avg_ms=<avg with one decimal>`.
+      Standard library only.
+  - path: logstats_test.go
+    purpose: >-
+      package main. Table tests, fresh NewStats() inside every t.Run subtest.
+      ParseLine: a valid line round-trips every Entry field exactly; lines
+      with 4 fields, a bad timestamp, a non-numeric status, and a non-numeric
+      latency all return ErrBadLine via errors.Is. Consume: feed a
+      strings.Reader holding several lines for two paths (one with a 500)
+      plus one malformed line and one empty line; assert Totals() reports the
+      right total and bad counts and the per-path Count/ErrorCount/
+      AvgLatencyMS values are exact. Report ordering: paths with more hits
+      come first and equal-count paths sort by name — assert the full ordered
+      slice of Path values. Standard library only.
