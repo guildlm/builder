@@ -196,7 +196,11 @@ class OpenAICoder:
                 },
                 {"role": "user", "content": prompt},
             ],
-            temperature=0.1,
+            # Near-greedy by default (reproducible runs). For data farming this
+            # makes repeat rounds of the same spec byte-identical — zero new
+            # distillation pairs. Raise via GUILDLM_BUILDER_TEMP (e.g. 0.6)
+            # when diversity matters more than determinism.
+            temperature=float(os.environ.get("GUILDLM_BUILDER_TEMP", "0.1")),
             max_tokens=max_tokens,
             # mlx_lm-served Qwen instruct models carry eos_token_id=151643
             # (<|endoftext|>) in the mlx-community config, so the server never
