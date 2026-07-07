@@ -1540,6 +1540,121 @@ def _fix_string_int_conversion(
     return {p: _ensure_import(c, "strconv") for p, c in changed.items()}
 
 
+# The model reaches for github.com/pkg/errors — `errors.Wrap(err, "msg")` /
+# `errors.Wrapf(err, "fmt", args...)` — which don't exist in the stdlib `errors`
+# package, so the toolchain flags `undefined: errors.Wrap`. The stdlib idiom is
+# fmt.Errorf with the %w verb. Rewrite the flagged call in place (line count
+# preserved) and ensure fmt; goimports prunes the errors import if it is now
+# unused, or keeps it when errors.Is/New/As remain.
+_ERRWRAP_RE = re.compile(r"([\w./-]+\.go):(\d+):(\d+): undefined: errors\.(Wrapf?)\b")
+
+
+def _split_top_level_args(s: str) -> list[str]:
+    """Split a call's argument string on top-level commas, respecting nested
+    (), [], {} and string/rune literals. Args are returned stripped."""
+    args: list[str] = []
+    buf: list[str] = []
+    depth = 0
+    quote: str | None = None
+    i, n = 0, len(s)
+    while i < n:
+        ch = s[i]
+        if quote is not None:
+            buf.append(ch)
+            if ch == "\\" and quote != "`" and i + 1 < n:
+                buf.append(s[i + 1])
+                i += 2
+                continue
+            if ch == quote:
+                quote = None
+        elif ch in "\"'`":
+            quote = ch
+            buf.append(ch)
+        elif ch in "([{":
+            depth += 1
+            buf.append(ch)
+        elif ch in ")]}":
+            depth -= 1
+            buf.append(ch)
+        elif ch == "," and depth == 0:
+            args.append("".join(buf).strip())
+            buf = []
+        else:
+            buf.append(ch)
+        i += 1
+    if buf:
+        args.append("".join(buf).strip())
+    return args
+
+
+def _wrap_to_errorf(msg: str, extra: list[str], err: str) -> str | None:
+    """Build the fmt.Errorf(...) call for errors.Wrap/Wrapf. Only a string-literal
+    message is handled (the overwhelmingly common case); a non-literal message
+    returns None so it is left for the model rather than mis-transformed. The %w
+    verb goes last, so the wrapped error becomes the final argument."""
+    if len(msg) >= 2 and msg[0] == '"' and msg[-1] == '"':
+        fmtlit = msg[:-1] + ': %w"'
+    elif len(msg) >= 2 and msg[0] == "`" and msg[-1] == "`":
+        fmtlit = msg[:-1] + ": %w`"
+    else:
+        return None
+    return "fmt.Errorf(" + ", ".join([fmtlit] + extra + [err]) + ")"
+
+
+def _fix_errors_wrap(written: dict[str, str], error_output: str) -> dict[str, str]:
+    """Rewrite pkg/errors-style `errors.Wrap(err, "msg")` /
+    `errors.Wrapf(err, "fmt", a...)` (undefined in the stdlib) to
+    `fmt.Errorf("msg: %w", err)` / `fmt.Errorf("fmt: %w", a..., err)`. Same
+    mechanical, compiler-pinpointed repair class as the other gates; only the
+    flagged call is touched and line numbers are preserved."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    touched: set[str] = set()
+    for m in _ERRWRAP_RE.finditer(error_output):
+        path = resolve(m.group(1))
+        if not path:
+            continue
+        lineno, col, fn = int(m.group(2)), int(m.group(3)), m.group(4)
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        needle = f"errors.{fn}("
+        idx = line.find(needle, max(col - 1, 0))
+        if idx == -1:
+            idx = line.find(needle)
+        if idx == -1:
+            continue
+        start = idx + len(needle)
+        depth, j = 1, start
+        while j < len(line) and depth:
+            depth += (line[j] == "(") - (line[j] == ")")
+            j += 1
+        if depth:
+            continue  # call spans multiple lines — leave it for the model
+        args = _split_top_level_args(line[start:j - 1])
+        if len(args) < 2:
+            continue
+        err_arg, msg_arg, extra = args[0], args[1], args[2:]
+        if fn == "Wrap" and extra:
+            continue  # Wrap takes exactly (err, msg)
+        repl = _wrap_to_errorf(msg_arg, extra, err_arg)
+        if repl is None:
+            continue
+        lines[lineno - 1] = line[:idx] + repl + line[j:]
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+        touched.add(path)
+    return {p: _ensure_import(changed[p], "fmt") for p in touched}
+
+
 # `undefined: err` where the flagged line assigns to it with plain `=` — the
 # model copied a sibling closure's assignment form into a scope where the name
 # was never declared. The compiler pinpoints file:line:col.
@@ -1942,6 +2057,7 @@ def _run_deterministic_gates(
     requal.update(_requalify_stdlib({**written, **requal}, output))
     requal.update(_fix_module_prefix({**written, **requal}, output, module))
     requal.update(_fix_string_int_conversion({**written, **requal}, output))
+    requal.update(_fix_errors_wrap({**written, **requal}, output))
     requal.update(_fix_undefined_assignment({**written, **requal}, output))
     requal.update(_fix_if_composite_literal({**written, **requal}, output))
     requal.update(_fix_swapped_error_assignment({**written, **requal}, output))
