@@ -11,3 +11,4 @@ bin/
 # local run artifacts (distillation farm + raw traces)
 farm/
 traces/
+logs/
