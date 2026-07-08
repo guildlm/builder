@@ -72,9 +72,14 @@ def verify_corpus(path: str | Path) -> tuple[int, int, list[str]]:
     # its-test, so this pairs an impl with its test while keeping distinct programs
     # (two different `package main` services) in separate modules — otherwise they
     # collide on redeclared main/newMux.
+    # A test joins the preceding group only when it shares that group's package,
+    # so an impl+its-test pair verify together while a SELF-CONTAINED test (one
+    # that declares its own package + helpers, e.g. a `package service` example
+    # with no separate impl) forms its own module instead of colliding with an
+    # unrelated preceding impl.
     groups: list[list[str]] = []
     for code in examples:
-        if _is_test(code) and groups:
+        if _is_test(code) and groups and _pkg_name(code) == _pkg_name(groups[-1][0]):
             groups[-1].append(code)
         else:
             groups.append([code])
