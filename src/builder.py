@@ -1293,7 +1293,14 @@ def _requalify_undefined(
             correct = owners.get(name, set()) - {own_pkg}
             if len(correct) == 1:
                 owner = next(iter(correct))
-                apply(path, rf"(?<![\w.]){re.escape(name)}\b(?=\s*\()",
+                # Requalify EVERY bare use of the symbol, not just calls: the 7B
+                # writes cross-package tests that use a sibling type in value AND
+                # type position (`Enqueue(e Event)`, `[]Event`, `Task{...}`) while
+                # only importing its own package. The compiler proved `name` is
+                # undefined here, so every bare occurrence is the same foreign
+                # symbol; `\b`+lookbehind keep `Events`, `wantEvents` and `.Field`
+                # untouched. gofmt-on-write verifies the result stays valid Go.
+                apply(path, rf"(?<![\w.]){re.escape(name)}\b(?!\s*\.)",
                       f"{owner}.{name}", owner)
     return changed
 
