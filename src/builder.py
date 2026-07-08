@@ -2043,6 +2043,93 @@ def _fix_handlerfunc_wrap(
     return changed
 
 
+# `not enough arguments in call to Recover\n\thave (*slog.Logger)\n\twant
+# (http.Handler, *slog.Logger)` — the model defined a middleware constructor
+# with the next handler as its FIRST parameter (func Recover(next http.Handler,
+# log *slog.Logger) http.Handler) yet calls it as Recover(log) and hands it to a
+# Chain(h, ...Middleware) whose Middleware is `func(http.Handler) http.Handler`.
+# It adopted the canonical CALL shape (from retrieval) but not the DEFINITION
+# shape. The fix is a single definition-site rewrite to config-in/Middleware-out,
+# which resolves BOTH the arity error and the interface mismatch at once.
+_MW_ARITY_RE = re.compile(
+    r"not enough arguments in call to (\w+)\n\s*have \([^)]*\)\n\s*want \(http\.Handler,"
+)
+
+
+def _rewrite_middleware_def(code: str, name: str) -> str:
+    """Rewrite ``func name(next http.Handler, <cfg...>) http.Handler { BODY }`` to
+    ``func name(<cfg...>) Middleware { return func(next http.Handler) http.Handler
+    { BODY } }``. Safe by construction: bails to the unchanged source on ANY
+    ambiguity (name not a top-level def, unbalanced parens/braces, first param not
+    ``<ident> http.Handler``, no trailing config param, or return type not
+    http.Handler) — worst case a no-op that leaves the residual for the model.
+    Indentation is left to gofmt-on-write; only tokens and brace balance matter."""
+    m = re.search(rf"(?m)^func {re.escape(name)}\(", code)
+    if not m:
+        return code
+    sig_start, paren_open = m.start(), m.end() - 1
+    depth, i = 0, paren_open
+    while i < len(code):
+        depth += (code[i] == "(") - (code[i] == ")")
+        if depth == 0:
+            break
+        i += 1
+    else:
+        return code
+    paren_close = i
+    rm = re.match(r"\s*http\.Handler\s*\{", code[paren_close + 1:])
+    if not rm:
+        return code
+    body_open = paren_close + 1 + rm.end() - 1
+    depth, j = 0, body_open
+    while j < len(code):
+        depth += (code[j] == "{") - (code[j] == "}")
+        if depth == 0:
+            break
+        j += 1
+    else:
+        return code
+    body_close = j
+    params = _split_top_level_args(code[paren_open + 1:paren_close])
+    if len(params) < 2:
+        return code
+    fm = re.match(r"(\w+)\s+http\.Handler$", params[0].strip())
+    if not fm:
+        return code
+    next_name = fm.group(1)
+    cfg = ", ".join(p.strip() for p in params[1:])
+    body = code[body_open + 1:body_close]
+    new_def = (
+        f"func {name}({cfg}) Middleware {{\n"
+        f"\treturn func({next_name} http.Handler) http.Handler {{{body}}}\n"
+        f"}}"
+    )
+    return code[:sig_start] + new_def + code[body_close + 1:]
+
+
+def _fix_middleware_arity(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Repair middleware constructors defined with the next handler as a parameter
+    so they match the ``Middleware = func(http.Handler) http.Handler`` type their
+    own Chain expects (see _rewrite_middleware_def). Only files that actually
+    declare that Middleware shape are considered, so a genuine two-arg http.Handler
+    helper elsewhere is never touched."""
+    names = {m.group(1) for m in _MW_ARITY_RE.finditer(error_output)}
+    if not names:
+        return {}
+    changed: dict[str, str] = {}
+    for path, code in written.items():
+        if not path.endswith(".go") or "func(http.Handler) http.Handler" not in code:
+            continue
+        new_code = code
+        for name in names:
+            new_code = _rewrite_middleware_def(new_code, name)
+        if new_code != code:
+            changed[path] = new_code
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -2065,6 +2152,7 @@ def _run_deterministic_gates(
     requal.update(_fix_phantom_local_import({**written, **requal}, output, module))
     requal.update(_fix_handle_vs_handlefunc({**written, **requal}, output))
     requal.update(_fix_handlerfunc_wrap({**written, **requal}, output))
+    requal.update(_fix_middleware_arity({**written, **requal}, output))
     return requal
 
 
