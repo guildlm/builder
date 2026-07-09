@@ -67,7 +67,11 @@ files:
       values including 0 and a large number; Decode("!") and Decode("")
       return ErrBadCode via errors.Is. Flow-test the API: POST /shorten with a
       valid JSON url returns 201 and a non-empty code; GET /r/{code} returns
-      301 with the Location header equal to the original url; GET
-      /stats/{code} after one redirect reports Hits == 1; GET /r/missing
+      301 with the Location header equal to the original url; GET /r/missing
       returns 404; POST /shorten with malformed JSON or an empty url returns
-      400. Decode JSON responses and assert fields. Standard library only.
+      400. The Hits/stats test MUST first register a hit: POST /shorten to get
+      the code, then GET /r/{code} EXACTLY ONCE (this is what increments Hits),
+      and ONLY THEN GET /stats/{code} and assert the decoded Hits == 1. Do NOT
+      check stats without a preceding redirect — a freshly created link has Hits
+      0, so a stats check with no prior GET /r/{code} would see 0, not 1. Decode
+      JSON responses and assert fields. Standard library only.
