@@ -1719,6 +1719,55 @@ def _fix_unused_var(written: dict[str, str], error_output: str) -> dict[str, str
     return {p: changed[p] for p in touched}
 
 
+# `rec.Header.Get undefined (type func() http.Header has no field or method Get)`
+# — the code accessed a field/method on a METHOD VALUE without calling it.
+# httptest.ResponseRecorder.Header is a METHOD (unlike http.Request.Header, a
+# field), so `rec.Header.Get(...)` must be `rec.Header().Get(...)`. The compiler
+# pinpoints the full expression and the trailing selector; insert the `()`.
+_UNCALLED_METHOD_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):(\d+): ([\w.]+) undefined "
+    r"\(type func\(\).*? has no field or method (\w+)\)"
+)
+
+
+def _fix_uncalled_method_value(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Insert the missing `()` after a method value accessed as if it were a
+    struct field, e.g. `rec.Header.Get(...)` -> `rec.Header().Get(...)`. Only the
+    exact compiler-flagged expression on the flagged line is rewritten; the
+    method value that DOESN'T call is unambiguous from the diagnostic, so a
+    sibling `req.Header.Get` (Header is a field there) is never touched."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    touched: set[str] = set()
+    for m in _UNCALLED_METHOD_RE.finditer(error_output):
+        path = resolve(m.group(1))
+        if not path:
+            continue
+        lineno, expr, meth = int(m.group(2)), m.group(4), m.group(5)
+        suffix = "." + meth
+        if not expr.endswith(suffix):
+            continue
+        base = expr[: -len(suffix)]  # `rec.Header`
+        repl = base + "()." + meth  # `rec.Header().Get`
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines) or expr not in lines[lineno - 1]:
+            continue
+        lines[lineno - 1] = lines[lineno - 1].replace(expr, repl, 1)
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+        touched.add(path)
+    return {p: changed[p] for p in touched}
+
+
 # `undefined: err` where the flagged line assigns to it with plain `=` — the
 # model copied a sibling closure's assignment form into a scope where the name
 # was never declared. The compiler pinpoints file:line:col.
@@ -2210,6 +2259,7 @@ def _run_deterministic_gates(
     requal.update(_fix_string_int_conversion({**written, **requal}, output))
     requal.update(_fix_errors_wrap({**written, **requal}, output))
     requal.update(_fix_unused_var({**written, **requal}, output))
+    requal.update(_fix_uncalled_method_value({**written, **requal}, output))
     requal.update(_fix_undefined_assignment({**written, **requal}, output))
     requal.update(_fix_if_composite_literal({**written, **requal}, output))
     requal.update(_fix_swapped_error_assignment({**written, **requal}, output))
