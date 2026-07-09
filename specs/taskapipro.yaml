@@ -71,7 +71,12 @@ files:
       case. Cover create->nil / dup->ErrExists (errors.Is); Get present/missing
       ->ErrNotFound; List id-sorted; Delete present then Get->ErrNotFound; Delete
       missing->ErrNotFound. Imports context, errors, testing, and models. Never
-      name a local variable `t`.
+      name a local variable `t` — the test's *testing.T is `t`, so use `task` or
+      `tk` for a models.Task, never `t := models.Task{...}` (that shadows the
+      tester and makes t.Fatalf resolve to models.Task). Write every models.Task
+      with FIELD NAMES (models.Task{ID: "1", Title: "x", Status: "todo",
+      ProjectID: "p1"}), never a positional literal and never a bare "" where a
+      Task value is expected.
   - path: internal/service/service.go
     purpose: >-
       package service. The business-logic layer between handlers and store.
@@ -91,9 +96,14 @@ files:
       t.Validate() and on error return (models.Task{}, err); else call
       s.store.CreateTask(ctx, t) and on error return (models.Task{}, err); else
       return (t, nil). Get/Delete delegate to the store. List: fetch via
-      s.store.ListTasks(ctx), apply status filtering, then PAGINATION via a
-      generic helper paginate[T any](items []T, limit, offset int) []T with
-      bounds checks (offset past end -> empty, never panic), return (page, nil).
+      s.store.ListTasks(ctx), apply status filtering on the CONCRETE
+      []models.Task FIRST (range the tasks and keep those whose t.Status matches —
+      accessing .Status is valid here because these are models.Task, not a type
+      parameter), THEN pass the filtered []models.Task to the generic helper
+      paginate[T any](items []T, limit, offset int) []T. paginate ONLY slices by
+      limit/offset with bounds checks (offset past end -> empty, never panic) and
+      must NEVER access any field or method of T (T is `any` — `item.Status`
+      inside paginate does not compile). return (page, nil).
       Compile-time assertions var _ TaskService = (*taskService)(nil) etc.
       Imports context + the store + models packages.
   - path: internal/service/service_test.go
