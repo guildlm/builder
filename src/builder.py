@@ -1662,6 +1662,63 @@ def _fix_errors_wrap(written: dict[str, str], error_output: str) -> dict[str, st
     return {p: _ensure_import(changed[p], "fmt") for p in touched}
 
 
+# `declared and not used: u` (Go 1.20+) — the model captured an EXTRA return
+# value it only needed to validate (or ignore) and never read, e.g.
+# `u, err := url.ParseRequestURI(raw)` where only err is checked. The compiler
+# pinpoints file:line:col and the name. Safe deterministic repair: blank the
+# flagged name on a MULTI-value `:=` LHS (`u, err :=` -> `_, err :=`), keeping
+# `:=` because a real new variable (err) remains. A LONE unused var
+# (`x := expr`) is deliberately left to the model — there it usually means the
+# value was meant to be used, and silently blanking it would mask that; the
+# model regenerates the line with the intended use.
+_UNUSED_VAR_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):(\d+): declared and not used:?\s*(\w+)"
+)
+
+
+def _fix_unused_var(written: dict[str, str], error_output: str) -> dict[str, str]:
+    """Blank a `declared and not used` name on a multi-value `:=` short decl
+    (the captured-extra-return-value pattern), only when another real new
+    variable remains on the LHS so `:=` stays valid. Lone unused vars are left
+    for the model. Line numbers are preserved."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    touched: set[str] = set()
+    for m in _UNUSED_VAR_RE.finditer(error_output):
+        path = resolve(m.group(1))
+        if not path:
+            continue
+        lineno, name = int(m.group(2)), m.group(4)
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        assign = line.find(":=")
+        if assign == -1:
+            continue  # var-decl or other form — leave to the model
+        lhs, rhs = line[:assign], line[assign:]
+        new_lhs, n = re.subn(rf"\b{re.escape(name)}\b", "_", lhs, count=1)
+        if n == 0:
+            continue  # name not on this LHS — don't guess
+        # only act when a real new variable REMAINS (multi-assign); a lone
+        # unused var (all-blank LHS) is the model's to resolve
+        remaining = [tok.strip() for tok in new_lhs.split(",")]
+        if not any(tok and tok != "_" for tok in remaining):
+            continue
+        lines[lineno - 1] = new_lhs + rhs
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+        touched.add(path)
+    return {p: changed[p] for p in touched}
+
+
 # `undefined: err` where the flagged line assigns to it with plain `=` — the
 # model copied a sibling closure's assignment form into a scope where the name
 # was never declared. The compiler pinpoints file:line:col.
@@ -2152,6 +2209,7 @@ def _run_deterministic_gates(
     requal.update(_fix_module_prefix({**written, **requal}, output, module))
     requal.update(_fix_string_int_conversion({**written, **requal}, output))
     requal.update(_fix_errors_wrap({**written, **requal}, output))
+    requal.update(_fix_unused_var({**written, **requal}, output))
     requal.update(_fix_undefined_assignment({**written, **requal}, output))
     requal.update(_fix_if_composite_literal({**written, **requal}, output))
     requal.update(_fix_swapped_error_assignment({**written, **requal}, output))
