@@ -62,11 +62,15 @@ files:
       drain. Standard library only.
   - path: users_test.go
     purpose: >-
-      package main. Table/flow tests using net/http/httptest against
-      NewRouter(NewMemStore()). Cover the REST contract: POST a valid user JSON
-      returns 201 and echoes it; POST the same ID again returns 409; GET
-      /users/{id} returns 200 with the stored user; GET a missing id returns 404;
-      GET /users returns a JSON array containing the created users; DELETE an
-      existing id returns 204 and a subsequent GET returns 404; POST malformed
-      JSON returns 400. Decode JSON responses and assert fields. Standard library
-      only.
+      package main. Tests using net/http/httptest. Because the CRUD cases are
+      STATEFUL (a duplicate POST, a GET, and a DELETE all need the user to ALREADY
+      exist), do NOT use one shared table loop with fresh state per row — a case
+      that GETs or DELETEs id "1" would 404 unless "1" was created first. Instead:
+      one ORDERED flow test on a SINGLE router (h := NewRouter(NewMemStore())) that
+      carries state across steps IN ORDER: POST a valid user with id "1" -> 201 and
+      the body echoes it; POST id "1" AGAIN -> 409; GET /users/1 -> 200 with the
+      stored user (assert fields); GET /users -> 200 and a JSON array containing
+      user "1"; DELETE /users/1 -> 204; then GET /users/1 -> 404. Plus TWO small
+      focused tests, each on its OWN fresh NewRouter(NewMemStore()): GET a missing
+      id -> 404; POST malformed JSON -> 400. Decode JSON responses and assert
+      fields. Standard library only.
