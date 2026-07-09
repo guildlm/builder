@@ -25,22 +25,40 @@ files:
   - path: store.go
     purpose: >-
       package main. A thread-safe in-memory Store guarded by sync.RWMutex with a
-      map[int]Task and auto-incrementing nextID. Methods: NewStore, Create
-      (validates, assigns ID + CreatedAt), List (sorted by ID, returns a copy),
-      Get, Update (preserves ID/CreatedAt, updates Title/Done), Delete. Get,
-      Update and Delete return the sentinel ErrNotFound when the id is absent.
+      map[int]Task and auto-incrementing nextID. IMPLEMENT ALL FIVE data methods
+      FULLY — do NOT omit any: Create (validates, assigns ID + CreatedAt), List
+      (sorted by ID, returns a copy), Get, Update, Delete. In particular
+      Update(t Task) error MUST be present (look up t.ID, return ErrNotFound if
+      absent, otherwise preserve the existing ID/CreatedAt and overwrite
+      Title/Done); the handlers call store.Update, so a missing Update breaks the
+      build. Get, Update and Delete return the sentinel ErrNotFound when the id
+      is absent. Provide a constructor NewStore returning the store. If you model
+      Store as an INTERFACE with a separate in-memory implementation, the
+      interface MUST declare EVERY one of these five methods (Create, List, Get,
+      Update, Delete) and the implementation MUST implement every one — the
+      interface and impl must match exactly, so Update appears in BOTH.
 
   - path: handlers.go
     purpose: >-
       package main. An API type wrapping *Store with NewAPI. HTTP handler
-      methods Create, List, Get, Update, Delete using encoding/json. Correct
-      status codes 201/200/204/400/404. Error bodies are JSON {"error":"..."}.
-      Map ErrNotFound to 404 and ErrInvalidTask to 400 with errors.Is.
+      methods Create, List, Get, Update, Delete using encoding/json. EVERY
+      handler method has EXACTLY the http.HandlerFunc signature
+      `(w http.ResponseWriter, r *http.Request)` and returns NOTHING — it reads
+      the id itself via r.PathValue("id") (strconv.Atoi it) and decodes the body
+      itself; it takes NO extra parameters (no id, no Task) beyond w and r.
+      Correct status codes 201/200/204/400/404. Error bodies are JSON
+      {"error":"..."}. Map ErrNotFound to 404 and ErrInvalidTask to 400 with
+      errors.Is.
 
   - path: router.go
     purpose: >-
       package main. NewRouter(api *API) *http.ServeMux registering POST /tasks,
-      GET /tasks, GET /tasks/{id}, PUT /tasks/{id}, DELETE /tasks/{id}.
+      GET /tasks, GET /tasks/{id}, PUT /tasks/{id}, DELETE /tasks/{id}. Register
+      each handler by passing the METHOD VALUE directly to mux.HandleFunc, e.g.
+      `mux.HandleFunc("PUT /tasks/{id}", api.Update)` — do NOT call the handler
+      and do NOT pass w, r, an id, or a Task yourself (the handler reads those
+      from the request). Each api.Method is used as an http.HandlerFunc value,
+      never invoked, inside NewRouter.
 
   - path: main.go
     purpose: >-
