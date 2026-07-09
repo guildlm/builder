@@ -27,6 +27,14 @@ files:
       library only.
   - path: main_test.go
     purpose: >-
-      package main. Table-driven tests using net/http/httptest: PUT a key then GET
-      it back returns the stored value with 200; GET a missing key returns 404.
-      Build the handler with newMux(NewStore()). Standard library only.
+      package main. Tests using net/http/httptest, split into TWO SMALL FOCUSED
+      test functions (NOT one shared table loop — a shared loop that PUTs every
+      key before GETting it cannot express the missing-key case, which must have
+      NO prior PUT). Each function builds its OWN fresh handler with
+      newMux(NewStore()).
+      TestPutThenGet: PUT /kv/a with body "hi" and assert 201 (Created); then GET
+      /kv/a and assert 200 with the response body equal to "hi".
+      TestGetMissing: on a FRESH handler, GET /kv/missing WITHOUT any prior PUT
+      and assert 404 — do not PUT the key first, the whole point is that it is
+      absent. Read response bodies with io.ReadAll and assert. Standard library
+      only.
