@@ -20,11 +20,18 @@ files:
       golang.org/x/time/rate). A Bucket struct with capacity int, tokens
       float64, refillPerSec float64, last time.Time, a sync.Mutex, and a now
       func() time.Time field so tests can inject a fake clock. NewBucket(capacity
-      int, refillPerSec float64) *Bucket starts full with now defaulting to
-      time.Now. Allow() bool lazily refills based on the elapsed time since
-      last (tokens += elapsedSeconds*refillPerSec, capped at capacity, last
-      updated), then consumes one token and returns true when at least one
-      token is available, false otherwise. Standard library only.
+      int, refillPerSec float64) *Bucket starts full (tokens == capacity) with
+      now defaulting to time.Now. CRITICAL: do NOT set `last` from time.Now() in
+      the constructor — tests swap the now func for a fake clock AFTER NewBucket,
+      so a real-time `last` would make the first elapsed hugely negative and
+      wrongly deny. Leave `last` as the zero time.Time in the constructor, and on
+      the FIRST Allow() (when last.IsZero()) seed last = b.now() so the first
+      elapsed is 0. Every time reading in Allow() MUST go through b.now(), never
+      time.Now() directly. Allow() bool: read now := b.now(); if last is zero set
+      last = now; refill tokens += now.Sub(last).Seconds()*refillPerSec capped at
+      capacity; set last = now; then if tokens >= 1 consume one and return true,
+      else return false. A freshly built bucket whose now was replaced by a fake
+      clock MUST allow its first `capacity` calls. Standard library only.
   - path: registry.go
     purpose: >-
       package main. Per-client limiter registry. A Registry struct holding a
@@ -61,15 +68,34 @@ files:
   - path: ratelimit_test.go
     purpose: >-
       package main. Tests with a FAKE CLOCK — no time.Sleep anywhere.
-      Construct fresh state inside every t.Run subtest. Unit-test Bucket: a
-      NewBucket(2, 1) with an injected now func backed by a mutable
-      time.Time variable allows exactly 2 calls then denies; advancing the
-      fake time by one second allows exactly one more; tokens never exceed
-      capacity after a long idle gap. Unit-test Registry: Get returns the
-      SAME *Bucket for the same clientID and Len reports distinct clients.
-      Flow-test with net/http/httptest against NewRouter: two clients with
-      different X-Client-ID headers each get their own allowance (client A
-      exhausting its bucket does not 429 client B); once a client is denied
-      the response is 429, has Retry-After "1", and decodes to the JSON
-      error body; GET /health always returns 200 even for an exhausted
-      client. Standard library only.
+      Define ONE request helper at package scope and route EVERY HTTP request
+      through it (this avoids the boilerplate mistakes of chaining the void
+      req.Header.Set into another call, or forgetting to CALL rec.Header()):
+      `func hit(h http.Handler, path, clientID string) *httptest.ResponseRecorder
+      { req := httptest.NewRequest(http.MethodGet, path, nil); if clientID != ""
+      { req.Header.Set("X-Client-ID", clientID) }; rec := httptest.NewRecorder();
+      h.ServeHTTP(rec, req); return rec }`. Build the request, set the header, and
+      serve as SEPARATE statements exactly as shown — never inline
+      httptest.NewRequest(...).Header.Set(...) as an argument (Header.Set returns
+      nothing). Unit-test Bucket: a NewBucket(2, 1) with an injected now func
+      backed by a mutable time.Time variable allows exactly 2 calls then denies;
+      advancing the fake time by one second allows exactly one more; tokens never
+      exceed capacity after a long idle gap. Unit-test Registry: Get returns the
+      SAME *Bucket for the same clientID and Len reports distinct clients. The
+      fake clock MUST start at a CONCRETE NON-ZERO time (e.g. time.Date(2000, 1,
+      1, 0, 0, 0, 0, time.UTC)) — never the zero time.Time{}, because the bucket
+      seeds its `last` from the first now() and a zero start is indistinguishable
+      from an unseeded last, so refills would never register.
+      Flow-test against NewRouter via hit(): each t.Run builds its OWN mux :=
+      NewRouter(reg) at the top and sends all its requests inside that subtest
+      (never reference a mux from another subtest). For the allow-then-deny flow,
+      build the registry with CAPACITY 1 (reg := NewRegistry(1, 1)) so the FIRST
+      request for a client is allowed and the SECOND is denied; do not use a
+      capacity that would still allow the second request. One subtest does the
+      allow-then-deny sequence for a single client: rec := hit(mux, "/ping",
+      "clientA") returns 200, then a SECOND hit(mux, "/ping", "clientA") returns
+      429 with rec.Header().Get("Retry-After") == "1" and a JSON error body (read
+      the recorder header with rec.Header().Get — Header is a METHOD, call it).
+      Other subtests: two clients (clientA, clientB) each get their own allowance
+      (A exhausting its bucket does not 429 B); GET /health always returns 200
+      even for an exhausted client. Standard library only.
