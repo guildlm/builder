@@ -16,5 +16,10 @@ files:
       backwards, considering only letters and digits and ignoring case.
   - path: stringkit_test.go
     purpose: >-
-      package stringkit. Table-driven tests for Reverse and IsPalindrome covering
-      ASCII, unicode, empty string, and a non-palindrome.
+      package stringkit. Table-driven tests. Use EXACTLY these input/expected
+      pairs (transcribe them; do not recompute or add "unchanged" checks):
+      Reverse("abc") == "cba"; Reverse("") == ""; Reverse("こんにちは") ==
+      "はちにんこ"; Reverse("a1b2C3") == "3C2b1a". Then IsPalindrome("aba") == true;
+      IsPalindrome("abc") == false; IsPalindrome("A man, a plan, a canal: Panama")
+      == true; IsPalindrome("") == true. Just compare the function result to the
+      expected literal for each row. Standard library only.
