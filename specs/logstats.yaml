@@ -32,12 +32,18 @@ files:
       float64 (0 for an empty stat). A Stats struct holding
       map[string]*PathStat keyed by path plus total and badLines counters,
       built by NewStats(). Add(e Entry) updates the path's Count,
-      TotalLatencyMS, and increments ErrorCount when Status >= 500.
-      AddBadLine() increments badLines. Consume(r io.Reader) (lines int, err
-      error) scans r line by line with bufio.Scanner, skipping empty lines,
-      feeding ParseLine results into Add and counting ErrBadLine failures via
-      AddBadLine instead of aborting; it returns the number of non-empty
-      lines seen and any scanner error. Report() []PathStat returns the
+      TotalLatencyMS, increments ErrorCount when Status >= 500, AND increments
+      the Stats-level `total` counter (so Totals()'s total equals the number of
+      entries added — the `total` field must actually be incremented somewhere,
+      not left at zero). AddBadLine() increments badLines.
+      Consume(r io.Reader) (lines int, err
+      error) scans r line by line with bufio.Scanner, skipping empty lines. For
+      each non-empty line call ParseLine; on SUCCESS (err == nil) call Add(entry);
+      on an ErrBadLine failure call AddBadLine() and CONTINUE to the next line —
+      do NOT call Add for a line that failed to parse (a bad line must never be
+      Added, or it would create a bogus empty-path entry and inflate total). Only
+      a non-ErrBadLine scanner-level problem aborts. It returns the number of
+      non-empty lines seen and any scanner error. Report() []PathStat returns the
       per-path stats as VALUES sorted by Count descending, ties broken by
       Path ascending — deterministic output. Totals() (total, bad int)
       exposes the counters. Standard library only.
@@ -52,12 +58,33 @@ files:
   - path: logstats_test.go
     purpose: >-
       package main. Table tests, fresh NewStats() inside every t.Run subtest.
-      ParseLine: a valid line round-trips every Entry field exactly; lines
-      with 4 fields, a bad timestamp, a non-numeric status, and a non-numeric
-      latency all return ErrBadLine via errors.Is. Consume: feed a
-      strings.Reader holding several lines for two paths (one with a 500)
-      plus one malformed line and one empty line; assert Totals() reports the
-      right total and bad counts and the per-path Count/ErrorCount/
-      AvgLatencyMS values are exact. Report ordering: paths with more hits
-      come first and equal-count paths sort by name — assert the full ordered
-      slice of Path values. Standard library only.
+      ParseLine cases: a valid line round-trips every Entry field exactly. To
+      check the parsed timestamp, compare entry.Time.Format(time.RFC3339) against
+      the RFC3339 string, or entry.Time.Equal(time.Date(2026, 1, 2, 15, 4, 5, 0,
+      time.UTC)) — do NOT use entry.Time.String() (its output is
+      `2026-01-02 15:04:05 +0000 UTC`, NOT RFC3339, so a String() comparison to
+      an RFC3339 literal fails). Then each BAD-line case MUST use a GENUINELY
+      malformed line DISTINCT from the valid one — a 4-field line (latency dropped), a bad timestamp that is an
+      actually un-parseable string such as "not-a-timestamp" (NOT a valid
+      RFC3339 value — do NOT reuse the valid line's timestamp for this row), a
+      non-numeric status ("abc"), and a non-numeric latency ("abc") — all return
+      ErrBadLine via errors.Is. Consume: use EXACTLY this fixture (do not invent
+      your own lines or recompute the expectations — transcribe them). Build the
+      input by joining these five entries with "\n" (a real empty line in the
+      middle, a malformed line at the end):
+      line1 `2026-01-02T15:04:05Z GET /a 200 100`,
+      line2 `2026-01-02T15:04:05Z POST /b 500 300`,
+      line3 `2026-01-02T15:04:05Z GET /a 404 200`,
+      line4 `` (empty — skipped, NOT counted),
+      line5 `oops GET /a 200 100` (malformed timestamp -> rejected as ErrBadLine).
+      The EXACT expected results (assert each with its OWN comparison): Consume
+      returns lines == 4 (the four NON-EMPTY lines; the empty line is not
+      counted); Totals() returns total == 3 and bad == 1 — bind them as `gotTotal,
+      gotBad := s.Totals()` and check gotTotal == 3 AND gotBad == 1 as two
+      INDEPENDENT conditions (never compare one value against both); Report()
+      returns EXACTLY two PathStat VALUES in this order — index 0 {Path "/a",
+      Count 2, ErrorCount 0, TotalLatencyMS 300} with AvgLatencyMS() == 150, then
+      index 1 {Path "/b", Count 1, ErrorCount 1, TotalLatencyMS 300} with
+      AvgLatencyMS() == 300 ("/a" sorts first because its Count 2 > 1; the
+      rejected /b malformed line does NOT add a second /b entry). Compare
+      AvgLatencyMS() to whole-number floats (150, 300). Standard library only.
