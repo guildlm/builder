@@ -197,27 +197,43 @@ files:
       panic into a 500 and logs it. Imports log/slog, net/http, time.
   - path: internal/api/router_test.go
     purpose: >-
-      package api. Integration tests (net/http/httptest). Build the router by
-      calling NewRouter DIRECTLY with the SERVICE as its first argument:
-      NewRouter(service.NewTaskService(store.NewMemStore(), enq), "secret",
-      slog.New(slog.NewTextHandler(io.Discard, nil))) where enq is a no-op
-      EventEnqueuer. NewRouter takes a service.TaskService and constructs the
-      handler ITSELF — do NOT call NewTaskHandler in the test and do NOT wrap the
-      service. Define a tiny no-op enqueuer in the test (a struct with an
-      Enqueue(models.Event) method). Fresh router+store per case, fresh
-      request body per request, and set "Authorization: Bearer secret" on every
-      MUTATING request. The API uses CLIENT-SUPPLIED ids: every POST body MUST
-      include a non-empty unique "id", e.g.
-      {"id":"1","title":"task1","status":"todo"}, and the two tasks in the list
-      test MUST use DIFFERENT ids ("1" and "2"); GET/DELETE /tasks/{id} use that
-      same id. Cover: POST valid task (with token)->201+echo; POST with a
-      WRONG token->401; POST with no token->401; invalid status (with token)->400;
-      duplicate (same id, with token)->409; GET missing->404 (no token needed);
-      GET->200; list->200 JSON array; ?limit=1 returns at most 1; DELETE (with
-      token)->204 then GET->404; malformed JSON (truncated, with token)->400; GET
-      /healthz->200; GET /readyz->200. Imports bytes, encoding/json, io, log/slog,
-      net/http, net/http/httptest, testing, and the service + store + models
-      packages. Never name a local variable `t`.
+      package api. Integration tests (net/http/httptest), SPLIT INTO SEVERAL
+      SMALL FOCUSED test functions — ONE concern per function, NOT one big table
+      test. Keeping each test short and self-contained is the whole point.
+      Define ONCE at package level: a no-op enqueuer `type noopEnq struct{}` with
+      method `func (noopEnq) Enqueue(e models.Event) {}`, and a fresh-router
+      helper `func newRouter() http.Handler { return
+      NewRouter(service.NewTaskService(store.NewMemStore(), noopEnq{}), "secret",
+      slog.New(slog.NewTextHandler(io.Discard, nil))) }`. Every test calls
+      newRouter() to get a FRESH router+store (NewRouter takes the SERVICE as its
+      first arg and builds the handler itself — do NOT call NewTaskHandler and do
+      NOT wrap the service). Build each request inline with httptest.NewRequest +
+      httptest.NewRecorder, a fresh body per request; set "Authorization: Bearer
+      secret" on every MUTATING request (POST and DELETE). The API uses
+      CLIENT-SUPPLIED ids: every POST body includes a non-empty "id", e.g.
+      {"id":"1","title":"task1","status":"todo"}. Write EXACTLY these functions,
+      each fully self-contained (seed its own data with a POST before acting):
+      TestCreateOK — POST id "1" with token -> 201, then json-decode the response
+      body and assert the echoed id == "1".
+      TestCreateUnauthorized — POST id "1" with NO Authorization header -> 401,
+      and separately POST id "1" with "Bearer wrong" -> 401.
+      TestCreateInvalid — POST {"id":"1","title":"t","status":"bogus"} with token
+      -> 400.
+      TestCreateDuplicate — POST id "1" with token -> 201, then POST id "1" AGAIN
+      with token -> 409.
+      TestGetTask — POST id "1" with token, then GET /tasks/1 (no token) -> 200;
+      then GET /tasks/missing -> 404.
+      TestListTasks — POST id "1" and POST id "2" (both with token), then GET
+      /tasks -> 200 and json-decode into a []models.Task of length 2; then GET
+      /tasks?limit=1 -> 200 and length <= 1.
+      TestDeleteTask — POST id "1" with token -> 201, then DELETE /tasks/1 with
+      token -> 204, then GET /tasks/1 -> 404.
+      TestMalformedJSON — POST /tasks with a truncated body `{"id":"1",` and token
+      -> 400.
+      TestHealthz — GET /healthz -> 200; GET /readyz -> 200.
+      Imports bytes, encoding/json, io, log/slog, net/http, net/http/httptest,
+      testing, and the service + store + models packages. Never name a local
+      variable `t`.
   - path: cmd/server/main.go
     purpose: >-
       package main — composition root. Import config, store, worker, service, api,
