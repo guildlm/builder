@@ -1,0 +1,69 @@
+# PROOF SPEC (frontier b): a DELIBERATELY MINIMAL tasks-api. The store/handlers/
+# router purposes here have been stripped of the per-spec hardening that the
+# canonical specs/tasks-api.yaml carries (all-methods interface/impl parity, the
+# http.HandlerFunc signature contract, "register the method value, never call
+# it"). Those three rules now live as PERMANENT Builder defaults in
+# _generate_prompt (completeness_rule INTERFACE/IMPL PARITY + routing_rule method
+# VALUE). If this minimal spec still goes green, the defaults are load-bearing:
+# the rules generalized. Do NOT hand-harden this file — that would defeat the
+# proof.
+name: tasks-api-min
+language: go
+go_module: guildlm.dev/tasks-api
+description: >-
+  A clean, idiomatic, stdlib-only Go REST API for a "tasks" service. Use only
+  net/http, encoding/json, sync, and the rest of the standard library — no
+  external dependencies. Use Go 1.22+ http.ServeMux method+pattern routing
+  (e.g. "GET /tasks/{id}" with r.PathValue("id")). All files share package main.
+
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/tasks-api, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+
+  - path: task.go
+    purpose: >-
+      package main. Defines the Task model (ID int, Title string, Done bool,
+      CreatedAt time.Time) with json tags, a sentinel ErrInvalidTask, and a
+      Validate() method that wraps ErrInvalidTask via fmt.Errorf("%w", ...) when
+      the trimmed Title is empty.
+
+  - path: store.go
+    purpose: >-
+      package main. A thread-safe in-memory Store guarded by sync.RWMutex with a
+      map[int]Task and auto-incrementing nextID, plus a NewStore constructor.
+      Methods: Create (validates, assigns ID + CreatedAt), List (sorted by ID,
+      returns a copy), Get, Update (overwrite Title/Done, preserve ID/CreatedAt),
+      Delete. Get, Update and Delete return the sentinel ErrNotFound when the id
+      is absent.
+
+  - path: handlers.go
+    purpose: >-
+      package main. An API type wrapping *Store with NewAPI. HTTP handler
+      methods Create, List, Get, Update, Delete using encoding/json, with correct
+      status codes 201/200/204/400/404 and JSON error bodies {"error":"..."}.
+      The Task ID is an int, so read the {id} path value with r.PathValue("id")
+      and convert it with strconv.Atoi before passing it to the store (400 on a
+      bad id). Map ErrNotFound to 404 and ErrInvalidTask to 400 with errors.Is.
+
+  - path: router.go
+    purpose: >-
+      package main. NewRouter(api *API) *http.ServeMux registering POST /tasks,
+      GET /tasks, GET /tasks/{id}, PUT /tasks/{id}, DELETE /tasks/{id}.
+
+  - path: main.go
+    purpose: >-
+      package main. Wires Store + API + router, reads PORT (default 8080),
+      starts http.Server and shuts down gracefully on SIGINT/SIGTERM using
+      signal.NotifyContext and server.Shutdown.
+
+  - path: store_test.go
+    purpose: >-
+      package main. Table-driven tests for the store: CRUD, ErrNotFound paths,
+      and a concurrent-access test safe under -race.
+
+  - path: handlers_test.go
+    purpose: >-
+      package main. httptest-based tests for every endpoint covering status
+      codes, JSON bodies, and the 404 and 400 error paths.

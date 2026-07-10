@@ -261,6 +261,47 @@ def test_generate_prompt_non_test_file_has_no_test_rule():
     assert "do not invent edge cases" not in prompt
 
 
+def test_generate_prompt_test_file_demands_field_named_struct_literals():
+    # kvservice/taskapipro class: a positional table-of-cases literal silently
+    # puts a value in the wrong field, and `go vet` does not catch it for a
+    # same-package struct. The default now steers every test toward field names.
+    spec = _sample_spec()
+    prompt = _generate_prompt(spec, _impl_task(), {})  # _test.go
+    assert "FIELD NAMES" in prompt
+    assert "positional literal" in prompt
+    # It is test-file guidance, not repeated on the implementation file.
+    impl = FileTask(index=1, spec=FileSpec(path="stringkit.go", purpose="impl"))
+    assert "FIELD NAMES" not in _generate_prompt(spec, impl, {})
+
+
+def test_generate_prompt_impl_file_demands_interface_impl_parity():
+    # tasks-api/taskapipro/taskflow class: an interface and its implementation
+    # must expose the exact same method set. A safe prompt rule instead of a
+    # risky AST gate.
+    spec = _sample_spec()
+    impl = FileTask(index=1, spec=FileSpec(path="store.go", purpose="a Store interface + impl"))
+    prompt = _generate_prompt(spec, impl, {})
+    assert "INTERFACE/IMPL PARITY" in prompt
+    # Not emitted on test files (completeness_rule is implementation-only).
+    assert "INTERFACE/IMPL PARITY" not in _generate_prompt(spec, _impl_task(), {})
+
+
+def test_generate_prompt_routing_file_demands_method_value_registration():
+    # tasks-api/ratelimit class: register a handler by passing the method value,
+    # never by calling it. Fires only when the purpose is about routing.
+    spec = _sample_spec()
+    router = FileTask(
+        index=1,
+        spec=FileSpec(path="router.go", purpose="build an http.ServeMux and register routes"),
+    )
+    prompt = _generate_prompt(spec, router, {})
+    assert "method VALUE" in prompt
+    assert "never by CALLING" in prompt
+    # A non-routing implementation file does not carry the routing rule.
+    plain = FileTask(index=1, spec=FileSpec(path="store.go", purpose="an in-memory store"))
+    assert "method VALUE" not in _generate_prompt(spec, plain, {})
+
+
 def test_fix_prompt_assertion_failure_steers_toward_fixing_the_test():
     err = "--- FAIL: TestIsPalindrome (0.00s)\n    IsPalindrome(\"x\") = true, want false"
     prompt = _fix_prompt(_impl_task(), "package stringkit\n", err, None)
