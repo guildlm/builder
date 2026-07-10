@@ -1,0 +1,62 @@
+name: lrucache
+language: go
+go_module: guildlm.dev/lrucache
+description: >-
+  A small, idiomatic, STANDARD-LIBRARY-ONLY in-memory LRU (least-recently-used)
+  cache with a fixed capacity, safe for concurrent use. No external dependencies
+  whatsoever — use container/list for the recency ordering, a map for O(1)
+  lookup, and sync for concurrency. All files use package lru. This is a library
+  (no HTTP, no main).
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/lrucache, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+
+  - path: lru.go
+    purpose: >-
+      package lru. A fixed-capacity, goroutine-safe LRU cache backed by
+      container/list (for recency order) and a map (for O(1) lookup).
+      Define an unexported struct `entry struct { key string; value any }` that
+      is stored as the Value of each *list.Element. Cache struct holds: capacity
+      int; ll *list.List (front = most-recently-used, back = least-recently-used);
+      items map[string]*list.Element; and a sync.Mutex guarding all state.
+      New(capacity int) *Cache constructs it with an initialized list and map
+      (if capacity < 1, treat it as 1). Methods, each locking the mutex for the
+      whole body:
+      Get(key string) (any, bool): if the key is present, move its element to the
+      FRONT of the list (ll.MoveToFront) and return (entry.value, true); if
+      absent return (nil, false).
+      Put(key string, value any): if the key already exists, update its entry's
+      value and move the element to the FRONT (do NOT grow the size or evict);
+      otherwise push a new &entry{key, value} to the FRONT, record the returned
+      *list.Element in the map, and THEN if len(items) exceeds capacity, evict the
+      least-recently-used element — the one at ll.Back() — by removing it from the
+      list and deleting its key from the map (read the key from the evicted
+      element's Value.(*entry).key).
+      Len() int returns the current number of items (len(items)).
+      Use only the standard library (container/list, sync).
+
+  - path: lru_test.go
+    purpose: >-
+      package lru. Table-free, focused tests. Each test builds its OWN cache with
+      New. Transcribe these exact scenarios and expected values; do not invent
+      others.
+      TestPutGet: c := New(2); c.Put("a", 1); v, ok := c.Get("a"); assert ok is
+      true and v equals 1 (compare with v.(int) == 1); then _, ok2 := c.Get("x");
+      assert ok2 is false for a missing key. Assert c.Len() == 1.
+      TestEvictsLeastRecentlyUsed: c := New(2); c.Put("a", 1); c.Put("b", 2);
+      c.Put("c", 3); // capacity 2, so "a" (least recently used) is evicted.
+      _, ok := c.Get("a"); assert ok is false; then assert Get("b") returns ok
+      true and Get("c") returns ok true; assert c.Len() == 2.
+      TestGetMarksRecentlyUsed: c := New(2); c.Put("a", 1); c.Put("b", 2);
+      c.Get("a"); // "a" is now most-recently-used, so "b" is the LRU; c.Put("c",
+      3) evicts "b". _, ok := c.Get("b"); assert ok is false; assert Get("a") ok
+      true and Get("c") ok true.
+      TestUpdateExistingKey: c := New(2); c.Put("a", 1); c.Put("a", 2); assert
+      c.Len() == 1; v, ok := c.Get("a"); assert ok true and v.(int) == 2.
+      TestConcurrentAccessIsRaceFree: c := New(100); run several goroutines with a
+      sync.WaitGroup that each call Put and Get on their own keys (e.g. key
+      fmt.Sprintf("k%d", i)); after they finish, assert the test simply completed
+      without a data race (this test exists to be run under -race). Use only the
+      standard library.

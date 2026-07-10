@@ -286,6 +286,21 @@ def test_generate_prompt_impl_file_demands_interface_impl_parity():
     assert "INTERFACE/IMPL PARITY" not in _generate_prompt(spec, _impl_task(), {})
 
 
+def test_generate_prompt_list_file_teaches_container_list_idiom():
+    # A file whose purpose uses container/list gets the PushFront-takes-a-value
+    # idiom; a file that doesn't, doesn't (it's a targeted, not global, rule).
+    spec = _sample_spec()
+    lru = FileTask(
+        index=1,
+        spec=FileSpec(path="lru.go", purpose="an LRU cache using container/list and MoveToFront"),
+    )
+    prompt = _generate_prompt(spec, lru, {})
+    assert "CONTAINER/LIST IDIOM" in prompt
+    assert "double-wraps" in prompt
+    plain = FileTask(index=1, spec=FileSpec(path="store.go", purpose="an in-memory map store"))
+    assert "CONTAINER/LIST IDIOM" not in _generate_prompt(spec, plain, {})
+
+
 def test_generate_prompt_routing_file_demands_method_value_registration():
     # tasks-api/ratelimit class: register a handler by passing the method value,
     # never by calling it. Fires only when the purpose is about routing.

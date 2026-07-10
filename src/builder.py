@@ -570,6 +570,26 @@ def _generate_prompt(
         if task.spec.path.endswith(".go") and not task.spec.path.endswith("_test.go")
         else ""
     )
+    # container/list has a subtle API trap: PushFront/PushBack take the VALUE and
+    # create the *list.Element for you. A small model often hand-builds a
+    # &list.Element{Value: v} and passes THAT, which the compiler accepts (both are
+    # `any`) but which double-wraps — so a later el.Value.(*entry) panics at
+    # runtime, never at compile time. Teach the idiom where the file uses the list.
+    list_rule = (
+        "CONTAINER/LIST IDIOM: ll.PushFront(v) and ll.PushBack(v) take the VALUE "
+        "to store and RETURN the *list.Element they create for you, so capture it "
+        "(`el := ll.PushFront(&entry{...})`). NEVER hand-build a "
+        "`&list.Element{Value: v}` and pass that to PushFront/PushBack — it "
+        "compiles (both are `any`) but double-wraps the value, so a later "
+        "`el.Value.(*entry)` panics at runtime. Read a stored value back with "
+        "`el.Value.(*entry)`, and ll.Remove(el) / ll.MoveToFront(el) take the "
+        "element itself.\n\n"
+        if (task.spec.path.endswith(".go")
+            and re.search(r"container/list|list\.(?:List|Element)|"
+                          r"MoveToFront|Push(?:Front|Back)",
+                          task.spec.purpose))
+        else ""
+    )
     return (
         f"Project: {spec.name}\n"
         f"Language: {spec.language}\n"
@@ -584,6 +604,7 @@ def _generate_prompt(
         f"{cross_pkg_rule}"
         f"{routing_rule}"
         f"{completeness_rule}"
+        f"{list_rule}"
         f"{test_rule}"
         f"Write the complete contents of {task.spec.path}. "
         f"Use only the Go standard library. Output one fenced ```go block."
