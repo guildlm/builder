@@ -1,0 +1,53 @@
+name: walkv
+language: go
+go_module: guildlm.dev/walkv
+description: >-
+  A small, idiomatic, STANDARD-LIBRARY-ONLY persistent key/value store backed by
+  an append-only write-ahead log on disk, with crash-safe recovery by replaying
+  the log on open. No external dependencies — os, bufio, strings. All files use
+  package kvstore. This is a library (no HTTP, no main). Durability is the point:
+  data written before Close must be recovered when the same file is re-opened.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/walkv, go 1.23. No dependencies.
+      Output as a ```mod block, not Go.
+
+  - path: store.go
+    purpose: >-
+      package kvstore. A Store with an in-memory map[string]string mirrored by an
+      append-only log file. Records are single lines "SET\tkey\tvalue\n" and
+      "DEL\tkey\n" (tab-separated fields, newline-terminated); assume keys and
+      values contain no tab or newline characters.
+      Open(path string) (*Store, error): open the file with os.OpenFile(path,
+      os.O_RDWR|os.O_CREATE|os.O_APPEND, 0o644). BEFORE returning, REPLAY the
+      existing contents to rebuild the map: read the whole file from the start
+      (e.g. a bufio.Scanner over a fresh read, or os.ReadFile) and for each line
+      split on "\t" — a SET line sets map[key]=value, a DEL line deletes the key.
+      Replaying must reflect the LAST write for a key (later lines win). Keep the
+      file handle (opened in append mode) for subsequent writes. Return the Store.
+      Set(key, value string) error: append a "SET\tkey\tvalue\n" record to the log
+      file (write it fully), then update the in-memory map. If the append fails,
+      return the error and do NOT update the map.
+      Get(key string) (string, bool): read from the in-memory map (comma-ok).
+      Delete(key string) error: append a "DEL\tkey\n" record, then delete from the
+      map.
+      Close() error: close the file handle.
+      Guard the map and file with a sync.Mutex so the store is safe for concurrent
+      use. Standard library only (os, bufio, strings, sync).
+
+  - path: store_test.go
+    purpose: >-
+      package kvstore. Tests using t.TempDir() for an isolated file path; safe
+      under -race. Import os, path/filepath, testing.
+      TestSetGet: path := filepath.Join(t.TempDir(), "wal.log"); s, err :=
+      Open(path); require err nil; require Set("a","1") and Set("b","2") succeed;
+      assert Get("a") == ("1", true) and Get("missing") == ("", false); then
+      s.Close().
+      TestRecoveryAfterReopen: path := filepath.Join(t.TempDir(), "wal.log"); s,
+      _ := Open(path); s.Set("k","v1"); s.Set("k","v2"); s.Set("gone","x");
+      s.Delete("gone"); s.Close(). Now OPEN THE SAME path into a fresh store s2, _
+      := Open(path); assert s2.Get("k") == ("v2", true) (last write wins) and
+      s2.Get("gone") == ("", false) (the delete was replayed); s2.Close(). This is
+      the durability assertion — the second store recovers state purely by
+      replaying the log written by the first. Standard library only.
