@@ -69,9 +69,15 @@ files:
   - path: store_test.go
     purpose: >-
       package main. Table-driven tests for the store: CRUD, ErrNotFound paths,
-      and a concurrent-access test safe under -race.
+      and a concurrent-access test safe under -race. Task.ID is an INT: build
+      Task values with integer IDs (Task{ID: 1, Title: "x"}) and use int keys and
+      int id variables throughout — never assign a string where an int ID is
+      expected (Task{ID: "1"} does not compile).
 
   - path: handlers_test.go
     purpose: >-
       package main. httptest-based tests for every endpoint covering status
-      codes, JSON bodies, and the 404 and 400 error paths.
+      codes, JSON bodies, and the 404 and 400 error paths. Task.ID is an int, so
+      request paths use the integer form ("/tasks/1") and any decoded task's ID
+      is compared as an int; never use a string id variable where an int is
+      expected.

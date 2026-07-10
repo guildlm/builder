@@ -17,11 +17,20 @@ files:
   - path: codec.go
     purpose: >-
       package main. Base62 encoding for short codes. A const alphabet
-      "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".
-      Encode(n uint64) string converts a number to base62 (Encode(0) == "0");
-      Decode(s string) (uint64, error) inverts it and returns a sentinel
-      ErrBadCode (matchable with errors.Is) for an empty string or any
-      character outside the alphabet. Standard library only.
+      "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ" (index 0 is
+      '0', index 10 is 'a', index 61 is 'Z').
+      Encode(n uint64) string: if n == 0 return the single character alphabet[0]
+      ("0"). Otherwise take digits by n%62 while dividing n by 62 — this produces
+      the LEAST-significant digit first, so you MUST emit them MOST-significant
+      first: either prepend alphabet[n%62] to the front each iteration, or collect
+      then REVERSE before returning. A correct result has Encode(62) == "10"
+      (because 62 = 1*62 + 0), never "01".
+      Decode(s string) (uint64, error): result := uint64(0); for each byte c in s,
+      find its index i in the alphabet (return the sentinel ErrBadCode, matchable
+      with errors.Is, for an empty string or any char not in the alphabet); set
+      result = result*62 + uint64(i); return result.
+      Encode and Decode MUST be exact inverses: Decode(Encode(n)) == n for every n.
+      Standard library only.
   - path: store.go
     purpose: >-
       package main. The data layer. A Link struct {Code, URL string; Hits int}.
@@ -63,9 +72,16 @@ files:
     purpose: >-
       package main. Tests using net/http/httptest. Construct a FRESH
       NewRouter(NewMemStore()) inside every t.Run subtest — no shared server
-      across cases. Unit-test the codec: Encode/Decode round-trip several
-      values including 0 and a large number; Decode("!") and Decode("")
-      return ErrBadCode via errors.Is. Flow-test the API: POST /shorten with a
+      across cases. Unit-test the codec with EXACTLY this round-trip structure —
+      do NOT use a table with an "expected" encoded-string field, and do NOT write
+      any assertion of the form `Encode(n) == "someliteral"` (hand-computing
+      base62 is error-prone; the round trip is the only invariant):
+      `for _, n := range []uint64{0, 1, 61, 62, 1234567890} { code := Encode(n);
+      got, err := Decode(code); if err != nil { t.Fatalf("Decode(%q): %v", code,
+      err) }; if got != n { t.Errorf("round trip %d -> %q -> %d", n, code, got) }
+      }`. Separately assert Encode(0) == "0". Then assert Decode("!") and
+      Decode("") EACH return ErrBadCode via errors.Is (an empty string and any
+      character outside the alphabet are invalid input). Flow-test the API: POST /shorten with a
       valid JSON url returns 201 and a non-empty code; GET /r/{code} returns
       301 with the Location header equal to the original url; GET /r/missing
       returns 404; POST /shorten with malformed JSON or an empty url returns
