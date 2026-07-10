@@ -2416,6 +2416,53 @@ def _fix_interface_missing_method(
     return changed
 
 
+_PTR_IFACE_RE = re.compile(r"type \*(\w+) is pointer to interface, not interface")
+
+
+def _fix_pointer_to_interface(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``h.store.CreateTask undefined (type *Store is pointer to interface, not
+    interface)`` — the model declared a field or parameter as ``*Store`` (a
+    POINTER to an interface), which has no methods, so every call through it is
+    undefined. A pointer to an interface is essentially always a bug in Go: an
+    interface value is already a reference. The fix is to drop the star and hold
+    the interface by value.
+
+    Rewrites ``*T`` -> ``T`` (collapsing any run of leading stars) wherever the
+    compiler named ``*T`` as a pointer-to-interface AND the project itself
+    declares ``T`` as an interface. Safe: for a capitalised interface type name a
+    ``*T`` token only ever appears in a type position (a value dereference is
+    ``*t`` on a lowercase variable), and every such type position — field, param,
+    return, slice, map, channel — is wrong when T is an interface, so correcting
+    all of them is right. A ``*Struct`` is never touched (the guard requires an
+    interface), nor is a concrete ``*MemStore`` in a ``var _ T = (*MemStore)(nil)``
+    assertion (different name)."""
+    names = {m.group(1) for m in _PTR_IFACE_RE.finditer(error_output)}
+    if not names:
+        return {}
+    ifaces = {
+        n for n in names
+        if any(
+            _interface_body_span(c, n)
+            for p, c in written.items()
+            if p.endswith(".go") and not p.endswith("_test.go")
+        )
+    }
+    if not ifaces:
+        return {}
+    changed: dict[str, str] = {}
+    for path, code in written.items():
+        if not path.endswith(".go"):
+            continue
+        new_code = code
+        for n in ifaces:
+            new_code = re.sub(rf"\*+({re.escape(n)})\b", r"\1", new_code)
+        if new_code != code:
+            changed[path] = new_code
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -2442,6 +2489,7 @@ def _run_deterministic_gates(
     requal.update(_fix_handlerfunc_wrap({**written, **requal}, output))
     requal.update(_fix_middleware_arity({**written, **requal}, output))
     requal.update(_fix_interface_missing_method({**written, **requal}, output))
+    requal.update(_fix_pointer_to_interface({**written, **requal}, output))
     return requal
 
 
