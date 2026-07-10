@@ -1,0 +1,46 @@
+name: expreval
+language: go
+go_module: guildlm.dev/expreval
+description: >-
+  A small, idiomatic, STANDARD-LIBRARY-ONLY integer arithmetic expression
+  evaluator built as a recursive-descent parser. No external dependencies. All
+  files use package eval. This is a library (no HTTP, no main).
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/expreval, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+
+  - path: eval.go
+    purpose: >-
+      package eval. A recursive-descent evaluator for integer arithmetic.
+      Exported: Eval(expr string) (int, error). Supported grammar (standard
+      precedence, all operators LEFT-associative): expr := term (('+' | '-')
+      term)* ; term := factor (('*' | '/') factor)* ; factor := NUMBER | '('
+      expr ')'. So '*' and '/' bind tighter than '+' and '-'. Ignore ASCII spaces
+      anywhere. Numbers are non-negative integer literals (one or more digits);
+      you do NOT need unary minus. Implement with a small cursor-based parser over
+      the string (a struct holding the input and an int position, with helper
+      methods parseExpr/parseTerm/parseFactor that advance the position), or a
+      token slice — your choice, but it MUST honour precedence and left
+      associativity (so 2+3*4 == 14, 10-2-3 == 5, and (2+3)*4 == 20). Integer
+      division truncates toward zero (Go's `/`). Return a non-nil error (use
+      errors.New or fmt.Errorf) for: a malformed expression (unexpected
+      character, a missing operand such as "1+", an unbalanced parenthesis, or
+      trailing junk after a complete expression) and for division by zero. On any
+      error return (0, err). Standard library only (errors/fmt/strconv/strings/
+      unicode as needed).
+
+  - path: eval_test.go
+    purpose: >-
+      package eval. Focused tests. Transcribe these exact input/expected pairs; do
+      not recompute or add others.
+      TestPrecedenceAndParens: assert Eval returns these values with a nil error —
+      Eval("1+2") == 3; Eval("2+3*4") == 14; Eval("(2+3)*4") == 20; Eval("10-2-3")
+      == 5; Eval("2*3+4*5") == 26; Eval("8/2") == 4; Eval("7/2") == 3 (integer
+      truncation). For each, fail the test if err is non-nil or the value is wrong.
+      TestErrors: assert Eval returns a NON-nil error (value ignored) for each of
+      these — Eval("1/0") (division by zero); Eval("1+") (missing operand);
+      Eval("(1+2") (unbalanced parenthesis); Eval("2 2") (trailing junk). Use a
+      small loop over the error inputs and t.Errorf if err is nil. Standard
+      library only.
