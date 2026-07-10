@@ -24,19 +24,19 @@ files:
 
   - path: store.go
     purpose: >-
-      package main. A thread-safe in-memory Store guarded by sync.RWMutex with a
-      map[int]Task and auto-incrementing nextID. IMPLEMENT ALL FIVE data methods
-      FULLY — do NOT omit any: Create (validates, assigns ID + CreatedAt), List
-      (sorted by ID, returns a copy), Get, Update, Delete. In particular
-      Update(t Task) error MUST be present (look up t.ID, return ErrNotFound if
-      absent, otherwise preserve the existing ID/CreatedAt and overwrite
-      Title/Done); the handlers call store.Update, so a missing Update breaks the
-      build. Get, Update and Delete return the sentinel ErrNotFound when the id
-      is absent. Provide a constructor NewStore returning the store. If you model
-      Store as an INTERFACE with a separate in-memory implementation, the
-      interface MUST declare EVERY one of these five methods (Create, List, Get,
-      Update, Delete) and the implementation MUST implement every one — the
-      interface and impl must match exactly, so Update appears in BOTH.
+      package main. A thread-safe in-memory Store — a single CONCRETE struct
+      (do NOT model it as an interface), guarded by sync.RWMutex with a
+      map[int]Task and auto-incrementing nextID, built by a constructor named
+      EXACTLY `NewStore() *Store` (the handlers and tests rely on that name).
+      IMPLEMENT ALL FIVE data methods on *Store FULLY — do NOT omit any: Create
+      (validates, assigns ID + CreatedAt), List (sorted by ID, returns a copy),
+      Get, Update, Delete. In particular Update(t Task) error MUST be present
+      (look up t.ID, return ErrNotFound if absent, otherwise preserve the existing
+      ID/CreatedAt and overwrite Title/Done); the handlers call store.Update, so a
+      missing Update breaks the build. Get, Update and Delete return the sentinel
+      ErrNotFound when the id is absent. Keeping Store concrete (one *Store type,
+      one NewStore constructor) is what keeps the API stable for handlers and
+      tests.
 
   - path: handlers.go
     purpose: >-
@@ -68,16 +68,42 @@ files:
 
   - path: store_test.go
     purpose: >-
-      package main. Table-driven tests for the store: CRUD, ErrNotFound paths,
-      and a concurrent-access test safe under -race. Task.ID is an INT: build
-      Task values with integer IDs (Task{ID: 1, Title: "x"}) and use int keys and
-      int id variables throughout — never assign a string where an int ID is
-      expected (Task{ID: "1"} does not compile).
+      package main. Tests for the store written as SEPARATE FOCUSED functions
+      (NOT one shared table loop), each building its OWN fresh store via
+      NewStore(). Task.ID is an INT and the store ASSIGNS the id on Create (the
+      first created task gets id 1); never assign a string where an int id is
+      expected. Cover exactly:
+      TestStoreCreateGet: create a task with Title "a"; then Get id 1 and assert
+      its Title == "a".
+      TestStoreListSorted: create two tasks; List and assert len == 2 with ids in
+      ascending order.
+      TestStoreUpdateDelete: create a task (id 1); Update id 1 to Title "b";
+      assert Get id 1 now has Title "b"; Delete id 1; then Get id 1 returns
+      ErrNotFound (errors.Is).
+      TestStoreMissing: on a FRESH store, Get/Update/Delete of id 99 each return
+      ErrNotFound.
+      TestStoreConcurrent: launch many goroutines that each Create a task, join
+      with a sync.WaitGroup, then assert the count; safe under -race.
+      NEVER name a local variable `t` — the test's *testing.T is `t`, so a
+      `t := Task{...}` or `t, err := ...` shadows it and every t.Fatalf after it
+      fails to compile. Name a Task value `task` or `tk`. Declare every local with
+      := and USE it (no unused variables). Standard library only.
 
   - path: handlers_test.go
     purpose: >-
-      package main. httptest-based tests for every endpoint covering status
-      codes, JSON bodies, and the 404 and 400 error paths. Task.ID is an int, so
-      request paths use the integer form ("/tasks/1") and any decoded task's ID
-      is compared as an int; never use a string id variable where an int is
-      expected.
+      package main. httptest tests written as SEPARATE FOCUSED functions, each
+      building its OWN fresh handler with the project's constructors (e.g. h :=
+      NewRouter(NewAPI(NewStore()))). Task.ID is an int, so request paths use the
+      integer form like "/tasks/1", and a fresh request body is built for every
+      request. Cover exactly:
+      TestCreate201: POST /tasks with a valid JSON body -> 201, and the response
+      body echoes the created task (with its assigned id).
+      TestGetOKAndMissing: POST a task, then GET /tasks/1 -> 200 with the stored
+      fields; on a fresh handler GET /tasks/99 -> 404.
+      TestList200: POST one task, then GET /tasks -> 200 with a JSON array.
+      TestDelete: POST a task, DELETE /tasks/1 -> 204, then GET /tasks/1 -> 404.
+      TestInvalid400: POST /tasks with malformed JSON (truncated bytes like
+      `{"title":`) -> 400.
+      NEVER name a local variable `t` (it shadows the *testing.T and breaks
+      t.Fatalf); name a decoded Task `task` or `got`. Declare every local with :=
+      and USE it (no unused variables). Standard library only.
