@@ -1,0 +1,44 @@
+name: genericset
+language: go
+go_module: guildlm.dev/genericset
+description: >-
+  A small, idiomatic, STANDARD-LIBRARY-ONLY generic Set data structure using Go
+  generics (type parameters). No external dependencies. All files use package
+  set. This is a library (no HTTP, no main).
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/genericset, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+
+  - path: set.go
+    purpose: >-
+      package set. A generic Set backed by a map with empty-struct values.
+      Declare `type Set[T comparable] struct { m map[T]struct{} }`. The
+      constructor is a generic FUNCTION `func New[T comparable]() *Set[T]`
+      returning &Set[T]{m: make(map[T]struct{})} — remember that in Go METHODS
+      cannot introduce their own type parameters, so anything that needs a fresh
+      type parameter (like New) must be a top-level function, not a method.
+      Methods on *Set[T] (which reuse the receiver's T, they do NOT declare new
+      type parameters): Add(v T) sets s.m[v] = struct{}{}; Contains(v T) bool
+      returns the map's comma-ok result; Len() int returns len(s.m). Union(other
+      *Set[T]) *Set[T] returns a NEW set containing every element of s and of
+      other (do not mutate either receiver). Intersect(other *Set[T]) *Set[T]
+      returns a NEW set containing only elements present in BOTH s and other.
+      Build the result sets with New[T]() and Add. Standard library only.
+
+  - path: set_test.go
+    purpose: >-
+      package set. Focused tests using Set[int]; each builds its own sets with
+      New[int](). Transcribe these exact scenarios.
+      TestAddContainsLen: s := New[int](); s.Add(1); s.Add(2); s.Add(2); //
+      duplicate is a no-op. Assert s.Contains(1) is true, s.Contains(3) is false,
+      and s.Len() == 2.
+      TestUnion: a := New[int](); a.Add(1); a.Add(2); b := New[int](); b.Add(2);
+      b.Add(3); u := a.Union(b); assert u.Len() == 3 and u.Contains(1),
+      u.Contains(2), u.Contains(3) are all true; also assert a.Len() == 2 (Union
+      did not mutate a).
+      TestIntersect: a := New[int](); a.Add(1); a.Add(2); a.Add(3); b :=
+      New[int](); b.Add(2); b.Add(3); b.Add(4); i := a.Intersect(b); assert
+      i.Len() == 2 and i.Contains(2) is true and i.Contains(3) is true and
+      i.Contains(1) is false. Standard library only.
