@@ -2262,6 +2262,160 @@ def _fix_middleware_arity(
     return changed
 
 
+def _interface_body_span(code: str, typ: str) -> tuple[int, int] | None:
+    """Byte span (open-brace idx, close-brace idx) of ``type typ interface { ... }``
+    in ``code``, or None if ``typ`` is not declared as an interface (it may be a
+    struct, an alias, or absent). Brace-matched so nested func/struct types in
+    method signatures don't confuse the scan."""
+    m = re.search(rf"(?m)^type\s+{re.escape(typ)}\s+interface\s*\{{", code)
+    if not m:
+        return None
+    open_brace = m.end() - 1
+    depth = 0
+    for i in range(open_brace, len(code)):
+        depth += (code[i] == "{") - (code[i] == "}")
+        if depth == 0:
+            return (open_brace, i)
+    return None
+
+
+def _interface_method_names(body: str) -> set[str]:
+    """Method names declared directly in an interface body (``Name(`` lines).
+    Embedded interfaces (``io.Reader``) and comments are ignored."""
+    names: set[str] = set()
+    for line in body.splitlines():
+        s = line.strip()
+        if not s or s.startswith("//"):
+            continue
+        m = re.match(r"(\w+)\s*\(", s)
+        if m:
+            names.add(m.group(1))
+    return names
+
+
+def _lift_method_signature(code: str, recv_type: str, meth: str) -> str | None:
+    """Extract ``meth(params) results`` from a concrete method
+    ``func (r *recv_type) meth(params) results { ... }`` in ``code``, ready to
+    paste into an interface. Verbatim — no type inference. Returns None if the
+    method isn't found, the parens/brace don't balance, or the result type is
+    exotic (contains a nested struct/interface/func literal), which is left to the
+    model rather than guessed."""
+    pat = re.compile(
+        rf"func\s*\(\s*(?:\w+\s+)?\*?{re.escape(recv_type)}\b(?:\[[^\]]*\])?\s*\)"
+        rf"\s*{re.escape(meth)}\s*\("
+    )
+    m = pat.search(code)
+    if not m:
+        return None
+    paren_open = m.end() - 1
+    depth = 0
+    paren_close = -1
+    for i in range(paren_open, len(code)):
+        depth += (code[i] == "(") - (code[i] == ")")
+        if depth == 0:
+            paren_close = i
+            break
+    if paren_close == -1:
+        return None
+    params = code[paren_open + 1:paren_close]
+    rest = code[paren_close + 1:]
+    brace = rest.find("{")
+    if brace == -1:
+        return None
+    results = rest[:brace].strip()
+    # Bail on results we can't safely transcribe onto one interface line.
+    if any(kw in results for kw in ("struct", "interface", "func")) \
+            or results.count("(") != results.count(")"):
+        return None
+    if "{" in params or "}" in params:  # inline func-typed param body -> too rich
+        return None
+    sig = f"{meth}({params})"
+    if results:
+        sig += f" {results}"
+    return sig
+
+
+def _fix_interface_missing_method(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Deterministic repair for the taskflow class: the compiler reports
+    ``type Store has no field or method Update`` at a call through an interface,
+    because the model wrote the method on the concrete implementation but forgot
+    to DECLARE it on the interface. When a concrete type in the SAME package
+    already implements every method the interface currently declares AND also has
+    the missing method, lift that method's exact signature into the interface.
+
+    Safe by construction. The chosen implementer provably satisfies the augmented
+    interface (it already has all current methods plus the added one), the
+    signature is copied verbatim from real code (no inference), and the gate fires
+    only within one package so type qualification can't drift. It BAILS on every
+    ambiguity: the type isn't an interface (a struct-missing-method is a different
+    bug), the method is already declared, no same-package type implements the
+    interface-plus-method, or candidate implementers disagree on the signature.
+    In particular it does nothing when the method is missing from BOTH sides
+    (there is no signature to lift) — that completeness case is left to the model.
+    """
+    pairs = {(m.group(1), m.group(2)) for m in _NOMETHOD_RE.finditer(error_output)}
+    if not pairs:
+        return {}
+    changed: dict[str, str] = {}
+    for typ, meth in pairs:
+        # Locate the interface declaration among non-test source files.
+        iface_path: str | None = None
+        span: tuple[int, int] | None = None
+        for p, c in written.items():
+            if not p.endswith(".go") or p.endswith("_test.go"):
+                continue
+            span = _interface_body_span(changed.get(p, c), typ)
+            if span:
+                iface_path = p
+                break
+        if iface_path is None or span is None:
+            continue
+        src = changed.get(iface_path, written[iface_path])
+        open_b, close_b = span
+        iface_methods = _interface_method_names(src[open_b + 1:close_b])
+        if meth in iface_methods:
+            continue  # the interface already has it; the miss is elsewhere
+
+        # Concrete types and their method names in the interface's package.
+        iface_dir = _dir_of(iface_path)
+        pkg_files = {
+            p: changed.get(p, c) for p, c in written.items()
+            if p.endswith(".go") and not p.endswith("_test.go")
+            and _dir_of(p) == iface_dir
+        }
+        methods_by_type: dict[str, set[str]] = {}
+        for c in pkg_files.values():
+            for recv, name in _METHOD_DECL_RE.findall(c):
+                methods_by_type.setdefault(recv, set()).add(name)
+        candidates = [
+            t for t, ms in methods_by_type.items()
+            if t != typ and meth in ms and iface_methods <= ms
+        ]
+        if not candidates:
+            continue  # nobody implements iface+meth here (e.g. Case B) -> leave it
+
+        # A single agreed signature across candidates, or bail.
+        sigs: set[str] = set()
+        for t in candidates:
+            for c in pkg_files.values():
+                sig = _lift_method_signature(c, t, meth)
+                if sig:
+                    sigs.add(sig)
+                    break
+        if len(sigs) != 1:
+            continue
+        sig = next(iter(sigs))
+
+        head = src[:close_b].rstrip()
+        new_src = f"{head}\n\t{sig}\n" + src[close_b:]
+        changed[iface_path] = new_src
+        _log(f"  added missing method {meth} to interface {typ} "
+             f"(lifted from its implementation)")
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -2287,6 +2441,7 @@ def _run_deterministic_gates(
     requal.update(_fix_handle_vs_handlefunc({**written, **requal}, output))
     requal.update(_fix_handlerfunc_wrap({**written, **requal}, output))
     requal.update(_fix_middleware_arity({**written, **requal}, output))
+    requal.update(_fix_interface_missing_method({**written, **requal}, output))
     return requal
 
 
