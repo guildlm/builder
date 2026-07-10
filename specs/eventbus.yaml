@@ -1,0 +1,49 @@
+name: eventbus
+language: go
+go_module: guildlm.dev/eventbus
+description: >-
+  A small, idiomatic, STANDARD-LIBRARY-ONLY in-memory publish/subscribe event
+  bus, safe for concurrent use. No external dependencies — channels, a map, and
+  sync. All files use package bus. This is a library (no HTTP, no main). The bus
+  delivers string messages to per-topic subscriber channels.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/eventbus, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+
+  - path: bus.go
+    purpose: >-
+      package bus. A goroutine-safe pub/sub Bus. Bus struct holds a sync.Mutex
+      and subs map[string][]chan string (topic -> subscriber channels). New()
+      *Bus initializes the map.
+      Subscribe(topic string) <-chan string: create a BUFFERED channel (e.g.
+      make(chan string, 16)), append it to subs[topic] under the lock, and return
+      it as a receive-only channel (<-chan string).
+      Publish(topic, msg string): under the lock, iterate subs[topic] and send msg
+      to each subscriber channel using a NON-BLOCKING send (a select with a
+      default case: `select { case ch <- msg: default: }`) so a slow or full
+      subscriber never blocks the publisher or deadlocks — never do a bare
+      blocking `ch <- msg` while holding the lock. Publishing to a topic with no
+      subscribers is a no-op (must not panic).
+      Close(): under the lock, close every subscriber channel across all topics
+      and reset the map so no further sends happen. Standard library only (sync).
+
+  - path: bus_test.go
+    purpose: >-
+      package bus. Tests using the standard library only; safe under -race. Each
+      test builds its own Bus with New.
+      TestPublishDeliversToSubscriber: b := New(); ch := b.Subscribe("greetings");
+      b.Publish("greetings", "hi"); then receive from ch and assert the value is
+      "hi". (The channel is buffered, so a plain <-ch after Publish works without
+      a goroutine.)
+      TestMultipleSubscribersEachReceive: b := New(); ch1 := b.Subscribe("t"); ch2
+      := b.Subscribe("t"); b.Publish("t", "x"); assert <-ch1 == "x" and <-ch2 ==
+      "x".
+      TestPublishNoSubscribersIsNoop: b := New(); b.Publish("empty", "x"); // must
+      not panic or block; reaching the next line is the assertion (optionally
+      assert something trivial like true).
+      TestConcurrentPublishSubscribeRaceFree: b := New(); subscribe a few topics,
+      then launch several goroutines (with a sync.WaitGroup) that Publish
+      concurrently; after Wait, the test passes if there was no data race (this
+      test exists to run under -race). Standard library only.
