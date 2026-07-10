@@ -1,0 +1,47 @@
+name: priorityqueue
+language: go
+go_module: guildlm.dev/priorityqueue
+description: >-
+  A small, idiomatic, STANDARD-LIBRARY-ONLY min-priority-queue of named jobs,
+  built on container/heap. No external dependencies. All files use package pq.
+  This is a library (no HTTP, no main). Lower Priority number means higher
+  priority (comes out first).
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/priorityqueue, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+
+  - path: pq.go
+    purpose: >-
+      package pq. A min-priority queue built on container/heap. Exported type
+      `Item struct { Name string; Priority int }` (lower Priority = served first).
+      Define an UNEXPORTED slice type `itemHeap []*Item` that implements
+      heap.Interface with the standard five methods: Len() int returns len(h);
+      Less(i, j int) bool returns h[i].Priority < h[j].Priority (a MIN-heap);
+      Swap(i, j int) swaps h[i], h[j]; Push(x any) appends x.(*Item) to the slice
+      (pointer receiver `func (h *itemHeap) Push(x any)`); Pop() any removes and
+      returns the LAST element (pointer receiver: old := *h; n := len(old); it :=
+      old[n-1]; *h = old[:n-1]; return it). Do NOT call heap.Push/heap.Pop inside
+      these five methods — they are the raw slice primitives heap.Interface
+      requires.
+      Exported wrapper `PriorityQueue struct { h itemHeap }` with:
+      New() *PriorityQueue returning &PriorityQueue{} (an empty heap is valid);
+      Push(name string, priority int) which calls heap.Push(&pq.h, &Item{Name:
+      name, Priority: priority}); Pop() (*Item, bool) which returns (nil, false)
+      when Len() == 0, else heap.Pop(&pq.h).(*Item) and true; Len() int returning
+      pq.h.Len(). Import container/heap only.
+
+  - path: pq_test.go
+    purpose: >-
+      package pq. Focused tests; each builds its own queue with New. Transcribe
+      these exact scenarios.
+      TestPopOrderByPriority: q := New(); push these in this order — Push("c", 3),
+      Push("a", 1), Push("b", 2); then Pop three times and assert the returned
+      Item.Name values are "a", then "b", then "c" (ascending Priority), each Pop
+      returning ok == true; assert q.Len() == 0 at the end.
+      TestPopEmptyReturnsFalse: q := New(); _, ok := q.Pop(); assert ok is false.
+      TestLenTracksPushes: q := New(); assert Len() == 0; q.Push("x", 5); q.Push(
+      "y", 1); assert Len() == 2; q.Pop(); assert Len() == 1.
+      Read the returned Item via the (*Item, bool) return; access it.Name only
+      when ok is true. Use only the standard library.
