@@ -1,0 +1,41 @@
+name: jsoncodec
+language: go
+go_module: guildlm.dev/jsoncodec
+description: >-
+  A small, idiomatic, STANDARD-LIBRARY-ONLY type with CUSTOM JSON marshaling —
+  an Event whose timestamp is encoded as a Unix-seconds integer rather than the
+  default RFC3339 string. No external dependencies. All files use package event.
+  This is a library (no HTTP, no main).
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/jsoncodec, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+
+  - path: event.go
+    purpose: >-
+      package event. Event struct { Name string; At time.Time }. Give it custom
+      JSON codec methods that encode At as Unix SECONDS (int64) under the key
+      "at", with Name under "name".
+      MarshalJSON: to AVOID INFINITE RECURSION you must NOT call json.Marshal(e)
+      on the Event itself — instead marshal a SEPARATE small struct with the wire
+      shape, e.g. `type wire struct { Name string `json:"name"`; At int64
+      `json:"at"` }` and return json.Marshal(wire{Name: e.Name, At: e.At.Unix()}).
+      Use a VALUE receiver: func (e Event) MarshalJSON() ([]byte, error).
+      UnmarshalJSON: use a POINTER receiver func (e *Event) UnmarshalJSON(b []byte)
+      error; unmarshal into the same wire struct, then set e.Name = w.Name and
+      e.At = time.Unix(w.At, 0).UTC(). Return any json error. Import encoding/json
+      and time only.
+
+  - path: event_test.go
+    purpose: >-
+      package event. Focused tests. Import encoding/json, testing, time.
+      TestMarshalUsesUnixSeconds: e := Event{Name: "boot", At: time.Unix(1000,
+      0).UTC()}; b, err := json.Marshal(e); require err nil; assert string(b) ==
+      `{"name":"boot","at":1000}` (exact bytes — the wire struct declares name
+      before at).
+      TestRoundTrip: original := Event{Name: "x", At: time.Unix(1736500000, 0).
+      UTC()}; b, err := json.Marshal(original); require err nil; var got Event;
+      err = json.Unmarshal(b, &got); require err nil; assert got.Name ==
+      original.Name and got.At.Equal(original.At) (compare times with
+      time.Time.Equal, never ==). Standard library only.
