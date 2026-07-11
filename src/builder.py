@@ -1071,6 +1071,86 @@ _METHOD_DECL_RE = re.compile(
 )
 
 
+_MOVEDECLS = Path(__file__).resolve().parent.parent / "tools" / "movedecls.go"
+
+
+def _fill_empty_planned_files(
+    spec: "Spec",
+    written: dict[str, str],
+    out: Path,
+    toolchain: GoToolchain,
+) -> None:
+    """Move a sibling's over-reach back into the file the plan gave it to.
+
+    The plan splits a package: store.go declares the interface, memory.go
+    implements it. The model writes both in store.go, memory.go has nothing left
+    to declare, and it ships as a bare ``package store``. Every multi-package
+    artifact in the suite carries one of these, the build is green regardless
+    (Go's compilation unit is the package, not the file), and a prompt telling the
+    model to stay in its lane did not stop it — so it gets a repair instead.
+
+    Moving a declaration between files of the SAME package cannot change what the
+    program means. That is what makes this safe rather than clever: the package is
+    the compilation unit, imports are goimports' problem, and the move is checked
+    afterwards anyway — if the project is not still green, it is reverted. Strictly
+    non-regressing, like the review pass.
+    """
+    if not _MOVEDECLS.exists():
+        return
+    for path in empty_go_files(written):
+        by_path = {f.path: f.purpose or "" for f in spec.files}
+        wanted = _required_decls(by_path.get(path, ""))
+        if not wanted:
+            continue
+        pkg = pkg_name_of(written[path])
+        donor = None
+        for p, c in written.items():
+            if (
+                p == path or not p.endswith(".go") or p.endswith("_test.go")
+                or _dir_of(p) != _dir_of(path)
+            ):
+                continue
+            # Only take back what the donor was NOT asked to declare. memory.go's
+            # purpose mentions the Store interface because it implements it — but
+            # declaring Store is store.go's job, and moving it would not fix the
+            # plan, it would break it the other way.
+            take = wanted - _required_decls(by_path.get(p, ""))
+            if take and take <= (top_level_decls(c) | method_decls(c)):
+                donor, wanted = p, take
+                break
+        if not donor or not pkg:
+            continue
+        try:
+            proc = subprocess.run(
+                ["go", "run", str(_MOVEDECLS), pkg, ",".join(sorted(wanted))],
+                input=written[donor],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return
+        if proc.returncode != 0 or not proc.stdout.strip():
+            continue
+        try:
+            moved = json.loads(proc.stdout)
+        except json.JSONDecodeError:
+            continue
+
+        before = {donor: written[donor], path: written[path]}
+        written[donor] = _write_file(out, donor, moved["source"])
+        written[path] = _write_file(out, path, moved["moved"])
+        ok, _ = toolchain.check(out)
+        if ok:
+            _log(f"  moved {', '.join(sorted(wanted))} from {donor} into {path} — "
+                 f"the plan gave that file the job")
+        else:
+            for p, c in before.items():
+                written[p] = _write_file(out, p, c)
+            _log(f"  left {path} empty: moving {', '.join(sorted(wanted))} into it "
+                 f"does not stay green")
+
+
 def empty_go_files(written: dict[str, str]) -> list[str]:
     """Implementation files that were generated but declare NOTHING — a bare
     `package store`. The spec asked for content there; a sibling wrote it instead,
@@ -3548,6 +3628,7 @@ def build(
         # and Go, which does not care which file in a package holds what, greens
         # anyway. Four of the suite's multi-package artifacts carried a dead file
         # like this and nothing ever said so.
+        _fill_empty_planned_files(spec, written, out, toolchain)
         for path in empty_go_files(written):
             _log(f"  WARNING: {path} shipped EMPTY — a sibling did its job; the "
                  f"project does not match its own plan")
