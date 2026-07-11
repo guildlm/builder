@@ -143,9 +143,58 @@ def assertion_shapes(output: str) -> list[str]:
     return out
 
 
+# Messages a mechanism emits ONLY on a path we never expect in an A/B run, or on
+# an error path we hope never runs. Everything else that never fires is a
+# question worth asking.
+_EXPECTED_SILENT = (
+    "maintain", "review", "trace write failed", "spec-lint",
+    "fix-round budget scaled to",   # inert at --max-fix-rounds 5: ceil(19/4) == 5
+    "rejected fix of",              # a guard; never needing it is the good outcome
+)
+
+
+def audit_mechanisms() -> None:
+    """Which mechanisms never fire?
+
+    Five of this week's seven system bugs were found by exactly this question, and
+    each time I asked it with an ad-hoc grep. It should not be ad-hoc. A mechanism
+    that has never announced itself across every run we have ever done is either
+    dead code or — far worse, and this is what kept happening — silently guarded
+    shut while looking perfectly healthy. Best-of-N had never selected a candidate
+    in its life; the verified fix had never verified one; the middleware gate had
+    never fired on the wall it was written for.
+    """
+    src = (pathlib.Path(__file__).parent / "src" / "builder.py").read_text()
+    msgs = sorted({
+        m.strip() for m in re.findall(r'_log\(\s*f?"(?:\s*)([^"{]{8,44})', src)
+        if m.strip()
+    })
+    logs = sorted((pathlib.Path(__file__).parent / "logs").glob("ab-*.log"))
+    blob = "\n".join(p.read_text(errors="ignore") for p in logs)
+
+    print(f"=== {len(msgs)} mechanisms, checked against {len(logs)} real runs ===\n")
+    silent = [m for m in msgs if blob.count(m) == 0]
+    flagged = [m for m in silent if not any(e in m.lower() for e in _EXPECTED_SILENT)]
+    for m in flagged:
+        print(f"  ✗ NEVER FIRED  {m}")
+    print(f"\n  {len(flagged)} unexplained · {len(silent) - len(flagged)} expected-silent "
+          f"(maintain/review/error paths) · {len(msgs) - len(silent)} healthy")
+    if flagged:
+        print("\n  A mechanism that cannot be observed working cannot be trusted to\n"
+              "  work. Check each: is it new, or is it guarded shut?")
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument(
+        "--mechanisms",
+        action="store_true",
+        help="audit which machinery never fires in any real run, instead of "
+        "auditing the artifacts. This is the check that found best-of-N never "
+        "selecting, the verified fix never verifying, and the middleware gate "
+        "never firing on the wall it was written for.",
+    )
     ap.add_argument(
         "--current",
         action="store_true",
@@ -155,6 +204,10 @@ def main() -> None:
         "defects a retired model used to make is worse than not ranking it.",
     )
     args = ap.parse_args()
+
+    if args.mechanisms:
+        audit_mechanisms()
+        return
 
     tc = GoToolchain()
     dirs = sorted(p for p in GENERATED.iterdir() if p.is_dir() and (p / "go.mod").exists())
