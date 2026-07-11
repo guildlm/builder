@@ -3103,6 +3103,72 @@ def _fix_middleware_called_not_passed(
     return changed
 
 
+# `service.go:102:18: multiple-value s.store.ListProjects(ctx) (value of type
+# ([]models.Project, error)) in single-value context`
+_MULTIVALUE_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):(\d+): multiple-value .+? in single-value context"
+)
+
+_HOISTCALL = Path(__file__).resolve().parent.parent / "tools" / "hoistcall.go"
+
+
+def _fix_multivalue_in_single_context(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``multiple-value s.store.ListProjects(ctx) (value of type
+    ([]models.Project, error)) in single-value context`` — the store returns
+    ``(items, error)`` and the model used the call as an argument, dropping the
+    error on the floor. Go has no way to express that, so it does not compile::
+
+        return paginate(s.store.ListProjects(ctx), limit, offset), nil
+
+    The repair is what a Go programmer writes without thinking: hoist the call,
+    handle the error, use the value::
+
+        items, err := s.store.ListProjects(ctx)
+        if err != nil {
+                return nil, err
+        }
+        return paginate(items, limit, offset), nil
+
+    This class sat un-gated for months, and for a real reason: unlike every other
+    gate it must INTRODUCE statements rather than rewrite one. What makes it
+    tractable is that the enclosing function's signature decides everything — the
+    error goes to the last result, each earlier result takes its zero value — so
+    ``tools/hoistcall.go`` reads it off the AST rather than guessing. It refuses
+    whenever the signature does not settle the question: a function that does not
+    end in ``error`` has nowhere to put it, and a named result type whose zero
+    value cannot be inferred is not worth a guess."""
+    hits = list(_MULTIVALUE_RE.finditer(error_output))
+    if not hits or not _HOISTCALL.exists():
+        return {}
+    changed: dict[str, str] = {}
+    for m in hits:
+        path_hint, line, col = m.group(1), m.group(2), m.group(3)
+        target = next(
+            (p for p in written if os.path.basename(p) == os.path.basename(path_hint)),
+            None,
+        )
+        if target is None:
+            continue
+        try:
+            proc = subprocess.run(
+                ["go", "run", str(_HOISTCALL), line, col],
+                input=changed.get(target, written[target]),
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return {}
+        if proc.returncode != 0 or not proc.stdout.strip():
+            continue
+        changed[target] = proc.stdout
+        _log(f"  hoisted the two-value call at {target}:{line} into its own "
+             f"statement and propagated the error")
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -3134,6 +3200,7 @@ def _run_deterministic_gates(
     requal.update(_fix_missing_constructor_alias({**written, **requal}, output))
     requal.update(_fix_argument_type_adapter({**written, **requal}, output))
     requal.update(_fix_middleware_called_not_passed({**written, **requal}, output))
+    requal.update(_fix_multivalue_in_single_context({**written, **requal}, output))
     return requal
 
 
