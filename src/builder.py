@@ -1340,6 +1340,16 @@ _STDLIB_CANDIDATES = (
 )
 _stdlib_owner_cache: dict[str, str | None] = {}
 
+# Stdlib packages a model is liable to import as if they were its own — it writes
+# `"guildlm.dev/workapi/internal/slog"` when it means `"log/slog"`. Keyed by the
+# LAST segment, which is the name the code actually qualifies with.
+_STDLIB_IMPORTABLE = (
+    "log/slog", "net/http", "net/http/httptest", "encoding/json", "path/filepath",
+    "sync/atomic", "math/rand", "os/signal", "time", "strings", "strconv", "fmt",
+    "os", "io", "bytes", "errors", "sort", "math", "context", "sync", "bufio",
+    "unicode", "regexp", "slices", "maps", "testing", "log", "flag",
+)
+
 
 def _stdlib_owner_of(sym: str) -> str | None:
     """Which stdlib package exports ``sym``? Resolved with the REAL toolchain
@@ -2257,6 +2267,22 @@ def _fix_phantom_local_import(
         drop_import = re.compile(
             rf'^\s*(?:\w+\s+)?"{re.escape(pkg_path)}"\s*\n', re.MULTILINE
         )
+
+        # The most natural version of this mistake: the model puts the MODULE PATH
+        # in front of a STANDARD LIBRARY package —
+        # "guildlm.dev/workapi/internal/slog" for "log/slog". The symbols
+        # (slog.New, slog.NewTextHandler) live in no project package at all, so
+        # the owner search below finds nothing and gives up. But the phantom's
+        # last segment names a stdlib package, and the import path is simply the
+        # real one with a module glued to its front — so put the real one back.
+        stdlib = next(
+            (c for c in _STDLIB_IMPORTABLE if c.rsplit("/", 1)[-1] == phantom), None
+        )
+        if stdlib:
+            changed[path] = drop_import.sub(f'\t"{stdlib}"\n', code, count=1)
+            _log(f"  {path}: {pkg_path} is the standard library's {stdlib} with the "
+                 f"module path glued on — importing the real one")
+            continue
         # own package first: same-dir siblings may declare the symbols
         # unexported, and the fix is simply an unqualified call
         own_dir = _dir_of(path)
@@ -2749,6 +2775,22 @@ _SHADOWED_T_RE = re.compile(
     r"\bt\.(\w+) undefined \(type (\w+) has no field or method \1\)"
 )
 
+# The SAME mistake, reported completely differently. `t := models.Task{...}` in a
+# function whose parameter is already `t` does not shadow anything — a parameter
+# lives in the body's own scope — so Go reads it as an ASSIGNMENT to the tester
+# and complains about the type instead:
+#
+#   cannot use models.Task{…} (value of struct type models.Task) as *testing.T
+#   value in assignment
+#
+# `t.Fatalf` still resolves to *testing.T, so the "has no field or method" error
+# never appears and the gate above never fires — even though its rewriter repairs
+# the file perfectly the moment it is handed it. One regex was all that stood
+# between a working gate and a spec that failed.
+_TESTER_OVERWRITTEN_RE = re.compile(
+    r"([\w./-]+\.go):\d+:\d+: cannot use .+ as \*testing\.T value in assignment"
+)
+
 # Methods that belong to *testing.T. A domain type declaring one of these makes
 # `t.X` genuinely ambiguous inside the shadow, and the gate refuses to guess.
 _TESTING_METHODS = frozenset(
@@ -2828,7 +2870,11 @@ def _fix_shadowed_tester(
     (which would make ``t.X`` ambiguous).
     """
     hits = {(m.group(2), m.group(1)) for m in _SHADOWED_T_RE.finditer(error_output)}
-    if not hits or not _SHADOWFIX.exists():
+    # The same mistake, reported as an assignment to the tester rather than a
+    # missing method — see _TESTER_OVERWRITTEN_RE. Nothing about the repair
+    # changes; only the message the compiler chose to print.
+    overwritten = bool(_TESTER_OVERWRITTEN_RE.search(error_output))
+    if (not hits and not overwritten) or not _SHADOWFIX.exists():
         return {}
 
     # Ambiguity guard: a shadowing type that declares a testing-shaped member —

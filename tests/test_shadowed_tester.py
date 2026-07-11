@@ -255,3 +255,41 @@ def test_composes_in_the_deterministic_gate_chain():
     )
     assert "for _, tk := range tasks" in out["store_test.go"]
     assert "t.Fatalf(" in out["store_test.go"]
+
+
+def test_fires_when_go_reports_it_as_an_assignment_to_the_tester():
+    """The SAME mistake, reported completely differently.
+
+    `t := models.Task{...}` in a function whose parameter is already `t` does not
+    shadow anything — a parameter lives in the body's own scope — so Go reads it
+    as an ASSIGNMENT to the tester and complains about the type:
+
+        cannot use models.Task{…} (value of struct type models.Task) as
+        *testing.T value in assignment
+
+    `t.Fatalf` still resolves to *testing.T, so the "has no field or method"
+    message never appears, and the gate never fired — even though its rewriter
+    repairs the file perfectly the moment it is handed it. workapi failed a sweep
+    on this. One regex stood between a working gate and a red spec."""
+    src = """package service
+
+import "testing"
+
+func TestCreateOK(t *testing.T) {
+	svc := NewTaskService()
+	t := models.Task{ID: "1", Title: "task1"}
+	if _, err := svc.Create(t); err != nil {
+		t.Fatalf("Create: %v", err)
+	}
+}
+"""
+    err = (
+        "./service_test.go:7:7: cannot use models.Task{…} (value of struct type "
+        "models.Task) as *testing.T value in assignment"
+    )
+    body = _fix_shadowed_tester({"model.go": MODEL, "service_test.go": src}, err)[
+        "service_test.go"
+    ]
+    assert "tk := models.Task{" in body     # the value gets its own name
+    assert "svc.Create(tk)" in body         # and the bare use follows it
+    assert "t.Fatalf(" in body              # the tester is restored, untouched

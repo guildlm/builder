@@ -82,3 +82,31 @@ def test_existing_package_is_not_touched():
         "internal/middleware/mw.go": "package middleware\n\nfunc Chain() {}\n",
     }
     assert _fix_phantom_local_import(written, ERR, "guildlm.dev/workapi") == {}
+
+
+def test_a_stdlib_package_with_the_module_path_glued_on():
+    """The most natural version of this mistake: the model writes
+    "guildlm.dev/workapi/internal/slog" when it means "log/slog". Its symbols
+    (slog.New, slog.NewTextHandler) live in NO project package, so the owner
+    search finds nothing and the gate used to give up — and workapi failed a
+    sweep on it. But the phantom's last segment names a stdlib package, and the
+    path is simply the real one with a module glued to its front."""
+    code = (
+        'package worker\n\n'
+        'import (\n\t"testing"\n\n\t"guildlm.dev/workapi/internal/slog"\n)\n\n'
+        'func TestX(t *testing.T) {\n'
+        '\tlogger := slog.New(slog.NewTextHandler(nil, nil))\n'
+        '\t_ = logger\n'
+        '}\n'
+    )
+    err = (
+        "internal/worker/worker_test.go:6:2: no required module provides package "
+        "guildlm.dev/workapi/internal/slog; to add it:"
+    )
+    out = _fix_phantom_local_import(
+        {"internal/worker/worker_test.go": code}, err, "guildlm.dev/workapi"
+    )
+    body = out["internal/worker/worker_test.go"]
+    assert '"log/slog"' in body
+    assert "guildlm.dev/workapi/internal/slog" not in body
+    assert "slog.New(" in body   # the qualifier was already right
