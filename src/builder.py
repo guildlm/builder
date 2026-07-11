@@ -125,19 +125,33 @@ _IMPORT_SINGLE_RE = re.compile(r'import\s+(?:[\w.]+\s+)?"([^"]+)"')
 _QUOTED_RE = re.compile(r'"([^"]+)"')
 
 
-def nonstdlib_imports(code: str) -> list[str]:
-    """Return the import paths in *code* that are NOT standard library.
+def nonstdlib_imports(code: str, module: str | None = None) -> list[str]:
+    """Return the import paths in *code* that are FOREIGN — neither the standard
+    library nor this project's own packages.
 
     A stdlib import path's first segment has no dot (``fmt``, ``net/http``); a
     third-party one carries a domain (``github.com/...``, ``golang.org/x/...``).
     Used to reject best-of-N candidates that reach for an external dependency the
     Builder forbids (small coders love to import ``gorilla/mux`` for a router).
+
+    ``module`` is the project's own module path, and passing it is not optional in
+    practice: a project's own packages (``guildlm.dev/workapi/internal/store``)
+    carry a domain too, so without it EVERY file of EVERY multi-package project
+    looks like it reached for a foreign dependency — and best-of-N, which uses
+    this to decide whether a candidate is clean, rejects all of them and silently
+    degenerates into "keep the last sample". It did exactly that, for months.
     """
     paths: list[str] = []
     for block in _IMPORT_BLOCK_RE.findall(code):
         paths.extend(_QUOTED_RE.findall(block))
     paths.extend(_IMPORT_SINGLE_RE.findall(code))
-    return [p for p in paths if "." in p.split("/")[0]]
+    foreign = [p for p in paths if "." in p.split("/")[0]]
+    if module:
+        foreign = [
+            p for p in foreign
+            if p != module and not p.startswith(f"{module}/")
+        ]
+    return foreign
 
 
 # --------------------------------------------------------------------------- #
@@ -3052,13 +3066,18 @@ def _is_clean(
     sibling_decls: set[str] | None = None,
     require_assertions: bool = False,
     required_decls: set[str] | None = None,
+    module: str | None = None,
 ) -> bool:
-    """A clean Go candidate parses, imports only the standard library, does not
-    redeclare a sibling's package-level symbol, declares every type its purpose
-    promises, and — for test files — actually asserts something."""
+    """A clean Go candidate parses, imports nothing foreign (the standard library
+    and the project's OWN packages are both fine), does not redeclare a sibling's
+    package-level symbol, declares every type its purpose promises, and — for test
+    files — actually asserts something.
+
+    ``module`` must be threaded through for a multi-package project. Without it,
+    the project's own imports count as foreign and NO candidate is ever clean."""
     if not is_go:
         return True
-    if not toolchain.syntax_ok(code) or nonstdlib_imports(code):
+    if not toolchain.syntax_ok(code) or nonstdlib_imports(code, module):
         return False
     if sibling_decls and ((top_level_decls(code) | method_decls(code)) & sibling_decls):
         return False
@@ -3079,6 +3098,7 @@ def _sample_clean(
     sibling_decls: set[str] | None = None,
     require_assertions: bool = False,
     required_decls: set[str] | None = None,
+    module: str | None = None,
 ) -> str:
     """Draw up to ``candidates`` samples; keep the first clean one (parses,
     stdlib-only, no cross-file redeclaration, and — for test files — actually
@@ -3099,7 +3119,7 @@ def _sample_clean(
                 _log(f"    stripped redeclared symbols from {what} candidate")
                 last = stripped
         if _is_clean(last, is_go, toolchain, sibling_decls, require_assertions,
-                     required_decls):
+                     required_decls, module):
             if attempt:
                 _log(f"    best-of-N {what}: kept candidate {attempt + 1}")
             return last
@@ -3119,6 +3139,7 @@ def _sample_verified_fix(
     sibling_decls: set[str] | None = None,
     is_test: bool = False,
     must_keep: set[str] | None = None,
+    module: str | None = None,
 ) -> str:
     """Fix-loop best-of-N with a GROUND-TRUTH gate: sample up to ``candidates``
     repairs, write each in place, and keep the first that makes the *whole
@@ -3155,7 +3176,8 @@ def _sample_verified_fix(
         last = cand
         if not keeps_referenced(cand):
             continue
-        if not _is_clean(cand, is_go, toolchain, sibling_decls, is_test):
+        if not _is_clean(cand, is_go, toolchain, sibling_decls, is_test,
+                         module=module):
             continue
         if best_clean is None:
             best_clean = cand
@@ -3229,7 +3251,7 @@ def _generate_file(
     )
     code = _sample_clean(
         coder, prompt, is_go, candidates, toolchain, "gen", sibling_decls,
-        is_test, required
+        is_test, required, module=spec.go_module or None
     )
     _trace({"stage": "generate", "path": task.spec.path,
             "prompt": prompt, "response": code})
@@ -3388,12 +3410,13 @@ def _fix_loop(
                 code = _sample_verified_fix(
                     coder, fix_prompt, path, out, written, candidates, toolchain,
                     sibling_decls, path.endswith("_test.go"), must_keep,
+                    module=module,
                 )
             else:
                 code = _sample_clean(
                     coder, fix_prompt, path.endswith(".go"), candidates, toolchain,
                     "fix", sibling_decls, path.endswith("_test.go"),
-                    must_keep or None,
+                    must_keep or None, module=module,
                 )
                 old_decls = top_level_decls(written[path]) | method_decls(written[path])
                 new_decls = top_level_decls(code) | method_decls(code)
