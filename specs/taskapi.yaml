@@ -115,13 +115,30 @@ files:
     purpose: >-
       package api. Integration tests (net/http/httptest) against NewRouter(
       store.NewMemStore(), slog.New(slog.NewTextHandler(io.Discard, nil))).
-      Import the store + models packages. Each case builds a FRESH router+store
-      and a FRESH request body per request (never reuse a drained buffer).
-      Cover: POST a valid task->201 and echo; invalid task (bad status)->400;
-      duplicate id->409; GET missing->404; GET->200; list->200 JSON array;
-      DELETE->204 then GET->404; malformed JSON (truncated, not empty {})->400;
-      and a project create/get happy path. Imports bytes, encoding/json, io,
-      log/slog, net/http, net/http/httptest, testing, and store + models.
+      Import the store + models packages.
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Every
+      function builds its OWN fresh router+store via a zero-argument helper
+      `newRouter()` declared once at package scope, and a FRESH request body for
+      every request (never reuse a drained buffer).
+      CRITICAL: a fresh store is EMPTY, so any case with a precondition must
+      CREATE that precondition ITSELF by POSTing first — a "duplicate" or an
+      "existing task" cannot exist on a store nobody has written to. Each of
+      these is its own function, self-contained:
+      TestCreateOK: POST a valid task -> 201 and the body echoes it.
+      TestCreateInvalid: POST a task with a bad status -> 400.
+      TestCreateDuplicate: POST the task ONCE (expect 201), then POST THE SAME id
+      AGAIN -> 409. (Without the first POST there is nothing to duplicate.)
+      TestGetMissing: on a fresh router, GET an id nobody created -> 404.
+      TestGetExisting: POST a task FIRST (expect 201), then GET that same id ->
+      200 with the stored fields.
+      TestList: POST one task FIRST, then GET the collection -> 200 and a JSON
+      array.
+      TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
+      TestMalformedJSON: POST truncated bytes like `{"title":` (NOT an empty
+      `{}`) -> 400.
+      TestProjectCreateGet: POST a project, then GET it back -> 200.
+      Imports bytes, encoding/json, io, log/slog, net/http, net/http/httptest,
+      testing, and store + models.
   - path: cmd/server/main.go
     purpose: >-
       package main — the composition root. Import config, store, api (their full
