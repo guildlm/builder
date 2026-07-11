@@ -376,26 +376,44 @@ class GoToolchain:
         """Run build, then vet, then test; stop at the first failure.
 
         Returns the combined output of the stage that ran. This is the feedback
-        signal the agent loop fixes against.
+        signal the agent loop fixes against — and how WIDE that signal is decides
+        what the deterministic gates can repair, because a gate cannot fix an
+        error the compiler never printed.
 
-        When BUILD fails, vet's output is appended: ``go build`` never compiles
-        ``_test.go`` files, so a broken impl masks every test-file compile error
-        — the loop then pays one full round per error LAYER instead of seeing
-        the whole mechanical surface at once. ``go vet`` compiles per package
-        (tests included) and keeps going past broken ones, so its diagnostics
-        widen what the deterministic gates and per-file routing can fix in the
-        SAME round.
+        Each stage sees a different slice of the truth, so a failing check
+        harvests all of them:
+
+        * ``go build`` never compiles ``_test.go`` files at all, so a broken impl
+          hides every test-file error behind it.
+        * ``go vet`` does typecheck the tests, but it bails at the FIRST type
+          error in a package — one diagnostic, then silence.
+        * ``go test`` compiles the test binary and the compiler reports up to ten
+          errors per package. In practice this is the widest surface by far: on a
+          real artifact vet reported a single ``undefined: NewStore`` while test
+          reported ten errors, including a shadowed-``t`` bug three files away
+          that no gate could otherwise have seen.
+
+        So when the project does not compile we run all three and concatenate,
+        which lets the gates and the per-file routing clear a whole layer of
+        mechanical defects in ONE round instead of peeling them off one per round.
         """
         ok, out = self.build(cwd)
         if not ok:
-            vet_ok, vet_out = self.vet(cwd)
-            if not vet_ok and vet_out:
-                out = f"{out}\n{vet_out}".strip()
+            for stage in (self.vet, self.test):
+                s_ok, s_out = stage(cwd)
+                if not s_ok and s_out:
+                    out = f"{out}\n{s_out}".strip()
             return False, out
-        for stage in (self.vet, self.test):
-            ok, out = stage(cwd)
-            if not ok:
-                return False, out
+        vet_ok, vet_out = self.vet(cwd)
+        if not vet_ok:
+            # vet stopped at its first type error; test carries the rest.
+            t_ok, t_out = self.test(cwd)
+            if not t_ok and t_out:
+                vet_out = f"{vet_out}\n{t_out}".strip()
+            return False, vet_out
+        ok, out = self.test(cwd)
+        if not ok:
+            return False, out
         return True, "build, vet and test passed"
 
     def build_vet(self, cwd: str | Path) -> tuple[bool, str]:
