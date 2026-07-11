@@ -61,6 +61,16 @@ def signature(line: str) -> str | None:
     return msg[:110]
 
 
+def spec_of(name: str) -> str:
+    """Which SPEC produced this artifact. probe1/probe2/probe3 and
+    tasks-api-roll4/roll5 are the same spec rolled repeatedly, and a defect seen
+    in all of them is one spec's quirk, not a broad class."""
+    n = re.sub(r"^_(fail|proof)-", "", name)
+    n = re.sub(r"-\d{6,}$", "", n)                       # archive timestamp
+    n = re.sub(r"(-v4|-green\d*|-roll\d*|\d+)$", "", n)  # run suffixes
+    return re.sub(r"^probe.*", "tasks-api-noshadownudge", n) or name
+
+
 def module_of(d: pathlib.Path) -> str | None:
     gomod = d / "go.mod"
     if not gomod.exists():
@@ -137,15 +147,23 @@ def main() -> None:
     if args.limit:
         dirs = dirs[: args.limit]
 
-    rows, buckets = [], collections.Counter()
+    rows = []
+    by_spec: dict[str, set[str]] = collections.defaultdict(set)
     for d in dirs:
         r = audit(d, tc)
         if not r:
             continue
         rows.append(r)
-        for sig in set(r.get("residual") or []):    # count ARTIFACTS, not lines
-            buckets[sig] += 1
+        # Count DISTINCT SPECS, not artifacts. probe1/probe2/probe3 are the same
+        # spec rolled three times; counting them as three sightings of a defect
+        # makes one spec's quirk outrank a class that really is broad. The first
+        # run of this audit ranked `too many arguments in call to newAPI` top —
+        # four artifacts, all of them the same probe spec.
+        for sig in set(r.get("residual") or []):
+            by_spec[sig].add(spec_of(d.name))
         print(f"  {r['status']:16s} {r['name']}", flush=True)
+
+    buckets = collections.Counter({sig: len(s) for sig, s in by_spec.items()})
 
     status = collections.Counter(r["status"] for r in rows)
     print(f"\n=== {len(rows)} artifacts ===")
@@ -158,7 +176,7 @@ def main() -> None:
     print(f"  {kinds.get('compile', 0):3d}  still do not COMPILE  -> a gate could still help")
     print(f"  {kinds.get('test', 0):3d}  compile, but a TEST fails -> only the spec or the model can")
 
-    print("\n=== residual COMPILE classes, by how many DISTINCT artifacts hit them ===")
+    print("\n=== residual COMPILE classes, by how many DISTINCT SPECS hit them ===")
     print("    (the ranked backlog: what the gates still cannot repair)\n")
     for sig, n in buckets.most_common(25):
         print(f"  {n:3d}  {sig}")
