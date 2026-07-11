@@ -843,6 +843,50 @@ _UNDEF_PKGSYM_RE = re.compile(r"undefined: (\w+)\.(\w+)")
 _NOMETHOD_RE = re.compile(r"type (\w+) has no field or method (\w+)")
 
 
+def _widen_promised_symbol_targets(
+    targets: list[str],
+    written: dict[str, str],
+    error_output: str,
+    files: Sequence[FileSpec],
+) -> list[str]:
+    """Root-cause widening for a SINGLE-package project, where the compiler has
+    no package name to point at. ``undefined: NewStore`` is reported in
+    store_test.go — the USE site — so the fix loop keeps regenerating the test,
+    while the real defect is that store.go named its constructor NewStoreImpl.
+    The loop can thrash all five rounds on the wrong file and never converge.
+
+    The spec knows who was supposed to declare it: store.go's purpose says the
+    constructor is named EXACTLY ``NewStore``. So when a symbol is undefined and
+    NO file in the project declares it, add the non-test file whose purpose
+    PROMISES that symbol. Routing only — it changes which file the model is asked
+    to regenerate, never the code — and it stays silent unless exactly one file
+    claims the symbol, so it cannot pull an unrelated file into the fix."""
+    declared: set[str] = set()
+    for p, c in written.items():
+        if p.endswith(".go"):
+            declared |= top_level_decls(c)
+    out = list(targets)
+    missing = {m.group(2) for m in _UNDEF_BARE_RE.finditer(error_output)}
+    for sym in missing:
+        if sym in declared or not sym[:1].isupper():
+            # Either it exists somewhere (a qualification miss, not ours), or it
+            # is unexported — an undefined lowercase symbol is a local typo, not
+            # a top-level declaration a purpose could have promised, and a
+            # purpose mentioning the word in prose must not drag its file in.
+            continue
+        owners = [
+            f.path for f in files
+            if f.path.endswith(".go") and not f.path.endswith("_test.go")
+            and re.search(rf"\b{re.escape(sym)}\b", f.purpose or "")
+        ]
+        if len(owners) != 1 or owners[0] in out:
+            continue  # nobody claims it, or several do — do not guess
+        _log(f"  widening fix targets to {owners[0]} — undefined {sym}, "
+             f"which its purpose promises it declares")
+        out.append(owners[0])
+    return out
+
+
 def _widen_missing_symbol_targets(
     targets: list[str], written: dict[str, str], error_output: str
 ) -> list[str]:
@@ -2968,6 +3012,9 @@ def _fix_loop(
         targets = _offending_files(output, list(written)) or list(written)
         targets = _widen_runtime_targets(targets, written, runtime_rounds, output)
         targets = _widen_missing_symbol_targets(targets, written, output)
+        targets = _widen_promised_symbol_targets(
+            targets, written, output, [t.spec for t in tasks]
+        )
         # go.mod is fully determined by the module path (stdlib-only projects) —
         # never hand it to the model (one bad sample poisons EVERY later round:
         # parse errors mask the real diagnostics). Restore it deterministically.
