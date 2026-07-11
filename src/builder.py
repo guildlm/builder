@@ -2824,6 +2824,116 @@ def _fix_argument_type_adapter(
     return changed
 
 
+# Same error shape as the adapter gate, but with the CALLED function captured:
+# `cannot use Logging(logger) (value of interface type http.Handler) as
+# Middleware value in argument to Chain`
+_CALLED_ARG_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):(\d+): cannot use (\w+)\([^)]*\) "
+    r"\((?:value|variable) of (?:interface )?type ([\w.*\[\]]+)\) "
+    r"as ([\w.*\[\]]+) value in argument to (\w+)"
+)
+
+# `type Middleware func(http.Handler) http.Handler`
+_FUNC_TYPE_DECL_RE = re.compile(
+    r"^type\s+(\w+)\s+func\(([^)]*)\)\s*([\w.*\[\]]*)\s*$", re.M
+)
+
+# `func Logging(next http.Handler) http.Handler {`
+_FUNC_SIG_RE = re.compile(r"^func\s+(\w+)\(([^)]*)\)\s*([\w.*\[\]]*)\s*\{", re.M)
+
+_UNWRAPCALL = Path(__file__).resolve().parent.parent / "tools" / "unwrapcall.go"
+
+
+def _param_types(params: str) -> str:
+    """Normalise a parameter list to just its types: ``next http.Handler`` and
+    ``http.Handler`` both become ``http.Handler``. Returns "" for anything with a
+    shape we would rather not reason about."""
+    out = []
+    for part in (p.strip() for p in params.split(",") if p.strip()):
+        fields = part.split()
+        if len(fields) == 1:
+            out.append(fields[0])       # a bare type, as in a func TYPE decl
+        elif len(fields) == 2:
+            out.append(fields[1])       # `name Type`
+        else:
+            return ""                   # variadic groups, multi-name params: bail
+    return ", ".join(out)
+
+
+def _fix_middleware_called_not_passed(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``cannot use Logging(logger) (value of interface type http.Handler) as
+    Middleware value in argument to Chain`` — the model declared the middleware
+    correctly and then INVOKED it where it should have passed it::
+
+        type Middleware func(http.Handler) http.Handler
+        func Logging(next http.Handler) http.Handler { ... }   // already a Middleware
+
+        Chain(mux, Logging(logger), Recover(logger))   // calls them
+        Chain(mux, Logging, Recover)                   // should hand them over
+
+    This is the same family as the register-the-method-value rule, and it is the
+    mirror of the existing middleware-arity gate: that one repairs a DEFINITION
+    written in the wrong shape, while here the definition is right and the CALL
+    SITE is wrong. The two do not overlap.
+
+    Provable: the repair fires only when the function's own signature is EXACTLY
+    the underlying signature of the wanted named func type, in which case the
+    function value is assignable to it by construction. Bails when the wanted type
+    is not a func type declared by the project, when the signatures differ, or on
+    any parameter list too exotic to normalise."""
+    hits = list(_CALLED_ARG_RE.finditer(error_output))
+    if not hits or not _UNWRAPCALL.exists():
+        return {}
+
+    # The project's named func types, as (params, result).
+    func_types: dict[str, tuple[str, str]] = {}
+    for p, c in written.items():
+        if p.endswith(".go"):
+            for name, params, result in _FUNC_TYPE_DECL_RE.findall(c):
+                func_types[name] = (_param_types(params), result.strip())
+    # The project's top-level functions, likewise.
+    func_sigs: dict[str, tuple[str, str]] = {}
+    for p, c in written.items():
+        if p.endswith(".go"):
+            for name, params, result in _FUNC_SIG_RE.findall(c):
+                func_sigs[name] = (_param_types(params), result.strip())
+
+    changed: dict[str, str] = {}
+    for m in hits:
+        path_hint, line, col, fn, _have, want, callee = (
+            m.group(1), int(m.group(2)), int(m.group(3)),
+            m.group(4), m.group(5), m.group(6), m.group(7),
+        )
+        wanted = func_types.get(want)
+        actual = func_sigs.get(fn)
+        if not wanted or not actual or not wanted[0] or wanted != actual:
+            continue  # not a func type, unknown function, or signatures differ
+        target = next(
+            (p for p in written if os.path.basename(p) == os.path.basename(path_hint)),
+            None,
+        )
+        if target is None:
+            continue
+        try:
+            proc = subprocess.run(
+                ["go", "run", str(_UNWRAPCALL), str(line), str(col), fn],
+                input=changed.get(target, written[target]),
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return {}
+        if proc.returncode != 0 or not proc.stdout.strip():
+            continue
+        changed[target] = proc.stdout
+        _log(f"  passed {fn} to {callee} by value instead of calling it "
+             f"(it is already a {want}) in {target}")
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -2854,6 +2964,7 @@ def _run_deterministic_gates(
     requal.update(_fix_shadowed_tester({**written, **requal}, output))
     requal.update(_fix_missing_constructor_alias({**written, **requal}, output))
     requal.update(_fix_argument_type_adapter({**written, **requal}, output))
+    requal.update(_fix_middleware_called_not_passed({**written, **requal}, output))
     return requal
 
 
