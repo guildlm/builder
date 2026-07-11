@@ -947,3 +947,19 @@ def test_scope_rule_is_absent_when_the_file_stands_alone():
     )
     prompt = _generate_prompt(spec, plan(spec)[0], {}, None)
     assert "STAY IN YOUR LANE" not in prompt
+
+
+def test_isolate_state_names_the_thing_that_holds_the_state():
+    """ratelimit failed because its spec said "each subtest builds its OWN mux" —
+    and the mux is stateless. The registry underneath, built ONCE outside, kept the
+    token buckets, so the first subtest spent clientA's only token and the second
+    got 429 where it wanted 200. The default had the same flaw: it named the
+    wrapper (server/handler) rather than the thing that remembers."""
+    spec = Spec(
+        name="x",
+        description="d",
+        files=(FileSpec(path="router_test.go", purpose="package main. Tests."),),
+    )
+    prompt = _generate_prompt(spec, plan(spec)[0], {}, None)
+    assert "HOLDS THE STATE" in prompt
+    assert "isolates NOTHING" in prompt

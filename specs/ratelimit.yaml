@@ -86,16 +86,25 @@ files:
       1, 0, 0, 0, 0, time.UTC)) — never the zero time.Time{}, because the bucket
       seeds its `last` from the first now() and a zero start is indistinguishable
       from an unseeded last, so refills would never register.
-      Flow-test against NewRouter via hit(): each t.Run builds its OWN mux :=
-      NewRouter(reg) at the top and sends all its requests inside that subtest
-      (never reference a mux from another subtest). For the allow-then-deny flow,
-      build the registry with CAPACITY 1 (reg := NewRegistry(1, 1)) so the FIRST
-      request for a client is allowed and the SECOND is denied; do not use a
-      capacity that would still allow the second request. One subtest does the
-      allow-then-deny sequence for a single client: rec := hit(mux, "/ping",
+      Flow-test against NewRouter via hit(), as SEPARATE FOCUSED TEST FUNCTIONS.
+      CRITICAL — isolate the REGISTRY, not just the mux: the mux is stateless, and
+      the registry is what holds the per-client token buckets. Each test function
+      MUST build BOTH, from scratch, at the top of its own body:
+      `reg := NewRegistry(1, 1)` and then `mux := NewRouter(reg)`. A fresh mux over
+      a SHARED registry isolates nothing — the earlier function has already spent
+      clientA's only token, so the next one sees 429 where it expects 200, and no
+      implementation can make that pass. Never build the registry once outside and
+      reuse it.
+      Use CAPACITY 1 (NewRegistry(1, 1)) so the FIRST request for a client is
+      allowed and the SECOND is denied; do not use a capacity that would still
+      allow the second request. One function does the allow-then-deny sequence for
+      a single client: rec := hit(mux, "/ping",
       "clientA") returns 200, then a SECOND hit(mux, "/ping", "clientA") returns
       429 with rec.Header().Get("Retry-After") == "1" and a JSON error body (read
       the recorder header with rec.Header().Get — Header is a METHOD, call it).
-      Other subtests: two clients (clientA, clientB) each get their own allowance
-      (A exhausting its bucket does not 429 B); GET /health always returns 200
-      even for an exhausted client. Standard library only.
+      Other test functions, each with its OWN fresh reg + mux: two clients — on a
+      FRESH registry, hit clientA once (200) and clientB once (200), proving they
+      have separate allowances, then hit clientA a second time (429) and clientB a
+      second time (429), proving A exhausting its bucket did not 429 B. GET /health
+      always returns 200 even for a client whose bucket you have just exhausted.
+      Standard library only.
