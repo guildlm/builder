@@ -1994,12 +1994,24 @@ def _fix_unused_var(written: dict[str, str], error_output: str) -> dict[str, str
         new_lhs, n = re.subn(rf"\b{re.escape(name)}\b", "_", lhs, count=1)
         if n == 0:
             continue  # name not on this LHS — don't guess
-        # only act when a real new variable REMAINS (multi-assign); a lone
-        # unused var (all-blank LHS) is the model's to resolve
-        remaining = [tok.strip() for tok in new_lhs.split(",")]
-        if not any(tok and tok != "_" for tok in remaining):
+        slots = [tok.strip() for tok in new_lhs.split(",") if tok.strip()]
+        if any(tok != "_" for tok in slots):
+            # A real new variable remains, so `:=` is still valid.
+            lines[lineno - 1] = new_lhs + rhs
+        elif len(slots) > 1:
+            # Every slot is blank now. `_, _ := f()` declares nothing and is not
+            # valid Go — but `_, _ = f()` is, and it keeps the call. This is the
+            # `cfg, _ := config.Load()` the model invents and never uses: the
+            # statement ALREADY threw one of the two values away, so throwing
+            # away the other masks nothing that was not already discarded.
+            # workapi died here — on a config.Load() its spec never asked for —
+            # after six fix rounds failed to talk the model out of it.
+            lines[lineno - 1] = new_lhs + rhs.replace(":=", "=", 1)
+        else:
+            # A LONE `cfg := f()`. Blanking it would hide a real mistake: the
+            # value was computed and forgotten, and only the model knows whether
+            # it meant to use it. Leave it.
             continue
-        lines[lineno - 1] = new_lhs + rhs
         changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
         touched.add(path)
     return {p: changed[p] for p in touched}

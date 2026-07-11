@@ -73,3 +73,41 @@ def test_composes_in_deterministic_gate_chain():
     err = "./handlers.go:6:2: declared and not used: u"
     out = _run_deterministic_gates(written, err, None)
     assert "\t_, err := url.ParseRequestURI(raw)\n" in out["handlers.go"]
+
+
+def test_an_all_blank_multi_assign_becomes_a_plain_assignment():
+    """`cfg, _ := config.Load()` where cfg is never used. Blanking it gives
+    `_, _ :=`, which declares nothing and is not valid Go — so the gate used to
+    refuse, and workapi died on exactly this after six fix rounds.
+
+    But `_, _ = config.Load()` IS valid, and it keeps the call. The statement had
+    already thrown one of the two values away; throwing away the other masks
+    nothing that was not already discarded."""
+    code = (
+        "package worker\n\n"
+        "func TestX(t *testing.T) {\n"
+        "\tcfg, _ := config.Load()\n"
+        "\tw := NewWorker(8)\n"
+        "\t_ = w\n"
+        "}\n"
+    )
+    err = "./worker_test.go:4:2: declared and not used: cfg"
+    out = _fix_unused_var({"worker_test.go": code}, err)["worker_test.go"]
+    assert "_, _ = config.Load()" in out
+    assert ":=" not in out.splitlines()[3]
+    # line count preserved — this gate lives in phase one
+    assert len(out.splitlines()) == len(code.splitlines())
+
+
+def test_a_lone_unused_var_is_still_left_to_the_model():
+    """`cfg := config.Load()` — one slot. Blanking it would hide a real mistake:
+    the value was computed and forgotten, and only the model knows whether it
+    meant to use it."""
+    code = (
+        "package worker\n\n"
+        "func TestX(t *testing.T) {\n"
+        "\tcfg := config.Load()\n"
+        "}\n"
+    )
+    err = "./worker_test.go:4:2: declared and not used: cfg"
+    assert _fix_unused_var({"worker_test.go": code}, err) == {}
