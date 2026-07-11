@@ -38,4 +38,13 @@ if [[ $BR -eq 0 && $VR -eq 0 && $TR -eq 0 ]]; then
   echo "RESULT $SPEC: GREEN ✅ (build+vet+test-race all pass)"
 else
   echo "RESULT $SPEC: NOT-GREEN ❌ (build=$BR vet=$VR test=$TR)"
+  # Archive the failure. Every run used to `rm -rf` the previous artifact, so a
+  # broken project — the only hard evidence of what the model actually gets
+  # wrong, and the thing every gate is verified against — survived only until
+  # the next run of the same spec. That is how the middleware-wall artifact was
+  # lost, and why the gate audit reported that gate as never firing. Failures
+  # are the corpus; keep them.
+  cd - >/dev/null || exit 0
+  ARCHIVE="./generated/_fail-${SPEC}-$(date +%m%d%H%M%S)"
+  cp -r "$OUT" "$ARCHIVE" 2>/dev/null && echo "=== archived failing artifact -> $ARCHIVE ==="
 fi
