@@ -3157,8 +3157,7 @@ def _sample_clean(
                 last = stripped
         if _is_clean(last, is_go, toolchain, sibling_decls, require_assertions,
                      required_decls, module):
-            if attempt:
-                _log(f"    best-of-N {what}: kept candidate {attempt + 1}")
+            _log(f"    best-of-N {what}: kept candidate {attempt + 1} of {candidates}")
             return last
     if candidates > 1:
         _log(f"    best-of-N {what}: no clean candidate; using last of {candidates}")
@@ -3221,8 +3220,12 @@ def _sample_verified_fix(
         written[path] = _write_file(out, path, cand)
         ok, _ = toolchain.check(out)
         if ok:
-            if attempt:
-                _log(f"    verified fix: candidate {attempt + 1} turns the project green")
+            # Log EVERY success, not just a second-candidate one. Suppressing the
+            # common case is exactly what hid best-of-N being dead for months: its
+            # success log also fired only when `attempt` was truthy, so a
+            # mechanism that never selected anything and a mechanism that always
+            # picked candidate 1 produced identical, silent logs.
+            _log(f"    verified fix: candidate {attempt + 1} turns the project green")
             return cand
     chosen = best_clean if best_clean is not None else last
     if not keeps_referenced(chosen) and keeps_referenced(original):
