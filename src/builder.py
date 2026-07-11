@@ -3840,6 +3840,117 @@ def _write_file(out: Path, rel_path: str, content: str) -> str:
 
 
 # --------------------------------------------------------------------------- #
+# Spec lint — catch a self-defeating spec before it costs a run
+# --------------------------------------------------------------------------- #
+
+# Every rule below is a failure that actually happened, cost a full generation,
+# and was only diagnosed by reading the artifact afterwards. All of them were
+# visible in the YAML the whole time.
+
+_FRESH_PER_CASE_RE = re.compile(
+    r"fresh\s+[\w.()+]+\s+per\s+case"          # "Fresh NewMemStore per case"
+    r"|per\s+case[,.]?\s+fresh"
+    r"|each\s+case\s+\w+\s+(a|its\s+own)\s+fresh"  # "Each case builds a FRESH router"
+    r"|fresh\s+\w+[\w.()+]*\s+for\s+each\s+case",
+    re.I,
+)
+
+# A spec that forbids the model's natural idiom does not win the argument. The
+# 7B writes a `Store` INTERFACE in every single generation; tasks-api told
+# store.go to make Store a concrete struct and "do NOT model it as an
+# interface", and across five rolls the model wrote the interface anyway — three
+# times alongside a StoreImpl (so nothing named NewStore existed) and twice
+# alongside a Store STRUCT (`Store redeclared in this block`). The collision was
+# manufactured by the ask. The fix that worked was to stop fighting: let the
+# interface have the name, and give the implementation a different one.
+_FIGHTS_PRIOR_RE = re.compile(
+    r"(do\s+NOT|don't|never)\s+model\s+it\s+as\s+an?\s+interface"
+    r"|not\s+an\s+interface\b"
+    r"|\(NOT\s+an\s+interface\)",
+    re.I,
+)
+_PRECONDITION_RE = re.compile(
+    r"dup(licate)?\b[^.]{0,40}(409|ErrExists)"
+    r"|get\s+(present|existing)"
+    r"|existing\s+\w+\s*->\s*200"
+    r"|delete\s+present",
+    re.I,
+)
+# A constructor the PROJECT must declare. The lookbehind is what makes it mean
+# that: `httptest.NewRecorder()` and `slog.NewTextHandler()` are the standard
+# library's, not ours, and matching them turns this rule into noise.
+_CTOR_CALL_RE = re.compile(r"(?<![.\w])(New[A-Z]\w*)\s*\(")
+
+
+def lint_spec(spec: Spec) -> list[str]:
+    """Static contradictions in a spec, found without running anything.
+
+    A generation costs minutes of GPU; several of this project's most expensive
+    debugging sessions ended at a spec that could not be satisfied by ANY
+    implementation. Those are cheap to catch by reading the YAML, and this reads
+    it.
+    """
+    problems: list[str] = []
+    tests = [f for f in spec.files if f.path.endswith("_test.go")]
+    impls = [
+        f for f in spec.files
+        if f.path.endswith(".go") and not f.path.endswith("_test.go")
+    ]
+
+    for f in tests:
+        purpose = f.purpose or ""
+
+        # 1. The seeding trap. "Fresh store per case" plus "duplicate -> 409" is
+        #    unsatisfiable: on a store nobody wrote to there is nothing to
+        #    duplicate and nothing to fetch. Seen in SEVEN specs.
+        if _FRESH_PER_CASE_RE.search(purpose) and _PRECONDITION_RE.search(purpose):
+            if not re.search(r"seed|create.{0,30}first|POST.{0,20}(first|ONCE)", purpose, re.I):
+                problems.append(
+                    f"{f.path}: asks for a FRESH instance per case AND a case with a "
+                    f"precondition (a duplicate, or an existing record). A fresh "
+                    f"instance is empty, so no implementation can pass both — say "
+                    f"the case must CREATE its precondition first."
+                )
+
+        # 2. A test that calls a constructor nobody is asked to write. The
+        #    compiler says `undefined: NewStore` and the fix loop cannot invent
+        #    it; tasks-api burned five rounds on exactly this.
+        for ctor in set(_CTOR_CALL_RE.findall(purpose)):
+            if not any(ctor in (i.purpose or "") for i in impls):
+                problems.append(
+                    f"{f.path}: calls {ctor}(), but no implementation file's "
+                    f"purpose promises to declare it — the build will fail with "
+                    f"`undefined: {ctor}`."
+                )
+
+    # 3. One name asked to be two things -> `X redeclared in this block`.
+    for f in impls:
+        purpose = f.purpose or ""
+        for m in re.finditer(r"\b([A-Z]\w*)\s+interface\b", purpose):
+            name = m.group(1)
+            if re.search(rf"\b{re.escape(name)}\s+struct\b", purpose):
+                problems.append(
+                    f"{f.path}: names {name} as BOTH an interface and a struct — "
+                    f"that is `{name} redeclared in this block`. Name the "
+                    f"implementation something else (e.g. Mem{name})."
+                )
+
+        # 4. A purpose that forbids the model's idiom. Empirically the spec loses
+        #    this argument, and the loss is expensive: five rolls, five broken
+        #    store.go. Name the two things differently instead of banning one.
+        if _FIGHTS_PRIOR_RE.search(purpose):
+            problems.append(
+                f"{f.path}: forbids the model from using an interface. It will "
+                f"write one anyway — every generation does — and the ban only "
+                f"decides HOW it breaks (a StoreImpl nothing calls, or two "
+                f"declarations of the same name). Let the interface keep the "
+                f"name and give the implementation a different one."
+            )
+
+    return problems
+
+
+# --------------------------------------------------------------------------- #
 # CLI
 # --------------------------------------------------------------------------- #
 
@@ -3888,6 +3999,11 @@ try:
     ) -> None:
         """Generate a project from SPEC into OUT using a pluggable coder model."""
         spec_obj = Spec.from_yaml(spec)
+        # A generation costs minutes of GPU, and several of the most expensive
+        # debugging sessions on this project ended at a spec no implementation
+        # could satisfy. Say so before spending the time, not after.
+        for problem in lint_spec(spec_obj):
+            _log(f"  spec-lint: {problem}")
         dev_coder = OpenAICoder(model=model, base_url=base_url)
         if test_model:
             # The guild splits work: dev specialist writes impl, test specialist

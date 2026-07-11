@@ -94,11 +94,25 @@ files:
       under a short context.WithTimeout. Standard library only.
   - path: taskflow_test.go
     purpose: >-
-      package main. Isolated table/flow tests (net/http/httptest) against
-      NewRouter(NewStore()). Each case builds a FRESH router+store (never share
-      state) and a FRESH request body per request (never reuse a drained buffer).
-      Cover: create a task -> 201 and echo; invalid task (bad status) -> 400;
-      duplicate task ID -> 409; GET missing -> 404; list tasks -> 200 with a JSON
-      array; pagination (?limit=1) returns at most 1; delete -> 204 then GET ->
-      404; malformed JSON (truncated bytes, not empty {}) -> 400; and the same
-      create/get happy-path for a project. Standard library only.
+      package main. Tests (net/http/httptest) against NewRouter(NewStore()).
+      Declare ONCE at package scope a zero-argument helper `newRouter()` returning
+      a FRESH router+store, and build a FRESH request body for every request
+      (never reuse a drained buffer).
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. A fresh
+      router is EMPTY, so any case with a precondition must CREATE it FIRST, by
+      POSTing, in its own body:
+      TestCreateOK: POST a valid task -> 201 and the body echoes it.
+      TestCreateInvalid: POST a task with a bad status -> 400.
+      TestCreateDuplicate: POST the task ONCE (expect 201), then POST THE SAME id
+      AGAIN -> 409. (Without the first POST there is nothing to duplicate.)
+      TestGetMissing: on a fresh router, GET an id nobody created -> 404.
+      TestList: POST one task FIRST, then GET the collection -> 200 and a JSON
+      array.
+      TestListLimit: POST TWO tasks FIRST, GET the collection and decode it into a
+      slice `all` (length 2); then make a SECOND request with ?limit=1, a FRESH
+      recorder, and decode THAT response into a SEPARATE slice `limited` before
+      asserting len(limited) <= 1. Do NOT re-assert on `all`.
+      TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
+      TestMalformedJSON: POST truncated bytes (NOT an empty `{}`) -> 400.
+      TestProjectCreateGet: POST a project, then GET it back.
+      Standard library only.

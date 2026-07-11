@@ -58,12 +58,21 @@ files:
       models package.
   - path: internal/store/memory_test.go
     purpose: >-
-      package store. Table/flow tests for MemStore (same package — call
-      NewMemStore, Store methods, ErrNotFound, ErrExists directly; use
-      models.Task via the imported models package). Each case builds a FRESH
-      NewMemStore (never shared). Cover create->nil then duplicate->ErrExists
-      (errors.Is); Get present->value / missing->ErrNotFound; List is id-sorted;
-      Delete present->nil then Get->ErrNotFound; Delete missing->ErrNotFound.
+      package store. Tests for MemStore (same package — call NewMemStore, Store
+      methods, ErrNotFound, ErrExists directly; use models.Task via the imported
+      models package).
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Each
+      builds its OWN fresh NewMemStore. A fresh store is EMPTY, so any case with a
+      precondition must CREATE it FIRST, in its own body:
+      TestCreateOK: Create -> nil.
+      TestCreateDuplicate: Create ONCE (expect nil), then Create the SAME id AGAIN
+      -> ErrExists (errors.Is). Without the first create there is nothing to
+      duplicate.
+      TestGetExisting: Create FIRST, then Get that id -> the stored value.
+      TestGetMissing: on a fresh store, Get an unknown id -> ErrNotFound.
+      TestListSorted: Create two tasks, then List -> id-sorted.
+      TestDelete: Create FIRST, Delete -> nil, then Get -> ErrNotFound.
+      TestDeleteMissing: on a fresh store, Delete an unknown id -> ErrNotFound.
       Run race-clean. Imports errors, testing, and the models package.
   - path: internal/api/response.go
     purpose: >-
