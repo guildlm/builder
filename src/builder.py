@@ -3682,7 +3682,16 @@ def _fix_loop(
                 # types the PURPOSE promises must exist even if the initial
                 # generation omitted them — otherwise no fix ever adds them
                 must_keep |= _required_decls(task.spec.purpose) - sibling_decls
-            if candidates > 1:
+            # The verified path writes each candidate and checks the WHOLE
+            # project, keeping the one that turns it green. That is only
+            # ACHIEVABLE when this file is the last thing standing: with other
+            # files still broken, no fix to this one can green the project, so the
+            # check cannot succeed and the second sample is drawn for nothing.
+            # It shows: `verified fix: candidate N turns the project green` has
+            # never once been logged across 163 real runs. So spend the extra
+            # generation only when it can pay — when this is the only file being
+            # fixed this round.
+            if candidates > 1 and len(targets) == 1:
                 code = _sample_verified_fix(
                     coder, fix_prompt, path, out, written, candidates, toolchain,
                     sibling_decls, path.endswith("_test.go"), must_keep,
