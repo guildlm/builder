@@ -44,12 +44,12 @@ func (s *svc) List(ctx context.Context, limit, offset int) ([]Project, error) {
 """
 
 
-def _err_at(src: str, needle: str) -> str:
+def _err_at(src: str, needle: str, path: str = "service.go", typ: str = "[]Project") -> str:
     line = next(i for i, l in enumerate(src.splitlines(), 1) if needle in l)
     col = src.splitlines()[line - 1].index(needle) + 1
     return (
-        f"./service.go:{line}:{col}: multiple-value {needle} "
-        f"(value of type ([]Project, error)) in single-value context"
+        f"./{path}:{line}:{col}: multiple-value {needle} "
+        f"(value of type ({typ}, error)) in single-value context"
     )
 
 
@@ -129,3 +129,52 @@ def test_noop_without_the_error():
 def test_composes_in_the_deterministic_gate_chain():
     out = _run_deterministic_gates({"service.go": SRC}, ERR, None)
     assert "items, err := s.store.ListProjects(ctx)" in out["service.go"]
+
+
+TEST_FN = """package shortener
+
+import (
+	"errors"
+	"testing"
+)
+
+func TestCodec(t *testing.T) {
+	if !errors.Is(Decode("!"), ErrBadCode) {
+		t.Errorf("Decode('!') = %v, want ErrBadCode", Decode("!"))
+	}
+	if !errors.Is(Decode(""), ErrBadCode) {
+		t.Errorf("Decode('') = %v, want ErrBadCode", Decode(""))
+	}
+}
+"""
+
+
+def test_in_a_test_the_error_is_caught_not_propagated():
+    """A TEST returns nothing, so there is nowhere to propagate an error to — and
+    the gate refused, and shortener failed a sweep on it.
+
+    But `errors.Is(X, target)` tells us, with certainty, that X must be the ERROR
+    of the two returns. That is the one shape where the choice is not a guess."""
+    err = _err_at(TEST_FN, 'Decode("!")', "shortener_test.go", "uint64")
+    body = _fix_multivalue_in_single_context({"shortener_test.go": TEST_FN}, err)[
+        "shortener_test.go"
+    ]
+    assert '_, err := Decode("!")' in body
+    assert "errors.Is(err, ErrBadCode)" in body
+    # The SAME call inside the if-body is repaired too, not left behind: the only
+    # `Decode("!")` still in the file is the hoisted one.
+    assert body.count('Decode("!")') == 1
+    assert 't.Errorf("Decode(\'!\') = %v, want ErrBadCode", err)' in body
+
+
+def test_it_refuses_when_the_wanted_value_is_a_guess():
+    """`if Decode("x") != 5` wants the VALUE, not the error. Nothing says which of
+    the two returns the caller meant, so the gate stays out."""
+    src = TEST_FN.replace(
+        '\tif !errors.Is(Decode("!"), ErrBadCode) {\n'
+        '\t\tt.Errorf("Decode(\'!\') = %v, want ErrBadCode", Decode("!"))\n'
+        '\t}\n',
+        '\tif Decode("x") != 5 {\n\t\tt.Errorf("boom")\n\t}\n',
+    )
+    err = _err_at(src, 'Decode("x")', "shortener_test.go", "uint64")
+    assert _fix_multivalue_in_single_context({"shortener_test.go": src}, err) == {}

@@ -37,6 +37,7 @@ import (
 	"io"
 	"os"
 	"strconv"
+	"strings"
 )
 
 func main() {
@@ -96,14 +97,39 @@ func main() {
 			return true
 		})
 	}
-	if call == nil || fn.Type.Results == nil {
+	if call == nil {
 		fmt.Fprintln(os.Stderr, "NOOP")
 		os.Exit(3)
 	}
 
-	// The function must end in `error`, or there is nowhere for the error to go.
-	results := flatten(fn.Type.Results)
+	// A TEST does not return an error — it CATCHES one. So when the enclosing
+	// function has no error to propagate, the repair is different and only one
+	// shape of it is unambiguous:
+	//
+	//	if !errors.Is(Decode("!"), ErrBadCode) {        // two values, one slot
+	//	        t.Errorf("Decode('!') = %v", Decode("!"))
+	//	}
+	//
+	// becomes
+	//
+	//	_, err := Decode("!")
+	//	if !errors.Is(err, ErrBadCode) {
+	//	        t.Errorf("Decode('!') = %v", err)
+	//	}
+	//
+	// What makes it safe is `errors.Is`: whatever sits in its first argument MUST
+	// be an error, so we know WHICH of the two returns the caller wanted. Used
+	// anywhere else — `if Decode("x") != 5` wants the VALUE, not the error — the
+	// choice is a guess, and we refuse.
+	var results []ast.Expr
+	if fn.Type.Results != nil {
+		results = flatten(fn.Type.Results)
+	}
 	if len(results) == 0 || !isError(results[len(results)-1]) {
+		if isErrorsIsArgument(stmt, call) {
+			hoistAsError(fset, file, fn, block, stmt, call)
+			return
+		}
 		fmt.Fprintln(os.Stderr, "NOOP: enclosing function does not return an error")
 		os.Exit(3)
 	}
@@ -155,6 +181,113 @@ func main() {
 		fmt.Fprintln(os.Stderr, "format:", err)
 		os.Exit(2)
 	}
+}
+
+// isErrorsIsArgument reports whether the call sits in the FIRST argument of an
+// errors.Is(...) — the one place a two-value call can appear where we know for
+// certain which of its returns was wanted.
+func isErrorsIsArgument(stmt ast.Stmt, call *ast.CallExpr) bool {
+	found := false
+	ast.Inspect(stmt, func(n ast.Node) bool {
+		outer, ok := n.(*ast.CallExpr)
+		if !ok || len(outer.Args) == 0 || outer.Args[0] != ast.Expr(call) {
+			return true
+		}
+		sel, ok := outer.Fun.(*ast.SelectorExpr)
+		if !ok || sel.Sel.Name != "Is" {
+			return true
+		}
+		if pkg, ok := sel.X.(*ast.Ident); ok && pkg.Name == "errors" {
+			found = true
+		}
+		return true
+	})
+	return found
+}
+
+// hoistAsError pulls the call out into `_, err := call` before the statement and
+// puts `err` wherever that exact call appeared inside it — including in the body,
+// so `t.Errorf("… %v", Decode("!"))` is repaired along with the condition.
+func hoistAsError(
+	fset *token.FileSet, file *ast.File, fn *ast.FuncDecl, block *ast.BlockStmt,
+	stmt ast.Stmt, call *ast.CallExpr,
+) {
+	// The name has to be free across the whole FUNCTION, not just this statement.
+	// A test asserting two different bad inputs gets hoisted twice — once per
+	// compiler error, in separate passes — and the second `_, err :=` in the same
+	// block is `no new variables on left side`. Which is exactly what happened.
+	name := ""
+	for _, candidate := range []string{"err", "gotErr", "wantErr", "e2", "e3"} {
+		if !usesIdent(fn, candidate) {
+			name = candidate
+			break
+		}
+	}
+	if name == "" {
+		fmt.Fprintln(os.Stderr, "NOOP: no free name")
+		os.Exit(3)
+	}
+	text := exprText(fset, call)
+	replaceCallsByText(fset, stmt, text, ast.NewIdent(name))
+
+	hoist := &ast.AssignStmt{
+		Lhs: []ast.Expr{ast.NewIdent("_"), ast.NewIdent(name)},
+		Tok: token.DEFINE,
+		Rhs: []ast.Expr{&ast.CallExpr{Fun: call.Fun, Args: call.Args}},
+	}
+	var out []ast.Stmt
+	for _, s := range block.List {
+		if s == stmt {
+			out = append(out, hoist)
+		}
+		out = append(out, s)
+	}
+	block.List = out
+	if err := format.Node(os.Stdout, fset, file); err != nil {
+		fmt.Fprintln(os.Stderr, "format:", err)
+		os.Exit(2)
+	}
+}
+
+func usesIdent(n ast.Node, name string) bool {
+	found := false
+	ast.Inspect(n, func(x ast.Node) bool {
+		if id, ok := x.(*ast.Ident); ok && id.Name == name {
+			found = true
+		}
+		return true
+	})
+	return found
+}
+
+func exprText(fset *token.FileSet, e ast.Expr) string {
+	var b strings.Builder
+	_ = format.Node(&b, fset, e)
+	return b.String()
+}
+
+// replaceCallsByText swaps every call whose source text matches `text` — the same
+// call can appear more than once in a statement, and each occurrence is the same
+// mistake.
+func replaceCallsByText(fset *token.FileSet, root ast.Node, text string, with ast.Expr) {
+	ast.Inspect(root, func(n ast.Node) bool {
+		switch t := n.(type) {
+		case *ast.CallExpr:
+			for i, a := range t.Args {
+				if c, ok := a.(*ast.CallExpr); ok && exprText(fset, c) == text {
+					t.Args[i] = with
+				}
+			}
+		case *ast.BinaryExpr:
+			if c, ok := t.X.(*ast.CallExpr); ok && exprText(fset, c) == text {
+				t.X = with
+			}
+			if c, ok := t.Y.(*ast.CallExpr); ok && exprText(fset, c) == text {
+				t.Y = with
+			}
+		}
+		return true
+	})
 }
 
 func flatten(fl *ast.FieldList) []ast.Expr {
