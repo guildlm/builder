@@ -3700,18 +3700,25 @@ def maintain(
     impl_targets = [p for p in targets if not p.endswith("_test.go")]
     test_targets = [p for p in targets if p.endswith("_test.go")]
 
+    # The project's own module path, so a candidate importing a SIBLING package is
+    # not mistaken for one reaching out to gorilla/mux — the bug that silently
+    # killed candidate selection in every multi-package project.
+    _mm = re.search(r"^module\s+(\S+)", current.get("go.mod", ""), re.M)
+    module = _mm.group(1) if _mm else None
+
     for path in impl_targets:
         _edit(path)
     if impl_targets:
         _log("staged maintain: converging the implementation (build+vet) before tests")
         _fix_loop(_tasks(), current, out, toolchain, coder, max_fix_rounds, candidates,
-                  check=toolchain.build_vet)
+                  check=toolchain.build_vet, module=module)
     for path in test_targets:
         _edit(path)
 
     # 4. full verify (build+vet+test) + repair to green
     tasks = _tasks()
-    if _fix_loop(tasks, current, out, toolchain, coder, max_fix_rounds, candidates):
+    if _fix_loop(tasks, current, out, toolchain, coder, max_fix_rounds, candidates,
+                 module=module):
         if reviewer is not None and review_rounds > 0:
             spec = Spec(
                 name=out.name, description=f"maintained: {request}",
