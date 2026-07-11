@@ -25,10 +25,16 @@ files:
       first: either prepend alphabet[n%62] to the front each iteration, or collect
       then REVERSE before returning. A correct result has Encode(62) == "10"
       (because 62 = 1*62 + 0), never "01".
-      Decode(s string) (uint64, error): result := uint64(0); for each byte c in s,
-      find its index i in the alphabet (return the sentinel ErrBadCode, matchable
-      with errors.Is, for an empty string or any char not in the alphabet); set
-      result = result*62 + uint64(i); return result.
+      Decode(s string) (uint64, error), in exactly this order:
+      (1) FIRST, before any loop: `if s == "" { return 0, ErrBadCode }`. An empty
+      string is invalid. This MUST be its own guard at the top — an empty string
+      never enters the loop, so a check inside the loop body never runs and Decode
+      wrongly returns (0, nil).
+      (2) Then result := uint64(0); for each byte c in s, find its index i in the
+      alphabet; if the char is not in the alphabet return 0, ErrBadCode; otherwise
+      set result = result*62 + uint64(i).
+      (3) Return result, nil.
+      ErrBadCode is a sentinel, matchable with errors.Is.
       Encode and Decode MUST be exact inverses: Decode(Encode(n)) == n for every n.
       Standard library only.
   - path: store.go
