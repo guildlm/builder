@@ -615,6 +615,30 @@ def _generate_prompt(
         if task.spec.path.endswith(".go") and not task.spec.path.endswith("_test.go")
         else ""
     )
+    # The plan splits a package into an interface file and an implementation file.
+    # The model, writing the interface file, helpfully implements it there too —
+    # and then the implementation file has nothing left to declare, its candidate
+    # is stripped of every symbol its sibling already owns, and it ships as a bare
+    # `package store`. EVERY multi-package spec in the suite carried one of these
+    # dead files (workapi, taskapi, taskapipro, tasks-api). The project still
+    # compiles — Go does not care which file in a package holds what — so nothing
+    # ever complained.
+    _siblings = [
+        f.path for f in spec.files
+        if f.path != task.spec.path
+        and f.path.endswith(".go") and not f.path.endswith("_test.go")
+    ]
+    scope_rule = (
+        "STAY IN YOUR LANE: write ONLY what THIS file's purpose asks for. The "
+        "plan above gives the other files their own jobs — if another file is "
+        "responsible for something (the in-memory implementation, the handlers, "
+        "the router), do NOT also write it here. Doing its job leaves that file "
+        "nothing to declare, it ships EMPTY, and the project no longer matches the "
+        "plan it was built from.\n\n"
+        if _siblings and task.spec.path.endswith(".go")
+        and not task.spec.path.endswith("_test.go")
+        else ""
+    )
     # container/list has a subtle API trap: PushFront/PushBack take the VALUE and
     # create the *list.Element for you. A small model often hand-builds a
     # &list.Element{Value: v} and passes THAT, which the compiler accepts (both are
@@ -649,6 +673,7 @@ def _generate_prompt(
         f"{cross_pkg_rule}"
         f"{routing_rule}"
         f"{completeness_rule}"
+        f"{scope_rule}"
         f"{list_rule}"
         f"{test_rule}"
         f"Write the complete contents of {task.spec.path}. "
@@ -1037,6 +1062,18 @@ def top_level_decls(code: str) -> set[str]:
 _METHOD_DECL_RE = re.compile(
     r"^func\s*\(\s*(?:\w+\s+)?\*?(\w+)(?:\[[^\]]*\])?\s*\)\s*(\w+)", re.MULTILINE
 )
+
+
+def empty_go_files(written: dict[str, str]) -> list[str]:
+    """Implementation files that were generated but declare NOTHING — a bare
+    `package store`. The spec asked for content there; a sibling wrote it instead,
+    and the redeclaration stripper then emptied this file. Go compiles it happily,
+    so only an explicit check ever notices."""
+    return [
+        p for p, code in sorted(written.items())
+        if p.endswith(".go") and not p.endswith("_test.go")
+        and not (top_level_decls(code) | method_decls(code))
+    ]
 
 
 def method_decls(code: str) -> set[str]:
@@ -3495,6 +3532,15 @@ def build(
     written: dict[str, str] = {}
 
     def _finish_green() -> tuple[bool, dict[str, str]]:
+        # A green build is not the same as the project that was asked for. When
+        # the model implements a sibling's job in its own file, the sibling ends
+        # up with nothing left to declare and ships as a bare `package store` —
+        # and Go, which does not care which file in a package holds what, greens
+        # anyway. Four of the suite's multi-package artifacts carried a dead file
+        # like this and nothing ever said so.
+        for path in empty_go_files(written):
+            _log(f"  WARNING: {path} shipped EMPTY — a sibling did its job; the "
+                 f"project does not match its own plan")
         if reviewer is not None and review_rounds > 0:
             _log("review pass (catch bugs that survive a green build)")
             _review_pass(spec, tasks, written, out, toolchain, reviewer, review_rounds)

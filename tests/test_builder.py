@@ -902,3 +902,48 @@ def test_seeding_rule_is_absent_from_non_test_files():
     )
     prompt = _generate_prompt(spec, plan(spec)[0], {}, None)
     assert "ISOLATE STATE, THEN SEED IT" not in prompt
+
+
+def test_empty_go_files_finds_a_file_a_sibling_emptied():
+    """Every multi-package artifact in the suite shipped a bare `package store` —
+    the model implemented MemStore in store.go, so memory.go had nothing left to
+    declare. Go compiles it happily; only an explicit check notices."""
+    from src.builder import empty_go_files
+
+    written = {
+        "store.go": "package store\n\ntype Store interface{ Get() error }\n"
+        "type MemStore struct{}\n\nfunc (m *MemStore) Get() error { return nil }\n",
+        "memory.go": "package store\n",
+        "store_test.go": "package store\n",   # a test file is not our business
+    }
+    assert empty_go_files(written) == ["memory.go"]
+
+
+def test_empty_go_files_accepts_a_file_that_declares_something():
+    from src.builder import empty_go_files
+
+    written = {"memory.go": "package store\n\ntype MemStore struct{}\n"}
+    assert empty_go_files(written) == []
+
+
+def test_scope_rule_tells_a_file_to_stay_in_its_lane():
+    spec = Spec(
+        name="x",
+        description="d",
+        files=(
+            FileSpec(path="store.go", purpose="package store. The Store interface."),
+            FileSpec(path="memory.go", purpose="package store. The MemStore impl."),
+        ),
+    )
+    prompt = _generate_prompt(spec, plan(spec)[0], {}, None)
+    assert "STAY IN YOUR LANE" in prompt
+
+
+def test_scope_rule_is_absent_when_the_file_stands_alone():
+    spec = Spec(
+        name="x",
+        description="d",
+        files=(FileSpec(path="main.go", purpose="package main. Everything."),),
+    )
+    prompt = _generate_prompt(spec, plan(spec)[0], {}, None)
+    assert "STAY IN YOUR LANE" not in prompt
