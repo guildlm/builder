@@ -2484,6 +2484,126 @@ def _fix_pointer_to_interface(
     return changed
 
 
+# `t.Fatalf undefined (type Task has no field or method Fatalf)` — the tester was
+# shadowed. Distinguished from the plain no-method error by the receiver being
+# literally `t` and the selector being a *testing.T method.
+_SHADOWED_T_RE = re.compile(
+    r"\bt\.(\w+) undefined \(type (\w+) has no field or method \1\)"
+)
+
+# Methods that belong to *testing.T. A domain type declaring one of these makes
+# `t.X` genuinely ambiguous inside the shadow, and the gate refuses to guess.
+_TESTING_METHODS = frozenset(
+    """Fatal Fatalf Error Errorf Log Logf Fail FailNow Failed Skip Skipf SkipNow
+    Skipped Helper Cleanup Parallel Run TempDir Setenv Chdir Name Deadline""".split()
+)
+
+_SHADOWFIX = Path(__file__).resolve().parent.parent / "tools" / "shadowfix.go"
+
+# Field names declared at the start of a line inside a struct body.
+_FIELD_NAME_RE = re.compile(r"^\s*([A-Za-z_]\w*(?:\s*,\s*[A-Za-z_]\w*)*)\s+\S", re.M)
+
+
+def _type_members(written: dict[str, str], typ: str) -> set[str]:
+    """Every method and struct field name belonging to ``typ`` across the project.
+    Used only to REFUSE work: a domain type carrying a testing-shaped member (a
+    ``Task.Name`` field is entirely ordinary) makes ``t.Name`` inside a shadow
+    ambiguous, and an ambiguous rename is worse than none."""
+    members: set[str] = set()
+    for code in written.values():
+        for recv, name in _METHOD_DECL_RE.findall(code):
+            if recv == typ:
+                members.add(name)
+        span = _struct_body_span(code, typ)
+        if span:
+            body = code[span[0] + 1:span[1]]
+            for group in _FIELD_NAME_RE.findall(body):
+                members.update(n.strip() for n in group.split(","))
+    return members
+
+
+def _struct_body_span(code: str, typ: str) -> tuple[int, int] | None:
+    """Brace-matched span of ``type <typ> struct { ... }``, or None."""
+    m = re.search(rf"\btype\s+{re.escape(typ)}\b[^{{\n]*\bstruct\s*{{", code)
+    if not m:
+        return None
+    open_b = code.index("{", m.end() - 1)
+    depth = 0
+    for i in range(open_b, len(code)):
+        if code[i] == "{":
+            depth += 1
+        elif code[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return open_b, i
+    return None
+
+
+def _fix_shadowed_tester(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``t.Fatalf undefined (type Task has no field or method Fatalf)`` — the
+    model wrote ``for _, t := range tasks``, so the loop variable shadows the
+    ``t *testing.T`` parameter and every ``t.Fatalf`` in the body now resolves to
+    a Task. This is the last stochastic failure mode left in the suite, and it is
+    NUDGE-RESISTANT: an explicit "never name a variable t" instruction in the
+    spec did not hold across repeated rolls. A gate is the only reliable fix.
+
+    The repair is a scope-aware rename of the SHADOW (never the tester): the
+    declaration and every non-tester use of ``t`` inside the shadowed scope get a
+    fresh name, while ``t.<testing method>`` is left alone so it binds to the
+    un-shadowed ``*testing.T`` again::
+
+        for _, tk := range tasks {
+                if err := s.Create(tk); err != nil {   // the domain value
+                        t.Fatalf("Create: %v", err)   // the tester, restored
+                }
+        }
+
+    Renaming a single-letter identifier is exactly where a regex would be unsafe
+    (selectors, nested closures, struct fields, inner re-shadows), so the rewrite
+    runs on a real ``go/ast`` walk in ``tools/shadowfix.go`` and bails on any
+    construct it cannot resolve with certainty. This gate can only ever touch a
+    file the compiler has ALREADY rejected with this error, so it cannot regress
+    a green file. It no-ops on anything unexpected — a missing toolchain, a
+    parse error, or a domain type that itself declares a testing-shaped method
+    (which would make ``t.X`` ambiguous).
+    """
+    hits = {(m.group(2), m.group(1)) for m in _SHADOWED_T_RE.finditer(error_output)}
+    if not hits or not _SHADOWFIX.exists():
+        return {}
+
+    # Ambiguity guard: a shadowing type that declares a testing-shaped member —
+    # a `Task.Name` field, an `Error()` method — makes `t.Name` inside the scope
+    # readable as either the domain value or the tester. Refuse the whole file.
+    for typ, _ in hits:
+        if _type_members(written, typ) & _TESTING_METHODS:
+            return {}
+
+    targets = [
+        p for p in _offending_files(error_output, list(written))
+        if p.endswith("_test.go")
+    ]
+    changed: dict[str, str] = {}
+    for path in targets:
+        try:
+            proc = subprocess.run(
+                ["go", "run", str(_SHADOWFIX)],
+                input=written[path],
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return {}  # no toolchain, no opinion
+        if proc.returncode != 0 or not proc.stdout.strip():
+            continue  # exit 3 = nothing to do; anything else = stay out of it
+        if proc.stdout != written[path]:
+            changed[path] = proc.stdout
+            _log(f"  renamed the loop variable shadowing t *testing.T in {path}")
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -2511,6 +2631,7 @@ def _run_deterministic_gates(
     requal.update(_fix_middleware_arity({**written, **requal}, output))
     requal.update(_fix_interface_missing_method({**written, **requal}, output))
     requal.update(_fix_pointer_to_interface({**written, **requal}, output))
+    requal.update(_fix_shadowed_tester({**written, **requal}, output))
     return requal
 
 
