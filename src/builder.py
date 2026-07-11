@@ -1154,7 +1154,13 @@ def exported_api(code: str) -> str:
 
 
 _UNDEF_QUAL_RE = re.compile(r"([\w./-]+\.go):\d+:\d+: undefined: (\w+)\.(\w+)")
-_UNDEF_BARE_RE = re.compile(r"([\w./-]+\.go):\d+:\d+: undefined: (\w+)(?!\s*\.)")
+# `\b` before the lookahead is load-bearing. Written as `(\w+)(?!\s*\.)` the
+# engine backtracks: `undefined: NewStore` followed on the NEXT LINE by
+# `./store_test.go:...` lets `\s*` cross the newline, the lookahead sees that
+# leading dot, and the match shrinks to `NewStor` — a symbol that does not
+# exist. `\b` forbids the shrink, so either the whole identifier matches or
+# nothing does.
+_UNDEF_BARE_RE = re.compile(r"([\w./-]+\.go):\d+:\d+: undefined: (\w+)\b(?!\.)")
 
 # Stdlib packages a small model plausibly confuses symbols between. Order is
 # the lookup order; first `go doc <pkg>.<Sym>` hit wins.
@@ -2657,6 +2663,70 @@ def _fix_shadowed_tester(
     return changed
 
 
+# `func NewStoreImpl() *StoreImpl {` — a constructor taking no arguments and
+# returning a single value, which is the only shape we can safely delegate to.
+_CTOR_DECL_RE = re.compile(r"^func\s+(New\w+)\(\)\s+([^\s({][^{\n]*?)\s*\{", re.M)
+
+
+def _fix_missing_constructor_alias(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``undefined: NewStore`` — the spec told store.go, emphatically, to expose a
+    constructor named EXACTLY ``NewStore``, and the model wrote a ``Store``
+    interface with a ``StoreImpl`` built by ``NewStoreImpl`` instead. Everything
+    else in the project — handlers, main — is internally consistent with the name
+    the model chose; only the callers the spec pinned to ``NewStore`` (the tests)
+    fail to compile.
+
+    This prior is immovable. Across repeated rolls the model wrote
+    ``StoreImpl``/``NewStoreImpl`` every single time, and it kept writing it even
+    when store.go was regenerated with ``undefined: NewStore`` in the fix prompt.
+    A spec cannot argue a 7B out of an idiom it is this sure about — which is the
+    whole reason gates exist.
+
+    The repair is provable rather than persuasive: when the missing constructor's
+    name is a PREFIX of exactly one zero-argument constructor the package already
+    declares, append an alias that delegates to it::
+
+        func NewStore() *StoreImpl { return NewStoreImpl() }
+
+    It compiles by construction — the delegate exists, takes nothing and returns
+    one value — and the returned type satisfies whatever interface the project
+    declared, because that is the type the model built everything else around.
+    Bails on any ambiguity: several candidate constructors, a candidate that takes
+    arguments or returns a tuple, or a name that is already declared."""
+    declared: set[str] = set()
+    for p, c in written.items():
+        if p.endswith(".go"):
+            declared |= top_level_decls(c)
+    missing = {
+        m.group(2) for m in _UNDEF_BARE_RE.finditer(error_output)
+        if m.group(2).startswith("New") and m.group(2) not in declared
+    }
+    changed: dict[str, str] = {}
+    for name in missing:
+        candidates = [
+            (p, ctor, ret)
+            for p, c in written.items()
+            if p.endswith(".go") and not p.endswith("_test.go")
+            for ctor, ret in _CTOR_DECL_RE.findall(changed.get(p, c))
+            if ctor != name and ctor.startswith(name)
+        ]
+        if len(candidates) != 1:
+            continue  # nobody to delegate to, or no way to choose — leave it
+        path, ctor, ret = candidates[0]
+        src = changed.get(path, written[path])
+        changed[path] = (
+            src.rstrip("\n")
+            + f"\n\n// {name} is the constructor name the rest of the project was\n"
+            f"// specified to call; it delegates to the one declared above.\n"
+            f"func {name}() {ret} {{ return {ctor}() }}\n"
+        )
+        _log(f"  added the specified constructor {name} in {path}, "
+             f"delegating to {ctor}")
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -2685,6 +2755,7 @@ def _run_deterministic_gates(
     requal.update(_fix_interface_missing_method({**written, **requal}, output))
     requal.update(_fix_pointer_to_interface({**written, **requal}, output))
     requal.update(_fix_shadowed_tester({**written, **requal}, output))
+    requal.update(_fix_missing_constructor_alias({**written, **requal}, output))
     return requal
 
 

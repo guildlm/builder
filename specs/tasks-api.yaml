@@ -75,11 +75,18 @@ files:
       expected. Cover exactly:
       TestStoreCreateGet: create a task with Title "a"; then Get id 1 and assert
       its Title == "a".
-      TestStoreListSorted: create two tasks; List and assert len == 2 with ids in
-      ascending order.
-      TestStoreUpdateDelete: create a task (id 1); Update id 1 to Title "b";
-      assert Get id 1 now has Title "b"; Delete id 1; then Get id 1 returns
-      ErrNotFound (errors.Is).
+      TestStoreListSorted: create Title "b" FIRST, then Title "a". List is sorted
+      by ID (NOT by title), and ids are assigned in creation order, so the result
+      is EXACTLY: len 2, list[0].ID == 1 && list[0].Title == "b", list[1].ID == 2
+      && list[1].Title == "a". Assert those exact values — do NOT expect the
+      titles in alphabetical order.
+      TestStoreUpdateDelete: create a task with Title "a". NOTE Create takes the
+      Task BY VALUE and the store assigns the id internally, so your local
+      variable does NOT come back with an ID — to update it you must first
+      `got, err := s.Get(1)`, then set got.Title = "b" and call s.Update(got).
+      (Calling Update on the value you passed to Create sends ID 0 and returns
+      ErrNotFound.) Then assert Get id 1 has Title "b"; Delete id 1; then Get id 1
+      returns ErrNotFound (errors.Is).
       TestStoreMissing: on a FRESH store, Get/Update/Delete of id 99 each return
       ErrNotFound.
       TestStoreConcurrent: launch many goroutines that each Create a task, join
