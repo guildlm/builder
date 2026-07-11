@@ -163,15 +163,39 @@ files:
       log/slog, net/http, and the service package.
   - path: internal/api/router_test.go
     purpose: >-
-      package api. Integration tests (net/http/httptest) against NewRouter built
+      package api. Integration tests (net/http/httptest). Declare ONCE at package
+      scope a zero-argument helper `newRouter()` returning a FRESH router built
       from service.NewTaskService(store.NewMemStore()),
       service.NewProjectService(store.NewMemStore()) and
-      slog.New(slog.NewTextHandler(io.Discard, nil)). Fresh router+store per
-      case, fresh request body per request. Cover: POST valid task->201+echo;
-      invalid status->400; duplicate->409; GET missing->404; GET->200; list->200
-      JSON array; ?limit=1 returns at most 1; DELETE->204 then GET->404;
-      malformed JSON (truncated)->400; project create/get; GET /healthz->200; GET
-      /readyz->200. Imports bytes, encoding/json, io, log/slog, net/http,
+      slog.New(slog.NewTextHandler(io.Discard, nil)).
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Every
+      function calls newRouter() for its own fresh router+store, and builds a
+      FRESH request body for every request.
+      CRITICAL: a fresh store is EMPTY, so any case with a precondition must
+      CREATE that precondition ITSELF by POSTing first — a "duplicate" or an
+      "existing task" cannot exist on a store nobody has written to. Write exactly
+      these, each self-contained:
+      TestCreateOK: POST a valid task -> 201 and the body echoes it.
+      TestCreateInvalidStatus: POST a task with a bad status -> 400.
+      TestCreateDuplicate: POST the task ONCE (expect 201), then POST THE SAME id
+      AGAIN -> 409. (Without the first POST there is nothing to duplicate.)
+      TestGetMissing: on a fresh router, GET an id nobody created -> 404.
+      TestGetExisting: POST a task FIRST (expect 201), then GET that same id ->
+      200 with the stored fields.
+      TestList: POST one task FIRST, then GET the collection -> 200 and a JSON
+      array.
+      TestListLimit: POST TWO tasks FIRST, GET the collection and json-decode it
+      into a slice named `all` (length 2); then make a SECOND request with
+      ?limit=1, using a FRESH recorder, and json-decode THAT response into a
+      SEPARATE slice named `limited` before asserting len(limited) <= 1. Do NOT
+      re-assert on `all` — it still holds 2 items and the check would fail no
+      matter what the handler did.
+      TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
+      TestMalformedJSON: POST truncated bytes like `{"title":` (NOT an empty `{}`)
+      -> 400.
+      TestProjectCreateGet: POST a project, then GET it back -> 200.
+      TestHealthz: GET /healthz -> 200; GET /readyz -> 200.
+      Imports bytes, encoding/json, io, log/slog, net/http,
       net/http/httptest, testing, and the service + store + models packages.
       Never name a local variable `t`.
   - path: cmd/server/main.go

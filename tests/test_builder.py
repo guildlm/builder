@@ -874,3 +874,31 @@ def test_required_decls_includes_func_main():
         "package main. func main() wiring the server with graceful shutdown."
     )
     assert "main" not in _required_decls("package api. HTTP handlers.")
+
+
+def test_test_rule_teaches_seeding_not_just_isolation():
+    """The old ISOLATE-STATE default taught only half the rule — construct a fresh
+    instance per case — and a fresh instance is EMPTY. Six specs in a row wrote a
+    `duplicate -> 409` case against a store nobody had written to, got 201, and
+    failed no matter how correct the handler was. The default must carry the other
+    half: seed your own precondition."""
+    spec = Spec(
+        name="x",
+        description="d",
+        files=(FileSpec(path="router_test.go", purpose="package main. Tests."),),
+    )
+    prompt = _generate_prompt(spec, plan(spec)[0], {}, None)
+    assert "ISOLATE STATE, THEN SEED IT" in prompt
+    assert "CREATE that precondition ITSELF" in prompt
+    assert "SEPARATE FOCUSED TEST FUNCTIONS" in prompt
+    assert "ASSERT ON WHAT YOU JUST FETCHED" in prompt
+
+
+def test_seeding_rule_is_absent_from_non_test_files():
+    spec = Spec(
+        name="x",
+        description="d",
+        files=(FileSpec(path="store.go", purpose="package main. A store."),),
+    )
+    prompt = _generate_prompt(spec, plan(spec)[0], {}, None)
+    assert "ISOLATE STATE, THEN SEED IT" not in prompt
