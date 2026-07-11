@@ -94,6 +94,19 @@ def test_noop_without_the_error():
     assert _fix_missing_constructor_alias(WRITTEN, "") == {}
 
 
+def test_aliases_in_the_other_direction_too():
+    # The mirror image, seen in the probe: store.go declared NewStore (as the
+    # spec asked), and the TEST reached for the concrete NewMemStore instead.
+    # Exactly one constructor builds the thing either way.
+    store = (
+        "package main\n\ntype Store interface{ Create(t Task) error }\n\n"
+        "type MemStore struct{}\n\nfunc NewStore() Store { return &MemStore{} }\n"
+    )
+    err = "./handlers_test.go:11:47: undefined: NewMemStore\n"
+    body = _fix_missing_constructor_alias({"store.go": store}, err)["store.go"]
+    assert "func NewMemStore() Store { return NewStore() }" in body
+
+
 def test_composes_in_the_deterministic_gate_chain():
     out = _run_deterministic_gates(WRITTEN, ERR, None)
     assert "func NewStore() *StoreImpl { return NewStoreImpl() }" in out["store.go"]

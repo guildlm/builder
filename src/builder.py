@@ -2668,6 +2668,13 @@ def _fix_shadowed_tester(
 _CTOR_DECL_RE = re.compile(r"^func\s+(New\w+)\(\)\s+([^\s({][^{\n]*?)\s*\{", re.M)
 
 
+def _same_thing(a: str, b: str) -> bool:
+    """Do two constructor suffixes name the same thing? ``Store`` and ``MemStore``
+    do (one contains the other); ``Store`` and ``Cache`` do not. Empty names never
+    match, so ``New`` alone relates to nothing."""
+    return bool(a) and bool(b) and (a in b or b in a)
+
+
 def _fix_missing_constructor_alias(
     written: dict[str, str], error_output: str
 ) -> dict[str, str]:
@@ -2694,12 +2701,15 @@ def _fix_missing_constructor_alias(
     one value — and the returned type satisfies whatever interface the project
     declared, because that is the type the model built everything else around.
 
-    "The same thing" is checked by name: the missing ``NewStore`` names a
-    ``Store``, and a candidate qualifies only if its own name contains that word
-    (``NewMemStore``, ``NewStoreImpl``, ``NewInMemoryStore``) — so a lone
-    ``NewCache`` is never mistaken for the store. Bails on any ambiguity: several
-    candidates, a candidate that takes arguments or returns a tuple, or a name
-    that is already declared."""
+    "The same thing" is checked by name, in either direction: the missing
+    ``NewStore`` names a ``Store`` and ``NewMemStore``/``NewStoreImpl`` contain
+    it, while a call to the missing ``NewMemStore`` in a package that declares
+    ``NewStore`` names something the declared constructor already builds. Both
+    directions happen — the model picks the abstract name in one file and the
+    concrete one in another — and either way exactly one constructor exists to
+    delegate to. A lone ``NewCache`` is related to neither and is never mistaken
+    for the store. Bails on any ambiguity: several candidates, a candidate that
+    takes arguments or returns a tuple, or a name that is already declared."""
     declared: set[str] = set()
     for p, c in written.items():
         if p.endswith(".go"):
@@ -2718,7 +2728,7 @@ def _fix_missing_constructor_alias(
             for p, c in written.items()
             if p.endswith(".go") and not p.endswith("_test.go")
             for ctor, ret in _CTOR_DECL_RE.findall(changed.get(p, c))
-            if ctor != name and thing in ctor
+            if ctor != name and _same_thing(thing, ctor[len("New"):])
         ]
         if len(candidates) != 1:
             continue  # nobody to delegate to, or no way to choose — leave it
