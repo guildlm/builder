@@ -2684,17 +2684,22 @@ def _fix_missing_constructor_alias(
     A spec cannot argue a 7B out of an idiom it is this sure about — which is the
     whole reason gates exist.
 
-    The repair is provable rather than persuasive: when the missing constructor's
-    name is a PREFIX of exactly one zero-argument constructor the package already
-    declares, append an alias that delegates to it::
+    The repair is provable rather than persuasive: when exactly one zero-argument
+    constructor in the package builds the same thing under a different name,
+    append an alias that delegates to it::
 
-        func NewStore() *StoreImpl { return NewStoreImpl() }
+        func NewStore() *MemStore { return NewMemStore() }
 
     It compiles by construction — the delegate exists, takes nothing and returns
     one value — and the returned type satisfies whatever interface the project
     declared, because that is the type the model built everything else around.
-    Bails on any ambiguity: several candidate constructors, a candidate that takes
-    arguments or returns a tuple, or a name that is already declared."""
+
+    "The same thing" is checked by name: the missing ``NewStore`` names a
+    ``Store``, and a candidate qualifies only if its own name contains that word
+    (``NewMemStore``, ``NewStoreImpl``, ``NewInMemoryStore``) — so a lone
+    ``NewCache`` is never mistaken for the store. Bails on any ambiguity: several
+    candidates, a candidate that takes arguments or returns a tuple, or a name
+    that is already declared."""
     declared: set[str] = set()
     for p, c in written.items():
         if p.endswith(".go"):
@@ -2705,12 +2710,15 @@ def _fix_missing_constructor_alias(
     }
     changed: dict[str, str] = {}
     for name in missing:
+        thing = name[len("New"):]  # NewStore -> Store
+        if not thing:
+            continue
         candidates = [
             (p, ctor, ret)
             for p, c in written.items()
             if p.endswith(".go") and not p.endswith("_test.go")
             for ctor, ret in _CTOR_DECL_RE.findall(changed.get(p, c))
-            if ctor != name and ctor.startswith(name)
+            if ctor != name and thing in ctor
         ]
         if len(candidates) != 1:
             continue  # nobody to delegate to, or no way to choose — leave it

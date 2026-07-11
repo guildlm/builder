@@ -24,23 +24,29 @@ files:
 
   - path: store.go
     purpose: >-
-      package main. A thread-safe in-memory Store — a single CONCRETE struct
-      (do NOT model it as an interface), guarded by sync.RWMutex with a
-      map[int]Task and auto-incrementing nextID, built by a constructor named
-      EXACTLY `NewStore() *Store` (the handlers and tests rely on that name).
-      IMPLEMENT ALL FIVE data methods on *Store FULLY — do NOT omit any: Create
-      (validates, assigns ID + CreatedAt), List (sorted by ID, returns a copy),
-      Get, Update, Delete. In particular Update(t Task) error MUST be present
-      (look up t.ID, return ErrNotFound if absent, otherwise preserve the existing
-      ID/CreatedAt and overwrite Title/Done); the handlers call store.Update, so a
-      missing Update breaks the build. Get, Update and Delete return the sentinel
-      ErrNotFound when the id is absent. Keeping Store concrete (one *Store type,
-      one NewStore constructor) is what keeps the API stable for handlers and
-      tests.
+      package main. Declare EXACTLY these three things, with EXACTLY these names —
+      the interface and the concrete type MUST NOT share a name or the package
+      will not compile:
+      (1) `type Store interface` declaring ALL FIVE methods: Create(t Task) error,
+      Get(id int) (Task, error), List() []Task, Update(t Task) error,
+      Delete(id int) error. Update MUST be there — the handlers call store.Update,
+      so omitting it breaks the build.
+      (2) `type MemStore struct` — the thread-safe in-memory implementation,
+      guarded by sync.RWMutex with a map[int]Task and an auto-incrementing nextID.
+      Implement ALL FIVE methods on *MemStore (pointer receivers, since they take
+      the mutex): Create validates and assigns ID + CreatedAt; List returns a copy
+      sorted by ID; Get/Update/Delete return the sentinel ErrNotFound when the id
+      is absent; Update preserves the existing ID/CreatedAt and overwrites
+      Title/Done. Add `var _ Store = (*MemStore)(nil)`.
+      (3) `func NewStore() Store { return &MemStore{...} }` — the constructor is
+      named EXACTLY `NewStore` (NOT NewMemStore); the handlers and every test call
+      that name, so any other name breaks the build.
 
   - path: handlers.go
     purpose: >-
-      package main. An API type wrapping *Store with NewAPI. HTTP handler
+      package main. An API type holding the Store INTERFACE by value (field
+      `store Store`, and `func NewAPI(store Store) *API`) — never `*Store`, which
+      is a pointer to an interface and has no methods. HTTP handler
       methods Create, List, Get, Update, Delete using encoding/json. EVERY
       handler method has EXACTLY the http.HandlerFunc signature
       `(w http.ResponseWriter, r *http.Request)` and returns NOTHING — it reads

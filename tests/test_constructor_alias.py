@@ -72,9 +72,22 @@ def test_noop_when_the_candidate_returns_a_tuple():
 
 
 def test_noop_on_an_unrelated_missing_symbol():
-    # NewStore is not a prefix of NewRouter — different thing entirely.
+    # NewRouter does not build a Store — a lone unrelated constructor must never
+    # be mistaken for the one that is missing.
     store = "package main\n\nfunc NewRouter() *Mux { return nil }\n"
     assert _fix_missing_constructor_alias({"store.go": store}, ERR) == {}
+
+
+def test_aliases_a_differently_named_implementation():
+    # The model's other favourite naming: the concrete type is MemStore, so its
+    # constructor is NewMemStore — which is not a PREFIX match, but does build
+    # the Store the missing name asks for.
+    store = (
+        "package main\n\ntype Store interface{ Create(t Task) error }\n\n"
+        "type MemStore struct{}\n\nfunc NewMemStore() *MemStore { return &MemStore{} }\n"
+    )
+    body = _fix_missing_constructor_alias({"store.go": store}, ERR)["store.go"]
+    assert "func NewStore() *MemStore { return NewMemStore() }" in body
 
 
 def test_noop_without_the_error():
