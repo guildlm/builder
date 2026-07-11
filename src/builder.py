@@ -924,8 +924,17 @@ def _widen_missing_symbol_targets(
     # reported at the CALL site, but the fix is on the type: the interface
     # (and often its concrete impl) must gain the method. Add the file
     # DECLARING the type so the model can actually make the change.
+    #
+    # But NOT when the receiver is the shadowed tester: `t.Fatalf undefined (type
+    # Task has no field or method Fatalf)` reads identically and is a completely
+    # different bug — a loop variable named t stole the *testing.T. Widening on it
+    # drags models.go into the fix and invites the model to give Task a Fatalf
+    # method, which is nonsense. _fix_shadowed_tester owns that error.
+    shadowed = {(m.group(2), m.group(1)) for m in _SHADOWED_T_RE.finditer(error_output)}
     for m in _NOMETHOD_RE.finditer(error_output):
         typ = m.group(1)
+        if (typ, m.group(2)) in shadowed:
+            continue
         decl_re = re.compile(rf"^type\s+{re.escape(typ)}\b", re.MULTILINE)
         extra = [
             p for p, c in written.items()

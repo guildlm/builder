@@ -9,7 +9,11 @@ import shutil
 
 import pytest
 
-from src.builder import _fix_shadowed_tester, _run_deterministic_gates
+from src.builder import (
+    _fix_shadowed_tester,
+    _run_deterministic_gates,
+    _widen_missing_symbol_targets,
+)
 
 pytestmark = pytest.mark.skipif(
     shutil.which("go") is None, reason="needs the Go toolchain"
@@ -222,6 +226,27 @@ func TestBoth(t *testing.T) {
     assert "func(tk *testing.T)" not in body
     assert "for _, tk := range tasks" in body  # ...and the real shadow is fixed
     assert "s.Create(tk)" in body
+
+
+def test_the_shadow_error_no_longer_drags_the_model_file_into_the_fix():
+    # `t.Fatalf undefined (type Task has no field or method Fatalf)` reads exactly
+    # like a genuinely missing method, and the root-cause widening used to believe
+    # it: it added task.go to the fix targets and invited the model to give Task a
+    # Fatalf method. It must now recognise the shadow and stay out.
+    written = {"model.go": MODEL, "store_test.go": SHADOWED}
+    assert _widen_missing_symbol_targets(["store_test.go"], written, ERR) == [
+        "store_test.go"
+    ]
+
+
+def test_a_genuinely_missing_method_still_widens():
+    # The widening must keep working for the error it was written for.
+    written = {
+        "store.go": "package main\n\ntype Store interface{ Get(id int) error }\n",
+        "api.go": "package main\n",
+    }
+    err = "./api.go:9:2: s.Update undefined (type Store has no field or method Update)"
+    assert "store.go" in _widen_missing_symbol_targets(["api.go"], written, err)
 
 
 def test_composes_in_the_deterministic_gate_chain():
