@@ -35,6 +35,22 @@ files:
       error that wrap ErrInvalid via fmt.Errorf("%w: ...") when Title/Name is
       empty or Status is not allowed. Imports only errors, fmt. No other project
       package.
+  - path: internal/models/models_test.go
+    purpose: >-
+      package models. Unit-test the validation rules directly — they are the
+      domain's contract and every other package trusts them.
+      Write SEPARATE FOCUSED TEST FUNCTIONS:
+      TestTaskValidateOK: a Task with a non-empty Title and Status "todo" (and
+      likewise "doing" and "done") returns nil.
+      TestTaskValidateEmptyTitle: a Task with an empty Title returns an error that
+      errors.Is(err, ErrInvalid).
+      TestTaskValidateBadStatus: a Task with a Status that is not
+      "todo"/"doing"/"done" (e.g. "banana") returns an error that
+      errors.Is(err, ErrInvalid).
+      TestProjectValidateOK: a Project with a non-empty Name returns nil.
+      TestProjectValidateEmptyName: a Project with an empty Name returns an error
+      that errors.Is(err, ErrInvalid).
+      Write every struct value with FIELD NAMES. Imports errors and testing only.
   - path: internal/store/store.go
     purpose: >-
       package store. The repository abstraction. Import the models package
