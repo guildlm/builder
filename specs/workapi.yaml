@@ -30,10 +30,17 @@ files:
       <= 0. Imports os, strconv, time, fmt. No other project package.
   - path: internal/config/config_test.go
     purpose: >-
-      package config. Tests: Load() returns the documented defaults (Addr
-      ":8080", AuthToken "secret", QueueSize 64); a Config with empty AuthToken
-      fails Validate(); a sane Config passes Validate(). Imports testing only. Do
-      not name any local variable `t`.
+      package config. Write EXACTLY these three test functions and NO OTHERS — do
+      not invent extra cases:
+      TestLoadDefaults — with no environment set, Load() returns a nil error and
+      the documented defaults: Addr ":8080", AuthToken "secret", QueueSize 64.
+      TestValidateEmptyAuthToken — a Config with an empty AuthToken fails
+      Validate().
+      TestValidateOK — a sane Config passes Validate().
+      Do NOT write a test that expects Load() to BOTH return an error AND hand
+      back populated defaults: when Load fails it returns the zero Config, so
+      those two expectations contradict each other and no implementation can
+      satisfy both. Imports testing only. Do not name any local variable `t`.
   - path: internal/models/models.go
     purpose: >-
       package models. Task struct {ID, Title, Status string} with JSON tags;
@@ -224,8 +231,13 @@ files:
       TestGetTask — POST id "1" with token, then GET /tasks/1 (no token) -> 200;
       then GET /tasks/missing -> 404.
       TestListTasks — POST id "1" and POST id "2" (both with token), then GET
-      /tasks -> 200 and json-decode into a []models.Task of length 2; then GET
-      /tasks?limit=1 -> 200 and length <= 1.
+      /tasks -> 200 and json-decode into a []models.Task named `all` of length 2.
+      Then make a SECOND request, GET /tasks?limit=1, with a FRESH recorder, and
+      json-decode THAT response into a SEPARATE slice named `limited` before
+      asserting len(limited) <= 1. Decoding is what makes the assertion mean
+      anything: do NOT re-assert on `all` after the second request — it still
+      holds the 2 items from the first response and the check would fail no matter
+      what the handler did.
       TestDeleteTask — POST id "1" with token -> 201, then DELETE /tasks/1 with
       token -> 204, then GET /tasks/1 -> 404.
       TestMalformedJSON — POST /tasks with a truncated body `{"id":"1",` and token
