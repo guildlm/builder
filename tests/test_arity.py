@@ -77,3 +77,45 @@ def test_comparison_line_is_not_mangled():
     code = _file("\tif got == want {")
     changed = _fix_assignment_arity({"internal/store/memory_test.go": code}, ERR)
     assert changed == {}
+
+
+def test_a_lone_err_gets_the_blanks_BEFORE_it_not_after():
+    """Go puts the error last. `err := svc.Create(...)` where Create returns
+    (Task, error) must become `_, err := ...`.
+
+    This gate used to append blindly and produce `err, _ := ...` — which assigns
+    the Task to `err`, so the `err != nil` on the same line becomes a type
+    mismatch. It was manufacturing the exact bug _fix_swapped_error_assignment
+    exists to repair: one gate breaking the code the next one fixes, and the
+    project only surviving because the second gate happened to run."""
+    code = (
+        "package service\n\n"
+        "func TestX(t *testing.T) {\n"
+        "\tif err := svc.Create(ctx, tk); err != nil {\n"
+        "\t\tt.Fatal(err)\n"
+        "\t}\n"
+        "}\n"
+    )
+    err = (
+        "./service_test.go:4:5: assignment mismatch: 1 variable but svc.Create "
+        "returns 2 values"
+    )
+    out = _fix_assignment_arity({"service_test.go": code}, err)["service_test.go"]
+    assert "if _, err := svc.Create(ctx, tk); err != nil {" in out
+    assert "err, _ :=" not in out
+
+
+def test_a_value_variable_still_gets_the_blank_after_it():
+    # `items := svc.List(ctx)` ignores the error, which belongs in the slot AFTER.
+    code = (
+        "package service\n\n"
+        "func f() {\n"
+        "\titems := svc.List(ctx)\n"
+        "}\n"
+    )
+    err = (
+        "./service.go:4:2: assignment mismatch: 1 variable but svc.List returns "
+        "2 values"
+    )
+    out = _fix_assignment_arity({"service.go": code}, err)["service.go"]
+    assert "items, _ := svc.List(ctx)" in out

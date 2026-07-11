@@ -1751,7 +1751,25 @@ def _fix_assignment_arity(
             if len(names) != nvals:
                 continue  # extra vars are named, not ours to drop
         else:
-            names += ["_"] * (nvals - nvars)
+            pad = ["_"] * (nvals - nvars)
+            # `if err := f(); err != nil` carries the keyword into the LHS, so
+            # split it off before deciding where the blanks go.
+            head, _, bare = names[0].rpartition(" ")
+            if len(names) == 1 and bare in ("err", "e"):
+                # Go puts the error LAST. `err := svc.Create(...)` where Create
+                # returns (Task, error) must become `_, err := ...`, never
+                # `err, _ := ...` — which assigns the Task to `err`, so the
+                # `err != nil` beside it is a type mismatch. This gate used to
+                # append blindly and manufacture the exact bug
+                # _fix_swapped_error_assignment exists to repair: one gate
+                # breaking the code the next one fixes.
+                names = pad + [bare]
+                if head:
+                    names[0] = f"{head} {names[0]}"
+            else:
+                # A value variable — `items := svc.List(ctx)` — keeps its slot,
+                # and the error it ignored goes to the blank after it.
+                names += pad
         indent = lhs[: len(lhs) - len(lhs.lstrip())]
         if sep == ":=" and all(n == "_" for n in names):
             sep = "="  # `_, _ :=` declares nothing — invalid Go
@@ -3173,35 +3191,72 @@ def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
     """Run every deterministic, compiler-pinpointed repair on the current error
-    output and return the merged {path: new_content} for changed files. Each gate
-    sees the accumulated fixes so far so they compose. Pure (no I/O) — the caller
-    writes the result. Shared by the per-round pre-pass and the final pass."""
-    requal = _requalify_undefined(written, output, module)
-    requal.update(_fix_assignment_arity({**written, **requal}, output))
-    requal.update(_fix_unknown_struct_fields({**written, **requal}, output))
-    requal.update(_fix_duplicate_struct_fields({**written, **requal}, output))
-    requal.update(_requalify_stdlib({**written, **requal}, output))
-    requal.update(_fix_module_prefix({**written, **requal}, output, module))
-    requal.update(_fix_string_int_conversion({**written, **requal}, output))
-    requal.update(_fix_errors_wrap({**written, **requal}, output))
-    requal.update(_fix_unused_var({**written, **requal}, output))
-    requal.update(_fix_uncalled_method_value({**written, **requal}, output))
-    requal.update(_fix_undefined_assignment({**written, **requal}, output))
-    requal.update(_fix_if_composite_literal({**written, **requal}, output))
-    requal.update(_fix_swapped_error_assignment({**written, **requal}, output))
-    requal.update(_fix_fatal_guard({**written, **requal}, output))
-    requal.update(_fix_phantom_local_import({**written, **requal}, output, module))
-    requal.update(_fix_handle_vs_handlefunc({**written, **requal}, output))
-    requal.update(_fix_handlerfunc_wrap({**written, **requal}, output))
-    requal.update(_fix_middleware_arity({**written, **requal}, output))
-    requal.update(_fix_interface_missing_method({**written, **requal}, output))
-    requal.update(_fix_pointer_to_interface({**written, **requal}, output))
-    requal.update(_fix_shadowed_tester({**written, **requal}, output))
-    requal.update(_fix_missing_constructor_alias({**written, **requal}, output))
-    requal.update(_fix_argument_type_adapter({**written, **requal}, output))
-    requal.update(_fix_middleware_called_not_passed({**written, **requal}, output))
-    requal.update(_fix_multivalue_in_single_context({**written, **requal}, output))
-    return requal
+    output and return the merged {path: new_content} for changed files. Pure (no
+    I/O) — the caller writes the result and re-runs the compiler.
+
+    The gates run in TWO PHASES, and the split is not cosmetic — it is a
+    correctness requirement that took a corrupted file to notice.
+
+    Almost every gate is indexed by a line number the compiler just gave us. A
+    gate that INSERTS a line — an import, a method on an interface, a hoisted
+    statement — silently invalidates every one of those numbers for the rest of
+    the pass. That is not hypothetical: in taskapipro, ``_requalify_undefined``
+    added two imports to service_test.go, everything below shifted down by two,
+    and ``_fix_assignment_arity`` then applied its repair to what used to be line
+    40 and is now something else entirely — turning
+
+        tk1 := models.Task{ID: "1", ...}     into     tk1, _ := models.Task{...}
+
+    which is not valid Go under any circumstances, and which no later gate could
+    undo. The fix loop then burned every remaining round on a file the gates
+    themselves had broken.
+
+    So: phase one runs only the repairs that rewrite a line IN PLACE, and they are
+    safe together because none of them changes how many lines a file has. If any
+    of them fires we return immediately, and the caller re-compiles — so the next
+    pass gets fresh line numbers.
+
+    Phase two runs the line-SHIFTING repairs, one at a time, returning after the
+    first that fires. Each of them makes the compiler's numbers stale, so no
+    second gate may run behind it.
+    """
+    # --- Phase 1: in-place repairs. Line numbers stay valid throughout. -------
+    inplace: dict[str, str] = {}
+    inplace.update(_fix_assignment_arity(written, output))
+    inplace.update(_fix_unknown_struct_fields({**written, **inplace}, output))
+    inplace.update(_fix_duplicate_struct_fields({**written, **inplace}, output))
+    inplace.update(_fix_module_prefix({**written, **inplace}, output, module))
+    inplace.update(_fix_string_int_conversion({**written, **inplace}, output))
+    inplace.update(_fix_errors_wrap({**written, **inplace}, output))
+    inplace.update(_fix_unused_var({**written, **inplace}, output))
+    inplace.update(_fix_uncalled_method_value({**written, **inplace}, output))
+    inplace.update(_fix_undefined_assignment({**written, **inplace}, output))
+    inplace.update(_fix_if_composite_literal({**written, **inplace}, output))
+    inplace.update(_fix_swapped_error_assignment({**written, **inplace}, output))
+    inplace.update(_fix_fatal_guard({**written, **inplace}, output))
+    inplace.update(_fix_handle_vs_handlefunc({**written, **inplace}, output))
+    inplace.update(_fix_handlerfunc_wrap({**written, **inplace}, output))
+    inplace.update(_fix_pointer_to_interface({**written, **inplace}, output))
+    if inplace:
+        return inplace
+
+    # --- Phase 2: repairs that move lines. One per pass, and no gate behind it. -
+    for gate in (
+        lambda w: _requalify_undefined(w, output, module),
+        lambda w: _requalify_stdlib(w, output),
+        lambda w: _fix_phantom_local_import(w, output, module),
+        lambda w: _fix_middleware_arity(w, output),
+        lambda w: _fix_interface_missing_method(w, output),
+        lambda w: _fix_shadowed_tester(w, output),
+        lambda w: _fix_missing_constructor_alias(w, output),
+        lambda w: _fix_argument_type_adapter(w, output),
+        lambda w: _fix_middleware_called_not_passed(w, output),
+        lambda w: _fix_multivalue_in_single_context(w, output),
+    ):
+        shifted = gate(written)
+        if shifted:
+            return shifted
+    return {}
 
 
 _ASSERTION_RE = re.compile(r"\bt\.(?:Error|Errorf|Fatal|Fatalf|Fail|FailNow)\b")

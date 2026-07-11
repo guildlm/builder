@@ -79,24 +79,41 @@ def test_check_surfaces_errors_that_vet_alone_hides(project):
     assert "has no field or method Fatalf" in out
 
 
-def test_the_wider_surface_lets_more_gates_fire_in_one_round(project):
+def _drive_to_fixpoint(project, tc, rounds=6):
+    """What the fix loop actually does: repair, re-compile, repair again. The
+    gates deliberately apply at most ONE line-shifting change per pass — a gate
+    that inserts a line invalidates the compiler's line numbers for every gate
+    behind it — so reaching everything takes more than one pass, by design."""
+    for _ in range(rounds):
+        written = {
+            p.name: p.read_text() for p in project.glob("*.go")
+        }
+        ok, out = tc.check(project)
+        if ok:
+            break
+        changed = _run_deterministic_gates(written, out, None)
+        if not changed:
+            break
+        for name, code in changed.items():
+            (project / name).write_text(code)
+    return {p.name: p.read_text() for p in project.glob("*.go")}
+
+
+def test_the_wider_surface_makes_the_hidden_defect_reachable(project):
     tc = GoToolchain()
-    written = {
-        "store.go": STORE,
-        "store_test.go": STORE_TEST,
-    }
+    written = {"store.go": STORE, "store_test.go": STORE_TEST}
 
+    # On the NARROW surface the shadow is not merely unrepaired — it is invisible.
+    # vet stops at the first type error, so no gate can even see it.
     _, vet_out = tc.vet(project)
+    assert "has no field or method Fatalf" not in vet_out
     narrow = _run_deterministic_gates(written, vet_out, None)
-    _, wide_out = tc.check(project)
-    wide = _run_deterministic_gates(written, wide_out, None)
+    assert "store_test.go" not in narrow
 
-    # On the narrow surface only the constructor can be repaired; the shadow is
-    # unreachable. On the wide one the loop clears both in the SAME round.
-    assert set(narrow) == {"store.go"}
-    assert set(wide) == {"store.go", "store_test.go"}
-    assert "func NewStore()" in wide["store.go"]
-    assert "for _, tk := range tasks" in wide["store_test.go"]
+    # On the WIDE surface the loop reaches both defects and repairs both.
+    final = _drive_to_fixpoint(project, tc)
+    assert "func NewStore()" in final["store.go"]
+    assert "for _, tk := range tasks" in final["store_test.go"]
 
 
 def test_a_green_project_still_reports_green(tmp_path):
