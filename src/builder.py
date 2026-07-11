@@ -3593,7 +3593,14 @@ def _fix_loop(
         # CONSTRUCTION — which also kills the old oscillation where a
         # gate-repaired file was handed straight back to the model in the same
         # round (the model re-broke it, the gates re-fixed it, forever).
-        for _ in range(10):
+        #
+        # The budget is generous because a pass now does LESS: since the gates
+        # were split into phases, a pass applies either the in-place repairs or a
+        # SINGLE line-shifting one, so a project needing several imports, a struct
+        # field and a hoisted call needs several passes to work through them.
+        # taskapipro takes seven. The loop still stops the moment the gates go
+        # quiet — the cap only guards a pathological rewrite cycle.
+        for _ in range(30):
             requal = _run_deterministic_gates(written, output, module)
             if not requal:
                 break
@@ -3704,8 +3711,9 @@ def _fix_loop(
     # TEST stage run at all, whose panics feed yet another gate), and each
     # iteration costs only a check. Gates are idempotent, and every iteration
     # must change a file to continue, so the loop always terminates; the cap
-    # only guards against a pathological rewrite cycle.
-    for _ in range(10):
+    # only guards against a pathological rewrite cycle. Generous for the same
+    # reason as the pre-pass: one line-shifting gate per pass means more passes.
+    for _ in range(30):
         final = _run_deterministic_gates(written, output, module)
         if not final:
             break
