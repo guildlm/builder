@@ -2745,6 +2745,85 @@ def _fix_missing_constructor_alias(
     return changed
 
 
+# `./h_test.go:11:47: cannot use NewMemStore() (value of interface type Store) as
+# *API value in argument to NewRouter`
+_ARG_TYPE_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):(\d+): cannot use .+? "
+    r"\((?:value|variable) of (?:interface )?type ([\w.*\[\]]+)\) "
+    r"as ([\w.*\[\]]+) value in argument to (\w+)"
+)
+
+# `func NewAPI(store Store) *API {` — a one-argument adapter.
+_ADAPTER_DECL_RE = re.compile(
+    r"^func\s+(\w+)\(\s*\w+\s+([\w.*\[\]]+)\s*\)\s+([\w.*\[\]]+)\s*\{", re.M
+)
+
+_WRAPARG = Path(__file__).resolve().parent.parent / "tools" / "wraparg.go"
+
+
+def _fix_argument_type_adapter(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``cannot use NewMemStore() (value of interface type Store) as *API value in
+    argument to NewRouter`` — the model wired the router straight to the store and
+    skipped the layer in between, even though the spec spells the composition out
+    as ``NewRouter(NewAPI(NewStore()))``.
+
+    The repair is provable when the project declares EXACTLY ONE function that
+    turns what you have into what is wanted — here ``func NewAPI(store Store)
+    *API`` is the only Store-to-*API there is, so the composition the model meant
+    is not in doubt::
+
+        NewRouter(NewMemStore())  ->  NewRouter(NewAPI(NewMemStore()))
+
+    Uniqueness is proved here, before the rewrite runs; the rewrite itself is an
+    AST edit at the exact position the compiler named (``tools/wraparg.go``),
+    because the argument can be any expression and the same call may appear
+    several times in one file. Bails whenever the adapter is not unique, or does
+    not exist, or the argument is already wrapped in it."""
+    hits = list(_ARG_TYPE_RE.finditer(error_output))
+    if not hits or not _WRAPARG.exists():
+        return {}
+    changed: dict[str, str] = {}
+    for m in hits:
+        path_hint, line, col, have, want, _callee = (
+            m.group(1), int(m.group(2)), int(m.group(3)),
+            m.group(4), m.group(5), m.group(6),
+        )
+        target = next(
+            (p for p in written if os.path.basename(p) == os.path.basename(path_hint)),
+            None,
+        )
+        if target is None:
+            continue
+        adapters = {
+            fn
+            for p, c in written.items()
+            if p.endswith(".go") and not p.endswith("_test.go")
+            for fn, param, ret in _ADAPTER_DECL_RE.findall(c)
+            if param == have and ret == want
+        }
+        if len(adapters) != 1:
+            continue  # no unique way to get from `have` to `want` — do not guess
+        adapter = next(iter(adapters))
+        try:
+            proc = subprocess.run(
+                ["go", "run", str(_WRAPARG), str(line), str(col), adapter],
+                input=changed.get(target, written[target]),
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return {}
+        if proc.returncode != 0 or not proc.stdout.strip():
+            continue
+        changed[target] = proc.stdout
+        _log(f"  wrapped the argument to {_callee} in {adapter} in {target} "
+             f"({have} -> {want})")
+    return changed
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -2774,6 +2853,7 @@ def _run_deterministic_gates(
     requal.update(_fix_pointer_to_interface({**written, **requal}, output))
     requal.update(_fix_shadowed_tester({**written, **requal}, output))
     requal.update(_fix_missing_constructor_alias({**written, **requal}, output))
+    requal.update(_fix_argument_type_adapter({**written, **requal}, output))
     return requal
 
 
