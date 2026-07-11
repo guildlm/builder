@@ -27,9 +27,17 @@ files:
       package.
   - path: internal/config/config_test.go
     purpose: >-
-      package config. Tests: Load() returns the documented defaults; a Config
-      with MaxPageSize < DefaultPageSize fails Validate(); a sane Config passes
-      Validate(). Imports testing only. Do not name any local variable `t`.
+      package config. Write EXACTLY these three test functions and NO OTHERS — do
+      not invent extra cases:
+      TestLoadDefaults — with no environment set, Load() returns the documented
+      defaults.
+      TestValidateRejectsMaxBelowDefault — a Config whose MaxPageSize is less than
+      its DefaultPageSize fails Validate().
+      TestValidateOK — a sane Config passes Validate().
+      Do NOT write a test that expects Load() to BOTH return an error AND hand
+      back populated defaults: when Load fails it returns the zero Config, so
+      those two expectations contradict each other and no implementation can
+      satisfy both. Imports testing only. Do not name any local variable `t`.
   - path: internal/models/models.go
     purpose: >-
       package models. Task struct {ID, Title, Status, ProjectID string} and
