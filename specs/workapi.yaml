@@ -74,11 +74,25 @@ files:
   - path: internal/store/memory_test.go
     purpose: >-
       package store. Tests for MemStore (same package; use models via import).
-      Pass context.Background() to every store method. Fresh NewMemStore per case.
-      Cover create->nil / dup->ErrExists (errors.Is); Get present/missing
-      ->ErrNotFound; List id-sorted; Delete present then Get->ErrNotFound; Delete
-      missing->ErrNotFound. Imports context, errors, testing, and models. Never
-      name a local variable `t`.
+      Pass context.Background() to every store method.
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Each
+      builds its OWN fresh NewMemStore. A fresh store is EMPTY, so any case with a
+      precondition must CREATE it FIRST, in its own body:
+      TestCreateOK: CreateTask a task -> nil error.
+      TestCreateDuplicate: CreateTask ONCE (expect nil), then CreateTask the SAME
+      id AGAIN -> ErrExists (errors.Is). Without the first create there is nothing
+      to duplicate and the second one succeeds.
+      TestGetExisting: CreateTask FIRST, then GetTask that id -> nil error and the
+      stored fields. (On a store nobody wrote to, Get returns ErrNotFound and the
+      case fails no matter how correct MemStore is.)
+      TestGetMissing: on a fresh store, GetTask an id nobody created ->
+      ErrNotFound.
+      TestListSorted: CreateTask two tasks, then ListTasks -> id-sorted.
+      TestDelete: CreateTask FIRST, DeleteTask it -> nil, then GetTask ->
+      ErrNotFound.
+      TestDeleteMissing: on a fresh store, DeleteTask an unknown id -> ErrNotFound.
+      Imports context, errors, testing, and models. Never name a local variable
+      `t`.
   - path: internal/worker/worker.go
     purpose: >-
       package worker. An asynchronous processor for models.Event with a graceful
@@ -154,11 +168,17 @@ files:
       package service. Tests using NewTaskService(store.NewMemStore(), a test
       EventEnqueuer) and the models package; pass context.Background() to every
       service method. Define a tiny fake enqueuer in the test (a struct with a
-      slice or counter recording Enqueue calls). Fresh service per case. Cover:
-      Create a valid task -> no error, retrievable via Get, AND the enqueuer
-      received exactly one event; Create an invalid task (bad status) -> error is
-      models.ErrInvalid (errors.Is) and NO event enqueued; List with limit=1
-      returns at most 1 item. Imports context, errors, testing, and the store +
+      slice or counter recording Enqueue calls).
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Each
+      builds its OWN fresh service, which starts EMPTY, so a case that needs a
+      task to already exist must CREATE it first, in its own body:
+      TestCreateOK: Create a valid task -> no error; Get it back; and the enqueuer
+      received EXACTLY ONE event.
+      TestCreateInvalid: Create a task with a bad status -> the error is
+      models.ErrInvalid (errors.Is) and NO event was enqueued.
+      TestListLimit: Create TWO tasks FIRST, then List with limit=1 -> at most 1
+      item.
+      Imports context, errors, testing, and the store +
       models packages. Never name a local variable `t`.
   - path: internal/api/response.go
     purpose: >-

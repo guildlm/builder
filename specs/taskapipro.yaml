@@ -67,10 +67,25 @@ files:
   - path: internal/store/memory_test.go
     purpose: >-
       package store. Tests for MemStore (same package; use models via import).
-      Pass context.Background() to every store method call. Fresh NewMemStore per
-      case. Cover create->nil / dup->ErrExists (errors.Is); Get present/missing
-      ->ErrNotFound; List id-sorted; Delete present then Get->ErrNotFound; Delete
-      missing->ErrNotFound. Imports context, errors, testing, and models. Never
+      Pass context.Background() to every store method call.
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Each
+      builds its OWN fresh NewMemStore. A fresh store is EMPTY, so any case with a
+      precondition must CREATE it FIRST, in its own body:
+      TestCreateOK: CreateTask -> nil error.
+      TestCreateDuplicate: CreateTask ONCE (expect nil), then CreateTask the SAME
+      id AGAIN -> ErrExists (errors.Is). Without the first create there is nothing
+      to duplicate and the second one succeeds.
+      TestGetExisting: CreateTask FIRST, then GetTask that id -> nil error and the
+      stored fields. (On a store nobody wrote to, Get returns ErrNotFound and the
+      case fails no matter how correct MemStore is.)
+      TestGetMissing: on a fresh store, GetTask an unknown id -> ErrNotFound.
+      TestListSorted: CreateTask two tasks, then ListTasks -> id-sorted.
+      TestDelete: CreateTask FIRST, DeleteTask it -> nil, then GetTask ->
+      ErrNotFound.
+      TestDeleteMissing: on a fresh store, DeleteTask an unknown id -> ErrNotFound.
+      Compare a []models.Task with reflect.DeepEqual or by looping over the
+      elements — a slice has NO Equal method, so `want.Equal(got)` does not
+      compile. Imports context, errors, testing, and models. Never
       name a local variable `t` — the test's *testing.T is `t`, so use `task` or
       `tk` for a models.Task, never `t := models.Task{...}` (that shadows the
       tester and makes t.Fatalf resolve to models.Task). Write every models.Task
@@ -109,11 +124,18 @@ files:
   - path: internal/service/service_test.go
     purpose: >-
       package service. Tests using NewTaskService(store.NewMemStore()) and the
-      models package; pass context.Background() to every service method. Fresh
-      service per case. Cover: Create a valid task -> no error and it is
-      retrievable via Get; Create an invalid task (bad status) -> error is
-      models.ErrInvalid (errors.Is); List with limit=1 returns at most 1 item;
-      List filters by status. Imports context, errors, testing, and the store +
+      models package; pass context.Background() to every service method.
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Each
+      builds its OWN fresh service, which starts EMPTY, so a case that needs a
+      task to already exist must CREATE it first, in its own body:
+      TestCreateOK: Create a valid task -> no error, and it is retrievable via Get.
+      TestCreateInvalid: Create a task with a bad status -> the error is
+      models.ErrInvalid (errors.Is).
+      TestListLimit: Create TWO tasks FIRST, then List with limit=1 -> at most 1
+      item.
+      TestListFilterByStatus: Create one "todo" and one "done" task FIRST, then
+      List filtered by status "done" -> exactly the one done task.
+      Imports context, errors, testing, and the store +
       models packages. Never name a local variable `t`.
   - path: internal/api/response.go
     purpose: >-
