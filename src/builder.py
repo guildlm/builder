@@ -3220,14 +3220,13 @@ def _run_deterministic_gates(
     first that fires. Each of them makes the compiler's numbers stale, so no
     second gate may run behind it.
     """
-    # --- Phase 1: in-place repairs. Line numbers stay valid throughout. -------
+    # --- Phase 1: in-place repairs. Every one of these rewrites a line and leaves
+    # the line COUNT alone, so the compiler's numbers stay valid for all of them
+    # and they are safe to run together. Which gates qualify was settled by
+    # measurement, not by reading — see tests/test_gate_line_safety.py, which
+    # caught three of them misfiled here on its first run.
     inplace: dict[str, str] = {}
     inplace.update(_fix_assignment_arity(written, output))
-    inplace.update(_fix_unknown_struct_fields({**written, **inplace}, output))
-    inplace.update(_fix_duplicate_struct_fields({**written, **inplace}, output))
-    inplace.update(_fix_module_prefix({**written, **inplace}, output, module))
-    inplace.update(_fix_string_int_conversion({**written, **inplace}, output))
-    inplace.update(_fix_errors_wrap({**written, **inplace}, output))
     inplace.update(_fix_unused_var({**written, **inplace}, output))
     inplace.update(_fix_uncalled_method_value({**written, **inplace}, output))
     inplace.update(_fix_undefined_assignment({**written, **inplace}, output))
@@ -3240,11 +3239,20 @@ def _run_deterministic_gates(
     if inplace:
         return inplace
 
-    # --- Phase 2: repairs that move lines. One per pass, and no gate behind it. -
+    # --- Phase 2: repairs that MOVE lines — an import added, a struct field
+    # inserted or removed, a method appended to an interface, a statement hoisted,
+    # a file reformatted by go/format. Each makes the compiler's line numbers
+    # stale, so exactly one runs per pass and nothing runs behind it. The caller
+    # re-compiles and the next pass starts from fresh numbers.
     for gate in (
         lambda w: _requalify_undefined(w, output, module),
         lambda w: _requalify_stdlib(w, output),
+        lambda w: _fix_module_prefix(w, output, module),
         lambda w: _fix_phantom_local_import(w, output, module),
+        lambda w: _fix_string_int_conversion(w, output),
+        lambda w: _fix_errors_wrap(w, output),
+        lambda w: _fix_unknown_struct_fields(w, output),
+        lambda w: _fix_duplicate_struct_fields(w, output),
         lambda w: _fix_middleware_arity(w, output),
         lambda w: _fix_interface_missing_method(w, output),
         lambda w: _fix_shadowed_tester(w, output),
