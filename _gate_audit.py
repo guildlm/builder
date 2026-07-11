@@ -119,9 +119,28 @@ def audit(d: pathlib.Path, tc: GoToolchain) -> dict | None:
             "name": d.name,
             "status": "green-by-gates" if after_ok else ("advanced" if before != after else "stuck"),
             "residual": residual if compiles else [],
-            "test_failures": [] if compiles else re.findall(r"--- FAIL: (\w+)", after),
+            "assertions": [] if compiles else assertion_shapes(after),
             "kind": "compile" if compiles else "test",
         }
+
+
+# `    router_test.go:44: handler returned wrong status code: got 201 want 409`
+_ASSERT_RE = re.compile(r"^\s+\w[\w./-]*\.go:\d+:\s*(.+)$", re.M)
+
+
+def assertion_shapes(output: str) -> list[str]:
+    """A failing assertion's MESSAGE, with the specifics filed off, so the same
+    mistake buckets together across specs. This is the OTHER backlog: defects that
+    compile fine and fail at runtime. No gate can reach them — they become prompt
+    defaults (as `isolate state, then seed it` did, after the same mistake showed
+    up in six specs) or spec clarifications."""
+    out = []
+    for msg in _ASSERT_RE.findall(output):
+        m = re.sub(r"\b\d+\b", "N", msg)
+        m = re.sub(r'"[^"]*"', '"…"', m)
+        m = re.sub(r"\s+", " ", m).strip()
+        out.append(m[:100])
+    return out
 
 
 def main() -> None:
@@ -149,11 +168,14 @@ def main() -> None:
 
     rows = []
     by_spec: dict[str, set[str]] = collections.defaultdict(set)
+    asserts_by_spec: dict[str, set[str]] = collections.defaultdict(set)
     for d in dirs:
         r = audit(d, tc)
         if not r:
             continue
         rows.append(r)
+        for a in set(r.get("assertions") or []):
+            asserts_by_spec[a].add(spec_of(d.name))
         # Count DISTINCT SPECS, not artifacts. probe1/probe2/probe3 are the same
         # spec rolled three times; counting them as three sightings of a defect
         # makes one spec's quirk outrank a class that really is broad. The first
@@ -175,6 +197,13 @@ def main() -> None:
     print(f"\n=== of {len(broken)} broken artifacts, what still blocks them ===")
     print(f"  {kinds.get('compile', 0):3d}  still do not COMPILE  -> a gate could still help")
     print(f"  {kinds.get('test', 0):3d}  compile, but a TEST fails -> only the spec or the model can")
+
+    a_buckets = collections.Counter({a: len(s) for a, s in asserts_by_spec.items()})
+    print("\n=== failing ASSERTIONS, by how many DISTINCT SPECS hit them ===")
+    print("    (the semantic backlog: no gate can reach these — they become")
+    print("     prompt defaults or spec clarifications)\n")
+    for a, n in a_buckets.most_common(15):
+        print(f"  {n:3d}  {a}")
 
     print("\n=== residual COMPILE classes, by how many DISTINCT SPECS hit them ===")
     print("    (the ranked backlog: what the gates still cannot repair)\n")
