@@ -107,6 +107,16 @@ files:
       TestDelete: CreateTask FIRST, DeleteTask it -> nil, then GetTask ->
       ErrNotFound.
       TestDeleteMissing: on a fresh store, DeleteTask an unknown id -> ErrNotFound.
+      Then the SAME seven cases for the PROJECT half of the store, which is
+      currently never exercised at all — the store is exactly 50% covered because
+      these methods are never called, and a method nobody calls is a method nobody
+      has shown to be correct:
+      TestCreateProjectOK, TestCreateProjectDuplicate (create ONCE, then the SAME
+      id again -> ErrExists), TestGetProjectExisting (create FIRST, then get),
+      TestGetProjectMissing (-> ErrNotFound), TestListProjectsSorted (create two,
+      then list id-sorted), TestDeleteProject (create FIRST, delete, then get ->
+      ErrNotFound), TestDeleteProjectMissing (-> ErrNotFound). Each builds its OWN
+      fresh NewMemStore and seeds its own precondition, exactly as above.
       Compare a []models.Task with reflect.DeepEqual or by looping over the
       elements — a slice has NO Equal method, so `want.Equal(got)` does not
       compile. Imports context, errors, testing, and models. Never
