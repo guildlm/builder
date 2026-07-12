@@ -59,14 +59,21 @@ files:
     purpose: >-
       package models. Unit-test the validation rules directly — they are the
       domain's contract and every other package trusts them.
-      Write SEPARATE FOCUSED TEST FUNCTIONS:
-      TestTaskValidateOK: a Task with a non-empty Title and Status "todo" (and
-      likewise "doing" and "done") returns nil.
+      Write SEPARATE FOCUSED TEST FUNCTIONS.
+      ONE TEST FUNCTION, ONE OUTCOME. Every case inside a function must expect the
+      SAME KIND of result, because the assertion is SHARED: a function whose check
+      is "the error must be non-nil" cannot also carry a case that expects nil —
+      that case is unsatisfiable by construction and fails against a CORRECT
+      implementation. If you write a table, every row in it expects the same thing.
+      TestTaskValidateOK: a Task with a non-empty Title returns nil. Assert that
+      for EACH of the three valid statuses "todo", "doing" and "done". Every case
+      in this function expects NIL.
       TestTaskValidateEmptyTitle: a Task with an empty Title returns an error that
       errors.Is(err, ErrInvalid).
-      TestTaskValidateBadStatus: a Task with a Status that is not
-      "todo"/"doing"/"done" (e.g. "banana") returns an error that
-      errors.Is(err, ErrInvalid).
+      TestTaskValidateBadStatus: a Task whose Status is INVALID (e.g. "banana")
+      returns an error that errors.Is(err, ErrInvalid). Every case in this function
+      expects an ERROR — so NEVER put a valid status ("todo"/"doing"/"done") in it.
+      A valid status correctly returns nil and would fail this function's assertion.
       TestProjectValidateOK: a Project with a non-empty Name returns nil.
       TestProjectValidateEmptyName: a Project with an empty Name returns an error
       that errors.Is(err, ErrInvalid).

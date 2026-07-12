@@ -53,11 +53,19 @@ echo "-- test rc=$TR --";  echo "$T" | tail -12
 # OWN is the one the specs move (add models_test.go, add the Project cases).
 # EXEC is the one that says whether shipped code is dead. Print both, labelled.
 if [[ $BR -eq 0 ]]; then
+  # -count=1 (never the cache). The gate chain SHIFTS LINES when it inserts an
+  # import, and a cached coverage row is keyed to the line numbers it was recorded
+  # at. A merged -coverpkg profile then carries the SAME block twice — once at
+  # 14.60,15.37 and again at 15.60,16.37, one line apart — so the denominator
+  # counts every statement twice while the numerator counts it once. It reported
+  # api at 58.5% while go itself said 69.0%, and it reported the whole coverage
+  # push as a 5-point REGRESSION that had not happened. The line-shifting gates do
+  # not only corrupt the files they repair; they poison the measurement downstream.
   echo "-- coverage OWN (go test -cover: package tested by its own tests) --"
-  go test -cover ./... 2>&1 | grep -E "coverage:" | sed 's/^/   /'
+  go test -count=1 -cover ./... 2>&1 | grep -E "coverage:" | sed 's/^/   /'
 
   PROF="/tmp/guildlm-cov-$$.out"
-  go test -coverpkg=./... -coverprofile="$PROF" ./... >/dev/null 2>&1
+  go test -count=1 -coverpkg=./... -coverprofile="$PROF" ./... >/dev/null 2>&1
   if [[ -s "$PROF" ]]; then
     echo "-- coverage EXEC (-coverpkg=./...: code executed by ANY test) --"
     # DEDUPE BY BLOCK. Under -coverpkg=./... every test binary instruments every
