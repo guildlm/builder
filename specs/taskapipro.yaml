@@ -19,18 +19,36 @@ files:
   - path: internal/config/config.go
     purpose: >-
       package config. Config struct { Addr string; ReadTimeout, WriteTimeout,
-      ShutdownTimeout time.Duration; DefaultPageSize, MaxPageSize int } and func
-      Load() Config reading env (os.Getenv) with defaults (Addr ":8080",
-      timeouts 5s/10s/10s, DefaultPageSize 20, MaxPageSize 100). A method (c
-      Config) Validate() error returning an error if Addr is empty or MaxPageSize
-      < DefaultPageSize. Imports os, time, fmt (and strconv). No other project
-      package.
+      ShutdownTimeout time.Duration; DefaultPageSize, MaxPageSize int } and
+      func Load() (Config, error) — it returns TWO values, a Config AND an error.
+      Read EXACTLY these env vars, by these names: ADDR, READ_TIMEOUT,
+      WRITE_TIMEOUT, SHUTDOWN_TIMEOUT, DEFAULT_PAGE_SIZE, MAX_PAGE_SIZE. Defaults:
+      Addr ":8080", timeouts 5s/10s/10s, DefaultPageSize 20, MaxPageSize 100.
+      An EMPTY env var is treated EXACTLY like an UNSET one — use the default.
+      Parse durations with time.ParseDuration and the page sizes with strconv.Atoi.
+      If a var is PRESENT but FAILS TO PARSE, return the ZERO Config and a NON-NIL
+      error (fmt.Errorf wrapping with %w) — do NOT silently fall back. Finally call
+      c.Validate() and, if it returns an error, return the ZERO Config and that
+      error. A method (c Config) Validate() error returning an error if Addr is
+      empty or MaxPageSize < DefaultPageSize. Imports os, strconv, time, fmt. No
+      other project package.
   - path: internal/config/config_test.go
     purpose: >-
-      package config. Write EXACTLY these three test functions and NO OTHERS — do
-      not invent extra cases:
-      TestLoadDefaults — with no environment set, Load() returns the documented
-      defaults.
+      package config. Load() is the seam every deployment goes through. Write
+      EXACTLY these five test functions and NO OTHERS — do not invent extra cases.
+      Load() returns TWO values: write `cfg, err := Load()`.
+      Use t.Setenv (never os.Setenv); a test that calls t.Setenv must NOT call
+      t.Parallel. Compare durations against time.Second multiples (5*time.Second),
+      never against integers.
+      TestLoadDefaults — with no environment set, Load() returns a nil error and
+      the documented defaults: Addr ":8080", DefaultPageSize 20, MaxPageSize 100.
+      TestLoadFromEnv — t.Setenv ADDR ":9090", READ_TIMEOUT "30s", WRITE_TIMEOUT
+      "40s", SHUTDOWN_TIMEOUT "50s", DEFAULT_PAGE_SIZE "5" and MAX_PAGE_SIZE "50";
+      Load() returns a nil error and ALL SIX of those values. The three duration
+      vars are structural MIRRORS of one another — exercise all three, not just
+      the first; a mirror nobody exercises is a branch nobody has shown to work.
+      TestLoadInvalidDuration — t.Setenv READ_TIMEOUT to "not-a-duration"; Load()
+      returns a NON-NIL error (it does not silently fall back).
       TestValidateRejectsMaxBelowDefault — build a Config VALUE DIRECTLY with a
       field-named literal whose MaxPageSize is less than its DefaultPageSize (e.g.
       DefaultPageSize 20, MaxPageSize 19, with the other fields sane) and call
