@@ -34,9 +34,17 @@ files:
       not invent extra cases:
       TestLoadDefaults — with no environment set, Load() returns a nil error and
       the documented defaults: Addr ":8080", AuthToken "secret", QueueSize 64.
-      TestValidateEmptyAuthToken — a Config with an empty AuthToken fails
-      Validate().
-      TestValidateOK — a sane Config passes Validate().
+      TestValidateEmptyAuthToken — build a Config VALUE DIRECTLY with a
+      field-named literal (Addr ":8080", QueueSize 64, AuthToken "") and call
+      Validate() on it: it must return a non-nil error. Do NOT call Load() here,
+      and do NOT try to reach this state by setting AUTH_TOKEN to "": Load treats
+      an EMPTY env var as UNSET and substitutes the default "secret", so an empty
+      AuthToken is UNREACHABLE through Load by construction — the token would come
+      back "secret", Validate would correctly return nil, and the test would fail
+      against a correct implementation. Validate's contract is about a Config
+      value; test it on a Config value.
+      TestValidateOK — a sane Config passes Validate(). Build it the same way, as
+      a direct field-named literal.
       Do NOT write a test that expects Load() to BOTH return an error AND hand
       back populated defaults: when Load fails it returns the zero Config, so
       those two expectations contradict each other and no implementation can

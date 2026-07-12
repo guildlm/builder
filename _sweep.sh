@@ -14,4 +14,7 @@ for s in "$@"; do
 done
 echo "########## SWEEP COMPLETE ##########" >> "$SUM"
 echo "=== SWEEP SUMMARY ===" >> "$SUM"
-grep -E "^RESULT " "$SUM" >> "$SUM"
+# Both numbers, side by side, on purpose. Green rate alone hid that the store
+# packages were half-dead; coverage alone would let a red spec look healthy.
+# Neither is the score. The pair is.
+grep -E "^(RESULT|COVERAGE) " "$SUM" | sort >> "$SUM"

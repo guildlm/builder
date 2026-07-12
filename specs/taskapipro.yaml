@@ -31,9 +31,18 @@ files:
       not invent extra cases:
       TestLoadDefaults — with no environment set, Load() returns the documented
       defaults.
-      TestValidateRejectsMaxBelowDefault — a Config whose MaxPageSize is less than
-      its DefaultPageSize fails Validate().
-      TestValidateOK — a sane Config passes Validate().
+      TestValidateRejectsMaxBelowDefault — build a Config VALUE DIRECTLY with a
+      field-named literal whose MaxPageSize is less than its DefaultPageSize (e.g.
+      DefaultPageSize 20, MaxPageSize 19, with the other fields sane) and call
+      Validate() on it: it must return a non-nil error. Do NOT call Load() here.
+      Load VALIDATES before it returns, so it can never hand you back an invalid
+      Config: on failure it returns the ZERO Config, whose MaxPageSize and
+      DefaultPageSize are both 0 — and 0 < 0 is false, so Validate would correctly
+      return nil and the test would fail against a correct implementation. An
+      invalid Config is UNREACHABLE through Load by construction. Validate's
+      contract is about a Config value; test it on a Config value.
+      TestValidateOK — a sane Config passes Validate(). Build it the same way, as
+      a direct field-named literal.
       Do NOT write a test that expects Load() to BOTH return an error AND hand
       back populated defaults: when Load fails it returns the zero Config, so
       those two expectations contradict each other and no implementation can
