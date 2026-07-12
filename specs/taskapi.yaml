@@ -21,10 +21,39 @@ files:
   - path: internal/config/config.go
     purpose: >-
       package config. A Config struct { Addr string; ReadTimeout, WriteTimeout,
-      ShutdownTimeout time.Duration } and func Load() Config that reads env vars
-      (os.Getenv) with sensible defaults (Addr ":8080", timeouts 5s/10s/10s),
-      parsing durations/addresses defensively. Self-contained: imports only os,
-      time (and strconv if needed). No other project package.
+      ShutdownTimeout time.Duration } and func Load() Config — it returns the
+      Config and NOTHING ELSE (no error). Read EXACTLY these env vars, by these
+      names: ADDR, READ_TIMEOUT, WRITE_TIMEOUT, SHUTDOWN_TIMEOUT. Defaults:
+      Addr ":8080", ReadTimeout 5s, WriteTimeout 10s, ShutdownTimeout 10s.
+      Treat an EMPTY env var EXACTLY like an UNSET one — fall back to the default.
+      Parse durations with time.ParseDuration and be DEFENSIVE: if a value fails
+      to parse, fall back to that field's default rather than panicking or
+      returning a zero duration. Self-contained: imports only os and time. No
+      other project package.
+  - path: internal/config/config_test.go
+    purpose: >-
+      package config. Load() is the seam every deployment goes through and it is
+      currently never executed by a test at all.
+      Write SEPARATE FOCUSED TEST FUNCTIONS. Load() returns ONE value (a Config)
+      and NO error — write `cfg := Load()`, never `cfg, err := Load()`.
+      Use t.Setenv (never os.Setenv) so the environment is restored afterwards;
+      a test that calls t.Setenv must NOT call t.Parallel.
+      TestLoadDefaults: t.Setenv ADDR, READ_TIMEOUT, WRITE_TIMEOUT and
+      SHUTDOWN_TIMEOUT each to "" — Load treats an EMPTY var as UNSET — then
+      Load() returns Addr ":8080", ReadTimeout 5s, WriteTimeout 10s,
+      ShutdownTimeout 10s.
+      TestLoadFromEnv: t.Setenv ADDR ":9090", READ_TIMEOUT "30s", WRITE_TIMEOUT
+      "40s" and SHUTDOWN_TIMEOUT "50s"; Load() returns Addr ":9090", ReadTimeout
+      30s, WriteTimeout 40s and ShutdownTimeout 50s. Assert all FOUR — the three
+      duration vars are MIRRORS of one another and a mirror nobody exercises is a
+      branch nobody has shown to work.
+      TestLoadInvalidDurationFallsBack: t.Setenv READ_TIMEOUT, WRITE_TIMEOUT and
+      SHUTDOWN_TIMEOUT ALL to "not-a-duration"; Load() falls back to EACH field's
+      own default (5s, 10s, 10s). It must NOT panic and must NOT leave any of them
+      at 0 — an unparseable value is not a zero timeout. Assert all three.
+      Compare durations against time.Second multiples (e.g. 5*time.Second), never
+      against integers. Imports testing and time only. Do not name any local
+      variable `t`.
   - path: internal/models/models.go
     purpose: >-
       package models. Domain types and their validation. Task struct {ID,
