@@ -54,9 +54,23 @@ files:
     purpose: >-
       package main. The protected API plus wiring. A PingHandler
       http.HandlerFunc that returns 200 with JSON {"message": "pong"}. func
-      NewRouter(reg *Registry) http.Handler building an http.ServeMux with
-      "GET /ping" -> PingHandler wrapped by RateLimit(reg), and an UNLIMITED
-      "GET /health" -> 200 "ok" outside the middleware. Use a small
+      NewRouter(reg *Registry) http.Handler RETURNS AN http.ServeMux and applies
+      the middleware PER ROUTE, by WRAPPING the handler at registration — /ping is
+      limited, /health is not. Write it EXACTLY in this shape:
+          mux := http.NewServeMux()
+          mux.Handle("GET /ping", RateLimit(reg)(http.HandlerFunc(PingHandler)))
+          mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+              w.WriteHeader(http.StatusOK)
+              _, _ = w.Write([]byte("ok"))
+          })
+          return mux
+      RateLimit(reg) RETURNS a func(http.Handler) http.Handler, so you must CALL
+      the returned function on the handler — RateLimit(reg)(h) — and register THAT.
+      Do NOT hand-roll a dispatcher that inspects r.URL.Path and calls PingHandler
+      directly: that silently BYPASSES the middleware, every request is allowed,
+      and the build and vet both stay GREEN while every rate-limit test fails.
+      Merely DECLARING RateLimit is not calling it; the ONLY thing that enforces
+      the limit is a handler that is WRAPPED by it. Use a small
       writeJSON(w, status, v) helper shared by handlers and middleware.
       Standard library only.
   - path: main.go
