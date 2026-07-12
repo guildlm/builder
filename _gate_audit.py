@@ -184,9 +184,72 @@ def audit_mechanisms() -> None:
               "  work. Check each: is it new, or is it guarded shut?")
 
 
+def audit_regression() -> int:
+    """Do the artifacts the gates can fully repair STILL go green?
+
+    A gate change that breaks the chain would pass every unit test — they check
+    one gate on one fixture — and would only be caught by a sweep, which costs
+    hours of GPU. But the archiver keeps every project the model has ever broken,
+    and the chain can be re-run over all of them for free. Those that reach green
+    by the gates alone are a lock: if one stops, something regressed.
+
+    Returns the number that regressed, so this can gate a commit.
+    """
+    tc = GoToolchain()
+    reds = sorted(
+        p for p in GENERATED.iterdir()
+        if p.is_dir() and (p / "go.mod").exists() and p.name.startswith(("_fail", "_proof"))
+    )
+    if not reds:
+        print("no archived failures yet — nothing to lock")
+        return 0
+
+    print(f"=== driving the gate chain over {len(reds)} archived RED artifacts ===\n")
+    green, advanced, stuck = [], [], []
+    for d in reds:
+        module = module_of(d)
+        with tempfile.TemporaryDirectory() as tmp:
+            work = pathlib.Path(tmp) / d.name
+            shutil.copytree(d, work)
+            ok, before = tc.check(work)
+            for _ in range(20):
+                written = {
+                    str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")
+                }
+                _, surface = tc.check(work)
+                changed = _run_deterministic_gates(written, surface, module)
+                if not changed:
+                    break
+                for path, content in changed.items():
+                    (work / path).write_text(content)
+            after_ok, after = tc.check(work)
+        if after_ok:
+            green.append(d.name)
+        elif before != after:
+            advanced.append(d.name)
+        else:
+            stuck.append(d.name)
+        mark = "GREEN-BY-GATES" if after_ok else ("advanced" if before != after else "STUCK")
+        print(f"  {mark:15s} {d.name}")
+
+    print(f"\n  {len(green)} green by the gates alone · {len(advanced)} advanced · "
+          f"{len(stuck)} stuck")
+    if stuck:
+        print("\n  STUCK means the gates changed NOTHING. That is either a defect "
+              "class\n  we have never seen, or a gate that stopped firing.")
+    return len(stuck)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument(
+        "--regress",
+        action="store_true",
+        help="re-drive the gate chain over every ARCHIVED red artifact and report "
+        "which still reach green. A gate change that breaks the chain passes every "
+        "unit test and is otherwise only caught by a sweep costing hours of GPU.",
+    )
     ap.add_argument(
         "--mechanisms",
         action="store_true",
@@ -208,6 +271,9 @@ def main() -> None:
     if args.mechanisms:
         audit_mechanisms()
         return
+
+    if args.regress:
+        raise SystemExit(1 if audit_regression() else 0)
 
     tc = GoToolchain()
     dirs = sorted(p for p in GENERATED.iterdir() if p.is_dir() and (p / "go.mod").exists())
