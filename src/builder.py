@@ -3245,6 +3245,170 @@ def _fix_multivalue_in_single_context(
     return changed
 
 
+def _fix_self_qualified_package(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``undefined: store`` in a file that IS ``package store``.
+
+    The model wrote ``store.ErrNotFound`` inside the store package itself. Within
+    a package you never qualify your own symbols — there is nothing named ``store``
+    in scope, so the compiler reports the QUALIFIER as undefined rather than the
+    symbol. It happens most in a test file, where the model is thinking of how the
+    symbol looks from the outside.
+
+    Safe by construction: inside package X, ``X.Sym`` is wrong under all
+    circumstances (a package cannot import itself, and Go has no way to name it),
+    so dropping the qualifier is the only thing it could have meant. The gate does
+    it only for symbols the package actually declares, and refuses outright if the
+    file imports anything whose own name is X — the one way X could legitimately be
+    in scope. Line-preserving."""
+    changed: dict[str, str] = {}
+    undefined = {m.group(2) for m in _UNDEF_BARE_RE.finditer(error_output)}
+    if not undefined:
+        return {}
+    for path, code in written.items():
+        if not path.endswith(".go"):
+            continue
+        pkg = pkg_name_of(code)
+        if not pkg or pkg not in undefined:
+            continue
+        # Everything this package declares, across all its files.
+        own: set[str] = set()
+        for p, c in written.items():
+            if p.endswith(".go") and _dir_of(p) == _dir_of(path):
+                own |= top_level_decls(c) | method_decls(c)
+        if not own:
+            continue
+        # If some import is genuinely named `pkg`, the qualifier may be real.
+        if any(
+            imp.rsplit("/", 1)[-1] == pkg
+            for imp in nonstdlib_imports(code) + _stdlib_imports(code)
+        ):
+            continue
+        new = re.sub(
+            rf"(?<![\w.]){re.escape(pkg)}\.(\w+)",
+            lambda m: m.group(1) if m.group(1) in own else m.group(0),
+            code,
+        )
+        if new != code:
+            changed[path] = new
+            _log(f"  {path} is package {pkg} — dropped the self-qualifier "
+                 f"({pkg}.X is never valid inside {pkg})")
+    return changed
+
+
+# `invalid operation: operator ! not defined on tt.getWant.Error() (value of type
+# string)`
+_BANG_ON_NONBOOL_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):\d+: invalid operation: operator ! not defined on "
+    r"(.+?) \(value of type \w[\w.\[\]*]*\)"
+)
+
+
+def _fix_negated_comparison(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``if !tt.getWant.Error() == "not found"`` — Go parses that as
+    ``(!x) == y``, and ``!`` is not defined on a string, so it does not compile.
+
+    The compiler is telling us the operand is NOT a bool, which means the
+    expression could never have been valid as written — so there is no working
+    program we might be changing the meaning of. And both readings of what the
+    model meant converge on the same thing: ``!(x == y)`` and "x is not y" are
+    both ``x != y``. That is what makes this repair unambiguous rather than a
+    guess.
+
+    Rewrites ``!<expr> == <rhs>`` to ``<expr> != <rhs>`` on the line the compiler
+    named, using the exact operand text it printed. Line-preserving."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    for m in _BANG_ON_NONBOOL_RE.finditer(error_output):
+        path, lineno, expr = resolve(m.group(1)), int(m.group(2)), m.group(3)
+        if not path:
+            continue
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        new = re.sub(
+            rf"!{re.escape(expr)}\s*==\s*", f"{expr} != ", line, count=1
+        )
+        if new == line:
+            continue
+        lines[lineno - 1] = new
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+        _log(f"  {path}:{lineno}: `!x == y` cannot compile on a non-bool — "
+             f"rewrote it as `x != y`")
+    return changed
+
+
+# `tt.listWant.Equal undefined (type []models.Task has no field or method Equal)`
+_SLICE_EQUAL_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):\d+: ([\w.]+)\.Equal undefined "
+    r"\(type (\[\][\w.]+) has no field or method Equal\)"
+)
+
+
+def _fix_slice_equal(written: dict[str, str], error_output: str) -> dict[str, str]:
+    """``tt.listWant.Equal(got)`` — a slice has no ``Equal`` method, and never
+    will. The model reached for one because most languages have it.
+
+    The compiler prints the receiver's type, so we KNOW it is a slice, and Go has
+    exactly one standard way to compare two of them: ``reflect.DeepEqual``. There
+    is no second reading to choose between, which is what separates this from a
+    guess. Shifts lines (it adds the import), so it lives in phase two."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    for m in _SLICE_EQUAL_RE.finditer(error_output):
+        path, lineno, recv = resolve(m.group(1)), int(m.group(2)), m.group(3)
+        if not path:
+            continue
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        new = re.sub(
+            rf"{re.escape(recv)}\.Equal\((.+?)\)",
+            rf"reflect.DeepEqual({recv}, \1)",
+            line,
+            count=1,
+        )
+        if new == line:
+            continue
+        lines[lineno - 1] = new
+        changed[path] = _ensure_import(
+            "\n".join(lines) + ("\n" if code.endswith("\n") else ""), "reflect"
+        )
+        _log(f"  {path}:{lineno}: a slice has no Equal method — compared it with "
+             f"reflect.DeepEqual")
+    return changed
+
+
+def _stdlib_imports(code: str) -> list[str]:
+    """Import paths with no domain in the first segment — the standard library."""
+    paths: list[str] = []
+    for block in _IMPORT_BLOCK_RE.findall(code):
+        paths.extend(_QUOTED_RE.findall(block))
+    paths.extend(_IMPORT_SINGLE_RE.findall(code))
+    return [p for p in paths if "." not in p.split("/")[0]]
+
+
 def _run_deterministic_gates(
     written: dict[str, str], output: str, module: str | None
 ) -> dict[str, str]:
@@ -3294,6 +3458,8 @@ def _run_deterministic_gates(
     inplace.update(_fix_handle_vs_handlefunc({**written, **inplace}, output))
     inplace.update(_fix_handlerfunc_wrap({**written, **inplace}, output))
     inplace.update(_fix_pointer_to_interface({**written, **inplace}, output))
+    inplace.update(_fix_self_qualified_package({**written, **inplace}, output))
+    inplace.update(_fix_negated_comparison({**written, **inplace}, output))
     if inplace:
         return inplace
 
@@ -3318,6 +3484,7 @@ def _run_deterministic_gates(
         lambda w: _fix_argument_type_adapter(w, output),
         lambda w: _fix_middleware_called_not_passed(w, output),
         lambda w: _fix_multivalue_in_single_context(w, output),
+        lambda w: _fix_slice_equal(w, output),
     ):
         shifted = gate(written)
         if shifted:
