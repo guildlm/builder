@@ -71,11 +71,17 @@ files:
       satisfy both. Imports testing only. Do not name any local variable `t`.
   - path: internal/models/models.go
     purpose: >-
-      package models. Task struct {ID, Title, Status string} with JSON tags;
-      valid Status is "todo"|"doing"|"done". Event struct {Type, TaskID string}
-      with JSON tags (Type is e.g. "task.created"). Exported sentinel var
-      ErrInvalid = errors.New("invalid"). Method (t Task) Validate() error
-      wrapping ErrInvalid via fmt.Errorf("%w: ...") on empty Title or bad Status.
+      package models. THREE top-level declarations, ALL of them required — count
+      them in the file before you finish:
+      (1) Task struct {ID, Title, Status string} with JSON tags; valid Status is
+      "todo"|"doing"|"done".
+      (2) Event struct {Type, TaskID string} with JSON tags (Type is e.g.
+      "task.created"). This is the one most easily skipped, and NOTHING downstream
+      compiles without it: service.EventEnqueuer is declared as
+      `Enqueue(e models.Event)` and the worker consumes models.Event.
+      (3) Exported sentinel var ErrInvalid = errors.New("invalid").
+      Plus the method (t Task) Validate() error, wrapping ErrInvalid via
+      fmt.Errorf("%w: ...") on an empty Title or a bad Status.
       Imports errors, fmt only.
   - path: internal/models/models_test.go
     purpose: >-
@@ -208,8 +214,15 @@ files:
       events.Enqueue(models.Event{Type: "task.created", TaskID: t.ID}) and return
       (t, nil). Get/Delete delegate to the store. List: fetch via
       s.store.ListTasks(ctx), apply status filtering, then PAGINATION via a
-      generic helper paginate[T any](items []T, limit, offset int) []T with bounds
-      checks (offset past end -> empty, never panic), return (page, nil).
+      generic helper paginate[T any](items []T, limit, offset int) []T that must be
+      UNPANICKABLE on any (limit, offset) an HTTP query string can produce. "Never
+      panic" is not a wish — it is THREE named guards, and the one most often
+      dropped is the second:
+        if offset >= len(items) { return []T{} }   // past the end -> empty
+        if offset < 0 { offset = 0 }               // NEGATIVE offset clamps to 0;
+                                                   // without this, items[-1:] PANICS
+        if limit <= 0 || limit > len(items)-offset { limit = len(items) - offset }
+      then `return items[offset : offset+limit]`. return (page, nil).
       Compile-time assertion var _ TaskService = (*taskService)(nil). Imports
       context + the store + models packages.
   - path: internal/service/service_test.go
@@ -218,15 +231,65 @@ files:
       EventEnqueuer) and the models package; pass context.Background() to every
       service method. Define a tiny fake enqueuer in the test (a struct with a
       slice or counter recording Enqueue calls).
-      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Each
-      builds its OWN fresh service, which starts EMPTY, so a case that needs a
-      task to already exist must CREATE it first, in its own body:
-      TestCreateOK: Create a valid task -> no error; Get it back; and the enqueuer
-      received EXACTLY ONE event.
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. ONE TEST
+      FUNCTION ASSERTS ONE OUTCOME: do NOT chain a second check onto a test that
+      already has one (a "create it, then also read it back, and also check the
+      event" function reliably ships the first and last and drops the MIDDLE one).
+      Each function builds its OWN fresh service, which starts EMPTY, so a case
+      that needs a task to already exist must CREATE it first, in its own body.
+      Every assertion states the EXACT expected value. Never assert "at most N"
+      or "no more than N": a paginate that wrongly returns ZERO items satisfies
+      "at most 1" and the bug ships green. If you expect one item, require
+      len(got) == 1.
+      TestCreateOK: Create a valid task -> no error and the enqueuer received
+      EXACTLY ONE event whose Type is "task.created".
       TestCreateInvalid: Create a task with a bad status -> the error is
       models.ErrInvalid (errors.Is) and NO event was enqueued.
-      TestListLimit: Create TWO tasks FIRST, then List with limit=1 -> at most 1
-      item.
+      TestGetAfterCreate: Create a task FIRST, then Get its ID -> no error and the
+      returned task's Title EQUALS the one created.
+      TestGetMissing: Get an ID that was never created -> errors.Is(err,
+      store.ErrNotFound).
+      TestDeleteRemoves: Create a task FIRST, Delete its ID -> no error; then Get
+      that same ID -> errors.Is(err, store.ErrNotFound).
+      TestListLimit: Create TWO tasks FIRST, then List with limit=1, offset=0 ->
+      EXACTLY 1 item.
+      TestListFilterByStatus: Create one "todo" and one "done" task FIRST, then
+      List with limit=0, offset=0 and status "done" -> EXACTLY 1 item and its
+      Status is "done".
+      TestListOffsetPastEnd: Create ONE task FIRST, then List with limit=10,
+      offset=5 (an offset past the end) -> no error, no panic, EXACTLY 0 items.
+      TestListNegativeOffset: Create ONE task FIRST, then List with limit=0 and
+      offset=-1 -> no panic and EXACTLY 1 item (a negative offset clamps to 0).
+      This one is not hypothetical: a paginate without the `offset < 0` clamp
+      slices items[-1:] and panics at runtime, and every other test passes anyway.
+      STORE-ERROR PROPAGATION (the service must return the store's error, not
+      swallow it).
+      FIRST, AT PACKAGE SCOPE — at the TOP of the file, ABOVE every test function
+      and INSIDE NO FUNCTION AT ALL — declare a failing fake store. Go forbids a
+      method declaration inside a function body, so these `func (failStore) ...`
+      lines MUST sit at file scope like any other top-level declaration (the fake
+      enqueuer above is declared the same way):
+        var errBoom = errors.New("boom")
+        type failStore struct{}
+        func (failStore) CreateTask(ctx context.Context, tk models.Task) error { return errBoom }
+        func (failStore) GetTask(ctx context.Context, id string) (models.Task, error) { return models.Task{}, errBoom }
+        func (failStore) ListTasks(ctx context.Context) ([]models.Task, error) { return nil, errBoom }
+        func (failStore) DeleteTask(ctx context.Context, id string) error { return errBoom }
+      THEN, as ordinary separate test functions that merely USE it (each one's
+      body contains NO type and NO method declaration — only calls and asserts).
+      IN A TEST THAT EXPECTS AN ERROR, THE ERROR IS THE RESULT, NOT AN OBSTACLE:
+      do NOT open it with the happy-path boilerplate `if err != nil {
+      t.Fatalf(...) }`. That guard fires on the very error you asked for, and the
+      errors.Is assertion below it becomes DEAD CODE that never runs. The error
+      check in these two functions is the errors.Is one and nothing else:
+        _, err := svc.List(context.Background(), 1, 0, "")
+        if !errors.Is(err, errBoom) { tt.Fatalf("List: err = %v, want errBoom", err) }
+      TestCreateStoreError: NewTaskService(failStore{}, a fake enqueuer), Create a
+      task that is VALID (an invalid one fails at Validate and never reaches the
+      store) -> errors.Is(err, errBoom) and NO event was enqueued (the event must
+      not fire when the write failed).
+      TestListStoreError: NewTaskService(failStore{}, a fake enqueuer), List ->
+      errors.Is(err, errBoom), and NOTHING ELSE.
       Imports context, errors, testing, and the store +
       models packages. Never name a local variable `t`.
   - path: internal/api/response.go
@@ -303,7 +366,9 @@ files:
       /tasks -> 200 and json-decode into a []models.Task named `all` of length 2.
       Then make a SECOND request, GET /tasks?limit=1, with a FRESH recorder, and
       json-decode THAT response into a SEPARATE slice named `limited` before
-      asserting len(limited) <= 1. Decoding is what makes the assertion mean
+      asserting len(limited) == 1 — EXACTLY one, NEVER "at most one": a handler
+      that wrongly returns ZERO items satisfies "<= 1" and the bug ships green.
+      Decoding is what makes the assertion mean
       anything: do NOT re-assert on `all` after the second request — it still
       holds the 2 items from the first response and the check would fail no matter
       what the handler did.

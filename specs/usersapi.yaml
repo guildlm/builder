@@ -34,6 +34,19 @@ files:
       middleware that records method, path, resolved status (via a statusRecorder
       wrapping http.ResponseWriter, defaulting to 200) and latency. A Recover
       middleware that turns a downstream panic into a 500. Standard library only.
+  - path: middleware_recover_test.go
+    purpose: >-
+      package main. ONE test for the middleware whose entire job is to run when
+      everything else has already failed — and which, until now, no test has ever
+      made run.
+      TestRecoverPanic: do NOT build a router. Wrap a handler that does nothing but
+      panic DIRECTLY in Recover, exactly like this (the handler is declared INLINE
+      inside the test body — it is a func VALUE, not a method declaration):
+        h := Recover(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { panic("boom") }))
+      then ServeHTTP it with httptest.NewRequest("GET", "/", nil) and
+      httptest.NewRecorder(), and assert the recorder's Code is 500: the panic must
+      be turned into a response, NOT escape out of ServeHTTP.
+      Imports net/http, net/http/httptest, testing. Never name a local variable `t`.
   - path: handlers.go
     purpose: >-
       package main. JSON handlers over a Store. A UserHandler struct holding a

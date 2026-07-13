@@ -483,53 +483,16 @@ def _retrieval_block(shots: Sequence[tuple[str, str]] | None) -> str:
     return "".join(parts)
 
 
-def _generate_prompt(
-    spec: Spec,
-    task: FileTask,
-    written: dict[str, str],
-    shots: Sequence[tuple[str, str]] | None = None,
-) -> str:
-    """Prompt for first-pass generation of one file."""
-    target_dir = _dir_of(task.spec.path)
-    same_pkg = {p: c for p, c in written.items() if _dir_of(p) == target_dir}
-    context = _package_context(written, task.spec.path, spec.go_module)
-    reuse_rule = (
-        "The SAME-PACKAGE files above (same directory) are part of THIS package. "
-        "Every function, type, constant and variable they declare already exists "
-        "— call and reference them directly, and do NOT redeclare or reimplement "
-        "any of them (a Go 'redeclared in this block' error). For test files: do "
-        "not paste copies of the functions under test, just call them.\n"
-        "USE SIBLING TYPES EXACTLY AS DECLARED: match struct vs interface. If a "
-        "shared type is an interface, hold and pass it BY VALUE (`s Store`), "
-        "never as a pointer `*Store` — a pointer-to-interface has no methods and "
-        "will not compile. Call the methods that actually exist; do not invent "
-        "method names.\n\n"
-        if same_pkg
-        else ""
-    )
-    # For a multi-package project, symbols in OTHER packages are reached by
-    # importing that package and qualifying (pkg.Symbol) — never by redeclaring.
-    other_pkg = {p for p in written if _dir_of(p) != target_dir}
-    cross_pkg_rule = (
-        "This project spans MULTIPLE PACKAGES (see the OTHER-PACKAGE APIs above). "
-        "To use a symbol from another package, IMPORT that package by its full "
-        "path (module path + '/' + its directory) and call it qualified as "
-        "`pkgname.Symbol`. Only EXPORTED (capitalised) names are visible across "
-        "packages. Do NOT redeclare another package's types locally. This file's "
-        "own `package` clause must match its directory's package name.\n"
-        "CALL OTHER-PACKAGE FUNCTIONS WITH THEIR EXACT SIGNATURE shown above — do "
-        "not add or drop a parameter (e.g. do not pass a context.Context to a "
-        "method that does not take one, and DO pass it to one that does), and "
-        "match the return arity. When you construct a struct, the field names in "
-        "the literal MUST be the struct's declared field names.\n\n"
-        if other_pkg
-        else ""
-    )
-    # Test files are where models invent edge cases whose expected value
-    # contradicts the spec (e.g. asserting an emoji string is "not a palindrome"
-    # when the spec says only letters/digits count, so it filters to empty ->
-    # true). Anchor the test author to the spec's stated rules.
-    test_rule = (
+def _test_rule(path: str) -> str:
+    """The test-authoring defaults. Hoisted to module scope because the FIX
+    prompt needs them too: for a week these rules were handed to the generator
+    and withheld from the fixer, so every fix round rewrote a test file blind to
+    every default the project had built — and regressed to the unguided prior it
+    was written to prevent. The drained-body bug came back that way, through four
+    fix rounds, against a default that quotes the wrong code verbatim."""
+    if not path.endswith("_test.go"):
+        return ""
+    return (
         "This is a TEST file. Derive every expected value strictly from the "
         "behaviour described above for the functions under test — do not invent "
         "edge cases whose expected result contradicts those stated rules. If you "
@@ -602,13 +565,21 @@ def _generate_prompt(
         "handler that maps ErrExists to 409 perfectly correctly. Refreshing the "
         "RECORDER is not enough and is not the point: `w = httptest.NewRecorder()` "
         "followed by `h.ServeHTTP(w, req)` with the SAME req is exactly the bug. "
-        "Both rules together, and this is the shape to copy:\n"
+        "THE DUPLICATE TEST IS WHERE THIS BITES, AND ONLY THERE. Everywhere else "
+        "the second request is a different method or a different URL (GET, DELETE, "
+        "a list), so you are forced to build a new one and the bug cannot happen. "
+        "The duplicate case is the ONE test in which both requests are a POST of "
+        "the SAME body to the SAME URL — which is exactly what makes reusing `req` "
+        "look correct. It is not. Build TWO requests there, from TWO fresh readers "
+        "over the same body string. This shape belongs in the duplicate test and "
+        "nowhere else — do not copy it into a test that merely happens to send two "
+        "POSTs of DIFFERENT bodies (a list test), which needs no such care:\n"
         "    h := newRouter()                            // once — keeps the state\n"
         "    req1 := httptest.NewRequest(\"POST\", \"/tasks\", "
         "bytes.NewBufferString(body))\n"
-        "    h.ServeHTTP(httptest.NewRecorder(), req1)   // seed it (same h)\n"
+        "    h.ServeHTTP(httptest.NewRecorder(), req1)   // seed it (same h) -> 201\n"
         "    req2 := httptest.NewRequest(\"POST\", \"/tasks\", "
-        "bytes.NewBufferString(body))\n"
+        "bytes.NewBufferString(body))  // SAME body, SECOND reader\n"
         "    w := httptest.NewRecorder()\n"
         "    h.ServeHTTP(w, req2)                        // same h -> now it IS a duplicate -> 409\n"
         "When a case wants 'malformed JSON', send genuinely "
@@ -625,9 +596,56 @@ def _generate_prompt(
         "local variable named `t` inside it (e.g. `var t models.Task`), it "
         "shadows/redeclares the *testing.T and breaks every t.Fatalf after it. "
         "Name locals distinctly: got, want, task, rec, resp, err.\n\n"
-        if task.spec.path.endswith("_test.go")
+    )
+
+
+def _generate_prompt(
+    spec: Spec,
+    task: FileTask,
+    written: dict[str, str],
+    shots: Sequence[tuple[str, str]] | None = None,
+) -> str:
+    """Prompt for first-pass generation of one file."""
+    target_dir = _dir_of(task.spec.path)
+    same_pkg = {p: c for p, c in written.items() if _dir_of(p) == target_dir}
+    context = _package_context(written, task.spec.path, spec.go_module)
+    reuse_rule = (
+        "The SAME-PACKAGE files above (same directory) are part of THIS package. "
+        "Every function, type, constant and variable they declare already exists "
+        "— call and reference them directly, and do NOT redeclare or reimplement "
+        "any of them (a Go 'redeclared in this block' error). For test files: do "
+        "not paste copies of the functions under test, just call them.\n"
+        "USE SIBLING TYPES EXACTLY AS DECLARED: match struct vs interface. If a "
+        "shared type is an interface, hold and pass it BY VALUE (`s Store`), "
+        "never as a pointer `*Store` — a pointer-to-interface has no methods and "
+        "will not compile. Call the methods that actually exist; do not invent "
+        "method names.\n\n"
+        if same_pkg
         else ""
     )
+    # For a multi-package project, symbols in OTHER packages are reached by
+    # importing that package and qualifying (pkg.Symbol) — never by redeclaring.
+    other_pkg = {p for p in written if _dir_of(p) != target_dir}
+    cross_pkg_rule = (
+        "This project spans MULTIPLE PACKAGES (see the OTHER-PACKAGE APIs above). "
+        "To use a symbol from another package, IMPORT that package by its full "
+        "path (module path + '/' + its directory) and call it qualified as "
+        "`pkgname.Symbol`. Only EXPORTED (capitalised) names are visible across "
+        "packages. Do NOT redeclare another package's types locally. This file's "
+        "own `package` clause must match its directory's package name.\n"
+        "CALL OTHER-PACKAGE FUNCTIONS WITH THEIR EXACT SIGNATURE shown above — do "
+        "not add or drop a parameter (e.g. do not pass a context.Context to a "
+        "method that does not take one, and DO pass it to one that does), and "
+        "match the return arity. When you construct a struct, the field names in "
+        "the literal MUST be the struct's declared field names.\n\n"
+        if other_pkg
+        else ""
+    )
+    # Test files are where models invent edge cases whose expected value
+    # contradicts the spec (e.g. asserting an emoji string is "not a palindrome"
+    # when the spec says only letters/digits count, so it filters to empty ->
+    # true). Anchor the test author to the spec's stated rules.
+    test_rule = _test_rule(task.spec.path)
     # Registering routes with a Go 1.22+ ServeMux is a reliable small-model
     # trap: it writes the SAME bare pattern twice (List + Create both on
     # "/tasks"), which PANICS at startup ("conflicts with pattern") and fails
@@ -832,6 +850,14 @@ def _fix_prompt(
         f"existing one instead.\n\n"
         f"{import_rule}"
         f"{assertion_rule}"
+        # The test-authoring defaults, which for a week reached the GENERATOR and
+        # never the FIXER. A fix round rewrites the whole file; without these it
+        # rewrites it blind to every rule the project has built, and reverts to
+        # the prior each one exists to prevent. That is how the drained-body bug
+        # returned — through four fix rounds, against a default that quotes the
+        # wrong code verbatim and predicts its exact symptom. The fixer was never
+        # shown it.
+        f"{_test_rule(task.spec.path)}"
         f"{_retrieval_block(shots)}"
         f"{sibling_block}"
         f"--- current {task.spec.path} ---\n{current}\n"
@@ -2019,6 +2045,58 @@ _UNUSED_VAR_RE = re.compile(
 )
 
 
+# sync/atomic's Int64/Int32/Uint64/Uint32 have Add/Load/Store/Swap/CompareAndSwap
+# and NO Inc/Dec. The model reaches for `.Inc()` — the name every other language
+# gives this — and the compiler names the type, the method, the file and the line.
+# It is the clearest sentence a gate could ask for, and the model STILL cannot act
+# on it: told three times in one run, it rewrote `w.count.Inc()` three times, in a
+# file where it used `w.count.Load()` correctly two lines below. That is the tell —
+# not missing knowledge, a reflex. Which is the real criterion for a gate: not how
+# OFTEN an error occurs, but whether the model can fix it once the compiler has
+# named it. An error re-committed after being told is deterministic-layer work by
+# definition, even at n=1.
+# The SAME defect is reported in TWO sentences, and a gate that hears only one is
+# deaf to half its job (Report #19's law, walked into while writing this gate):
+#   go build : (type atomic.Int64 has no field or method Inc)
+#   go vet   : (type "sync/atomic".Int64 has no field or method Inc)
+# The quoted import path appears in one and not the other. Accept both.
+_ATOMIC_INC_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):(\d+): ([\w.]+)\.(Inc|Dec) undefined "
+    r"\(type (?:\"sync/atomic\"|atomic)\.(?:Int|Uint)\d+ "
+    r"has no field or method (?:Inc|Dec)\)"
+)
+
+
+def _fix_atomic_inc(written: dict[str, str], error_output: str) -> dict[str, str]:
+    """Rewrite `x.Inc()` -> `x.Add(1)` (and `x.Dec()` -> `x.Add(-1)`) on an atomic
+    integer, ONLY on the line the compiler named. In-place: one line, same count."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    for m in _ATOMIC_INC_RE.finditer(error_output):
+        path = resolve(m.group(1))
+        if not path:
+            continue
+        lineno, recv, meth = int(m.group(2)), m.group(4), m.group(5)
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        call = f"{recv}.{meth}()"
+        if call not in lines[lineno - 1]:
+            continue  # the compiler's line and the source disagree — leave it
+        delta = "1" if meth == "Inc" else "-1"
+        lines[lineno - 1] = lines[lineno - 1].replace(call, f"{recv}.Add({delta})")
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+    return changed
+
+
 def _fix_unused_var(written: dict[str, str], error_output: str) -> dict[str, str]:
     """Blank a `declared and not used` name on a multi-value `:=` short decl
     (the captured-extra-return-value pattern), only when another real new
@@ -2955,6 +3033,120 @@ def _fix_shadowed_tester(
     return changed
 
 
+_FRESHREQ = Path(__file__).resolve().parent.parent / "tools" / "freshreq.go"
+
+
+def _fix_drained_request(written: dict[str, str], error_output: str) -> dict[str, str]:
+    """Rebuild an *http.Request that is handed to ServeHTTP more than once.
+
+    A request Body is an io.Reader: the first ServeHTTP DRAINS it, so the second
+    call sends an empty body, json.Decode fails on EOF, and the handler answers
+    400 — a "POST twice -> 409" case reports `want 409, got 400` against a handler
+    that is perfectly correct. The test is wrong; the product is right.
+
+    STRUCTURAL, not error-driven, and that is deliberate. The defect surfaces as a
+    test assertion failure whose text is written by the spec (`want 409, got
+    400`), not by the compiler — there is no sentence a gate could key on. It is
+    instead an unconditional property of the source: the same body-bearing request
+    reaching ServeHTTP twice with no reassignment between is ALWAYS a drained
+    body, whatever else the project is doing.
+
+    This one earned its gate. Six escalating versions of the prompt default failed
+    to stop it — the rule names the variable, forbids the reuse, explains the
+    drain, predicts the exact status code, quotes the wrong code verbatim as
+    "exactly the bug", and anchors the example to the duplicate test by name. The
+    corpus was checked and does not teach it. The model writes it anyway, because
+    the duplicate case is the ONE test in which both requests are a POST of the
+    SAME body to the SAME URL — and that identity is exactly what makes reuse look
+    correct. A nudge is not a gate.
+
+    Safety lives in tools/freshreq.go: a bodyless request (GET, DELETE) can be
+    legally replayed and is left alone, an already-reassigned request is left
+    alone, and the rebuild REPLAYS the mutations the author applied — without
+    which the repaired test loses its `req.Header.Set("Authorization", ...)` and
+    fails 401 instead of 400, trading one silent breakage for another.
+    """
+    del error_output  # structural: the compiler has nothing to say about this
+    if not _FRESHREQ.exists():
+        return {}
+    changed: dict[str, str] = {}
+    for path, code in written.items():
+        if not path.endswith("_test.go") or "ServeHTTP" not in code:
+            continue
+        try:
+            proc = subprocess.run(
+                ["go", "run", str(_FRESHREQ)],
+                input=code,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return {}  # no toolchain, no opinion
+        if proc.returncode != 0 or not proc.stdout.strip():
+            continue  # exit 3 = nothing to do; anything else = stay out of it
+        if proc.stdout != code:
+            changed[path] = proc.stdout
+            _log(f"  rebuilt a request that was served twice (drained body) in {path}")
+    return changed
+
+
+_DEADASSERT = Path(__file__).resolve().parent.parent / "tools" / "deadassert.go"
+
+
+def _fix_dead_error_assertion(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """Delete the happy-path guard that makes an error-expecting assertion dead.
+
+    In a test that EXPECTS an error, the error is the RESULT, not an obstacle. The
+    model writes the `errors.Is(err, errBoom)` check the spec asked for — and then
+    layers the file's dominant rhythm, `if err != nil { t.Fatalf(...) }`, ON TOP of
+    it rather than INSTEAD of it. The guard fires on the very error the test exists
+    to observe, and the assertion below it can never run.
+
+    STRUCTURAL, like _fix_drained_request and for the same reason: the failure
+    surfaces as `List: boom` — a message the SPEC wrote, not the compiler — so
+    there is no sentence to key on. It is instead an unconditional contradiction in
+    the source: a test cannot both demand that `err` be nil and assert what `err`
+    wraps. Whichever way you read it, the guard is wrong.
+
+    Nudge-resistant, which is what earns it a gate. The spec forbids it in those
+    words, the fixer is now shown that purpose AND the test-authoring defaults, and
+    the model still re-adds it — it obeyed at GENERATION and a FIX round put the
+    guard back. Seen in taskapipro and again in workapi.
+
+    Safety lives in tools/deadassert.go: the guard is removed ONLY when the same
+    `err` is later the subject of errors.Is/As in the same block, its body is
+    nothing but a single t.Fatalf/Errorf, and `err` is not reassigned in between (a
+    reassignment makes the later check a DIFFERENT error, and the guard legitimate).
+    A happy-path guard with no errors.Is beneath it is ordinary and is left alone.
+    """
+    del error_output  # structural: the compiler has nothing to say about this
+    if not _DEADASSERT.exists():
+        return {}
+    changed: dict[str, str] = {}
+    for path, code in written.items():
+        if not path.endswith("_test.go") or "errors.Is" not in code:
+            continue
+        try:
+            proc = subprocess.run(
+                ["go", "run", str(_DEADASSERT)],
+                input=code,
+                capture_output=True,
+                text=True,
+                timeout=60,
+            )
+        except (OSError, subprocess.SubprocessError):
+            return {}  # no toolchain, no opinion
+        if proc.returncode != 0 or not proc.stdout.strip():
+            continue  # exit 3 = nothing to do; anything else = stay out of it
+        if proc.stdout != code:
+            changed[path] = proc.stdout
+            _log(f"  removed a guard that made the errors.Is assertion dead in {path}")
+    return changed
+
+
 # `func NewStoreImpl() *StoreImpl {` — a constructor taking no arguments and
 # returning a single value, which is the only shape we can safely delegate to.
 _CTOR_DECL_RE = re.compile(r"^func\s+(New\w+)\(\)\s+([^\s({][^{\n]*?)\s*\{", re.M)
@@ -3503,6 +3695,7 @@ def _run_deterministic_gates(
     inplace.update(_fix_swapped_error_assignment({**written, **inplace}, output))
     inplace.update(_fix_fatal_guard({**written, **inplace}, output))
     inplace.update(_fix_handle_vs_handlefunc({**written, **inplace}, output))
+    inplace.update(_fix_atomic_inc({**written, **inplace}, output))
     inplace.update(_fix_handlerfunc_wrap({**written, **inplace}, output))
     inplace.update(_fix_pointer_to_interface({**written, **inplace}, output))
     inplace.update(_fix_self_qualified_package({**written, **inplace}, output))
@@ -3527,6 +3720,11 @@ def _run_deterministic_gates(
         lambda w: _fix_middleware_arity(w, output),
         lambda w: _fix_interface_missing_method(w, output),
         lambda w: _fix_shadowed_tester(w, output),
+        # Phase 2 because it SPLICES statements in (a rebuild plus a replay of the
+        # request's mutations), which moves every line below it.
+        lambda w: _fix_drained_request(w, output),
+        # Phase 2 because it DELETES statements, which moves every line below them.
+        lambda w: _fix_dead_error_assertion(w, output),
         lambda w: _fix_missing_constructor_alias(w, output),
         lambda w: _fix_argument_type_adapter(w, output),
         lambda w: _fix_middleware_called_not_passed(w, output),
@@ -3858,6 +4056,14 @@ def _fix_loop(
         label = (f"fix round {rnd}/{max_fix_rounds}" if rnd <= max_fix_rounds
                  else f"extension round {rnd} (new error surface)")
         _log(f"compile/test FAILED, {label}")
+        # Print the error the loop is actually reacting to. Without this the log
+        # states the verdict and withholds the reason, so every diagnosis starts
+        # by re-deriving what the toolchain already said — the same error-surface
+        # blindness that hid failures from the gates, turned on the operator. Five
+        # lines is enough to name the stratum (parse vs type vs assertion) and
+        # cheap enough to keep on by default.
+        for _line in [ln for ln in output.splitlines() if ln.strip()][:5]:
+            _log(f"    ! {_line.strip()}")
         # Deterministic pre-pass, run to a FIXPOINT: each gate sweep can expose
         # the next mechanical stratum (a vet repair lets the test stage run at
         # all, whose panics feed the fatal-guard gate), so sweep until the

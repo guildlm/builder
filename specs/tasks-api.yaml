@@ -116,7 +116,11 @@ files:
       TestList200: POST one task, then GET /tasks -> 200 with a JSON array.
       TestDelete: POST a task, DELETE /tasks/1 -> 204, then GET /tasks/1 -> 404.
       TestInvalid400: POST /tasks with malformed JSON (truncated bytes like
-      `{"title":`) -> 400.
+      `{"title":`) -> assert the STATUS CODE is 400, AND NOTHING ELSE. Do NOT
+      decode the response body and do NOT assert on an error message: malformed
+      JSON fails at json.Decode, so Validate() is never reached and there is no
+      "title is required" error to find. An invented assertion about a message the
+      handler never produces fails against a handler that is working correctly.
       NEVER name a local variable `t` (it shadows the *testing.T and breaks
       t.Fatalf); name a decoded Task `task` or `got`. Declare every local with :=
       and USE it (no unused variables). Standard library only.

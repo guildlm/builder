@@ -184,27 +184,106 @@ files:
       accessing .Status is valid here because these are models.Task, not a type
       parameter), THEN pass the filtered []models.Task to the generic helper
       paginate[T any](items []T, limit, offset int) []T. paginate ONLY slices by
-      limit/offset with bounds checks (offset past end -> empty, never panic) and
+      limit/offset, and it must be UNPANICKABLE on any (limit, offset) an HTTP
+      query string can produce. "Never panic" is not a wish — it is THREE named
+      guards, and the one most often dropped is the second:
+        if offset >= len(items) { return []T{} }   // past the end -> empty
+        if offset < 0 { offset = 0 }               // NEGATIVE offset clamps to 0;
+                                                   // without this, items[-1:] PANICS
+        if limit <= 0 || limit > len(items)-offset { limit = len(items) - offset }
+      then `return items[offset : offset+limit]`. paginate
       must NEVER access any field or method of T (T is `any` — `item.Status`
       inside paginate does not compile). return (page, nil).
       Compile-time assertions var _ TaskService = (*taskService)(nil) etc.
       Imports context + the store + models packages.
   - path: internal/service/service_test.go
     purpose: >-
-      package service. Tests using NewTaskService(store.NewMemStore()) and the
-      models package; pass context.Background() to every service method.
-      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Each
-      builds its OWN fresh service, which starts EMPTY, so a case that needs a
-      task to already exist must CREATE it first, in its own body:
-      TestCreateOK: Create a valid task -> no error, and it is retrievable via Get.
+      package service. The TASK service only — the project service and the
+      store-error tests live in project_service_test.go, in this same package, so
+      that neither file has to be long. Do NOT write them here.
+      Tests use NewTaskService(store.NewMemStore()) and the models package; pass
+      context.Background() to every service method.
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. ONE TEST
+      FUNCTION ASSERTS ONE OUTCOME, and nothing else: do NOT chain a second check
+      onto a test that already has one (a "create it, then also read it back"
+      function reliably ships the create and drops the read). Each function builds
+      its OWN fresh service, which starts EMPTY, so a case that needs a task to
+      already exist must CREATE it first, in its own body.
+      Every assertion states the EXACT expected value. Never assert "at most N":
+      a paginate that wrongly returns ZERO items satisfies "at most 1" and the bug
+      ships green. If you expect one item, require len(got) == 1.
+      EIGHT test functions, all of them:
+      TestCreateOK: Create a valid task -> no error.
       TestCreateInvalid: Create a task with a bad status -> the error is
       models.ErrInvalid (errors.Is).
-      TestListLimit: Create TWO tasks FIRST, then List with limit=1 -> at most 1
-      item.
+      TestGetAfterCreate: Create a task FIRST, then Get its ID -> no error and the
+      returned task's Title EQUALS the one created.
+      TestGetMissing: Get an ID that was never created -> errors.Is(err,
+      store.ErrNotFound).
+      TestDeleteRemoves: Create a task FIRST, Delete its ID -> no error; then Get
+      that same ID -> errors.Is(err, store.ErrNotFound).
+      TestListLimit: Create TWO tasks FIRST, then List with limit=1, offset=0 ->
+      EXACTLY 1 item.
       TestListFilterByStatus: Create one "todo" and one "done" task FIRST, then
-      List filtered by status "done" -> exactly the one done task.
-      Imports context, errors, testing, and the store +
-      models packages. Never name a local variable `t`.
+      List filtered by status "done" -> EXACTLY 1 item and its Status is "done".
+      TestListOffsetPastEnd: Create ONE task FIRST, then List with limit=10,
+      offset=5 (an offset past the end) -> no error, no panic, EXACTLY 0 items.
+      TestListNegativeOffset: Create ONE task FIRST, then List with limit=0 and
+      offset=-1 -> no panic and EXACTLY 1 item (a negative offset clamps to 0).
+      Not hypothetical: a paginate without the `offset < 0` clamp slices items[-1:]
+      and panics at runtime, and every other test passes anyway.
+      Imports context, errors, testing, and the store + models packages. Never
+      name a local variable `t`.
+  - path: internal/service/project_service_test.go
+    purpose: >-
+      package service. The PROJECT service, plus the two store-error tests — in
+      their OWN file so neither test file has to be long. The project service is a
+      MIRROR of the task service: the same four methods on the other type, and
+      until this file existed, not one of them was ever called by a test. A mirror
+      nobody runs is a branch nobody has shown to work.
+      Tests use NewProjectService(store.NewMemStore()) and pass
+      context.Background() to every method. Each function asserts ONE outcome and
+      nothing else, and builds its OWN fresh service.
+      SEVEN test functions. Write ALL SEVEN — the last two are the ones most often
+      dropped, and they are the whole reason the fake below exists:
+      TestProjectCreateOK: Create a valid project -> no error.
+      TestProjectCreateInvalid: Create a project with an empty Name -> the error is
+      models.ErrInvalid (errors.Is).
+      TestProjectGetAfterCreate: Create a project FIRST, then Get its ID -> no
+      error and the returned project's Name EQUALS the one created.
+      TestProjectDeleteRemoves: Create a project FIRST, Delete its ID -> no error;
+      then Get that same ID -> errors.Is(err, store.ErrNotFound).
+      TestProjectListLimit: Create TWO projects FIRST, then List with limit=1,
+      offset=0 -> EXACTLY 1 item.
+      TestCreateStoreError: NewTaskService(failStore{}), Create a task that is
+      VALID (an invalid one fails at Validate and never reaches the store) ->
+      errors.Is(err, errBoom), and NOTHING ELSE.
+      TestListStoreError: NewTaskService(failStore{}), List -> errors.Is(err,
+      errBoom), and NOTHING ELSE.
+      IN THOSE LAST TWO, THE ERROR IS THE RESULT, NOT AN OBSTACLE: do NOT open them
+      with the happy-path boilerplate `if err != nil { t.Fatalf(...) }`. That guard
+      fires on the very error you asked for and the errors.Is assertion below it
+      becomes DEAD CODE. The only check is the errors.Is one:
+        _, err := svc.List(context.Background(), 1, 0, "")
+        if !errors.Is(err, errBoom) { tt.Fatalf("List: err = %v, want errBoom", err) }
+      FINALLY, at PACKAGE SCOPE — outside every function, like any other top-level
+      declaration (Go forbids a method declaration inside a function body) —
+      declare the failing fake store that those last two tests use:
+        var errBoom = errors.New("boom")
+        type failStore struct{}
+        func (failStore) CreateTask(ctx context.Context, tk models.Task) error { return errBoom }
+        func (failStore) GetTask(ctx context.Context, id string) (models.Task, error) { return models.Task{}, errBoom }
+        func (failStore) ListTasks(ctx context.Context) ([]models.Task, error) { return nil, errBoom }
+        func (failStore) DeleteTask(ctx context.Context, id string) error { return errBoom }
+        func (failStore) CreateProject(ctx context.Context, p models.Project) error { return errBoom }
+        func (failStore) GetProject(ctx context.Context, id string) (models.Project, error) { return models.Project{}, errBoom }
+        func (failStore) ListProjects(ctx context.Context) ([]models.Project, error) { return nil, errBoom }
+        func (failStore) DeleteProject(ctx context.Context, id string) error { return errBoom }
+      A declared-but-unused failStore means you dropped the last two tests. Go will
+      not complain — an unused type compiles — so the suite goes GREEN with two
+      tests missing and the store-error branches never executed. Count them: SEVEN.
+      Imports context, errors, testing, and the store + models packages. Never
+      name a local variable `t`.
   - path: internal/api/response.go
     purpose: >-
       package api. Helpers: writeJSON(w http.ResponseWriter, status int, v any)
@@ -277,7 +356,9 @@ files:
       TestListLimit: POST TWO tasks FIRST, GET the collection and json-decode it
       into a slice named `all` (length 2); then make a SECOND request with
       ?limit=1, using a FRESH recorder, and json-decode THAT response into a
-      SEPARATE slice named `limited` before asserting len(limited) <= 1. Do NOT
+      SEPARATE slice named `limited` before asserting len(limited) == 1 — EXACTLY
+      one, NEVER "at most one": a handler that wrongly returns ZERO items
+      satisfies "<= 1" and the bug ships green. Do NOT
       re-assert on `all` — it still holds 2 items and the check would fail no
       matter what the handler did.
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.

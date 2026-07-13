@@ -207,9 +207,59 @@ files:
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
       TestMalformedJSON: POST truncated bytes like `{"title":` (NOT an empty
       `{}`) -> 400.
-      TestProjectCreateGet: POST a project, then GET it back -> 200.
+      TestDeleteMissing: DELETE a task id nobody created -> 404.
+      TestHealthz: GET /healthz -> assert the STATUS CODE is 200. The body is the
+      bare JSON string "ok" — NOT an object: if you check it at all, decode it
+      into a `string`, never into a struct (a struct decode of a bare string
+      silently yields the zero value and fails a handler that is working).
+      That is TEN test functions and NO more — the project endpoints are covered
+      in projects_test.go, in this same package. Do not write them here.
       Imports bytes, encoding/json, io, log/slog, net/http, net/http/httptest,
       testing, and store + models.
+  - path: internal/api/projects_test.go
+    purpose: >-
+      package api. The project endpoints, in their OWN file so that neither test
+      file has to be long. They are a MIRROR of the task endpoints: registered on
+      the same router, shipped in projects.go, and — until this file existed —
+      never once executed by a test. A mirror nobody runs is a branch nobody has
+      shown to work.
+      The zero-argument helper `newRouter()` is ALREADY declared at package scope
+      in router_test.go, in this same package. CALL it. Do NOT declare it again
+      (a second declaration is a compile error).
+      Every function builds its OWN fresh router, so a case with a precondition
+      must POST that precondition ITSELF first. Each is its own function, and each
+      asserts ONE outcome and nothing else:
+      TestProjectCreateGet: POST a project (expect 201), then GET it back -> 200
+      and the stored name.
+      TestProjectCreateInvalid: POST a project with an EMPTY name -> 400.
+      TestProjectMalformedJSON: POST truncated bytes like `{"name":` -> 400.
+      TestProjectCreateDuplicate: POST the project ONCE (expect 201), then POST
+      THE SAME id AGAIN -> 409.
+      TestProjectGetMissing: GET a project id nobody created -> 404.
+      TestProjectList: POST ONE project FIRST, then GET the collection -> 200 and
+      a JSON array holding EXACTLY 1 project.
+      TestProjectDelete: POST a project FIRST, DELETE it -> 204, then GET it ->
+      404.
+      TestProjectDeleteMissing: DELETE a project id nobody created -> 404.
+      Build each request inline with httptest.NewRequest + a FRESH
+      httptest.NewRecorder per call (a request body is a one-shot reader).
+      Imports bytes, encoding/json, net/http, net/http/httptest, testing, and the
+      models package. Never name a local variable `t`.
+  - path: internal/api/middleware_test.go
+    purpose: >-
+      package api. ONE test for the middleware whose entire job is to run when
+      everything else has already failed — and which, until now, no test has ever
+      made run.
+      TestRecoverPanic: do NOT build a router. Wrap a handler that does nothing but
+      panic DIRECTLY in Recover, exactly like this (the whole handler is declared
+      INLINE, inside the test body — it is a func VALUE, not a method declaration):
+        h := Recover(slog.New(slog.NewTextHandler(io.Discard, nil)))(
+            http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { panic("boom") }))
+      then ServeHTTP it with httptest.NewRequest("GET", "/", nil) and
+      httptest.NewRecorder(), and assert the recorder's Code is 500: the panic must
+      be turned into a response, NOT escape out of ServeHTTP.
+      Imports io, log/slog, net/http, net/http/httptest, testing. Never name a
+      local variable `t`.
   - path: cmd/server/main.go
     purpose: >-
       package main — the composition root. Import config, store, api (their full

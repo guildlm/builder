@@ -45,6 +45,19 @@ files:
       (method, path, resolved status via a statusRecorder wrapping
       http.ResponseWriter defaulting to 200, and latency) and a Recover
       middleware (downstream panic -> 500). Standard library only.
+  - path: middleware_recover_test.go
+    purpose: >-
+      package main. ONE test for the middleware whose entire job is to run when
+      everything else has already failed — and which, until now, no test has ever
+      made run.
+      TestRecoverPanic: do NOT build a router. Wrap a handler that does nothing but
+      panic DIRECTLY in Recover, exactly like this (the handler is declared INLINE
+      inside the test body — it is a func VALUE, not a method declaration):
+        h := Recover(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { panic("boom") }))
+      then ServeHTTP it with httptest.NewRequest("GET", "/", nil) and
+      httptest.NewRecorder(), and assert the recorder's Code is 500: the panic must
+      be turned into a response, NOT escape out of ServeHTTP.
+      Imports net/http, net/http/httptest, testing. Never name a local variable `t`.
   - path: httpjson.go
     purpose: >-
       package main. HTTP/JSON helpers reused by every handler: writeJSON(w
@@ -58,9 +71,16 @@ files:
       package main. func parsePage(r *http.Request) (limit, offset int) that
       reads ?limit= and ?offset= query params with strconv, defaulting limit to
       20 (max 100) and offset to 0, clamping negatives to the default/zero. A
-      GENERIC func paginate[T any](items []T, limit, offset int) []T that safely
-      slices with bounds checks (offset past the end returns empty, never
-      panics) — used for BOTH tasks and projects. Standard library only
+      GENERIC func paginate[T any](items []T, limit, offset int) []T used for BOTH
+      tasks and projects. paginate must be UNPANICKABLE ON ITS OWN — it may NOT
+      rely on parsePage having already clamped its arguments, because it is an
+      exported-shaped helper anyone can call with anything. "Never panics" is not a
+      wish; it is THREE named guards, and the one most often dropped is the second:
+        if offset >= len(items) { return []T{} }   // past the end -> empty
+        if offset < 0 { offset = 0 }               // NEGATIVE offset clamps to 0;
+                                                   // without this, items[:-1] PANICS
+        if limit <= 0 || limit > len(items)-offset { limit = len(items) - offset }
+      then `return items[offset : offset+limit]`. Standard library only
       (net/http, strconv).
   - path: tasks_handler.go
     purpose: >-
@@ -111,7 +131,15 @@ files:
       TestListLimit: POST TWO tasks FIRST, GET the collection and decode it into a
       slice `all` (length 2); then make a SECOND request with ?limit=1, a FRESH
       recorder, and decode THAT response into a SEPARATE slice `limited` before
-      asserting len(limited) <= 1. Do NOT re-assert on `all`.
+      asserting len(limited) == 1 — EXACTLY one, NEVER "at most one": a paginate
+      that wrongly returns ZERO items satisfies "at most 1" and the bug ships
+      green. Do NOT re-assert on `all`.
+      TestPaginateNegativeOffset: call paginate DIRECTLY (a unit test, no HTTP) on
+      a 3-item slice with limit=0, offset=-1 -> no panic and EXACTLY 3 items. This
+      is not hypothetical: a paginate without the `offset < 0` clamp slices
+      items[:-1] and panics at runtime, and every other test passes anyway.
+      TestPaginateOffsetPastEnd: call paginate DIRECTLY on a 1-item slice with
+      limit=10, offset=5 -> no panic and EXACTLY 0 items.
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
       TestMalformedJSON: POST truncated bytes (NOT an empty `{}`) -> 400.
       TestProjectCreateGet: POST a project, then GET it back.
