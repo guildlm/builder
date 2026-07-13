@@ -20,7 +20,10 @@ files:
       package main. Defines the Task model (ID int, Title string, Done bool,
       CreatedAt time.Time) with json tags, a sentinel ErrInvalidTask, and a
       Validate() method that wraps ErrInvalidTask via fmt.Errorf("%w", ...) when
-      the trimmed Title is empty.
+      the TRIMMED Title is empty. Write the check as
+      `if strings.TrimSpace(t.Title) == ""`, NOT `if t.Title == ""`: a title of
+      "   " is blank, and without the trim it is accepted and the API stores tasks
+      that look empty to every client. Imports strings.
 
   - path: store.go
     purpose: >-
@@ -55,6 +58,21 @@ files:
       Correct status codes 201/200/204/400/404. Error bodies are JSON
       {"error":"..."}. Map ErrNotFound to 404 and ErrInvalidTask to 400 with
       errors.Is.
+      BOTH Create AND Update CALL t.Validate() after decoding and BEFORE touching
+      the store. Mapping ErrInvalidTask to 400 is useless if nothing ever produces
+      it: Validate() is the only thing that does, and a handler that skips the call
+      accepts a task with a blank title, answers 200, and writes it. An uncalled
+      method is legal Go — the compiler will not tell you. Write it exactly like
+      this, in Create and again in Update:
+        var t Task
+        if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+            writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+            return
+        }
+        if err := t.Validate(); err != nil {          // <- the call that makes 400 reachable
+            writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})
+            return
+        }
 
   - path: router.go
     purpose: >-
@@ -115,6 +133,15 @@ files:
       fields; on a fresh handler GET /tasks/99 -> 404.
       TestList200: POST one task, then GET /tasks -> 200 with a JSON array.
       TestDelete: POST a task, DELETE /tasks/1 -> 204, then GET /tasks/1 -> 404.
+      TestUpdateOK: POST a task FIRST (expect 201), then PUT /tasks/1 with a new
+      title -> 200. `PUT /tasks/{id}` is registered on the router and the handler
+      is shipped — and until this test existed it was never called once.
+      TestUpdateMissing: PUT /tasks/999, an id nobody created -> 404.
+      TestUpdateInvalid: POST a task FIRST, then PUT it with an EMPTY title -> 400.
+      TestValidateOK: a Task VALUE with a non-empty Title -> Validate() returns nil.
+      TestValidateBlankTitle: a Task VALUE whose Title is "   " (spaces only) ->
+      Validate() returns a non-nil error. Validate is the contract every other
+      layer trusts; test it DIRECTLY on a Task value, not through HTTP.
       TestInvalid400: POST /tasks with malformed JSON (truncated bytes like
       `{"title":`) -> assert the STATUS CODE is 400, AND NOTHING ELSE. Do NOT
       decode the response body and do NOT assert on an error message: malformed
