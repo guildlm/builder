@@ -196,9 +196,18 @@ def audit_regression() -> int:
     Returns the number that regressed, so this can gate a commit.
     """
     tc = GoToolchain()
+    # An archive with no .go files carries no evidence: a run killed during
+    # generation leaves a go.mod and nothing else. The gates cannot move a project
+    # that has no code, so every such shell counts as STUCK — and the scoreboard
+    # then reports the operator's own kill-debris as a machinery regression. Four
+    # of them turned "0 stuck" into "4 stuck" without a single gate changing.
+    # A directory with no Go in it is not a failure; it is an absence.
     reds = sorted(
         p for p in GENERATED.iterdir()
-        if p.is_dir() and (p / "go.mod").exists() and p.name.startswith(("_fail", "_proof"))
+        if p.is_dir()
+        and (p / "go.mod").exists()
+        and p.name.startswith(("_fail", "_proof"))
+        and any(p.rglob("*.go"))
     )
     if not reds:
         print("no archived failures yet — nothing to lock")

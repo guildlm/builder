@@ -106,8 +106,19 @@ files:
         // ... two Allow() -> true, third -> false ...
         clock = clock.Add(time.Second)              // THIS is what advances it
         // ... one more Allow() -> true ...
-      Never write `now = func() ...` a second time; the bucket cannot see it. Unit-test Registry: Get returns the
-      SAME *Bucket for the same clientID and Len reports distinct clients. The
+      Never write `now = func() ...` a second time; the bucket cannot see it.
+      Unit-test the Registry in TWO SEPARATE functions — one outcome each. Packing
+      both into one function produces a test that contradicts itself: it fetches
+      TWO DIFFERENT clients and then asserts they got the SAME bucket, which no
+      correct Registry can satisfy.
+      TestRegistrySameClient: on a fresh NewRegistry(1, 1), call Get("a") TWICE and
+      assert the two *Bucket pointers are EQUAL — the SAME id must return the SAME
+      bucket, or a client gets a fresh allowance on every request.
+      TestRegistryDistinctClients: on a fresh NewRegistry(1, 1), call Get("a") and
+      then Get("b") — TWO DIFFERENT ids — and assert the two *Bucket pointers are
+      DIFFERENT and that Len() == 2. Different clients are different buckets; that
+      is what per-client limiting means.
+      The
       fake clock MUST start at a CONCRETE NON-ZERO time (e.g. time.Date(2000, 1,
       1, 0, 0, 0, 0, time.UTC)) — never the zero time.Time{}, because the bucket
       seeds its `last` from the first now() and a zero start is indistinguishable

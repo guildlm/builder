@@ -58,6 +58,12 @@ files:
   - path: logstats_test.go
     purpose: >-
       package main. Table tests, fresh NewStats() inside every t.Run subtest.
+      EVERY Stats value in this file comes from NewStats() — in a subtest, in a
+      table case, in a plain test function, everywhere. NEVER write `var s Stats`
+      or `s := Stats{}`. The zero value is BROKEN: its pathStats map is nil, and
+      the first line Consume() reads panics with `assignment to entry in nil map`
+      against an implementation that is perfectly correct. The constructor is what
+      makes the map; skip the constructor and you skip the map.
       ParseLine cases: a valid line round-trips every Entry field exactly. To
       check the parsed timestamp, compare entry.Time.Format(time.RFC3339) against
       the RFC3339 string, or entry.Time.Equal(time.Date(2026, 1, 2, 15, 4, 5, 0,

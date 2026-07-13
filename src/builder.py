@@ -585,6 +585,23 @@ def _test_rule(path: str) -> str:
         "When a case wants 'malformed JSON', send genuinely "
         "unparseable bytes like `{\"x\":` (truncated) — NOT valid-but-empty `{}`, "
         "which decodes fine and returns 201.\n"
+        # Twice in one sweep the model wrote the status-code check the spec asked
+        # for and then INVENTED a second assertion about the response body — a
+        # health check whose body is the bare JSON string "ok" decoded into a
+        # struct (zero value, red), and a malformed-JSON case asserted against a
+        # validation message the request never reaches (json.Decode fails first,
+        # so Validate is never called, so that error does not exist). Both failed a
+        # handler that was working correctly. The spec named the assertion and not
+        # its BOUNDARY, and the model filled the silence.
+        "WHEN THE EXPECTED OUTCOME IS A STATUS CODE, ASSERT THE STATUS CODE AND "
+        "NOTHING ELSE. Do not invent a second assertion about the response body. "
+        "You do not know the body's shape unless the spec names it, and a guess "
+        "that is wrong fails a handler that is working correctly: a body that is "
+        "the bare JSON string \"ok\" decodes into a struct as the ZERO VALUE, and "
+        "a malformed-JSON request fails at json.Decode — so Validate() is never "
+        "reached and the validation message you are asserting on does not exist. "
+        "If the spec names the body, assert exactly that. If it does not, the "
+        "status code IS the test.\n"
         "STRUCT LITERALS: write every struct value with its FIELD NAMES (e.g. "
         "`models.Task{ID: \"1\", Status: \"todo\"}`, or a table case "
         "`{name: \"x\", want: 404}`), never a positional literal — a positional "

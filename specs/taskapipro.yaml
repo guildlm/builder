@@ -201,6 +201,11 @@ files:
       package service. The TASK service only — the project service and the
       store-error tests live in project_service_test.go, in this same package, so
       that neither file has to be long. Do NOT write them here.
+      BIND ONLY THE SERVICE. Construct the store INLINE inside the constructor
+      call — `svc := NewTaskService(store.NewMemStore())` — so there is no store
+      variable in scope to reach for. With both `s` and `svc` bound, the model
+      seeds with `s.Create(...)`, and the store has no Create: it has CreateTask.
+      Every call in this file goes to `svc`.
       Tests use NewTaskService(store.NewMemStore()) and the models package; pass
       context.Background() to every service method.
       Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. ONE TEST
@@ -241,6 +246,11 @@ files:
       MIRROR of the task service: the same four methods on the other type, and
       until this file existed, not one of them was ever called by a test. A mirror
       nobody runs is a branch nobody has shown to work.
+      BIND ONLY THE SERVICE. Construct the store INLINE inside the constructor
+      call — `svc := NewProjectService(store.NewMemStore())` — so there is no store
+      variable in scope to reach for. Given both `s := store.NewMemStore()` and
+      `svc := ...`, the model seeds with `s.Create(...)`, and the store has no
+      Create: it has CreateProject. Every call in this file goes to `svc`.
       Tests use NewProjectService(store.NewMemStore()) and pass
       context.Background() to every method. Each function asserts ONE outcome and
       nothing else, and builds its OWN fresh service.
@@ -332,11 +342,26 @@ files:
       log/slog, net/http, and the service package.
   - path: internal/api/router_test.go
     purpose: >-
-      package api. Integration tests (net/http/httptest). Declare ONCE at package
-      scope a zero-argument helper `newRouter()` returning a FRESH router built
-      from service.NewTaskService(store.NewMemStore()),
-      service.NewProjectService(store.NewMemStore()) and
-      slog.New(slog.NewTextHandler(io.Discard, nil)).
+      package api. Integration tests (net/http/httptest). This file contains ELEVEN
+      top-level declarations: the newRouter helper, and TEN test functions. WRITE
+      ALL ELEVEN — the helper is the one most easily skipped, because it is shown
+      to you below and reads like something that already exists. It does not: this
+      file is the only place it is declared, and every test calls it.
+      Declare ONCE at package scope EXACTLY this helper — it returns http.Handler
+      and it does NOT type-assert:
+        func newRouter() http.Handler {
+            return NewRouter(
+                service.NewTaskService(store.NewMemStore()),
+                service.NewProjectService(store.NewMemStore()),
+                slog.New(slog.NewTextHandler(io.Discard, nil)),
+            )
+        }
+      NewRouter is WRAPPED IN MIDDLEWARE — Chain returns an http.HandlerFunc, not
+      the mux — so writing `func newRouter() *http.ServeMux` and returning
+      `NewRouter(...).(*http.ServeMux)` PANICS at runtime: `interface conversion:
+      http.Handler is http.HandlerFunc, not *http.ServeMux`. Every test only ever
+      calls h.ServeHTTP(...), which http.Handler already provides; nothing here
+      needs the mux.
       Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Every
       function calls newRouter() for its own fresh router+store, and builds a
       FRESH request body for every request.
@@ -364,11 +389,58 @@ files:
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
       TestMalformedJSON: POST truncated bytes like `{"title":` (NOT an empty `{}`)
       -> 400.
-      TestProjectCreateGet: POST a project, then GET it back -> 200.
-      TestHealthz: GET /healthz -> 200; GET /readyz -> 200.
+      That is TEN test functions and NO more — the project endpoints are covered
+      in projects_test.go, in this same package. Do not write them here.
       Imports bytes, encoding/json, io, log/slog, net/http,
       net/http/httptest, testing, and the service + store + models packages.
       Never name a local variable `t`.
+  - path: internal/api/projects_test.go
+    purpose: >-
+      package api. The project endpoints, in their OWN file so that neither test
+      file has to be long. They are a MIRROR of the task endpoints: registered on
+      the same router, shipped in projects.go, and — until this file existed —
+      barely executed at all (List and Delete were never called once). A mirror
+      nobody runs is a branch nobody has shown to work.
+      The zero-argument helper `newRouter()` is ALREADY declared at package scope
+      in router_test.go, in this same package. CALL it. Do NOT declare it again
+      (a second declaration is a compile error).
+      Every function builds its OWN fresh router, so a case with a precondition
+      must POST that precondition ITSELF first. Build each request inline with
+      httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
+      is a one-shot reader). Each is its own function and asserts ONE outcome:
+      EIGHT test functions, all of them:
+      EVERY project POST body carries a CLIENT-SUPPLIED id — the API does not
+      generate them. Always send both fields: `{"id":"1","name":"p1"}`.
+      TestProjectCreateGet: POST `{"id":"1","name":"p1"}` -> 201, and the response
+      body echoes BOTH fields back: ID is "1" and Name is "p1". Then GET
+      /projects/1 -> 200, with ID "1" and Name "p1".
+      TestProjectCreateInvalid: POST a project with an EMPTY name -> 400.
+      TestProjectMalformedJSON: POST truncated bytes like `{"name":` -> 400.
+      TestProjectCreateDuplicate: POST the project ONCE (expect 201), then POST
+      THE SAME id AGAIN -> 409.
+      TestProjectGetMissing: GET a project id nobody created -> 404.
+      TestProjectList: POST ONE project FIRST, then GET the collection -> 200 and
+      a JSON array holding EXACTLY 1 project.
+      TestProjectDelete: POST a project FIRST, DELETE it -> 204, then GET it ->
+      404.
+      TestProjectDeleteMissing: DELETE a project id nobody created -> 404.
+      Imports bytes, encoding/json, net/http, net/http/httptest, testing, and the
+      models package. Never name a local variable `t`.
+  - path: internal/api/middleware_test.go
+    purpose: >-
+      package api. ONE test for the middleware whose entire job is to run when
+      everything else has already failed — and which, until now, no test has ever
+      made run.
+      TestRecoverPanic: do NOT build a router. Wrap a handler that does nothing but
+      panic DIRECTLY in Recover, exactly like this (the whole handler is declared
+      INLINE, inside the test body — it is a func VALUE, not a method declaration):
+        h := Recover(slog.New(slog.NewTextHandler(io.Discard, nil)))(
+            http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { panic("boom") }))
+      then ServeHTTP it with httptest.NewRequest("GET", "/", nil) and
+      httptest.NewRecorder(), and assert the recorder's Code is 500: the panic must
+      be turned into a response, NOT escape out of ServeHTTP.
+      Imports io, log/slog, net/http, net/http/httptest, testing. Never name a
+      local variable `t`.
   - path: cmd/server/main.go
     purpose: >-
       package main — composition root. Import config, store, service, api and
