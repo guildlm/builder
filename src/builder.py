@@ -2866,6 +2866,55 @@ def _fix_interface_missing_method(
 _PTR_IFACE_RE = re.compile(r"type \*(\w+) is pointer to interface, not interface")
 
 
+# `cannot use NewRouter(s) (value of interface type http.Handler) as *http.ServeMux
+# value in return statement: need type assertion`
+_MUX_RETURN_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):(\d+): cannot use [^\n]*?\(value of interface type "
+    r"http\.Handler\) as \*http\.ServeMux value in return statement"
+)
+# `func newRouter() *http.ServeMux {`
+_MUX_SIG_RE = re.compile(r"^(func\s+\w+\([^)]*\)\s+)\*http\.ServeMux(\s*\{)", re.M)
+
+
+def _fix_mux_return_type(written: dict[str, str], error_output: str) -> dict[str, str]:
+    """A test helper declared as `func newRouter() *http.ServeMux` returning
+    NewRouter(...), which is middleware-wrapped and therefore an http.Handler.
+
+    The router is a mux right up until Chain wraps it, and then it is not one any
+    more — so the model's guess is the reasonable one, and it is wrong. Seen in two
+    independent specs, and the model could not repair it when told: three fix rounds
+    in taskflow all rewrote the same signature back.
+
+    The repair is the only one the compiler leaves open: widen the RETURN TYPE to
+    http.Handler, and drop the `.(*http.ServeMux)` assertion if one is there. Tests
+    only ever call h.ServeHTTP, which http.Handler already provides — nothing needs
+    the mux. Line-preserving: both edits stay on their own line.
+
+    Fires ONLY on the file the compiler named, and only on a signature that really
+    does return *http.ServeMux. A helper that legitimately needs the mux cannot be
+    the subject of this error — the compiler is telling us it cannot have one.
+    """
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    for m in _MUX_RETURN_RE.finditer(error_output):
+        path = resolve(m.group(1))
+        if not path:
+            continue
+        code = changed.get(path, written[path])
+        new = _MUX_SIG_RE.sub(r"\1http.Handler\2", code)
+        new = new.replace(".(*http.ServeMux)", "")
+        if new != code:
+            changed[path] = new
+    return changed
+
+
 def _fix_pointer_to_interface(
     written: dict[str, str], error_output: str
 ) -> dict[str, str]:
@@ -3713,6 +3762,7 @@ def _run_deterministic_gates(
     inplace.update(_fix_fatal_guard({**written, **inplace}, output))
     inplace.update(_fix_handle_vs_handlefunc({**written, **inplace}, output))
     inplace.update(_fix_atomic_inc({**written, **inplace}, output))
+    inplace.update(_fix_mux_return_type({**written, **inplace}, output))
     inplace.update(_fix_handlerfunc_wrap({**written, **inplace}, output))
     inplace.update(_fix_pointer_to_interface({**written, **inplace}, output))
     inplace.update(_fix_self_qualified_package({**written, **inplace}, output))

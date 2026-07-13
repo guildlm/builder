@@ -244,8 +244,16 @@ def audit_regression() -> int:
     print(f"\n  {len(green)} green by the gates alone · {len(advanced)} advanced · "
           f"{len(stuck)} stuck")
     if stuck:
-        print("\n  STUCK means the gates changed NOTHING. That is either a defect "
-              "class\n  we have never seen, or a gate that stopped firing.")
+        print("\n  STUCK means the gates changed NOTHING. That is one of three "
+              "things,\n  and they are not the same:\n"
+              "    - a gate that stopped firing            (a REGRESSION — fix it)\n"
+              "    - a defect class we have never seen     (a BACKLOG item — build it)\n"
+              "    - a defect the compiler cannot name     (the HONEST FLOOR — leave it)\n"
+              "  The third is real and it is not a failure. An unregistered route, an\n"
+              "  uncalled method, a middleware that is declared and never applied: all\n"
+              "  are legal Go. They build, they vet, and the compiler has nothing to\n"
+              "  say — so there is no sentence for a gate to listen for. Only a test\n"
+              "  notices. Do not chase those with gates; name them in the spec.")
     return len(stuck)
 
 

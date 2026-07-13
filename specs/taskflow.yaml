@@ -101,11 +101,22 @@ files:
   - path: router.go
     purpose: >-
       package main. func NewRouter(s *Store) http.Handler building an
-      http.ServeMux (NOT a third-party router) wiring both handlers: POST/GET
-      /tasks, GET/DELETE /tasks/{id}, POST/GET /projects, GET/DELETE
-      /projects/{id}, and GET /health -> 200 "ok". Wrap with Chain(mux, Logging,
-      Recover) and return it so tests can drive the fully-wired handler. Standard
-      library only.
+      http.ServeMux (NOT a third-party router). NINE routes, and the projects half
+      is the exact MIRROR of the tasks half — count them, because the one dropped
+      most often is `POST /projects`, and without it a project can never be
+      created: every project endpoint answers 405 and half the API is unreachable.
+      Register all nine:
+        mux.HandleFunc("POST /tasks", taskHandler.Create)
+        mux.HandleFunc("GET /tasks", taskHandler.List)
+        mux.HandleFunc("GET /tasks/{id}", taskHandler.Get)
+        mux.HandleFunc("DELETE /tasks/{id}", taskHandler.Delete)
+        mux.HandleFunc("POST /projects", projectHandler.Create)
+        mux.HandleFunc("GET /projects", projectHandler.List)
+        mux.HandleFunc("GET /projects/{id}", projectHandler.Get)
+        mux.HandleFunc("DELETE /projects/{id}", projectHandler.Delete)
+        mux.HandleFunc("GET /health", ...)   // 200 "ok"
+      Wrap with Chain(mux, Logging, Recover) and return it so tests can drive the
+      fully-wired handler. Standard library only.
   - path: main.go
     purpose: >-
       package main. func main() builds NewStore + NewRouter, runs an
@@ -114,7 +125,16 @@ files:
       under a short context.WithTimeout. Standard library only.
   - path: taskflow_test.go
     purpose: >-
-      package main. Tests (net/http/httptest) against NewRouter(NewStore()).
+      package main. Tests (net/http/httptest). Declare ONCE at package scope
+      EXACTLY this helper — it returns http.Handler and it does NOT type-assert:
+        func newRouter() http.Handler {
+            return NewRouter(NewStore())
+        }
+      NewRouter is WRAPPED IN MIDDLEWARE — Chain returns an http.HandlerFunc, not
+      the mux — so `func newRouter() *http.ServeMux` returning
+      `NewRouter(...).(*http.ServeMux)` does not compile, and asserting it at
+      runtime panics. Every test only ever calls h.ServeHTTP(...), which
+      http.Handler already provides; nothing here needs the mux.
       Declare ONCE at package scope a zero-argument helper `newRouter()` returning
       a FRESH router+store, and build a FRESH request body for every request
       (never reuse a drained buffer).
@@ -142,5 +162,31 @@ files:
       limit=10, offset=5 -> no panic and EXACTLY 0 items.
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
       TestMalformedJSON: POST truncated bytes (NOT an empty `{}`) -> 400.
-      TestProjectCreateGet: POST a project, then GET it back.
+      Do NOT write the project endpoints here — they live in
+      projects_test.go, in this same package.
       Standard library only.
+  - path: projects_test.go
+    purpose: >-
+      package main. The project endpoints, in their OWN file so neither test file
+      has to be long. They are a MIRROR of the task endpoints: registered on the
+      same router, shipped in projects_handler.go — and until this file existed,
+      List and Delete were never called once, on the handler OR on the store. A
+      mirror nobody runs is a branch nobody has shown to work.
+      The zero-argument helper `newRouter()` is ALREADY declared at package scope
+      in taskflow_test.go, in this same package. CALL it. Do NOT declare it again
+      (a second declaration is a compile error).
+      Every function builds its OWN fresh router, so a case with a precondition
+      must POST that precondition ITSELF first. Build each request inline with
+      httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
+      is a one-shot reader). Each function asserts ONE outcome.
+      SIX test functions, all of them:
+      TestProjectCreateGet: POST a project -> 201, then GET it back -> 200 with the
+      stored name.
+      TestProjectCreateInvalid: POST a project with an EMPTY name -> 400.
+      TestProjectGetMissing: GET a project id nobody created -> 404.
+      TestProjectList: POST ONE project FIRST, then GET the collection -> 200 and a
+      JSON array holding EXACTLY 1 project.
+      TestProjectDelete: POST a project FIRST, DELETE it -> 204, then GET it -> 404.
+      TestProjectDeleteMissing: DELETE a project id nobody created -> 404.
+      Imports bytes, encoding/json, net/http, net/http/httptest, testing.
+      Never name a local variable `t`.
