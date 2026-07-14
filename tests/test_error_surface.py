@@ -138,3 +138,60 @@ def test_a_green_project_still_reports_green(tmp_path):
     )
     ok, out = GoToolchain().check(tmp_path)
     assert ok, out
+
+
+# A deadlock is legal Go: it builds, it vets, and only `go test` finds it — by
+# hanging. If the harness kills the test binary before Go prints its own timeout,
+# the model is handed the sentence "`go test ./...` timed out" with no file, no
+# line and no cause, and no model can repair that. Go, left to hit its OWN -timeout,
+# dumps the goroutines and the dump names the two methods that deadlocked. The fix
+# is to give `go test` a -timeout shorter than the subprocess timeout, and to keep
+# whatever the process printed before it was killed.
+DEADLOCK_STORE = """package main
+
+import "sync"
+
+type Store struct {
+	mu   sync.RWMutex
+	seen map[int]bool
+}
+
+func NewStore() *Store { return &Store{seen: map[int]bool{}} }
+
+func (s *Store) Get(id int) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.seen[id]
+}
+
+func (s *Store) Add(id int) {
+	s.mu.Lock()         // held across a call that takes RLock -> RWMutex is not reentrant
+	defer s.mu.Unlock()
+	_ = s.Get(id)
+	s.seen[id] = true
+}
+"""
+
+
+def test_a_deadlock_reaches_the_model_as_a_stack_trace_not_just_timed_out(tmp_path):
+    (tmp_path / "go.mod").write_text(GO_MOD)
+    (tmp_path / "main.go").write_text(MAIN)
+    (tmp_path / "store.go").write_text(DEADLOCK_STORE)
+    (tmp_path / "deadlock_test.go").write_text(
+        textwrap.dedent(
+            """
+            package main
+
+            import "testing"
+
+            func TestDeadlocks(t *testing.T) {
+            	NewStore().Add(1)
+            }
+            """
+        ).lstrip()
+    )
+    ok, out = GoToolchain().test(tmp_path)
+    assert not ok
+    # the whole point: the failure names WHERE, so a later round has something to fix
+    assert "Add" in out and "Get" in out
+    assert "RWMutex" in out or "sync." in out

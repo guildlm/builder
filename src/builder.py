@@ -355,6 +355,14 @@ class Retriever:
 # --------------------------------------------------------------------------- #
 
 
+def _as_text(chunk: str | bytes | None) -> str:
+    """TimeoutExpired carries whatever the process printed before we killed it, and
+    carries it as bytes when the stream was never decoded. Either way it is evidence."""
+    if not chunk:
+        return ""
+    return chunk.decode("utf-8", "replace") if isinstance(chunk, bytes) else chunk
+
+
 class GoToolchain:
     """Thin wrapper around the real ``go`` CLI run in a project directory."""
 
@@ -372,8 +380,12 @@ class GoToolchain:
             )
         except FileNotFoundError:
             return False, f"go toolchain not found ({self.go_bin!r})"
-        except subprocess.TimeoutExpired:
-            return False, f"`go {' '.join(args)}` timed out"
+        except subprocess.TimeoutExpired as e:
+            # Everything the process managed to say before we killed it. Throwing
+            # this away is how a deadlock reaches the model as the sentence "timed
+            # out" — no file, no line, no cause — and no model can repair that.
+            partial = _as_text(e.stdout) + _as_text(e.stderr)
+            return False, f"`go {' '.join(args)}` timed out\n{partial}".strip()
         out = (proc.stdout or "") + (proc.stderr or "")
         return proc.returncode == 0, out.strip()
 
@@ -384,7 +396,19 @@ class GoToolchain:
         return self._run(["vet", "./..."], cwd)
 
     def test(self, cwd: str | Path) -> tuple[bool, str]:
-        return self._run(["test", "./..."], cwd)
+        # -timeout, and it MUST be shorter than the subprocess timeout above.
+        #
+        # Go's own default is 10 minutes; ours was 5. So on a deadlock WE killed the
+        # test binary first, and the model was handed "`go test ./...` timed out" —
+        # a sentence with no file, no line and no cause in it. Go, left to hit its
+        # own deadline, prints the goroutine dump, and that dump NAMES the deadlock:
+        #
+        #   store.(*MemStore).GetAccount(...)          <- takes RLock
+        #   store.(*MemStore).CreateTransaction(...)   <- already holds Lock
+        #
+        # sync.RWMutex is not reentrant, and that trace says so in two lines. We were
+        # killing the only witness and then asking the model to solve the murder.
+        return self._run(["test", "-timeout", "60s", "./..."], cwd)
 
     def check(self, cwd: str | Path) -> tuple[bool, str]:
         """Run build, then vet, then test; stop at the first failure.
