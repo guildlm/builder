@@ -1007,7 +1007,17 @@ _UNDEF_PKGSYM_RE = re.compile(r"undefined: (\w+)\.(\w+)")
 
 # `x.Update undefined (type Store has no field or method Update)` — the
 # missing method belongs on the TYPE, declared in another file.
-_NOMETHOD_RE = re.compile(r"type (\w+) has no field or method (\w+)")
+#
+# The compiler writes that type THREE ways, and the routing was deaf to two of them:
+#   type Store           has no field or method Update      (same package)
+#   type *service.Ledger has no field or method Transactions (pointer + qualified)
+#   type service.Ledger  has no field or method Transactions (qualified)
+# Held-out ledger burned three fix rounds regenerating the CALLER — the only file it
+# was ever offered — while the fix (add the method) belonged to a file in another
+# package that the widener would have added, had it recognised the sentence. The
+# mechanism was right and silent, which is the most expensive way for one to be wrong.
+# A stdlib receiver still cannot widen anything: no project file declares `type Request`.
+_NOMETHOD_RE = re.compile(r"type \*?(?:\w+\.)?(\w+) has no field or method (\w+)")
 
 
 def _widen_promised_symbol_targets(

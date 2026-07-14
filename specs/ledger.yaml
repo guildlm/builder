@@ -145,6 +145,10 @@ files:
       `OpenAccount(a models.Account) error` — Validate FIRST, then store.
       `Account(id string) (models.Account, error)`.
       `Accounts() []models.Account`.
+      `Transactions() []models.Transaction` — the api layer holds a *Ledger and
+      NOTHING ELSE, so every collection an endpoint returns must come from a
+      method ON THIS TYPE. There are SIX methods and this is one of them: without
+      it, GET /transactions has nothing to call.
       `Balance(id string) (money.Money, error)` — ErrNotFound if the account
       does not exist.
       `Post(t models.Transaction) error` — the heart of this project.
@@ -223,8 +227,9 @@ files:
     purpose: >-
       package api. `AccountHandler` struct holding a *service.Ledger, built by
       `NewAccountHandler(l *service.Ledger) *AccountHandler`. Methods, each an
-      http.HandlerFunc: Create (decode an Account, 201 with the account), List
-      (200 with the array), Get (200, or 404 via writeError), Balance (200 with
+      http.HandlerFunc: Create (decode an Account, calls Ledger.OpenAccount, 201
+      with the account), List (200 with the array, from `Ledger.Accounts()`), Get
+      (200 from `Ledger.Account(id)`, or 404 via writeError), Balance (200 with
       {"balance": "12.34"} using money.Money.String()). Decode failures and
       domain errors go through writeError.
 
@@ -233,7 +238,9 @@ files:
       package api. `TransactionHandler` struct holding a *service.Ledger, built
       by `NewTransactionHandler(l *service.Ledger) *TransactionHandler`. Methods:
       Create (decode a Transaction, call Ledger.Post, 201 with the transaction)
-      and List (200 with the array). All errors go through writeError, so an
+      and List (200 with the array, from `Ledger.Transactions()` — the handler holds
+      a *service.Ledger and cannot reach the store, so it calls THAT method by that
+      name). All errors go through writeError, so an
       unbalanced transaction becomes a 422 without this file knowing that number.
 
   - path: internal/api/router.go
