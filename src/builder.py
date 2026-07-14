@@ -2084,6 +2084,109 @@ _ATOMIC_INC_RE = re.compile(
 )
 
 
+# `unknown field s in struct literal of type Ledger` — a NAMED type, so this is not
+# the anonymous table-test struct that _fix_unknown_struct_fields completes (that one
+# requires a literal `struct{` and will never match here). The two classes must not be
+# confused: there the declaration is missing a field and we ADD one; here the field
+# exists and the KEY is wrong, and adding `s` to Ledger would be a second bug.
+_STRUCT_LIT_KEY_RE = re.compile(
+    r"([\w./-]+\.go):(\d+):\d+: unknown field (\w+) in struct literal of type \*?(\w+)\b"
+)
+_STRUCT_DECL_RE = r"type\s+{name}\s+struct\s*\{{([^}}]*)\}}"
+
+
+def _struct_fields(typename: str, written: dict[str, str]) -> list[tuple[str, str]] | None:
+    """Field (name, type) pairs of a named struct declared somewhere in the project.
+
+    Returns None when the type is declared in more than one place with different
+    bodies — an ambiguous decl is one we must not guess about.
+    """
+    bodies: list[str] = []
+    for code in written.values():
+        for m in re.finditer(_STRUCT_DECL_RE.format(name=re.escape(typename)), code):
+            bodies.append(m.group(1))
+    if not bodies or len({b.strip() for b in bodies}) != 1:
+        return None
+    fields: list[tuple[str, str]] = []
+    for raw in bodies[0].splitlines():
+        line = raw.split("//", 1)[0].strip()
+        if not line:
+            continue
+        parts = line.split(None, 1)
+        if len(parts) != 2:  # embedded field, or something we do not model
+            return None
+        fields.append((parts[0], parts[1].strip()))
+    return fields or None
+
+
+def _fix_struct_literal_key(written: dict[str, str], error_output: str) -> dict[str, str]:
+    """`return &Ledger{s: s}` against `type Ledger struct { store store.Store }`.
+
+    The model keyed the composite literal by the CONSTRUCTOR PARAMETER's name instead
+    of the FIELD's — it contradicted itself inside a single file, four lines apart. It
+    earns a gate by the only criterion that counts: the compiler names the defect
+    exactly, and the model still cannot repair it. In the held-out `ledger` spec the
+    identical error came back on the identical line in fix round 2 and again in round 3.
+
+    The repair is the one the compiler leaves open: rename the KEY, never touch the
+    declaration. Fires only when the target is unambiguous — the struct has exactly one
+    field, or exactly one field whose type matches the declared type of the value being
+    assigned (read off the enclosing func's parameter list). Anything else is left for
+    the model. In-place: one line, same count.
+    """
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    for m in _STRUCT_LIT_KEY_RE.finditer(error_output):
+        path = resolve(m.group(1))
+        if not path:
+            continue
+        lineno, bad, typename = int(m.group(2)), m.group(3), m.group(4)
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        key_re = re.compile(rf"\b{re.escape(bad)}(\s*):")
+        if not key_re.search(line):
+            continue  # the compiler's line and the source disagree — leave it
+        fields = _struct_fields(typename, written)
+        if not fields:
+            continue
+
+        target: str | None = None
+        if len(fields) == 1:
+            target = fields[0][0]
+        else:
+            # Several fields: only a type match is safe. Read the value's type off the
+            # enclosing func signature — `func NewLedger(s store.Store) *Ledger`.
+            val = re.search(rf"\b{re.escape(bad)}\s*:\s*(\w+)\b", line)
+            if val:
+                sig = None
+                for i in range(lineno - 1, -1, -1):
+                    if lines[i].startswith("func "):
+                        sig = lines[i]
+                        break
+                if sig:
+                    p = re.search(rf"\b{re.escape(val.group(1))}\s+([\w.*\[\]]+)\s*[,)]", sig)
+                    if p:
+                        hits = [n for n, t in fields if t == p.group(1)]
+                        if len(hits) == 1:
+                            target = hits[0]
+
+        if not target or target == bad:
+            continue
+        lines[lineno - 1] = key_re.sub(rf"{target}\1:", line, count=1)
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+    return changed
+
+
 def _fix_atomic_inc(written: dict[str, str], error_output: str) -> dict[str, str]:
     """Rewrite `x.Inc()` -> `x.Add(1)` (and `x.Dec()` -> `x.Add(-1)`) on an atomic
     integer, ONLY on the line the compiler named. In-place: one line, same count."""
@@ -3762,6 +3865,7 @@ def _run_deterministic_gates(
     inplace.update(_fix_fatal_guard({**written, **inplace}, output))
     inplace.update(_fix_handle_vs_handlefunc({**written, **inplace}, output))
     inplace.update(_fix_atomic_inc({**written, **inplace}, output))
+    inplace.update(_fix_struct_literal_key({**written, **inplace}, output))
     inplace.update(_fix_mux_return_type({**written, **inplace}, output))
     inplace.update(_fix_handlerfunc_wrap({**written, **inplace}, output))
     inplace.update(_fix_pointer_to_interface({**written, **inplace}, output))

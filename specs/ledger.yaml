@@ -1,0 +1,328 @@
+name: ledger
+language: go
+go_module: guildlm.dev/ledger
+description: >-
+  A STANDARD-LIBRARY-ONLY, multi-package HTTP backend for a double-entry
+  ledger. No external dependencies whatsoever: net/http + ServeMux for routing
+  (never a third-party router), encoding/json for bodies, sync for concurrency.
+  Layered like a real Go service: a money primitive, domain models with
+  validation, a store interface with an in-memory implementation, a service
+  that enforces the accounting invariants, an HTTP layer (response helpers,
+  middleware, two resource handlers, a router) and a main with graceful
+  shutdown. The domain rule that defines this project: every transaction is
+  double-entry, so its postings must sum to EXACTLY ZERO, and a transaction is
+  applied ALL-OR-NOTHING.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/ledger, go 1.23. No dependencies.
+      Output as a ```mod block, not Go.
+
+  - path: internal/money/money.go
+    purpose: >-
+      package money. Money is int64 MINOR UNITS (cents) — never a float, ever.
+      `type Money int64`. Two functions:
+      `func (m Money) String() string` formats as a decimal with exactly two
+      places and a leading minus for negatives: Money(1234) -> "12.34",
+      Money(-5) -> "-0.05", Money(0) -> "0.00".
+      `func Parse(s string) (Money, error)` parses that same shape back:
+      "12.34" -> Money(1234). It returns an error for an empty string, for a
+      value with no decimal point, and for a value whose fractional part is not
+      exactly two digits. Standard library only (fmt, strconv, strings, errors).
+
+  - path: internal/money/money_test.go
+    purpose: >-
+      package money. Table-driven, FOUR test functions, each asserting ONE
+      outcome. Every table case is written with FIELD-NAMED literals
+      (`{name: "...", in: ..., want: ...}`), never positional.
+      TestStringFormats: Money(1234) -> "12.34", Money(-5) -> "-0.05",
+      Money(0) -> "0.00", Money(100) -> "1.00".
+      TestParseRoundTrip: Parse("12.34") -> Money(1234) with a nil error.
+      TestParseRejects: Parse(""), Parse("12"), Parse("12.3") each return a
+      NON-NIL error. Assert ONLY that the error is non-nil.
+      TestStringParseRoundTrip: for Money(0), Money(1), Money(-1), Money(99999),
+      Parse(m.String()) returns the SAME Money back.
+      Imports testing. Never name a local variable `t`.
+
+  - path: internal/models/models.go
+    purpose: >-
+      package models. Imports guildlm.dev/ledger/internal/money.
+      `Account{ID string, Name string}`.
+      `Posting{AccountID string, Amount money.Money}` — a POSITIVE amount adds
+      to that account, a NEGATIVE amount subtracts from it.
+      `Transaction{ID string, Memo string, Postings []Posting}`.
+      Sentinel errors, all matchable with errors.Is:
+      ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced, ErrInsufficientFunds.
+      `func (a Account) Validate() error` returns an error wrapping ErrInvalid
+      (fmt.Errorf with %w) when strings.TrimSpace(a.ID) is empty or
+      strings.TrimSpace(a.Name) is empty. Use strings.TrimSpace, NOT `a.ID == ""`
+      — a name of three spaces is not a name.
+      `func (t Transaction) Validate() error` returns an error wrapping
+      ErrInvalid when strings.TrimSpace(t.ID) is empty or when it has FEWER THAN
+      TWO postings, and an error wrapping ErrUnbalanced when the postings do not
+      sum to exactly zero. Standard library only (errors, fmt, strings).
+
+  - path: internal/models/models_test.go
+    purpose: >-
+      package models. SIX test functions, each asserting ONE outcome, each
+      checking the error with errors.Is (never by string).
+      TestAccountValidateOK: Account{ID: "cash", Name: "Cash"} -> nil error.
+      TestAccountValidateBlankName: Account{ID: "cash", Name: "   "} (three
+      spaces) -> an error that errors.Is ErrInvalid.
+      TestTransactionValidateOK: a transaction with ID "t1" and TWO postings,
+      +500 and -500, sums to zero -> nil error.
+      TestTransactionValidateUnbalanced: ID "t1" with postings +500 and -400 ->
+      an error that errors.Is ErrUnbalanced.
+      TestTransactionValidateTooFewPostings: ID "t1" with exactly ONE posting of
+      0 -> an error that errors.Is ErrInvalid.
+      TestTransactionValidateBlankID: ID "" with two balanced postings -> an
+      error that errors.Is ErrInvalid.
+      Imports errors, testing, and guildlm.dev/ledger/internal/money.
+      Never name a local variable `t` — this package has a type named
+      Transaction whose receiver is conventionally `t`, so in TESTS use `tc` for
+      a table case and keep `t *testing.T` untouched.
+
+  - path: internal/store/store.go
+    purpose: >-
+      package store. The Store INTERFACE only — no implementation in this file.
+      Imports guildlm.dev/ledger/internal/models. Methods, and these are the
+      only ones:
+      CreateAccount(models.Account) error
+      GetAccount(id string) (models.Account, error)
+      ListAccounts() []models.Account
+      CreateTransaction(models.Transaction) error
+      ListTransactions() []models.Transaction
+      Balances() map[string]money.Money
+      Imports guildlm.dev/ledger/internal/money too.
+
+  - path: internal/store/memory.go
+    purpose: >-
+      package store. `MemStore` — the in-memory implementation of the Store
+      interface declared in store.go IN THIS SAME PACKAGE. It must implement
+      EVERY method of that interface with the IDENTICAL signature; a missing
+      method is a compile error at the first assignment to a Store variable.
+      Fields: accounts map[string]models.Account, txs []models.Transaction, and
+      balances map[string]money.Money, all guarded by ONE sync.RWMutex.
+      `func NewMemStore() *MemStore` builds it and MAKES all the maps — a
+      MemStore built with `var s MemStore` has nil maps and panics on first
+      write, so nothing in this project ever builds one that way.
+      CreateAccount returns ErrExists on a duplicate ID and initialises that
+      account's balance to money.Money(0). GetAccount returns ErrNotFound.
+      ListAccounts and ListTransactions return their items sorted by ID, and
+      NEVER return nil — an empty ledger returns an EMPTY, NON-NIL slice.
+      CreateTransaction appends the transaction AND applies every posting to
+      `balances` — it is the ONLY method that mutates a balance. Balances
+      returns a COPY of the map, never the live one.
+
+  - path: internal/store/memory_test.go
+    purpose: >-
+      package store (the internal test package — so refer to MemStore directly,
+      NEVER as store.MemStore; a package cannot qualify itself).
+      Build the store with NewMemStore() in EVERY test — never `var s MemStore`.
+      SEVEN test functions, each asserting ONE outcome, errors checked with
+      errors.Is.
+      TestCreateGetAccount: create, then get it back by ID.
+      TestCreateAccountDuplicate: create the same ID twice -> errors.Is ErrExists.
+      TestGetAccountMissing: get an ID nobody created -> errors.Is ErrNotFound.
+      TestListAccountsEmpty: a FRESH store returns a slice of length 0 that is
+      NOT nil.
+      TestListAccountsSorted: create "b" then "a"; ListAccounts returns them in
+      the order a, b.
+      TestCreateTransactionMovesBalances: create accounts "cash" and "rev",
+      then a transaction with postings {cash +500} and {rev -500}; Balances()
+      reports cash == 500 and rev == -500.
+      TestBalancesIsACopy: take Balances(), write into the RETURNED map, take
+      Balances() again — the second call still reports the ORIGINAL value.
+      Imports errors, testing, and the models and money packages.
+      Never name a local variable `t`.
+
+  - path: internal/service/service.go
+    purpose: >-
+      package service. Imports the store, models and money packages.
+      `Ledger` struct holding a store.Store (the INTERFACE, not *MemStore), built
+      by `func NewLedger(s store.Store) *Ledger`.
+      Methods:
+      `OpenAccount(a models.Account) error` — Validate FIRST, then store.
+      `Account(id string) (models.Account, error)`.
+      `Accounts() []models.Account`.
+      `Balance(id string) (money.Money, error)` — ErrNotFound if the account
+      does not exist.
+      `Post(t models.Transaction) error` — the heart of this project.
+      Post is ALL-OR-NOTHING and it is written in TWO PHASES. Phase one
+      VALIDATES EVERYTHING and writes nothing; phase two applies. Write it in
+      this shape:
+      ```go
+      func (l *Ledger) Post(t models.Transaction) error {
+          if err := t.Validate(); err != nil {   // sums to zero, >= 2 postings
+              return err
+          }
+          balances := l.store.Balances()
+          for _, p := range t.Postings {         // PHASE ONE: check every posting
+              if _, err := l.store.GetAccount(p.AccountID); err != nil {
+                  return err                     // unknown account: nothing written
+              }
+              if balances[p.AccountID]+p.Amount < 0 {
+                  return fmt.Errorf("account %s: %w", p.AccountID, models.ErrInsufficientFunds)
+              }
+          }
+          return l.store.CreateTransaction(t)    // PHASE TWO: apply, once, together
+      }
+      ```
+      Every posting is checked BEFORE any of them is applied, so a transaction
+      that fails leaves every balance exactly as it was.
+
+  - path: internal/service/service_test.go
+    purpose: >-
+      package service. Imports errors, testing, and the store, models and money
+      packages.
+      BIND ONLY THE LEDGER. Build the store INLINE inside the constructor call —
+      `l := service.NewLedger(store.NewMemStore())` is NOT possible here because
+      this file IS package service, so write
+      `l := NewLedger(store.NewMemStore())` — so that there is no store variable
+      in scope to reach for. Every call in this file goes through `l`.
+      Seed accounts by calling `l.OpenAccount(...)`, never by touching a store.
+      SEVEN test functions, each asserting ONE outcome, errors checked with
+      errors.Is.
+      TestOpenAccountThenGet: OpenAccount{ID: "cash", Name: "Cash"}, then
+      Account("cash") returns it.
+      TestOpenAccountInvalid: OpenAccount with a blank Name -> errors.Is ErrInvalid.
+      TestBalanceMissingAccount: Balance("nope") -> errors.Is ErrNotFound.
+      TestPostBalanced: open "cash" and "rev"; Post a transaction with postings
+      {cash +500} and {rev -500} -> nil error, and Balance("cash") is 500.
+      TestPostUnbalanced: open both accounts; Post postings +500 and -400 ->
+      errors.Is ErrUnbalanced.
+      TestPostUnknownAccount: open ONLY "cash"; Post postings {cash +500} and
+      {ghost -500} -> errors.Is ErrNotFound, AND Balance("cash") is STILL 0 —
+      the transaction was rejected whole.
+      TestPostInsufficientFunds: open "cash" and "rev"; Post postings {cash -100}
+      and {rev +100} against a zero cash balance -> errors.Is ErrInsufficientFunds,
+      AND Balance("cash") is STILL 0.
+      Never name a local variable `t`.
+
+  - path: internal/api/response.go
+    purpose: >-
+      package api. Imports encoding/json, net/http, errors, and the models
+      package. Two helpers:
+      `writeJSON(w http.ResponseWriter, status int, v any)` sets
+      Content-Type: application/json, WriteHeader(status), then encodes v.
+      `writeError(w http.ResponseWriter, err error)` maps a domain error to a
+      status with errors.Is and writes {"error": "..."}:
+      ErrNotFound -> 404, ErrExists -> 409, ErrInvalid -> 400,
+      ErrUnbalanced -> 422, ErrInsufficientFunds -> 422, anything else -> 500.
+
+  - path: internal/api/middleware.go
+    purpose: >-
+      package api. `type Middleware func(http.Handler) http.Handler` and
+      `Chain(h http.Handler, mws ...Middleware) http.Handler` where the FIRST
+      listed is the OUTERMOST. A `Recover` middleware that turns a downstream
+      panic into a 500. A `Logging` middleware that records method, path,
+      resolved status (via a statusRecorder wrapping http.ResponseWriter and
+      defaulting to 200) and latency. Standard library only.
+
+  - path: internal/api/accounts.go
+    purpose: >-
+      package api. `AccountHandler` struct holding a *service.Ledger, built by
+      `NewAccountHandler(l *service.Ledger) *AccountHandler`. Methods, each an
+      http.HandlerFunc: Create (decode an Account, 201 with the account), List
+      (200 with the array), Get (200, or 404 via writeError), Balance (200 with
+      {"balance": "12.34"} using money.Money.String()). Decode failures and
+      domain errors go through writeError.
+
+  - path: internal/api/transactions.go
+    purpose: >-
+      package api. `TransactionHandler` struct holding a *service.Ledger, built
+      by `NewTransactionHandler(l *service.Ledger) *TransactionHandler`. Methods:
+      Create (decode a Transaction, call Ledger.Post, 201 with the transaction)
+      and List (200 with the array). All errors go through writeError, so an
+      unbalanced transaction becomes a 422 without this file knowing that number.
+
+  - path: internal/api/router.go
+    purpose: >-
+      package api. `func NewRouter(l *service.Ledger) http.Handler` — it returns
+      an http.Handler, NOT an *http.ServeMux, because the mux is WRAPPED in
+      middleware before it is returned (Chain(mux, Recover, Logging)) and the
+      wrapped value is no longer a mux.
+      Register EXACTLY SIX routes on the mux, and here they are, all six:
+      POST /accounts
+      GET /accounts
+      GET /accounts/{id}
+      GET /accounts/{id}/balance
+      POST /transactions
+      GET /transactions
+      Use Go 1.22 method+pattern syntax ("POST /accounts") and r.PathValue("id").
+      Count them in the finished file: SIX. An account cannot be created without
+      POST /accounts and a transaction cannot be created without POST
+      /transactions — those two are the whole point of the service.
+
+  - path: internal/api/router_test.go
+    purpose: >-
+      package api. This file DECLARES the package-scope helper that every api
+      test uses. Write it EXACTLY like this, returning http.Handler, with NO type
+      conversion anywhere:
+      ```go
+      func newRouter() http.Handler {
+          return NewRouter(service.NewLedger(store.NewMemStore()))
+      }
+      ```
+      Every test function builds its OWN fresh router by calling newRouter(), so
+      a case with a precondition must POST that precondition ITSELF first. Build
+      each request inline with httptest.NewRequest and a FRESH httptest.NewRecorder
+      per call — an http.Request body is a one-shot reader, so a request that has
+      been served ONCE cannot be served again; build a NEW one for every call.
+      Every account POST body carries a client-supplied id, e.g.
+      `{"id":"cash","name":"Cash"}` — the API does not generate ids.
+      FIVE test functions, each asserting ONE outcome. Where the expected outcome
+      is a STATUS CODE, assert the status code AND NOTHING ELSE.
+      TestCreateAccount: POST /accounts {"id":"cash","name":"Cash"} -> 201.
+      TestCreateAccountInvalid: POST /accounts {"id":"cash","name":"  "} -> 400.
+      TestGetAccount: POST an account FIRST, then GET /accounts/cash -> 200 and
+      the response reflects BOTH fields back: ID "cash", Name "Cash".
+      TestGetAccountMissing: GET /accounts/nope -> 404.
+      TestListAccounts: POST ONE account FIRST, then GET /accounts -> 200 and a
+      JSON array holding EXACTLY 1 account.
+      Do NOT write the transaction or balance endpoints here — they live in
+      transactions_test.go, in this same package.
+      Imports bytes, encoding/json, net/http, net/http/httptest, testing, and the
+      service and store packages. Never name a local variable `t`.
+
+  - path: internal/api/transactions_test.go
+    purpose: >-
+      package api. The transaction and balance endpoints, in their OWN file so
+      neither test file has to be long.
+      The zero-argument helper `newRouter()` is ALREADY declared at package scope
+      in router_test.go, in this same package. CALL it. Do NOT declare it again
+      (a second declaration is a compile error).
+      Every function builds its OWN fresh router, so it must POST the accounts it
+      needs ITSELF first. A FRESH httptest.NewRecorder and a FRESH
+      httptest.NewRequest per call.
+      FOUR test functions, each asserting ONE outcome.
+      TestPostTransaction: POST two accounts ("cash", "rev") FIRST, then POST
+      /transactions with postings {cash +500} and {rev -500} -> 201.
+      TestPostTransactionUnbalanced: POST both accounts FIRST, then POST
+      /transactions with postings +500 and -400 -> 422.
+      TestBalanceAfterTransaction: POST both accounts FIRST, POST the balanced
+      transaction, then GET /accounts/cash/balance -> 200 and the JSON body's
+      "balance" field is the string "5.00".
+      TestListTransactions: POST both accounts and ONE balanced transaction
+      FIRST, then GET /transactions -> 200 and a JSON array holding EXACTLY 1
+      transaction.
+      Imports bytes, encoding/json, net/http, net/http/httptest, testing.
+      Never name a local variable `t`.
+
+  - path: internal/api/middleware_test.go
+    purpose: >-
+      package api. ONE test whose entire job is to run when a handler panics.
+      TestRecoverMiddleware: Chain an http.HandlerFunc that panics with Recover,
+      serve one request through it, and assert the recorder's status is 500. It
+      must NOT call newRouter() — it builds its own panicking handler.
+      Imports net/http, net/http/httptest, testing.
+
+  - path: cmd/server/main.go
+    purpose: >-
+      package main. Wire it together: read the listen address from the LEDGER_ADDR
+      environment variable with os.Getenv, defaulting to ":8080" when it is empty
+      (there is no config package in this project — do not import one). Build
+      store.NewMemStore(), pass it to service.NewLedger, pass THAT to
+      api.NewRouter, and serve with graceful shutdown on SIGINT/SIGTERM
+      (signal.NotifyContext, srv.Shutdown with a timeout context). Standard
+      library only.
