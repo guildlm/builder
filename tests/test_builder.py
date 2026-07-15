@@ -301,6 +301,30 @@ def test_generate_prompt_list_file_teaches_container_list_idiom():
     assert "CONTAINER/LIST IDIOM" not in _generate_prompt(spec, plain, {})
 
 
+def test_generate_prompt_mutex_file_teaches_reentrancy():
+    # A file whose purpose guards state with a sync.RWMutex gets the
+    # not-reentrant idiom (a write method must not call a read accessor while
+    # holding the lock); a file that doesn't mention a mutex, doesn't. The
+    # held-out ledger deadlocked on exactly this and the model could not fix it.
+    spec = _sample_spec()
+    store = FileTask(
+        index=1,
+        spec=FileSpec(path="memory.go", purpose="an in-memory store guarded by ONE sync.RWMutex"),
+    )
+    prompt = _generate_prompt(spec, store, {})
+    assert "MUTEX REENTRANCY" in prompt
+    assert "not reentrant" in prompt.lower()
+    # A file with no mutex in its purpose does not carry the rule.
+    plain = FileTask(index=1, spec=FileSpec(path="handlers.go", purpose="http handlers over a store"))
+    assert "MUTEX REENTRANCY" not in _generate_prompt(spec, plain, {})
+    # Neither does a test file, even one that mentions the mutex.
+    tst = FileTask(
+        index=1,
+        spec=FileSpec(path="memory_test.go", purpose="tests for the sync.RWMutex store"),
+    )
+    assert "MUTEX REENTRANCY" not in _generate_prompt(spec, tst, {})
+
+
 def test_generate_prompt_routing_file_demands_method_value_registration():
     # tasks-api/ratelimit class: register a handler by passing the method value,
     # never by calling it. Fires only when the purpose is about routing.

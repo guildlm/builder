@@ -772,6 +772,29 @@ def _generate_prompt(
                           task.spec.purpose))
         else ""
     )
+    # sync.RWMutex/Mutex is NOT reentrant. A method that holds the write lock
+    # and, while holding it, calls a SIBLING method that read-locks the SAME
+    # mutex deadlocks the goroutine forever — the compiler cannot see it; it
+    # surfaces only as a test timeout with a goroutine dump the model cannot
+    # reason its way out of. The held-out ledger burned five whole fix rounds on
+    # exactly this (CreateTransaction held Lock() and called GetAccount, which
+    # RLocks). It is a standard-idiom failure — a real Go developer never nests
+    # the two — so teach it wherever a file guards state with a mutex.
+    mutex_rule = (
+        "MUTEX REENTRANCY (sync.Mutex / sync.RWMutex is NOT reentrant): once a "
+        "method has taken the lock — mu.Lock() or mu.RLock() — it must NOT, "
+        "while still holding it, call another method of this type that locks "
+        "the SAME mutex. A write method holding mu.Lock() that calls a read "
+        "accessor doing mu.RLock() (e.g. CreateX/Apply calling GetX/Exists) "
+        "DEADLOCKS forever, and it shows up only as a test TIMEOUT, never a "
+        "compile error. While holding the lock, touch the shared fields/maps "
+        "DIRECTLY (`m.items[id]`, `_, ok := m.items[id]`) instead of calling "
+        "the accessor methods.\n\n"
+        if (task.spec.path.endswith(".go")
+            and not task.spec.path.endswith("_test.go")
+            and re.search(r"sync\.(?:RW)?Mutex", task.spec.purpose))
+        else ""
+    )
     return (
         f"Project: {spec.name}\n"
         f"Language: {spec.language}\n"
@@ -788,6 +811,7 @@ def _generate_prompt(
         f"{completeness_rule}"
         f"{scope_rule}"
         f"{list_rule}"
+        f"{mutex_rule}"
         f"{test_rule}"
         f"Write the complete contents of {task.spec.path}. "
         f"Use only the Go standard library. Output one fenced ```go block."
