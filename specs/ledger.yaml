@@ -19,16 +19,86 @@ files:
       Output as a ```mod block, not Go.
 
   - path: internal/money/money.go
-    purpose: >-
+    purpose: |-
       package money. Money is int64 MINOR UNITS (cents) — never a float, ever.
-      `type Money int64`. Two functions:
-      `func (m Money) String() string` formats as a decimal with exactly two
-      places and a leading minus for negatives: Money(1234) -> "12.34",
-      Money(-5) -> "-0.05", Money(0) -> "0.00".
-      `func Parse(s string) (Money, error)` parses that same shape back:
-      "12.34" -> Money(1234). It returns an error for an empty string, for a
-      value with no decimal point, and for a value whose fractional part is not
-      exactly two digits. Standard library only (fmt, strconv, strings, errors).
+      `type Money int64`. Standard library only: import exactly strconv, strings,
+      errors (no fmt). TWO functions. Both are numeric round-trip code where a
+      dropped sign or a mis-scoped constant fails silently, so write them EXACTLY
+      as shown below — do not paraphrase the algorithm.
+
+      func (m Money) String() string formats as a decimal with exactly two places
+      and a leading minus for negatives (Money(1234) -> "12.34", Money(-5) ->
+      "-0.05", Money(0) -> "0.00", Money(100) -> "1.00"). The sign is applied to a
+      single `out` string at the END, and `const frac = 2` is LOCAL to this method
+      (never reference frac anywhere else). Declare the type FIRST (do not omit
+      it — the methods are undefined without it), then write String() in this exact
+      shape:
+
+          type Money int64
+
+          func (m Money) String() string {
+              const frac = 2
+              neg := m < 0
+              if neg {
+                  m = -m
+              }
+              s := strconv.FormatInt(int64(m), 10)
+              var out string
+              if len(s) <= frac {
+                  out = "0." + strings.Repeat("0", frac-len(s)) + s
+              } else {
+                  out = s[:len(s)-frac] + "." + s[len(s)-frac:]
+              }
+              if neg {
+                  out = "-" + out
+              }
+              return out
+          }
+
+      The two mistakes that fail the tests: (a) computing neg and then NOT
+      applying it to out — Money(-5) would wrongly print "0.05"; (b) leaving a
+      `sign` variable declared but unused. Applying it once to `out` avoids both.
+
+      func Parse(s string) (Money, error) parses that same shape back
+      ("12.34" -> Money(1234), "-0.01" -> Money(-1)). It returns a non-nil error
+      for an empty string, for a value with no decimal point, and for a value
+      whose fractional part is not exactly two digits. It MUST handle a leading
+      "-" itself — strconv on "-0" yields 0 and loses the sign — so strip the sign
+      first and re-apply it at the end. The "exactly two digits" check uses the
+      literal 2, NOT any frac constant (which is not in scope here). Write it in
+      this exact shape:
+
+          func Parse(s string) (Money, error) {
+              if s == "" {
+                  return 0, errors.New("empty money string")
+              }
+              neg := false
+              if strings.HasPrefix(s, "-") {
+                  neg = true
+                  s = s[1:]
+              }
+              dot := strings.IndexByte(s, '.')
+              if dot < 0 {
+                  return 0, errors.New("money has no decimal point")
+              }
+              whole, fracStr := s[:dot], s[dot+1:]
+              if len(fracStr) != 2 {
+                  return 0, errors.New("money fractional part must be two digits")
+              }
+              w, err := strconv.ParseInt(whole, 10, 64)
+              if err != nil {
+                  return 0, err
+              }
+              f, err := strconv.ParseInt(fracStr, 10, 64)
+              if err != nil {
+                  return 0, err
+              }
+              v := w*100 + f
+              if neg {
+                  v = -v
+              }
+              return Money(v), nil
+          }
 
   - path: internal/money/money_test.go
     purpose: >-
@@ -60,7 +130,11 @@ files:
       `func (t Transaction) Validate() error` returns an error wrapping
       ErrInvalid when strings.TrimSpace(t.ID) is empty or when it has FEWER THAN
       TWO postings, and an error wrapping ErrUnbalanced when the postings do not
-      sum to exactly zero. Standard library only (errors, fmt, strings).
+      sum to exactly zero. money.Money is an int64, so sum the amounts with the
+      `+` operator — there is NO Add method on money.Money; do NOT call
+      `total.Add(...)`. Sum like this:
+      `var total money.Money` then `for _, p := range t.Postings { total += p.Amount }`
+      and compare `if total != 0`. Standard library only (errors, fmt, strings).
 
   - path: internal/models/models_test.go
     purpose: >-
@@ -94,6 +168,12 @@ files:
       ListTransactions() []models.Transaction
       Balances() map[string]money.Money
       Imports guildlm.dev/ledger/internal/money too.
+      CONCURRENCY INVARIANT for whichever file implements these on MemStore:
+      CreateTransaction holds the write lock (mu.Lock) and, while holding it, MUST
+      check each account by reading `s.accounts[id]` DIRECTLY (return
+      models.ErrNotFound if absent) — it must NEVER call GetAccount, Balance, or any
+      method that takes mu.RLock(), because sync.RWMutex is NOT reentrant and
+      Lock-then-RLock on the same mutex deadlocks the goroutine forever.
 
   - path: internal/store/memory.go
     purpose: >-
@@ -106,13 +186,35 @@ files:
       `func NewMemStore() *MemStore` builds it and MAKES all the maps — a
       MemStore built with `var s MemStore` has nil maps and panics on first
       write, so nothing in this project ever builds one that way.
-      CreateAccount returns ErrExists on a duplicate ID and initialises that
-      account's balance to money.Money(0). GetAccount returns ErrNotFound.
+      Every error this store returns MUST be one of the SENTINELS declared in the
+      models package (models.ErrExists, models.ErrNotFound), returned DIRECTLY —
+      never `errors.New(...)` or fmt.Errorf with a fresh error. Callers use
+      errors.Is and the api layer maps these sentinels to 404/409, so a fresh
+      error silently becomes a 500 and fails the tests.
+      CreateAccount returns models.ErrExists on a duplicate ID and initialises that
+      account's balance to money.Money(0). GetAccount returns models.ErrNotFound.
       ListAccounts and ListTransactions return their items sorted by ID, and
       NEVER return nil — an empty ledger returns an EMPTY, NON-NIL slice.
-      CreateTransaction appends the transaction AND applies every posting to
-      `balances` — it is the ONLY method that mutates a balance. Balances
-      returns a COPY of the map, never the live one.
+      CreateTransaction is the ONLY method that mutates a balance. It holds the
+      write lock and, while holding it, MUST check each account by reading the map
+      DIRECTLY — calling GetAccount or Balance takes mu.RLock() on the same
+      NON-reentrant sync.RWMutex and DEADLOCKS the goroutine forever. Write it
+      EXACTLY like this:
+
+          func (s *MemStore) CreateTransaction(t models.Transaction) error {
+              s.mu.Lock()
+              defer s.mu.Unlock()
+              for _, p := range t.Postings {
+                  if _, ok := s.accounts[p.AccountID]; !ok {
+                      return models.ErrNotFound
+                  }
+                  s.balances[p.AccountID] += p.Amount
+              }
+              s.txs = append(s.txs, t)
+              return nil
+          }
+
+      Balances returns a COPY of the map, never the live one.
 
   - path: internal/store/memory_test.go
     purpose: >-
@@ -149,31 +251,40 @@ files:
       NOTHING ELSE, so every collection an endpoint returns must come from a
       method ON THIS TYPE. There are SIX methods and this is one of them: without
       it, GET /transactions has nothing to call.
-      `Balance(id string) (money.Money, error)` — ErrNotFound if the account
-      does not exist.
+      `Balance(id string) (money.Money, error)` — the balance lives in the STORE,
+      not on the Account; models.Account has NO Balance method, so NEVER write
+      `acc.Balance()`. Read it from the store's map:
+
+          func (l *Ledger) Balance(id string) (money.Money, error) {
+              balances := l.store.Balances()
+              bal, ok := balances[id]
+              if !ok {
+                  return 0, models.ErrNotFound
+              }
+              return bal, nil
+          }
       `Post(t models.Transaction) error` — the heart of this project.
-      Post is ALL-OR-NOTHING and it is written in TWO PHASES. Phase one
-      VALIDATES EVERYTHING and writes nothing; phase two applies. Write it in
-      this shape:
+      Post is ALL-OR-NOTHING and it is written in TWO PHASES. Phase one checks
+      that EVERY account exists and writes nothing; phase two applies. Write it in
+      this exact shape (note: there is NO balance/overdraft check — a balanced
+      transaction always posts as long as its accounts exist; do not reject a
+      posting for driving a balance negative, because in double-entry one side of
+      every balanced transaction is negative):
       ```go
       func (l *Ledger) Post(t models.Transaction) error {
           if err := t.Validate(); err != nil {   // sums to zero, >= 2 postings
               return err
           }
-          balances := l.store.Balances()
-          for _, p := range t.Postings {         // PHASE ONE: check every posting
+          for _, p := range t.Postings {         // PHASE ONE: every account must exist
               if _, err := l.store.GetAccount(p.AccountID); err != nil {
                   return err                     // unknown account: nothing written
-              }
-              if balances[p.AccountID]+p.Amount < 0 {
-                  return fmt.Errorf("account %s: %w", p.AccountID, models.ErrInsufficientFunds)
               }
           }
           return l.store.CreateTransaction(t)    // PHASE TWO: apply, once, together
       }
       ```
-      Every posting is checked BEFORE any of them is applied, so a transaction
-      that fails leaves every balance exactly as it was.
+      Every account is checked BEFORE any posting is applied, so a transaction
+      naming an unknown account leaves every balance exactly as it was.
 
   - path: internal/service/service_test.go
     purpose: >-
@@ -185,7 +296,7 @@ files:
       `l := NewLedger(store.NewMemStore())` — so that there is no store variable
       in scope to reach for. Every call in this file goes through `l`.
       Seed accounts by calling `l.OpenAccount(...)`, never by touching a store.
-      SEVEN test functions, each asserting ONE outcome, errors checked with
+      SIX test functions, each asserting ONE outcome, errors checked with
       errors.Is.
       TestOpenAccountThenGet: OpenAccount{ID: "cash", Name: "Cash"}, then
       Account("cash") returns it.
@@ -198,9 +309,6 @@ files:
       TestPostUnknownAccount: open ONLY "cash"; Post postings {cash +500} and
       {ghost -500} -> errors.Is ErrNotFound, AND Balance("cash") is STILL 0 —
       the transaction was rejected whole.
-      TestPostInsufficientFunds: open "cash" and "rev"; Post postings {cash -100}
-      and {rev +100} against a zero cash balance -> errors.Is ErrInsufficientFunds,
-      AND Balance("cash") is STILL 0.
       Never name a local variable `t`.
 
   - path: internal/api/response.go
