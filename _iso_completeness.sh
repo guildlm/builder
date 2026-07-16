@@ -36,11 +36,11 @@ echo "named test funcs in spec: $(grep -coE 'Test[A-Z][A-Za-z]+:' "specs/${SPEC}
 for i in $(seq 1 "$REPS"); do
   for mode in with without; do
     if [[ "$mode" == "without" ]]; then
-      export GUILDLM_DISABLE_RULES=completeness
+      unset GUILDLM_ENABLE_RULES
     else
-      unset GUILDLM_DISABLE_RULES
+      export GUILDLM_ENABLE_RULES=completeness
     fi
-    echo "########## ARM=$mode REP=$i (GUILDLM_DISABLE_RULES=${GUILDLM_DISABLE_RULES:-unset}) ##########" >> "$SUM"
+    echo "########## ARM=$mode REP=$i (GUILDLM_ENABLE_RULES=${GUILDLM_ENABLE_RULES:-unset}) ##########" >> "$SUM"
     ./_ab_run.sh "$SPEC" >> "$SUM" 2>&1
     # Keep EVERY artifact, green or red. The question is not just green/red, it is
     # WHICH test went red and what its assertion said — that only lives in the file.
