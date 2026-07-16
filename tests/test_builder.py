@@ -25,6 +25,7 @@ from src.builder import (
     _resample_temperature,
     _sample_clean,
     _test_rule,
+    restore_dropped_decls,
     self_dropped_decls,
     _generate_file,
     _generate_prompt,
@@ -312,6 +313,39 @@ def test_completeness_is_off_by_default_and_opt_in(monkeypatch):
     for transplant in ("hit()", "allow-then-deny", "two-client", "health-check"):
         assert transplant not in on, f"{transplant!r} is one spec's, not every spec's"
     assert "did not show" in on
+
+
+@requires_go
+def test_restore_dropped_decls_lifts_the_fixture_and_its_methods_back():
+    # Rejection alone was measured and found wanting: both draws dropped the same
+    # fixture — temp 0.1 and temp 0.6 — so resampling cannot bring it back. The
+    # previous version still has it, and the candidate still calls it.
+    previous = (
+        "package service\n\n"
+        "import \"errors\"\n\n"
+        "var errBoom = errors.New(\"boom\")\n\n"
+        "type failStore struct{}\n\n"
+        "func (failStore) ListTasks() error { return errBoom }\n\n"
+        "func (failStore) GetTask() error { return errBoom }\n\n"
+        "func TestList(t *testing.T) { _ = failStore{} }\n"
+    )
+    dropped = (
+        "package service\n\n"
+        "import \"errors\"\n\n"
+        "var errBoom = errors.New(\"boom\")\n\n"
+        "func TestList(t *testing.T) { _ = failStore{} }\n"
+    )
+    assert self_dropped_decls(dropped, previous, set()) == {"failStore"}
+
+    fixed = restore_dropped_decls(dropped, previous, {"failStore"})
+    # The type comes back WITH its methods — that cluster is what the rewrite lost.
+    assert "type failStore struct{}" in fixed
+    assert "func (failStore) ListTasks()" in fixed
+    assert "func (failStore) GetTask()" in fixed
+    # And the file no longer uses what it does not define.
+    assert self_dropped_decls(fixed, previous, set()) == set()
+    # No second package clause: the payload's own header must not be spliced in.
+    assert fixed.count("package service") == 1
 
 
 def test_sample_clean_falls_back_to_the_first_draw_not_the_hottest():

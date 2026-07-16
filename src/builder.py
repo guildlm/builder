@@ -4248,6 +4248,67 @@ def self_dropped_decls(candidate: str, previous: str, sibling_decls: set[str] | 
     return {n for n in dropped if re.search(rf"\b{re.escape(n)}\b", candidate)}
 
 
+# Named for what they strip out of a movedecls payload — NOT _IMPORT_BLOCK_RE,
+# which already exists at module scope and is what nonstdlib_imports reads with.
+# Redefining it here silently rebound that name for the whole module and made the
+# import scanner return a duplicate; two tests caught it immediately, which is the
+# only reason this comment is a note and not another retraction.
+_MOVED_PKG_CLAUSE_RE = re.compile(r"\A\s*package\s+\w+\s*$", re.MULTILINE)
+_MOVED_IMPORTS_RE = re.compile(r"^import\s*\((?:[^)]*)\)\s*$|^import\s+\S.*$", re.MULTILINE)
+
+
+def restore_dropped_decls(candidate: str, previous: str, names: set[str]) -> str:
+    """Splice back the package-scope declarations ``candidate`` dropped but still
+    uses, lifting them — with their methods — out of ``previous``.
+
+    REJECTING these was not enough, and the run said so rather than my reasoning.
+    First workapi run under the check:
+
+        fixing internal/service/service_test.go
+          best-of-N fix: no clean candidate; using the first of 2
+        ! vet: internal/service/service_test.go:169:24: undefined: failStore
+
+    Both candidates dropped `failStore` — the temp-0.1 draw AND the temp-0.6
+    retry. The defect is not temperature-sensitive, so resampling cannot clear it:
+    the model drops this fixture wherever you sample from. That is this project's
+    own law arriving at my own work — A NUDGE IS NOT A GATE — so the rejection
+    gets a repair behind it.
+
+    `movedecls` already lifts a declaration and everything bound to it out of a
+    file (it exists for a different bug: a sibling implementing another file's
+    job). Given the previous version it returns `failStore` together with its four
+    methods, which is exactly the cluster the rewrite lost. Re-append the bodies,
+    drop its package clause and imports, and let goimports settle the imports on
+    write — the same path every other gate's output takes.
+
+    Safe by construction: it only adds declarations the candidate ALREADY
+    references and no sibling provides, taken verbatim from a version that
+    compiled with them. Worst case is the undefined symbol it was called for.
+    """
+    if not names or not previous.strip():
+        return candidate
+    pkg = re.search(r"^package\s+(\w+)", previous, re.MULTILINE)
+    if not pkg or not _MOVEDECLS.exists():
+        return candidate
+    try:
+        proc = subprocess.run(
+            ["go", "run", str(_MOVEDECLS), pkg.group(1), ",".join(sorted(names))],
+            input=previous, capture_output=True, text=True, timeout=60,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return candidate
+    if proc.returncode != 0 or not proc.stdout.strip():
+        return candidate
+    try:
+        moved = json.loads(proc.stdout).get("moved", "")
+    except json.JSONDecodeError:
+        return candidate
+    body = _MOVED_IMPORTS_RE.sub("", _MOVED_PKG_CLAUSE_RE.sub("", moved, count=1)).strip()
+    if not body:
+        return candidate
+    return candidate.rstrip() + "\n\n" + body + "\n"
+
+
 def _is_clean(
     code: str,
     is_go: bool,
@@ -4352,6 +4413,13 @@ def _sample_clean(
                      required_decls, module, previous):
             _log(f"    best-of-N {what}: kept candidate {attempt + 1} of {candidates}")
             return last
+        # Name the rule that rejected it. `no clean candidate` alone does not say
+        # WHICH check fired, and I was one inference away from attributing a
+        # rejection to the self-consistency rule because the round's error looked
+        # consistent with it. Consistent is not proof; the log should say.
+        if previous and (gone := self_dropped_decls(last, previous, sibling_decls)):
+            _log(f"    rejected {what} candidate {attempt + 1}: drops "
+                 f"{', '.join(sorted(gone))} — still used, no sibling declares it")
     if candidates > 1:
         # Fall back to the FIRST draw, not the last. They used to be the same
         # object — an identical prompt against a deterministic server — so "last"
@@ -4362,8 +4430,19 @@ def _sample_clean(
         # best-of-N work at all. Attempt 0 is the conservative draw; when nothing
         # is clean, it is what the loop used before and what it should use now.
         _log(f"    best-of-N {what}: no clean candidate; using the first of {candidates}")
-        return first or last
-    return last
+        first = first or last
+    else:
+        first = first or last
+    # The repair behind the rejection. Measured, not assumed: both draws dropped
+    # the same fixture, so no amount of resampling brings it back — but the
+    # previous version still has it, verbatim, and the candidate still calls it.
+    if previous and (gone := self_dropped_decls(first, previous, sibling_decls)):
+        restored = restore_dropped_decls(first, previous, gone)
+        if restored != first and not self_dropped_decls(restored, previous, sibling_decls):
+            _log(f"    restored {', '.join(sorted(gone))} into {what} candidate — "
+                 f"the rewrite dropped what it still calls")
+            return restored
+    return first
 
 
 def _sample_verified_fix(
