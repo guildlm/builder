@@ -214,6 +214,26 @@ class OpenAICoder:
             # makes repeat rounds of the same spec byte-identical — zero new
             # distillation pairs. Raise via GUILDLM_BUILDER_TEMP (e.g. 0.6)
             # when diversity matters more than determinism.
+            #
+            # DO NOT ADD `seed=` HERE HOPING TO PIN A RUN. mlx_lm 0.31.3 reads a
+            # request seed (server.py:1191, `self.seed = self.body.get("seed")`)
+            # and calls mx.random.seed with it (server.py:956) — and on the path
+            # our requests take it changes NOTHING. Measured against the live
+            # server: seeds 1 / 999 / 123456 at temperature=2.0 return
+            # byte-identical completions. It is not needed either: this server is
+            # already deterministic per (prompt, temperature) — three 1200-token
+            # generations at temp=0.1 came back byte-identical, and three at
+            # temp=2.0 returned the same garbage.
+            #
+            # I wrote "mlx_lm honors a per-request seed — the hole is closable"
+            # in 612c4f3 after READING that code and never running it. Same law
+            # as the deaf widener and the silent gates: a mechanism that exists
+            # in the source is not a mechanism that fires. Test, then claim.
+            #
+            # The consequence matters more than the correction: since generation
+            # is deterministic, run-to-run divergence CANNOT come from sampling.
+            # It comes from the PROMPT — and the fix prompt is built from
+            # toolchain output. That is where to look.
             temperature=float(os.environ.get("GUILDLM_BUILDER_TEMP", "0.1")),
             max_tokens=max_tokens,
             # mlx_lm-served Qwen instruct models carry eos_token_id=151643
@@ -956,9 +976,40 @@ def _fix_prompt(
         f"{_retrieval_block(shots)}"
         f"{sibling_block}"
         f"--- current {task.spec.path} ---\n{current}\n"
-        f"--- toolchain output ---\n{error_output}\n\n"
+        f"--- toolchain output ---\n{_canonical_toolchain_output(error_output)}\n\n"
         f"Output the corrected complete file as one fenced ```go block."
     )
+
+
+# `ok  \tpkg\t0.710s` / `ok  \tpkg\t(cached)` / `--- FAIL: TestX (0.00s)`.
+_GO_PKG_TIME_RE = re.compile(r"\t(?:\d+(?:\.\d+)?s|\(cached\))(?=\t|$)", re.MULTILINE)
+_GO_CASE_TIME_RE = re.compile(r"(--- (?:FAIL|PASS|SKIP): \S+) \(\d+(?:\.\d+)?s\)")
+
+
+def _canonical_toolchain_output(error_output: str) -> str:
+    """Strip the run-to-run noise out of go's output BEFORE it reaches the model.
+
+    The fix prompt embeds toolchain output verbatim, and that output carries text
+    that changes between runs of identical code: per-package durations (`0.710s`),
+    per-test durations (`--- FAIL: TestX (0.00s)`), and — worst — `(cached)`,
+    which go substitutes for a duration when its GLOBAL, MACHINE-WIDE test cache
+    already holds the answer.
+
+    That last one makes a run depend on the runs before it. In the A/B behind
+    612c4f3 (workapi, 6 runs, one server) exactly ONE run's toolchain output
+    contained `(cached)` — the 6th — and it is the ONLY one that diverged and
+    went red, after five fix rounds. By then the cache had been filled by the
+    five runs before it, so the 6th was not an independent sample: it was
+    contaminated by its own predecessors, through the prompt.
+
+    Generation itself is deterministic (measured: three 1200-token completions at
+    temp=0.1, byte-identical), so divergence cannot come from sampling — it comes
+    from the prompt. This is the prompt's only moving part that carries no
+    information: a duration cannot help the model fix a compile error, and
+    `(cached)` versus `0.710s` says nothing about the code. Normalise both away
+    and identical code yields an identical prompt.
+    """
+    return _GO_CASE_TIME_RE.sub(r"\1", _GO_PKG_TIME_RE.sub("", error_output))
 
 
 def _is_test_failure(error_output: str) -> bool:

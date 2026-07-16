@@ -19,6 +19,7 @@ from src.builder import (
     RoleRoutingCoder,
     Spec,
     Retriever,
+    _canonical_toolchain_output,
     _fix_prompt,
     _generate_file,
     _generate_prompt,
@@ -259,6 +260,45 @@ def test_generate_prompt_non_test_file_has_no_test_rule():
     impl = FileTask(index=1, spec=FileSpec(path="stringkit.go", purpose="impl"))
     prompt = _generate_prompt(spec, impl, {})
     assert "do not invent edge cases" not in prompt
+
+
+def test_canonical_toolchain_output_strips_cache_and_timing_noise():
+    # `(cached)` is the one that bites: go's test cache is machine-global, so the
+    # 6th run of a spec sees text the first five did not, and the fix prompt —
+    # which embeds this output verbatim — stops being a function of the code.
+    cached = "ok  \tguildlm.dev/workapi/internal/api\t(cached)"
+    timed = "ok  \tguildlm.dev/workapi/internal/api\t0.710s"
+    assert _canonical_toolchain_output(cached) == _canonical_toolchain_output(timed)
+    assert _canonical_toolchain_output(cached) == "ok  \tguildlm.dev/workapi/internal/api"
+
+    # Per-test durations move too, and a coverage suffix must survive the strip.
+    assert (
+        _canonical_toolchain_output("--- FAIL: TestListSorted (0.00s)")
+        == "--- FAIL: TestListSorted"
+    )
+    assert (
+        _canonical_toolchain_output("ok  \tpkg\t1.2s\tcoverage: 85.2% of statements")
+        == "ok  \tpkg\tcoverage: 85.2% of statements"
+    )
+
+    # The diagnostics themselves are untouched — they are the whole payload, and
+    # a version number or a line:col must never be mistaken for a duration.
+    err = (
+        "# guildlm.dev/workapi/internal/service\n"
+        "vet: internal/service/service_test.go:165:24: undefined: failStore\n"
+        "FAIL\tguildlm.dev/workapi/internal/service [build failed]"
+    )
+    assert _canonical_toolchain_output(err) == err
+
+
+def test_fix_prompt_is_identical_whether_go_cached_the_tests():
+    # The regression this exists to prevent: same code, same errors, one run
+    # reading go's cache and one not => two different prompts => divergence.
+    task = FileTask(index=0, spec=FileSpec(path="store_test.go", purpose="tests"))
+    fail = "--- FAIL: TestX (0.00s)\n    store_test.go:9: got 2, want 1\nFAIL\tpkg\t"
+    a = _fix_prompt(task, "package store", fail + "0.031s\nok  \tother\t0.710s")
+    b = _fix_prompt(task, "package store", fail + "0.004s\nok  \tother\t(cached)")
+    assert a == b
 
 
 def test_generate_prompt_test_file_demands_completeness():
