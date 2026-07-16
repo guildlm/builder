@@ -162,7 +162,9 @@ def nonstdlib_imports(code: str, module: str | None = None) -> list[str]:
 class Coder(Protocol):
     """A pluggable code-generating model."""
 
-    def generate(self, prompt: str) -> str:  # pragma: no cover - protocol
+    def generate(
+        self, prompt: str, temperature: float | None = None
+    ) -> str:  # pragma: no cover - protocol
         ...
 
 
@@ -190,7 +192,7 @@ class OpenAICoder:
         api_key = api_key or os.environ.get("GUILDLM_BUILDER_API_KEY", "ollama")
         self._client = OpenAI(base_url=base_url, api_key=api_key)
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, temperature: float | None = None) -> str:
         # A generous max_tokens is essential for LARGE files: without it the
         # server's small default (mlx_lm defaults to ~512) truncates a big file
         # like a multi-method JSON handler mid-statement, and the fix loop can
@@ -234,7 +236,15 @@ class OpenAICoder:
             # is deterministic, run-to-run divergence CANNOT come from sampling.
             # It comes from the PROMPT — and the fix prompt is built from
             # toolchain output. That is where to look.
-            temperature=float(os.environ.get("GUILDLM_BUILDER_TEMP", "0.1")),
+            #
+            # It also means a caller who wants a DIFFERENT sample cannot get one
+            # by asking twice; the only handle that moves the output is this
+            # temperature. `_sample_clean` uses it to make best-of-N real.
+            temperature=(
+                float(os.environ.get("GUILDLM_BUILDER_TEMP", "0.1"))
+                if temperature is None
+                else temperature
+            ),
             max_tokens=max_tokens,
             # mlx_lm-served Qwen instruct models carry eos_token_id=151643
             # (<|endoftext|>) in the mlx-community config, so the server never
@@ -262,7 +272,7 @@ class FakeCoder:
         self._responses = {k: list(v) for k, v in responses.items()}
         self.calls: list[str] = []
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, temperature: float | None = None) -> str:
         target = self._target_from_prompt(prompt)
         self.calls.append(target)
         queue = self._responses.get(target)
@@ -303,10 +313,10 @@ class RoleRoutingCoder:
         self._by_role = dict(by_role)
         self._default = default or by_role.get("dev") or next(iter(by_role.values()))
 
-    def generate(self, prompt: str) -> str:
+    def generate(self, prompt: str, temperature: float | None = None) -> str:
         match = re.search(r"TARGET_FILE:\s*(\S+)", prompt)
         role = role_for_path(match.group(1) if match else "")
-        return self._by_role.get(role, self._default).generate(prompt)
+        return self._by_role.get(role, self._default).generate(prompt, temperature)
 
 
 # --------------------------------------------------------------------------- #
@@ -4135,6 +4145,40 @@ def _is_clean(
     return True
 
 
+def _resample_temperature(attempt: int) -> float | None:
+    """The temperature for best-of-N's ``attempt``-th draw. None = the default.
+
+    BEST-OF-N WAS A NO-OP FOR ITS ENTIRE LIFE, and the logs said so in a number I
+    had never looked at. Across every A/B log on disk:
+
+        kept candidate 1 of 2 : 2905
+        kept candidate 2 of 2 :    0     <- the resample NEVER rescued a draw
+        no clean candidate    :  320     <- ...it failed identically, 320 times
+
+    The cause is one line above this function: every attempt called
+    ``coder.generate(prompt)`` with the SAME prompt, and this server is
+    deterministic — same (prompt, temperature) in, byte-identical text out
+    (measured: three 1200-token completions at temp=0.1, identical; seeds
+    1/999/123456 at temp=2.0, identical). So candidate 2 was candidate 1. Drawing
+    it again could only reproduce the same defect, which is exactly what those
+    320 rows are: a dirty sample, redrawn, dirty in precisely the same way.
+    Zero rescues out of 320 is not bad luck. It is a mechanism that never fired
+    while the project's own notes marked it "best-of-N ✓".
+
+    Temperature is the one handle that does move the output: temp=0.1 and
+    temp=0.6 on an identical prompt return genuinely different files, while each
+    stays deterministic at its own value. So attempt 0 keeps the near-greedy
+    default — the common path is unchanged, and a clean first draw still returns
+    without a second call — and each retry steps the temperature, buying a real
+    alternative sample WITHOUT giving up reproducibility.
+    """
+    if attempt == 0:
+        return None
+    base = float(os.environ.get("GUILDLM_BUILDER_TEMP", "0.1"))
+    step = float(os.environ.get("GUILDLM_BUILDER_RESAMPLE_STEP", "0.5"))
+    return base + step * attempt
+
+
 def _sample_clean(
     coder: Coder,
     prompt: str,
@@ -4156,7 +4200,7 @@ def _sample_clean(
     """
     last = ""
     for attempt in range(max(1, candidates)):
-        last = extract_code(coder.generate(prompt))
+        last = extract_code(coder.generate(prompt, _resample_temperature(attempt)))
         if is_go and sibling_decls:
             # Deterministically drop any declaration a sibling already owns
             # (the redeclared-sentinel/type collapse) — the dead import it

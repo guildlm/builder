@@ -21,6 +21,7 @@ from src.builder import (
     Retriever,
     _canonical_toolchain_output,
     _fix_prompt,
+    _resample_temperature,
     _generate_file,
     _generate_prompt,
     _review_pass,
@@ -646,10 +647,32 @@ class _TagCoder:
     def __init__(self, tag):
         self.tag = tag
         self.seen = []
+        self.temps = []
 
-    def generate(self, prompt):
+    def generate(self, prompt, temperature=None):
         self.seen.append(prompt)
+        self.temps.append(temperature)
         return self.tag
+
+
+def test_role_routing_forwards_the_resample_temperature():
+    # RoleRoutingCoder delegates, so it must carry the temperature through —
+    # otherwise best-of-N silently reverts to drawing the same sample twice for
+    # exactly the roles that route, and nowhere else.
+    dev, test = _TagCoder("DEV"), _TagCoder("TEST")
+    coder = RoleRoutingCoder({"dev": dev, "test": test})
+    coder.generate("TARGET_FILE: store.go\n...", 0.6)
+    assert dev.temps == [0.6]
+
+
+def test_resample_temperature_steps_only_after_the_first_draw():
+    # Attempt 0 must stay on the coder's default (None): the common path is a
+    # clean first draw, and it must not change behaviour. Retries step, because
+    # an identical (prompt, temperature) returns an identical file — which is why
+    # `kept candidate 2 of 2` appears zero times in 3225 logged draws.
+    assert _resample_temperature(0) is None
+    assert _resample_temperature(1) == pytest.approx(0.6)  # 0.1 base + 0.5 step
+    assert _resample_temperature(2) == pytest.approx(1.1)
 
 
 def test_role_routing_dispatches_test_files_to_test_specialist():
