@@ -1226,3 +1226,48 @@ def test_why_dirty_names_the_rule_that_rejected_a_candidate():
         True, tc, None, False, None, None, previous,
     )
     assert why_dirty("package p\n\nfunc TestX(t *testing.T) { t.Fatal(1) }\n", True, tc) == ""
+
+
+@requires_go
+def test_restore_repairs_the_real_recorded_failure(tmp_path):
+    # THE MEASUREMENT, distilled from the artifact it was taken on. workapi's
+    # without-3 run burned all five fix rounds and stayed red on exactly this:
+    #   vet: internal/service/service_test.go:165:24: undefined: failStore
+    # The model's rewrite dropped the fixture and kept the two calls to it. Five
+    # model fix-rounds could not put it back; one deterministic splice does. On
+    # the real tree that repair takes go vet from rc=1 to rc=0 and the whole
+    # artifact to a green build+vet+test.
+    #
+    # The shape is the REAL one: errBoom survives, failStore does not. An earlier
+    # draft of this test dropped both, which movedecls cannot repair (it moves
+    # types and funcs, never vars) — a case the real failure never produced. The
+    # test exists because the artifacts are not in git and _ab_run.sh rm -rf's
+    # them between runs.
+    (tmp_path / "go.mod").write_text("module example.com/demo\n\ngo 1.23\n")
+    previous = (
+        "package demo\n\n"
+        "import (\n\t\"errors\"\n\t\"testing\"\n)\n\n"
+        "var errBoom = errors.New(\"boom\")\n\n"
+        "type failStore struct{}\n\n"
+        "func (failStore) List() error { return errBoom }\n\n"
+        "func TestListError(t *testing.T) {\n\tvar s failStore\n\t_ = s.List()\n}\n"
+    )
+    (tmp_path / "demo_test.go").write_text(previous)
+    assert GoToolchain().vet(tmp_path)[0], "the previous version must compile"
+
+    # The rewrite the fix loop actually produces: fixture gone, its var kept, the
+    # calls to it kept.
+    dropped = (
+        "package demo\n\n"
+        "import (\n\t\"errors\"\n\t\"testing\"\n)\n\n"
+        "var errBoom = errors.New(\"boom\")\n\n"
+        "func TestListError(t *testing.T) {\n\tvar s failStore\n\t_ = s.List()\n}\n"
+    )
+    (tmp_path / "demo_test.go").write_text(dropped)
+    ok, out = GoToolchain().vet(tmp_path)
+    assert not ok and "undefined: failStore" in out, out
+
+    fixed = restore_dropped_decls(dropped, previous, self_dropped_decls(dropped, previous, set()))
+    (tmp_path / "demo_test.go").write_text(fixed)
+    ok, out = GoToolchain().vet(tmp_path)
+    assert ok, f"the repair must make the real shape compile: {out}"

@@ -4257,56 +4257,90 @@ _MOVED_PKG_CLAUSE_RE = re.compile(r"\A\s*package\s+\w+\s*$", re.MULTILINE)
 _MOVED_IMPORTS_RE = re.compile(r"^import\s*\((?:[^)]*)\)\s*$|^import\s+\S.*$", re.MULTILINE)
 
 
-def restore_dropped_decls(candidate: str, previous: str, names: set[str]) -> str:
-    """Splice back the package-scope declarations ``candidate`` dropped but still
-    uses, lifting them — with their methods — out of ``previous``.
-
-    REJECTING these was not enough, and the run said so rather than my reasoning.
-    First workapi run under the check:
-
-        fixing internal/service/service_test.go
-          best-of-N fix: no clean candidate; using the first of 2
-        ! vet: internal/service/service_test.go:169:24: undefined: failStore
-
-    Both candidates dropped `failStore` — the temp-0.1 draw AND the temp-0.6
-    retry. The defect is not temperature-sensitive, so resampling cannot clear it:
-    the model drops this fixture wherever you sample from. That is this project's
-    own law arriving at my own work — A NUDGE IS NOT A GATE — so the rejection
-    gets a repair behind it.
-
-    `movedecls` already lifts a declaration and everything bound to it out of a
-    file (it exists for a different bug: a sibling implementing another file's
-    job). Given the previous version it returns `failStore` together with its four
-    methods, which is exactly the cluster the rewrite lost. Re-append the bodies,
-    drop its package clause and imports, and let goimports settle the imports on
-    write — the same path every other gate's output takes.
-
-    Safe by construction: it only adds declarations the candidate ALREADY
-    references and no sibling provides, taken verbatim from a version that
-    compiled with them. Worst case is the undefined symbol it was called for.
-    """
-    if not names or not previous.strip():
-        return candidate
+def _moved_payload(previous: str, names: set[str]) -> str:
+    """The bodies `movedecls` lifts out of ``previous`` for ``names`` — package
+    clause and imports stripped, ready to append."""
     pkg = re.search(r"^package\s+(\w+)", previous, re.MULTILINE)
     if not pkg or not _MOVEDECLS.exists():
-        return candidate
+        return ""
     try:
         proc = subprocess.run(
             ["go", "run", str(_MOVEDECLS), pkg.group(1), ",".join(sorted(names))],
             input=previous, capture_output=True, text=True, timeout=60,
         )
     except (OSError, subprocess.SubprocessError):
-        return candidate
+        return ""
     if proc.returncode != 0 or not proc.stdout.strip():
-        return candidate
+        return ""
     try:
         moved = json.loads(proc.stdout).get("moved", "")
     except json.JSONDecodeError:
+        return ""
+    return _MOVED_IMPORTS_RE.sub("", _MOVED_PKG_CLAUSE_RE.sub("", moved, count=1)).strip()
+
+
+def restore_dropped_decls(candidate: str, previous: str, names: set[str]) -> str:
+    """Splice back the package-scope declarations ``candidate`` dropped but still
+    uses, lifting them — with their methods — out of ``previous``.
+
+    REJECTING these was not enough, and the run said so rather than my reasoning:
+
+        fixing internal/service/service_test.go
+          best-of-N fix: no clean candidate; using the first of 2
+        ! vet: internal/service/service_test.go:169:24: undefined: failStore
+
+    Both draws dropped `failStore` — temp 0.1 AND the temp 0.6 retry. The model
+    drops this fixture wherever you sample from, so resampling cannot clear it.
+    That is this project's own law arriving at my own work: a nudge is not a gate.
+
+    `movedecls` already lifts a declaration and everything bound to it out of a
+    file, so given the previous version it returns `failStore` with its methods —
+    exactly the cluster the rewrite lost. Append the bodies, drop the payload's
+    package clause and imports, let goimports settle the rest on write.
+
+    CLOSE THE NAME SET FIRST, splice ONCE. I wrote this the obvious way — splice,
+    then recurse on the output — and it appended `failStore` twice while still
+    leaving `errBoom` undefined. Restoring a type restores its methods, and those
+    methods call things the same rewrite dropped WITHOUT still using them, so the
+    first pass never flagged them: the repair introduces the undefined it was
+    called to remove. The real artifact happened to keep `errBoom` and the repair
+    looked total. A distilled test of the same shape caught it in seconds, which
+    is the only reason "safe by construction" is not in this docstring twice.
+
+    What IS true by construction: every name added is declared by ``previous``,
+    a version that compiled with them, and is referenced by the code being
+    repaired. The caller re-checks the result and drops the repair wholesale if it
+    is still self-inconsistent, so a closure that cannot close changes nothing.
+
+    KNOWN LIMIT, stated because the alternative is finding it in a red run:
+    `movedecls` moves TYPE and FUNC declarations only (`if t.Tok != token.TYPE`),
+    so a dropped `var` or `const` is out of reach. If the closure needs one — a
+    restored method calling a dropped `var errBoom` — the payload comes back
+    without it, the result is still self-inconsistent, and the caller drops the
+    repair: a no-op, not a corruption. The real recorded failure kept `errBoom`
+    and lost only `failStore`, which is why the repair takes that artifact from
+    `go vet` rc=1 to a full green build+vet+test. Teaching movedecls to move vars
+    would widen this, and it is NOT a free change: `_fill_empty_planned_files`
+    shares that tool, and moving vars it currently leaves alone would alter a gate
+    that works. Measure that separately or leave it.
+    """
+    if not names or not previous.strip():
         return candidate
-    body = _MOVED_IMPORTS_RE.sub("", _MOVED_PKG_CLAUSE_RE.sub("", moved, count=1)).strip()
-    if not body:
-        return candidate
-    return candidate.rstrip() + "\n\n" + body + "\n"
+    # Top-level names ONLY. Including method_decls here put `List` in the closure,
+    # movedecls does not take a method name, the payload came back empty, and the
+    # function returned the candidate UNREPAIRED — a silent no-op that the unit
+    # test caught and a live run would have hidden behind "the model dropped it".
+    have = top_level_decls(previous)
+    wanted = set(names) & have
+    for _ in range(len(have) + 1):  # bounded by previous's own declarations
+        payload = _moved_payload(previous, wanted)
+        if not payload:
+            return candidate
+        needed = {n for n in have - wanted if re.search(rf"\b{re.escape(n)}\b", payload)}
+        if not needed:
+            return candidate.rstrip() + "\n\n" + payload + "\n"
+        wanted |= needed
+    return candidate
 
 
 def why_dirty(
@@ -4322,12 +4356,11 @@ def why_dirty(
     """The name of the first check ``code`` fails, for the log. Empty if clean.
 
     `no clean candidate` never said WHICH rule rejected, and that gap cost real
-    reasoning today: a rejection landed in the same round as an `undefined:
-    failStore`, the two looked consistent, and I was one inference from crediting
-    the rule I had just written. Consistent is not proof. A candidate can be
-    rejected for a foreign import and the round can go red for something else
-    entirely — the log has to say which, or the next person reads a correlation
-    as a cause, exactly as I nearly did.
+    reasoning: a rejection landed in the same round as an `undefined: failStore`,
+    the two looked consistent, and I was one inference from crediting the rule I
+    had just written. Consistent is not proof. A candidate can be rejected for a
+    foreign import while the round goes red for something else entirely — the log
+    has to say which, or the next reader takes a correlation for a cause.
     """
     if not is_go:
         return ""
