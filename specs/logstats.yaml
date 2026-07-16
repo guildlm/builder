@@ -73,8 +73,15 @@ files:
       malformed line DISTINCT from the valid one — a 4-field line (latency dropped), a bad timestamp that is an
       actually un-parseable string such as "not-a-timestamp" (NOT a valid
       RFC3339 value — do NOT reuse the valid line's timestamp for this row), a
-      non-numeric status ("abc"), and a non-numeric latency ("abc") — all return
-      ErrBadLine via errors.Is. Consume: use EXACTLY this fixture (do not invent
+      non-numeric status ("abc"), and a non-numeric latency ("abc"). EACH of
+      those four must assert THE SENTINEL, not merely that something failed —
+      `err != nil` passes against a ParseLine that returns any random error, so
+      it does not test the contract this file exists to pin. Write the check
+      exactly like this, once per bad line:
+        if _, err := ParseLine(bad); !errors.Is(err, ErrBadLine) {
+            t.Errorf("ParseLine(%q): err = %v, want ErrBadLine", bad, err)
+        }
+      Consume: use EXACTLY this fixture (do not invent
       your own lines or recompute the expectations — transcribe them). Build the
       input by joining these five entries with "\n" (a real empty line in the
       middle, a malformed line at the end):
