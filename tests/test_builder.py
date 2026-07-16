@@ -261,6 +261,19 @@ def test_generate_prompt_non_test_file_has_no_test_rule():
     assert "do not invent edge cases" not in prompt
 
 
+def test_generate_prompt_test_file_demands_completeness():
+    # ratelimit shipped a test file with the hit() helper defined but never
+    # called — every HTTP flow test dropped, the whole middleware/router at 0%
+    # coverage. The test rule must demand one focused function per scenario.
+    spec = _sample_spec()
+    prompt = _generate_prompt(spec, _impl_task(), {})  # path ends _test.go
+    assert "EVERY SCENARIO" in prompt
+    assert "one focused function per scenario" in prompt
+    # It is a test-file rule, so a plain impl file must not carry it.
+    impl = FileTask(index=1, spec=FileSpec(path="stringkit.go", purpose="impl"))
+    assert "EVERY SCENARIO" not in _generate_prompt(spec, impl, {})
+
+
 def test_generate_prompt_test_file_demands_field_named_struct_literals():
     # kvservice/taskapipro class: a positional table-of-cases literal silently
     # puts a value in the wrong field, and `go vet` does not catch it for a

@@ -516,8 +516,38 @@ def _test_rule(path: str) -> str:
     fix rounds, against a default that quotes the wrong code verbatim."""
     if not path.endswith("_test.go"):
         return ""
+    # THE MODEL DROPS TESTS THE SPEC ASKED FOR — including ones it NAMES.
+    # ratelimit's spec asks for HTTP flow tests through a hit() helper; the model
+    # wrote three easy unit tests, defined hit(), never called it, and left the
+    # middleware/router/handlers at ZERO coverage: 42.4% behind a GREEN suite.
+    # With this sentence it wrote the flow tests and coverage returned to 75.4%
+    # (2/2, from a stable 42.4 baseline).
+    #
+    # It is not only prose-described tests that go missing. workapi's spec NAMES
+    # TestListSorted in so many words, and a controlled A/B — workapi x3 per arm,
+    # one server, arms alternated — showed the model DROPPING IT at generation
+    # every run without this rule and WRITING IT every run with it (3/3 vs 3/3,
+    # caught pre-gate, so it is the model's own behaviour).
+    #
+    # That A/B is also why the wording keeps ratelimit's specifics rather than
+    # generalising to taste: the 42.4 -> 75.4 recovery is evidence for THIS text.
+    # A principle-only rewrite would be unproven again, and this project has
+    # already paid for believing an untested improvement.
+    completeness = (
+        "WRITE A FOCUSED TEST FUNCTION FOR EVERY SCENARIO "
+        "the purpose describes — do NOT stop at the easy unit tests. If the "
+        "purpose names flow or integration scenarios (HTTP requests through a "
+        "router via a hit()/request helper, an allow-then-deny sequence, a "
+        "two-client case, a health-check-still-succeeds case), you MUST write a "
+        "test function for EACH of them; a request helper you define but never "
+        "call means you dropped the very tests it exists for, leaving the "
+        "middleware, router and handlers at zero coverage — a suite that passes "
+        "trivially and proves almost nothing. Count the distinct scenarios named "
+        "above and write one focused function per scenario.\n"
+    )
     return (
-        "This is a TEST file. Derive every expected value strictly from the "
+        "This is a TEST file. " + completeness +
+        "Derive every expected value strictly from the "
         "behaviour described above for the functions under test — do not invent "
         "edge cases whose expected result contradicts those stated rules. If you "
         "are unsure what an exotic input (emoji, combining marks, mixed scripts) "
