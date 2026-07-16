@@ -87,13 +87,34 @@ files:
       err) }; if got != n { t.Errorf("round trip %d -> %q -> %d", n, code, got) }
       }`. Separately assert Encode(0) == "0". Then assert Decode("!") and
       Decode("") EACH return ErrBadCode via errors.Is (an empty string and any
-      character outside the alphabet are invalid input). Flow-test the API: POST /shorten with a
-      valid JSON url returns 201 and a non-empty code; GET /r/{code} returns
-      301 with the Location header equal to the original url; GET /r/missing
-      returns 404; POST /shorten with malformed JSON or an empty url returns
-      400. The Hits/stats test MUST first register a hit: POST /shorten to get
-      the code, then GET /r/{code} EXACTLY ONCE (this is what increments Hits),
-      and ONLY THEN GET /stats/{code} and assert the decoded Hits == 1. Do NOT
-      check stats without a preceding redirect — a freshly created link has Hits
-      0, so a stats check with no prior GET /r/{code} would see 0, not 1. Decode
-      JSON responses and assert fields. Standard library only.
+      character outside the alphabet are invalid input).
+      WRITE THESE TEST FUNCTIONS, one focused function each, named exactly:
+      TestEncodeDecodeRoundTrip, TestEncodeZero, TestDecodeBadCode,
+      TestShortenCreated, TestShortenBadRequest, TestRedirectFound,
+      TestRedirectMissing, TestStatsCountsOneHit.
+      NEVER GUESS A SHORT CODE, AND NEVER REACH PAST THE API TO PLANT ONE. The
+      code is whatever Save assigned; a test that calls the store directly and
+      then requests a code it made up (`GET /r/0`) gets 404 against handlers that
+      are perfectly correct. Every flow test starts by POSTing and READING THE
+      CODE OUT OF THE RESPONSE, exactly like this:
+        h := NewRouter(NewMemStore())
+        body := strings.NewReader(`{"url":"http://example.com"}`)
+        req := httptest.NewRequest(http.MethodPost, "/shorten", body)
+        rec := httptest.NewRecorder()
+        h.ServeHTTP(rec, req)
+        if rec.Code != http.StatusCreated { t.Fatalf("shorten: got %d", rec.Code) }
+        var created Link
+        if err := json.NewDecoder(rec.Body).Decode(&created); err != nil { t.Fatal(err) }
+        // created.Code is the ONLY code that exists. Use it:
+        rec2 := httptest.NewRecorder()
+        h.ServeHTTP(rec2, httptest.NewRequest(http.MethodGet, "/r/"+created.Code, nil))
+      TestShortenCreated: the POST above -> 201 and created.Code is non-empty.
+      TestShortenBadRequest: POST /shorten with `{"url":""}` -> 400.
+      TestRedirectFound: POST as above, then GET /r/+created.Code -> 301 and the
+      Location header EQUALS "http://example.com".
+      TestRedirectMissing: on a fresh router, GET /r/missing -> 404.
+      TestStatsCountsOneHit: POST as above, then GET /r/+created.Code EXACTLY
+      ONCE (this is what increments Hits), and ONLY THEN GET /stats/+created.Code
+      -> 200, decode the Link, assert Hits == 1. Do NOT check stats without a
+      preceding redirect: a fresh link has Hits 0, so it would see 0, not 1.
+      Standard library only.
