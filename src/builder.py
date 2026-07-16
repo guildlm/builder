@@ -995,19 +995,32 @@ def _canonical_toolchain_output(error_output: str) -> str:
     which go substitutes for a duration when its GLOBAL, MACHINE-WIDE test cache
     already holds the answer.
 
-    That last one makes a run depend on the runs before it. In the A/B behind
-    612c4f3 (workapi, 6 runs, one server) exactly ONE run's toolchain output
-    contained `(cached)` — the 6th — and it is the ONLY one that diverged and
-    went red, after five fix rounds. By then the cache had been filled by the
-    five runs before it, so the 6th was not an independent sample: it was
-    contaminated by its own predecessors, through the prompt.
+    That last one makes a run depend on the runs before it: the cache is global
+    and machine-wide, so the 6th run of a spec can be handed text the first five
+    never saw. It demonstrably reaches the model — in the A/B behind 612c4f3 the
+    6th run's `(cached)` lines sit in the toolchain output of fix rounds 3, 4 and
+    5, which is to say inside the prompts of rounds 4 and 5.
 
-    Generation itself is deterministic (measured: three 1200-token completions at
-    temp=0.1, byte-identical), so divergence cannot come from sampling — it comes
-    from the prompt. This is the prompt's only moving part that carries no
-    information: a duration cannot help the model fix a compile error, and
-    `(cached)` versus `0.710s` says nothing about the code. Normalise both away
-    and identical code yields an identical prompt.
+    WHAT THIS DOES NOT CLAIM — and what 0fe717f's message wrongly did. That 6th
+    run is also the only one that diverged and went red, and I wrote the obvious
+    story: the cache contaminated it. The timeline refutes me. Its `(cached)`
+    lines first appear in round 3, but it had already left its arm's path in
+    round 1 — its first vet error is `undefined: fakeEnqueuer` at line 24 where
+    its sibling run's is `undefined: failStore` at line 165. The divergence
+    PRECEDES the contamination, so the contamination cannot be its cause. If
+    anything the arrow points the other way: a run only reaches the test stage,
+    where `(cached)` can appear at all, once it is limping — some packages
+    passing, others failing.
+
+    So: a real contaminant, correctly removed, with a false story attached.
+    Stripping it stands on its own terms — cache state and wall-clock durations
+    are the prompt's only moving parts carrying ZERO information (a duration
+    cannot tell you why `failStore` is undefined), and a prompt should be a
+    function of the code. But it does not explain the red, and the question it
+    was supposed to answer is still OPEN: generation is deterministic (measured:
+    three 1200-token completions at temp=0.1, byte-identical) and yet same-arm
+    runs generate DIFFERENT files. Something upstream of the fix loop varies per
+    process. Look there, not here.
     """
     return _GO_CASE_TIME_RE.sub(r"\1", _GO_PKG_TIME_RE.sub("", error_output))
 
