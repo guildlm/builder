@@ -26,6 +26,7 @@ from src.builder import (
     _sample_clean,
     _test_rule,
     restore_dropped_decls,
+    why_dirty,
     self_dropped_decls,
     _generate_file,
     _generate_prompt,
@@ -1203,3 +1204,25 @@ def test_isolate_state_names_the_thing_that_holds_the_state():
     prompt = _generate_prompt(spec, plan(spec)[0], {}, None)
     assert "HOLDS THE STATE" in prompt
     assert "isolates NOTHING" in prompt
+
+
+def test_why_dirty_names_the_rule_that_rejected_a_candidate():
+    # `no clean candidate` never said WHICH check fired. A rejection landed in the
+    # same round as an `undefined: failStore`, the two looked consistent, and I was
+    # one inference from crediting the rule I had just written. A log that only
+    # reports my own check's rejections is how a correlation gets read as a cause.
+    tc = GoToolchain()
+    assert why_dirty("package p\n\nfunc (", True, tc) == "does not parse"
+    assert "foreign import" in why_dirty(
+        'package p\n\nimport "github.com/gorilla/mux"\n\nvar _ = mux.NewRouter\n',
+        True, tc, module="example.com/demo",
+    )
+    assert "redeclares a sibling's Store" in why_dirty(
+        "package p\n\ntype Store struct{}\n", True, tc, {"Store"}
+    )
+    previous = "package p\n\ntype fake struct{}\n\nfunc TestX(t *testing.T) { _ = fake{} }\n"
+    assert "drops fake" in why_dirty(
+        "package p\n\nfunc TestX(t *testing.T) { _ = fake{} }\n",
+        True, tc, None, False, None, None, previous,
+    )
+    assert why_dirty("package p\n\nfunc TestX(t *testing.T) { t.Fatal(1) }\n", True, tc) == ""

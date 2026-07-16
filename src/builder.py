@@ -4309,6 +4309,43 @@ def restore_dropped_decls(candidate: str, previous: str, names: set[str]) -> str
     return candidate.rstrip() + "\n\n" + body + "\n"
 
 
+def why_dirty(
+    code: str,
+    is_go: bool,
+    toolchain: GoToolchain,
+    sibling_decls: set[str] | None = None,
+    require_assertions: bool = False,
+    required_decls: set[str] | None = None,
+    module: str | None = None,
+    previous: str | None = None,
+) -> str:
+    """The name of the first check ``code`` fails, for the log. Empty if clean.
+
+    `no clean candidate` never said WHICH rule rejected, and that gap cost real
+    reasoning today: a rejection landed in the same round as an `undefined:
+    failStore`, the two looked consistent, and I was one inference from crediting
+    the rule I had just written. Consistent is not proof. A candidate can be
+    rejected for a foreign import and the round can go red for something else
+    entirely — the log has to say which, or the next person reads a correlation
+    as a cause, exactly as I nearly did.
+    """
+    if not is_go:
+        return ""
+    if not toolchain.syntax_ok(code):
+        return "does not parse"
+    if foreign := nonstdlib_imports(code, module):
+        return f"foreign import: {', '.join(foreign)}"
+    if sibling_decls and (clash := (top_level_decls(code) | method_decls(code)) & sibling_decls):
+        return f"redeclares a sibling's {', '.join(sorted(clash))}"
+    if required_decls and (missing := required_decls - top_level_decls(code)):
+        return f"missing promised {', '.join(sorted(missing))}"
+    if previous and (gone := self_dropped_decls(code, previous, sibling_decls)):
+        return f"drops {', '.join(sorted(gone))} — still used, no sibling declares it"
+    if require_assertions and not has_assertions(code):
+        return "asserts nothing"
+    return ""
+
+
 def _is_clean(
     code: str,
     is_go: bool,
@@ -4413,13 +4450,12 @@ def _sample_clean(
                      required_decls, module, previous):
             _log(f"    best-of-N {what}: kept candidate {attempt + 1} of {candidates}")
             return last
-        # Name the rule that rejected it. `no clean candidate` alone does not say
-        # WHICH check fired, and I was one inference away from attributing a
-        # rejection to the self-consistency rule because the round's error looked
-        # consistent with it. Consistent is not proof; the log should say.
-        if previous and (gone := self_dropped_decls(last, previous, sibling_decls)):
-            _log(f"    rejected {what} candidate {attempt + 1}: drops "
-                 f"{', '.join(sorted(gone))} — still used, no sibling declares it")
+        # Name the rule that rejected it — ANY of them, not just the one I happen
+        # to be interested in. A log that only reports my own check's rejections
+        # is how a correlation gets read as a cause.
+        if reason := why_dirty(last, is_go, toolchain, sibling_decls,
+                               require_assertions, required_decls, module, previous):
+            _log(f"    rejected {what} candidate {attempt + 1}: {reason}")
     if candidates > 1:
         # Fall back to the FIRST draw, not the last. They used to be the same
         # object — an identical prompt against a deterministic server — so "last"
