@@ -4217,6 +4217,37 @@ def has_assertions(code: str) -> bool:
     return bool(_ASSERTION_RE.search(code))
 
 
+def self_dropped_decls(candidate: str, previous: str, sibling_decls: set[str] | None) -> set[str]:
+    """Package-scope names ``previous`` declared, ``candidate`` no longer declares,
+    and ``candidate`` still REFERENCES — with no sibling to provide them.
+
+    A rewrite that does this cannot compile, and it says so in the compiler's own
+    words: `undefined: failStore`. Across every A/B log on disk this exact shape
+    appears 33 times over 13 runs, and three of those runs burned their whole fix
+    budget on it, oscillating — round 4 drops `fakeEnqueuer`, round 5 puts it back
+    and drops `failStore`. The fix loop rewrites the WHOLE test file each round,
+    and the package-scope fixtures at the top are the part it forgets.
+
+    The machinery to catch this looked present and was not. `_is_clean`'s
+    `required_decls` is the right idea and misses on two counts at once: it is
+    switched off for test files (`if is_go and not is_test`), and its regex wants
+    an exported name (`([A-Z]\\w*)\\s+(?i:struct|interface)`) while these fixtures
+    are `failStore` and `fakeEnqueuer`. The fix path's `must_keep` protects only
+    symbols OTHER packages reference, and nothing outside a test file references
+    its own fake. Three guards, all real, none of them looking here.
+
+    This one needs no spec, no purpose text and no list of names: the candidate
+    is self-inconsistent. It uses what it does not define. That is decidable from
+    the two versions alone, which is why it belongs here rather than in a prompt.
+    """
+    if not previous:
+        return set()
+    dropped = (top_level_decls(previous) | method_decls(previous)) - (
+        top_level_decls(candidate) | method_decls(candidate)
+    ) - (sibling_decls or set())
+    return {n for n in dropped if re.search(rf"\b{re.escape(n)}\b", candidate)}
+
+
 def _is_clean(
     code: str,
     is_go: bool,
@@ -4225,11 +4256,12 @@ def _is_clean(
     require_assertions: bool = False,
     required_decls: set[str] | None = None,
     module: str | None = None,
+    previous: str | None = None,
 ) -> bool:
     """A clean Go candidate parses, imports nothing foreign (the standard library
     and the project's OWN packages are both fine), does not redeclare a sibling's
-    package-level symbol, declares every type its purpose promises, and — for test
-    files — actually asserts something.
+    package-level symbol, declares every type its purpose promises, does not drop
+    a declaration it still uses, and — for test files — actually asserts something.
 
     ``module`` must be threaded through for a multi-package project. Without it,
     the project's own imports count as foreign and NO candidate is ever clean."""
@@ -4240,6 +4272,8 @@ def _is_clean(
     if sibling_decls and ((top_level_decls(code) | method_decls(code)) & sibling_decls):
         return False
     if required_decls and not required_decls <= top_level_decls(code):
+        return False
+    if previous and self_dropped_decls(code, previous, sibling_decls):
         return False
     if require_assertions and not has_assertions(code):
         return False
@@ -4291,6 +4325,7 @@ def _sample_clean(
     require_assertions: bool = False,
     required_decls: set[str] | None = None,
     module: str | None = None,
+    previous: str | None = None,
 ) -> str:
     """Draw up to ``candidates`` samples; keep the first clean one (parses,
     stdlib-only, no cross-file redeclaration, and — for test files — actually
@@ -4300,8 +4335,11 @@ def _sample_clean(
     poisoning the build. Falls back to the last sample so progress never stalls.
     """
     last = ""
+    first = ""
     for attempt in range(max(1, candidates)):
         last = extract_code(coder.generate(prompt, _resample_temperature(attempt)))
+        if attempt == 0:
+            first = last
         if is_go and sibling_decls:
             # Deterministically drop any declaration a sibling already owns
             # (the redeclared-sentinel/type collapse) — the dead import it
@@ -4311,11 +4349,20 @@ def _sample_clean(
                 _log(f"    stripped redeclared symbols from {what} candidate")
                 last = stripped
         if _is_clean(last, is_go, toolchain, sibling_decls, require_assertions,
-                     required_decls, module):
+                     required_decls, module, previous):
             _log(f"    best-of-N {what}: kept candidate {attempt + 1} of {candidates}")
             return last
     if candidates > 1:
-        _log(f"    best-of-N {what}: no clean candidate; using last of {candidates}")
+        # Fall back to the FIRST draw, not the last. They used to be the same
+        # object — an identical prompt against a deterministic server — so "last"
+        # was harmless. Now that a retry steps the temperature, "last" is the
+        # HOTTEST sample, and this branch is exactly the case where every draw was
+        # dirty: 320 times on the logs. Shipping the hottest reject in place of the
+        # near-greedy one would be a regression introduced by the repair that made
+        # best-of-N work at all. Attempt 0 is the conservative draw; when nothing
+        # is clean, it is what the loop used before and what it should use now.
+        _log(f"    best-of-N {what}: no clean candidate; using the first of {candidates}")
+        return first or last
     return last
 
 
@@ -4632,10 +4679,18 @@ def _fix_loop(
                     module=module,
                 )
             else:
+                # `previous` is what makes the self-consistency check possible: a
+                # candidate that drops a package-scope name it still uses is
+                # rejected and RESAMPLED. That rejection was worthless until
+                # today — an identical prompt against a deterministic server
+                # returned an identical candidate, so a redraw reproduced the
+                # same defect (0 rescues in 320 redraws). Now a retry steps the
+                # temperature and comes back genuinely different, so rejecting is
+                # worth doing.
                 code = _sample_clean(
                     coder, fix_prompt, path.endswith(".go"), candidates, toolchain,
                     "fix", sibling_decls, path.endswith("_test.go"),
-                    must_keep or None, module=module,
+                    must_keep or None, module=module, previous=written[path],
                 )
                 old_decls = top_level_decls(written[path]) | method_decls(written[path])
                 new_decls = top_level_decls(code) | method_decls(code)

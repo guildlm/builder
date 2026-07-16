@@ -21,8 +21,11 @@ from src.builder import (
     Retriever,
     _canonical_toolchain_output,
     _fix_prompt,
+    _is_clean,
     _resample_temperature,
+    _sample_clean,
     _test_rule,
+    self_dropped_decls,
     _generate_file,
     _generate_prompt,
     _review_pass,
@@ -309,6 +312,74 @@ def test_completeness_is_off_by_default_and_opt_in(monkeypatch):
     for transplant in ("hit()", "allow-then-deny", "two-client", "health-check"):
         assert transplant not in on, f"{transplant!r} is one spec's, not every spec's"
     assert "did not show" in on
+
+
+def test_sample_clean_falls_back_to_the_first_draw_not_the_hottest():
+    # The two repairs compose badly if this is wrong. Stepping the temperature per
+    # retry made best-of-N real; it also made `last` the HOTTEST sample. This
+    # branch — every draw dirty — is the one the logs hit 320 times, and shipping
+    # the hottest reject in place of the near-greedy one would be a regression
+    # caused by the fix that made the mechanism work.
+    class _Draws:
+        def __init__(self):
+            self.temps = []
+
+        def generate(self, prompt, temperature=None):
+            self.temps.append(temperature)
+            # Every draw is dirty: uses `fake`, declares nothing.
+            n = len(self.temps)
+            return f"```go\npackage p\n\nfunc TestX(t *testing.T) {{ _ = fake{{}}; _ = {n} }}\n```"
+
+    coder = _Draws()
+    previous = "package p\n\ntype fake struct{}\n\nfunc TestX(t *testing.T) { _ = fake{} }\n"
+    out = _sample_clean(
+        coder, "p", True, 2, GoToolchain(), "fix", None, False, None, None, previous
+    )
+    assert coder.temps == [None, pytest.approx(0.6)], "retry must step the temperature"
+    assert "_ = 1" in out and "_ = 2" not in out, "must fall back to the FIRST draw"
+
+
+def test_self_dropped_decls_catches_the_fixture_the_fix_loop_forgets():
+    # The shape, from a real red artifact: the fix loop rewrites the whole test
+    # file each round and forgets the package-scope fixtures at the top. 33
+    # occurrences over 13 runs on disk; three of those runs burned their entire
+    # fix budget oscillating — round 4 drops fakeEnqueuer, round 5 restores it and
+    # drops failStore.
+    previous = (
+        "package service\n\n"
+        "var errBoom = errors.New(\"boom\")\n"
+        "type failStore struct{}\n\n"
+        "func (failStore) ListTasks(ctx context.Context) ([]models.Task, error) "
+        "{ return nil, errBoom }\n\n"
+        "func TestListStoreError(t *testing.T) { svc := NewTaskService(failStore{}) }\n"
+    )
+    # The candidate still USES failStore and no longer declares it: `undefined`.
+    dropped = "package service\n\nfunc TestListStoreError(t *testing.T) { svc := NewTaskService(failStore{}) }\n"
+    assert self_dropped_decls(dropped, previous, set()) == {"failStore"}
+
+    # Dropping something it no longer references is not this bug — a fix is
+    # allowed to delete a test and its fixture together.
+    gone = "package service\n\nfunc TestOther(t *testing.T) {}\n"
+    assert self_dropped_decls(gone, previous, set()) == set()
+
+    # A sibling that provides the name means the candidate is not undefined.
+    assert self_dropped_decls(dropped, previous, {"failStore"}) == set()
+
+    # No previous version (generation, not a fix) => nothing to compare against.
+    assert self_dropped_decls(dropped, "", set()) == set()
+
+
+def test_is_clean_rejects_a_fix_that_drops_what_it_still_uses():
+    # The rejection is only worth anything because a retry now draws at a
+    # different temperature. Before that, redrawing an identical prompt against a
+    # deterministic server reproduced the identical defect: 320 dirty redraws, 0
+    # rescues.
+    previous = "package p\n\ntype fake struct{}\n\nfunc TestX(t *testing.T) { _ = fake{} }\n"
+    candidate = "package p\n\nfunc TestX(t *testing.T) { _ = fake{} }\n"
+    tc = GoToolchain()
+    assert not _is_clean(candidate, True, tc, None, False, None, None, previous)
+    # Same candidate, judged as a GENERATION (no previous) — this check is silent.
+    assert _is_clean(candidate, True, tc, None, False, None, None, None)
 
 
 def test_canonical_toolchain_output_strips_cache_and_timing_noise():
