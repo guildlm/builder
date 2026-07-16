@@ -544,6 +544,22 @@ def rule_disabled(name: str) -> bool:
     return name in {p.strip() for p in raw.split(",") if p.strip()}
 
 
+def rule_enabled(name: str) -> bool:
+    """True when GUILDLM_ENABLE_RULES names this default — the opt-IN side.
+
+    For a rule that is OFF by default because its benefit did not reproduce, but
+    whose idea has not been disproven either. `completeness` is the first: it
+    recovers a named test the model drops on workapi (3/3, real, and invisible to
+    coverage), and it costs shortener its green (5/5). It stays in the tree,
+    switched off, so the next person to measure it does not have to rebuild it —
+    and so the day it earns its way back the diff is one word, not a rewrite.
+
+    Deleting it instead would throw away the workapi finding along with the rule.
+    """
+    raw = os.environ.get("GUILDLM_ENABLE_RULES", "")
+    return name in {p.strip() for p in raw.split(",") if p.strip()}
+
+
 def _retrieval_block(shots: Sequence[tuple[str, str]] | None) -> str:
     if not shots:
         return ""
@@ -609,13 +625,46 @@ def _test_rule(path: str) -> str:
     # code to back it.
     #
     # So: keep the principle, drop the specifics, and say plainly that a helper
-    # the purpose did not show must not be invented. UNPROVEN AS WRITTEN — the
-    # ratelimit gain belonged to the old text and has to be re-earned. Both
-    # re-runs are required before this is believed: ratelimit (does the gain
-    # survive?) and shortener (is the break gone?). Fixing one and assuming the
-    # other is how the old text shipped.
+    # the purpose did not show must not be invented. Both re-runs were then
+    # required, and both were run. THE RULE DID NOT SURVIVE THEM, so it is OFF BY
+    # DEFAULT — opt in with GUILDLM_ENABLE_RULES=completeness to measure it.
+    #
+    # shortener, generalised wording: the invention is gone (0 invented helpers,
+    # vet clean, 0.0 -> 64.6) and the green is still not back, 2/2. The model now
+    # writes the flow tests and GUESSES the short code (`/r/0`) instead of using
+    # the Link that Save() returns, so Redirect 404s. One mask off, the next one
+    # underneath.
+    #
+    # ratelimit — the founding evidence — DID NOT REPRODUCE. Two server
+    # processes, seven arms:
+    #     server up 09:27:   with 74.6 / without 74.6   (rule: NO effect)
+    #     server up 17:09:   with 75.0 / without 75.0   (rule: NO effect)
+    # The 42.4 baseline that justified this rule never came back; the OFF arm
+    # writes the flow tests by itself, calling hit() four times. And read 74.6 vs
+    # 75.0 closely: identical code, identical prompts, different server PROCESS.
+    # Every determinism measurement behind today's reasoning — three 1200-token
+    # completions byte-identical, A/B/A identical — was taken WITHIN one process.
+    # The true statement is DETERMINISTIC WITHIN A PROCESS, DIFFERENT ACROSS
+    # PROCESSES, which is also the shape of the old 75.0 -> 42.4 drift. The +33
+    # was measured against a baseline that belonged to one process's state.
+    #
+    # The ledger, on today's evidence:
+    #     ratelimit   0 effect       (2 processes, 7 arms)
+    #     workapi     +1 test        (TestListSorted, 3/3, pre-gate — real, and
+    #                                 invisible to coverage: sorted and unsorted
+    #                                 code execute the same lines)
+    #     shortener   loses green    (5/5, across BOTH wordings)
+    # A cost that reproduces and a benefit that does not. A default does not ship
+    # on that, however much I want the idea to be true.
+    #
+    # WHAT WOULD EARN IT BACK, in order: (1) fix shortener's SPEC — it names no
+    # tests and never says to use Save's return, and this project's law is that
+    # implicit means broken and that naming is the spec-writer's job; (2) re-run
+    # shortener — if the break was the spec's, the cost disappears and the workapi
+    # gain stands alone; (3) reproduce the 42.4 failure mode deliberately before
+    # ever claiming again that this rule prevents it.
     completeness = (
-        "" if rule_disabled("completeness") else
+        "" if not rule_enabled("completeness") else
         "WRITE A FOCUSED TEST FUNCTION FOR EVERY SCENARIO "
         "the purpose describes — do NOT stop at the easy unit tests. Count the "
         "distinct scenarios the purpose names above and write one focused "

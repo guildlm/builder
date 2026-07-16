@@ -34,6 +34,7 @@ from src.builder import (
     plan,
     role_for_path,
     rule_disabled,
+    rule_enabled,
     top_level_decls,
 )
 
@@ -269,27 +270,45 @@ def test_rule_disabled_is_the_ab_switch_for_prompt_defaults(monkeypatch):
     # Every prompt default here was earned by measuring it against its absence,
     # and each measurement needed an off-arm. Hand-adding a guard per experiment
     # and deleting it after is why the completeness rule's value on a prose-heavy
-    # spec is still unmeasured: the switch that could answer it was removed the
-    # moment it answered the last question.
+    # spec went unmeasured for so long — and when it finally was measured, the
+    # rule turned out to BREAK that spec. The switch is how that gets caught.
     monkeypatch.delenv("GUILDLM_DISABLE_RULES", raising=False)
-    assert not rule_disabled("completeness")
-    on = _test_rule("x_test.go")
-    assert "EVERY SCENARIO" in on
+    assert not rule_disabled("mutex")
 
-    monkeypatch.setenv("GUILDLM_DISABLE_RULES", "completeness")
-    assert rule_disabled("completeness")
-    off = _test_rule("x_test.go")
-    assert "EVERY SCENARIO" not in off
-    # Only the named rule goes; the rest of the test defaults must survive, or
-    # the off-arm is measuring something other than the rule under test.
-    assert "Derive every expected value strictly from the" in off
+    monkeypatch.setenv("GUILDLM_DISABLE_RULES", "mutex")
+    assert rule_disabled("mutex")
 
     monkeypatch.setenv("GUILDLM_DISABLE_RULES", " mutex , completeness ")
     assert rule_disabled("mutex") and rule_disabled("completeness")
 
     # An instrument, not config the build depends on: an unknown name is inert.
     monkeypatch.setenv("GUILDLM_DISABLE_RULES", "typo")
-    assert not rule_disabled("completeness")
+    assert not rule_disabled("mutex")
+
+
+def test_completeness_is_off_by_default_and_opt_in(monkeypatch):
+    # It is off because it was MEASURED and did not survive:
+    #   ratelimit  0 effect      (two server processes, seven arms — the 42.4
+    #                             baseline that justified it never came back)
+    #   workapi    +1 test       (TestListSorted, 3/3, real, coverage-invisible)
+    #   shortener  loses green   (5/5, across both wordings)
+    # A cost that reproduces and a benefit that does not. It stays in the tree,
+    # switched off, so the workapi finding is not thrown away with the rule.
+    monkeypatch.delenv("GUILDLM_ENABLE_RULES", raising=False)
+    off = _test_rule("x_test.go")
+    assert "EVERY SCENARIO" not in off
+    # Only completeness goes. The rest of the test defaults are not on trial.
+    assert "Derive every expected value strictly from the" in off
+
+    monkeypatch.setenv("GUILDLM_ENABLE_RULES", "completeness")
+    on = _test_rule("x_test.go")
+    assert "EVERY SCENARIO" in on
+    # And when it IS on, it must still carry no single spec's furniture: the old
+    # wording named ratelimit's own hit()/allow-then-deny scenarios and made the
+    # model invent a helper on a spec that shows none.
+    for transplant in ("hit()", "allow-then-deny", "two-client", "health-check"):
+        assert transplant not in on, f"{transplant!r} is one spec's, not every spec's"
+    assert "did not show" in on
 
 
 def test_canonical_toolchain_output_strips_cache_and_timing_noise():
@@ -329,33 +348,6 @@ def test_fix_prompt_is_identical_whether_go_cached_the_tests():
     a = _fix_prompt(task, "package store", fail + "0.031s\nok  \tother\t0.710s")
     b = _fix_prompt(task, "package store", fail + "0.004s\nok  \tother\t(cached)")
     assert a == b
-
-
-def test_generate_prompt_test_file_demands_completeness():
-    # ratelimit shipped a test file with the hit() helper defined but never
-    # called — every HTTP flow test dropped, the whole middleware/router at 0%
-    # coverage. The test rule must demand one focused function per scenario.
-    spec = _sample_spec()
-    prompt = _generate_prompt(spec, _impl_task(), {})  # path ends _test.go
-    assert "EVERY SCENARIO" in prompt
-    assert "write one focused" in prompt
-    # It is a test-file rule, so a plain impl file must not carry it.
-    impl = FileTask(index=1, spec=FileSpec(path="stringkit.go", purpose="impl"))
-    assert "EVERY SCENARIO" not in _generate_prompt(spec, impl, {})
-
-
-def test_completeness_rule_names_no_single_spec_scenarios():
-    # The rule used to enumerate ratelimit's OWN scenarios — a hit() helper, an
-    # allow-then-deny sequence, a two-client case — inside a rule that fires for
-    # EVERY test file. It read as a principle and behaved as a transplant: on
-    # shortener, whose spec shows no helper at all, it made the model invent one
-    # and miscall it. 3/3 red, coverage 72.7 -> 0.0, against 2/2 green without.
-    # A default may not carry one spec's furniture.
-    prompt = _generate_prompt(_sample_spec(), _impl_task(), {})
-    for transplant in ("hit()", "allow-then-deny", "two-client", "health-check"):
-        assert transplant not in prompt, f"{transplant!r} is one spec's, not every spec's"
-    # And the law that replaced them: don't invent what the purpose didn't show.
-    assert "did not show" in prompt
 
 
 def test_generate_prompt_test_file_demands_field_named_struct_literals():
