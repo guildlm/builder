@@ -338,10 +338,24 @@ def test_generate_prompt_test_file_demands_completeness():
     spec = _sample_spec()
     prompt = _generate_prompt(spec, _impl_task(), {})  # path ends _test.go
     assert "EVERY SCENARIO" in prompt
-    assert "one focused function per scenario" in prompt
+    assert "write one focused" in prompt
     # It is a test-file rule, so a plain impl file must not carry it.
     impl = FileTask(index=1, spec=FileSpec(path="stringkit.go", purpose="impl"))
     assert "EVERY SCENARIO" not in _generate_prompt(spec, impl, {})
+
+
+def test_completeness_rule_names_no_single_spec_scenarios():
+    # The rule used to enumerate ratelimit's OWN scenarios — a hit() helper, an
+    # allow-then-deny sequence, a two-client case — inside a rule that fires for
+    # EVERY test file. It read as a principle and behaved as a transplant: on
+    # shortener, whose spec shows no helper at all, it made the model invent one
+    # and miscall it. 3/3 red, coverage 72.7 -> 0.0, against 2/2 green without.
+    # A default may not carry one spec's furniture.
+    prompt = _generate_prompt(_sample_spec(), _impl_task(), {})
+    for transplant in ("hit()", "allow-then-deny", "two-client", "health-check"):
+        assert transplant not in prompt, f"{transplant!r} is one spec's, not every spec's"
+    # And the law that replaced them: don't invent what the purpose didn't show.
+    assert "did not show" in prompt
 
 
 def test_generate_prompt_test_file_demands_field_named_struct_literals():

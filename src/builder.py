@@ -583,22 +583,48 @@ def _test_rule(path: str) -> str:
     # every run without this rule and WRITING IT every run with it (3/3 vs 3/3,
     # caught pre-gate, so it is the model's own behaviour).
     #
-    # That A/B is also why the wording keeps ratelimit's specifics rather than
-    # generalising to taste: the 42.4 -> 75.4 recovery is evidence for THIS text.
-    # A principle-only rewrite would be unproven again, and this project has
-    # already paid for believing an untested improvement.
+    # I kept ratelimit's own specifics in this wording on the grounds that the
+    # 42.4 -> 75.4 recovery was evidence for THAT text and a principle-only
+    # rewrite would be unproven. The specifics then broke a spec, 3/3:
+    #
+    #   shortener, A/B, alternating arms, one server
+    #     with the rule:    10 test funcs, 0.0% coverage, NOT-GREEN  (x3)
+    #     without the rule:  2 test funcs, 72.7% coverage, GREEN     (x2)
+    #     vet: ./shortener_test.go:58:36: not enough arguments in call to doReq
+    #
+    # The rule's half that WORKS is confirmed even there — 2 test functions
+    # become 10, exactly as designed. What fails is the assumption I bolted onto
+    # it: that more tests means more coverage. The model cannot keep 10 of them
+    # coherent, so the file does not compile and coverage goes 72.7 -> 0.0.
+    #
+    # The discriminator is this project's own law, and my default was the victim:
+    #     grep -c "func hit(h http.Handler" specs/ratelimit.yaml  -> 1  (SHOWN)
+    #     grep -cE "func (doReq|hit|newReq)" specs/shortener.yaml -> 0  (nothing)
+    # ratelimit's spec SHOWS the helper's code in full, so demanding flow tests
+    # through it works. shortener's shows nothing, so the same demand makes the
+    # model INVENT a helper and miscall it. The held-out ledger already taught
+    # this: a mechanical construct that is DESCRIBED rather than SHOWN is where
+    # the model breaks — the cure is to show the code. This wording imported
+    # ratelimit's shape into every test file, and only ratelimit's spec has the
+    # code to back it.
+    #
+    # So: keep the principle, drop the specifics, and say plainly that a helper
+    # the purpose did not show must not be invented. UNPROVEN AS WRITTEN — the
+    # ratelimit gain belonged to the old text and has to be re-earned. Both
+    # re-runs are required before this is believed: ratelimit (does the gain
+    # survive?) and shortener (is the break gone?). Fixing one and assuming the
+    # other is how the old text shipped.
     completeness = (
         "" if rule_disabled("completeness") else
         "WRITE A FOCUSED TEST FUNCTION FOR EVERY SCENARIO "
-        "the purpose describes — do NOT stop at the easy unit tests. If the "
-        "purpose names flow or integration scenarios (HTTP requests through a "
-        "router via a hit()/request helper, an allow-then-deny sequence, a "
-        "two-client case, a health-check-still-succeeds case), you MUST write a "
-        "test function for EACH of them; a request helper you define but never "
-        "call means you dropped the very tests it exists for, leaving the "
-        "middleware, router and handlers at zero coverage — a suite that passes "
-        "trivially and proves almost nothing. Count the distinct scenarios named "
-        "above and write one focused function per scenario.\n"
+        "the purpose describes — do NOT stop at the easy unit tests. Count the "
+        "distinct scenarios the purpose names above and write one focused "
+        "function for each. If the purpose SHOWS a helper, call it from every "
+        "test that needs it: a helper you define and never call means you "
+        "dropped the very tests it exists for, leaving the code it would have "
+        "reached at zero coverage — a suite that passes trivially and proves "
+        "almost nothing. Do NOT invent a helper the purpose did not show; write "
+        "those steps inline in each test instead.\n"
     )
     return (
         "This is a TEST file. " + completeness +

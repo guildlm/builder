@@ -14,28 +14,39 @@
 # drifting instrument. Blocking the arms would let any drift land entirely on one
 # of them and masquerade as the rule's effect; alternating splits drift evenly.
 #
-# Usage: _iso_completeness.sh [reps]     (default 3)
+# Usage: _iso_completeness.sh <spec> [reps]     (default 3)
+#
+# Parameterised by spec because the mechanism the workapi A/B uncovered makes a
+# testable prediction, and it is about the SPEC, not the domain: the rule can only
+# add a test the model dropped, so its value tracks how many tests the spec leaves
+# implicit. workapi NAMES 21 test functions and the rule moved coverage 0.0 there.
+# shortener names ZERO. If the mechanism is right, shortener is where it pays; if
+# it shows nothing there either, the mechanism is wrong and the ratelimit gain
+# needs another explanation.
+#   grep -coE "Test[A-Z][A-Za-z]+:" specs/<spec>.yaml   <- the predictor
 set -uo pipefail
 cd "$(dirname "$0")"
-REPS="${1:-3}"
-SUM="logs/iso-completeness-$(date +%m%d%H%M).log"
+SPEC="${1:?usage: _iso_completeness.sh <spec> [reps]}"
+REPS="${2:-3}"
+SUM="logs/iso-${SPEC}-$(date +%m%d%H%M).log"
 : > "$SUM"
-echo "########## ISO completeness_rule: workapi with x$REPS vs without x$REPS (alternating) ##########" >> "$SUM"
+echo "########## ISO completeness_rule: $SPEC with x$REPS vs without x$REPS (alternating) ##########" >> "$SUM"
+echo "named test funcs in spec: $(grep -coE 'Test[A-Z][A-Za-z]+:' "specs/${SPEC}.yaml")  (the predictor: few => rule should pay)" >> "$SUM"
 
 for i in $(seq 1 "$REPS"); do
   for mode in with without; do
     if [[ "$mode" == "without" ]]; then
-      export GUILDLM_NO_COMPLETENESS_RULE=1
+      export GUILDLM_DISABLE_RULES=completeness
     else
-      unset GUILDLM_NO_COMPLETENESS_RULE
+      unset GUILDLM_DISABLE_RULES
     fi
-    echo "########## ARM=$mode REP=$i (GUILDLM_NO_COMPLETENESS_RULE=${GUILDLM_NO_COMPLETENESS_RULE:-unset}) ##########" >> "$SUM"
-    ./_ab_run.sh workapi >> "$SUM" 2>&1
+    echo "########## ARM=$mode REP=$i (GUILDLM_DISABLE_RULES=${GUILDLM_DISABLE_RULES:-unset}) ##########" >> "$SUM"
+    ./_ab_run.sh "$SPEC" >> "$SUM" 2>&1
     # Keep EVERY artifact, green or red. The question is not just green/red, it is
     # WHICH test went red and what its assertion said — that only lives in the file.
-    KEEP="./generated/_iso-workapi-${mode}-${i}"
+    KEEP="./generated/_iso-${SPEC}-${mode}-${i}"
     rm -rf "$KEEP"
-    cp -r ./generated/workapi-v4 "$KEEP" 2>/dev/null && echo "=== kept artifact -> $KEEP ===" >> "$SUM"
+    cp -r "./generated/${SPEC}-v4" "$KEEP" 2>/dev/null && echo "=== kept artifact -> $KEEP ===" >> "$SUM"
     # The actual measurement: did the hard test go red, and how many test funcs
     # did the model write? Coverage alone hid this once already.
     TF=$(grep -rhoE "^func Test[A-Za-z0-9_]+" "$KEEP" --include="*_test.go" 2>/dev/null | sort -u | wc -l | tr -d ' ')

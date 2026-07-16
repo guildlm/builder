@@ -37,6 +37,12 @@ while pgrep -f _iso_cachefix >/dev/null 2>&1; do
         echo "$(date +%H:%M:%S) FROZEN $REP at $(find ./generated/_raw/$REP -name '*.go' 2>/dev/null | wc -l | tr -d ' ') go files"
       fi
     elif [[ "$N" -gt 0 ]]; then
+      # DO NOT compare a snapshot that has no .frozen marker beside it. This swap
+      # leaves a window where $REP does not exist, and a `cmp` landing in that
+      # window reports a DIFF for a file that is byte-identical — I read exactly
+      # that as "config.go diverges!" before checking, and `diff` then showed
+      # nothing at all. The reader must wait for the marker; a mid-swap read is
+      # the instrument talking about itself.
       rm -rf "./generated/_raw/$REP.tmp"
       cp -r "$OUT" "./generated/_raw/$REP.tmp" 2>/dev/null
       rm -rf "./generated/_raw/$REP"
