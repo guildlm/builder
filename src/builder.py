@@ -520,6 +520,30 @@ class GoToolchain:
 # --------------------------------------------------------------------------- #
 
 
+def rule_disabled(name: str) -> bool:
+    """True when GUILDLM_DISABLE_RULES names this prompt default — an A/B switch.
+
+    Every prompt default in this file earned its place by being MEASURED against
+    its own absence: list_rule, routing_rule, mutex_rule, completeness_rule. Each
+    time, the arm-off switch was a one-off env guard hand-added for the
+    experiment and deleted after — and deleting it is what makes the NEXT
+    question expensive. The completeness rule's own value on a prose-heavy spec
+    (shortener) is untested right now for exactly that reason: the guard that
+    could answer it was removed the moment it had answered the previous one.
+
+    The alternative to a switch here is running the off-arm from an older commit,
+    which silently changes MORE than the rule under test and confounds the
+    experiment it was meant to settle.
+
+    So the off-switch is part of the method, not scaffolding around it:
+        GUILDLM_DISABLE_RULES=completeness ./_ab_run.sh shortener
+    Names are the rule's own, comma-separated. Unknown names are ignored — this
+    is a measuring instrument, not a config the build depends on.
+    """
+    raw = os.environ.get("GUILDLM_DISABLE_RULES", "")
+    return name in {p.strip() for p in raw.split(",") if p.strip()}
+
+
 def _retrieval_block(shots: Sequence[tuple[str, str]] | None) -> str:
     if not shots:
         return ""
@@ -564,6 +588,7 @@ def _test_rule(path: str) -> str:
     # A principle-only rewrite would be unproven again, and this project has
     # already paid for believing an untested improvement.
     completeness = (
+        "" if rule_disabled("completeness") else
         "WRITE A FOCUSED TEST FUNCTION FOR EVERY SCENARIO "
         "the purpose describes — do NOT stop at the easy unit tests. If the "
         "purpose names flow or integration scenarios (HTTP requests through a "
@@ -852,6 +877,7 @@ def _generate_prompt(
         "the accessor methods.\n\n"
         if (task.spec.path.endswith(".go")
             and not task.spec.path.endswith("_test.go")
+            and not rule_disabled("mutex")
             and re.search(r"sync\.(?:RW)?Mutex", task.spec.purpose))
         else ""
     )

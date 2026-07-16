@@ -22,6 +22,7 @@ from src.builder import (
     _canonical_toolchain_output,
     _fix_prompt,
     _resample_temperature,
+    _test_rule,
     _generate_file,
     _generate_prompt,
     _review_pass,
@@ -32,6 +33,7 @@ from src.builder import (
     nonstdlib_imports,
     plan,
     role_for_path,
+    rule_disabled,
     top_level_decls,
 )
 
@@ -261,6 +263,33 @@ def test_generate_prompt_non_test_file_has_no_test_rule():
     impl = FileTask(index=1, spec=FileSpec(path="stringkit.go", purpose="impl"))
     prompt = _generate_prompt(spec, impl, {})
     assert "do not invent edge cases" not in prompt
+
+
+def test_rule_disabled_is_the_ab_switch_for_prompt_defaults(monkeypatch):
+    # Every prompt default here was earned by measuring it against its absence,
+    # and each measurement needed an off-arm. Hand-adding a guard per experiment
+    # and deleting it after is why the completeness rule's value on a prose-heavy
+    # spec is still unmeasured: the switch that could answer it was removed the
+    # moment it answered the last question.
+    monkeypatch.delenv("GUILDLM_DISABLE_RULES", raising=False)
+    assert not rule_disabled("completeness")
+    on = _test_rule("x_test.go")
+    assert "EVERY SCENARIO" in on
+
+    monkeypatch.setenv("GUILDLM_DISABLE_RULES", "completeness")
+    assert rule_disabled("completeness")
+    off = _test_rule("x_test.go")
+    assert "EVERY SCENARIO" not in off
+    # Only the named rule goes; the rest of the test defaults must survive, or
+    # the off-arm is measuring something other than the rule under test.
+    assert "Derive every expected value strictly from the" in off
+
+    monkeypatch.setenv("GUILDLM_DISABLE_RULES", " mutex , completeness ")
+    assert rule_disabled("mutex") and rule_disabled("completeness")
+
+    # An instrument, not config the build depends on: an unknown name is inert.
+    monkeypatch.setenv("GUILDLM_DISABLE_RULES", "typo")
+    assert not rule_disabled("completeness")
 
 
 def test_canonical_toolchain_output_strips_cache_and_timing_noise():
