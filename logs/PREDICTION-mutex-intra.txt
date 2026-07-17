@@ -157,3 +157,17 @@ mutex-guarded field while holding only its RLock". Lower priority than the
 deadlock (needs concurrency to bite) but the same category — a bug the green suite
 cannot see. Filed as a candidate, not built; it would need its own validation
 corpus and false-positive audit like the deadlock gate got.
+
+--- 22:0x — DATA-RACE GATE: MEASURED PREVALENCE, DECISION = DO NOT BUILD (yet) ---
+Before building a gate for the mutate-under-RLock race (rep 3's shape), I did what
+the deadlock gate taught: measure whether the bug actually occurs before writing a
+check for it. Scanned all 156 non-test .go files in the shipped green artifacts for
+a method that holds ONLY RLock and writes a guarded field (`s.m[k]=`, `s.x=`,
+`s.x++`). RESULT: ZERO. The pattern exists only in rep 3, a DISCARDED draft under
+the extended wording that never shipped.
+DECISION: do NOT build the data-race gate now. A gate for a bug with no corpus
+prevalence is cost without benefit — it adds a check, a false-positive surface, and
+maintenance for something that does not occur. The deadlock gate earned its place by
+3/3 real occurrences; this has 0. If a future run ships this shape, the scan above
+is the trigger to revisit. Filed as measured-and-declined, so it is not
+re-investigated from scratch.
