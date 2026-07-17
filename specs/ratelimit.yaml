@@ -93,7 +93,7 @@ files:
       httptest.NewRequest(...).Header.Set(...) as an argument (Header.Set returns
       nothing). Unit-test Bucket: a NewBucket(2, 1) with an injected now func
       allows exactly 2 calls then denies; advancing the fake time by one second
-      allows exactly one more; tokens never exceed capacity after a long idle gap.
+      allows exactly one more.
       THE VARIABLE THAT MOVES IS THE TIME, NOT THE FUNCTION. `b.now = f` copies
       the function VALUE, so reassigning the local `f` afterwards does NOT reach
       the bucket — it keeps calling the first one, the clock never advances, the
@@ -107,6 +107,28 @@ files:
         clock = clock.Add(time.Second)              // THIS is what advances it
         // ... one more Allow() -> true ...
       Never write `now = func() ...` a second time; the bucket cannot see it.
+      Write a SECOND, SEPARATE named test for the burst cap — the invariant that a
+      long idle refills to CAPACITY and no further, which the one-second test above
+      never reaches. Without the clamp an idle client accrues unbounded tokens and
+      defeats the limiter, and no other test catches it. Write it exactly:
+        func TestBucketCapAfterIdle(t *testing.T) {
+            clock := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+            b := NewBucket(2, 1)
+            b.now = func() time.Time { return clock }
+            if !b.Allow() || !b.Allow() {
+                t.Fatalf("first two Allow() should be true")
+            }
+            clock = clock.Add(time.Hour)   // idle far past capacity/refill
+            if !b.Allow() {
+                t.Errorf("after idle: 1st Allow() should be true")
+            }
+            if !b.Allow() {
+                t.Errorf("after idle: 2nd Allow() should be true (refilled to capacity 2)")
+            }
+            if b.Allow() {
+                t.Errorf("after idle: 3rd should be FALSE — capped at capacity, not 3600")
+            }
+        }
       Unit-test the Registry in TWO SEPARATE functions — one outcome each. Packing
       both into one function produces a test that contradicts itself: it fetches
       TWO DIFFERENT clients and then asserts they got the SAME bucket, which no

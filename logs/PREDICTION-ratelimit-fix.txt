@@ -1,0 +1,42 @@
+PREDICTION — ratelimit test-spec fix (extract the cap clause into a named+shown test)
+Written 2026-07-17 21:3x (clock READ), BEFORE the run. Run queued for the next server slot.
+
+THE FIX: the burst-cap invariant was a prose clause buried in TestBucket's
+description ("tokens never exceed capacity after a long idle gap"), and the model
+dropped it — mutation proved the suite has no teeth for it. Following the ledger
+pattern, extracted it into its OWN named test, TestBucketCapAfterIdle, with the
+code SHOWN (idle an hour, assert refill to capacity 2 and no further).
+
+ALREADY VALIDATED MODEL-FREE (not predicted — measured): the exact test I put in
+the spec PASSES on the correct artifact and FAILS on the clamp-removed mutant
+("3rd Allow should be FALSE"). So IF the model writes it, the suite gains teeth
+for the cap. The open question is whether the model writes it, and the blast
+radius of the edit.
+
+I PREDICT (one run, same process, before/after audit MANDATORY):
+  1. The model WRITES TestBucketCapAfterIdle (shown as code = the thesis; 6th
+     instance). ratelimit goes from 5 -> 6 test funcs.
+  2. GREEN, coverage ~flat-to-up (the clamp line was already executed; now it is
+     also ASSERTED, which coverage cannot distinguish, so ~flat is fine and a
+     jump would be suspicious).
+  3. The new test BITES: re-applying the clamp mutant to the NEW artifact turns it
+     red. (This is the whole point — not that the test exists, that it has teeth.)
+  4. BLAST RADIUS: the before-state is preserved at generated/_ratelimit-BEFORE
+     (5 funcs: TestBucket, TestRegistryDistinctClients, TestRegistrySameClient,
+     TestRouterHealth, TestRouterPing). After: those 5 PLUS TestBucketCapAfterIdle
+     = 6, nothing lost, nothing renamed-and-dropped. I am NOT certain of this —
+     today a spec edit deleted a test in taskapipro and repaired file structure in
+     ledger, both unpredicted. So the after-audit decides, not this prediction.
+
+WHAT WOULD REFUTE / REVERT:
+  - Any of the 5 existing tests disappears or renames-and-drops => blast radius
+    cost; weigh it against the teeth gained, and if net-negative, REVERT the edit.
+  - The model writes the name but a weakened body (e.g. Add(time.Second) not Hour,
+    or drops the "3rd is FALSE" assertion) => present-but-toothless, the ratelimit
+    hole all over again. Re-apply the mutant; if it survives, the SHOWN code was
+    not copied and I report showing-code-insufficient-here.
+  - Not green => open the failure, do not count it.
+
+RUN: ./_ab_run.sh ratelimit ; _named_test_audit.py ratelimit ; diff test-func
+  lists vs /tmp/rl-before.txt ; _mutant_check-style clamp re-mutation on the new
+  artifact. Keep or revert on the after-audit.
