@@ -1,0 +1,49 @@
+PREDICTION — does the self-deadlock gate make shortener CONVERGE, not just detect?
+Written 2026-07-17 ~21:2x (clock READ), BEFORE the run. Filed after committing the
+gate (f592b59) but BEFORE any run exercises it.
+
+WHAT IS ALREADY TRUE (not predicted — measured):
+  - The detector is sound: 3/3 on the deadlocked files, 0 false positives on 14
+    correct mutex files in the suite. 320 unit tests pass, 6 of them pinning this
+    check's positives AND its false-positive traps.
+  - The gate cannot REGRESS: if every candidate deadlocks, _sample_clean falls
+    back to `first`, the toolchain sees the same file it would have, and the 60s
+    timeout is unchanged. Worst case is a few wasted resample draws.
+
+THE OPEN QUESTION, which only a fresh run (new builder, gate live) can answer:
+  When _is_clean REJECTS a deadlocked candidate during best-of-N or a fix round,
+  does the temperature-stepped RESAMPLE produce a Resolve() with a single Lock()?
+  The gate detects; convergence needs the redraw to actually differ on this file.
+
+I PREDICT (falsifiable, one shortener run with the current builder, gate on by
+default — no flag, this is not gated):
+  MODERATE confidence, and I am honest that it is a coin-flip dressed up: I do not
+  know whether higher-temperature draws move Resolve() off the RLock-then-Lock
+  shape. The mutex-intra run showed the shape is the model's stubborn prior. IF
+  the resample is also stubborn, the gate rejects, the fallback ships the
+  deadlock, and shortener STAYS RED — the gate then bought detection and log
+  clarity but not a green. IF the resample varies, shortener goes GREEN ~70 and
+  the gate is a convergence fix, not just a detector.
+  Point prediction, so it can be wrong: shortener STAYS RED this run. Reason: the
+  deadlock was 4/4 deterministic across the completeness A/B and 1/1+ in
+  mutex-intra; determinism that strong is unlikely to break under a temperature
+  step alone. I expect the gate to REJECT correctly and the redraw to reproduce
+  the deadlock, so the fallback ships it. I would be glad to be wrong.
+
+WHAT EACH OUTCOME MEANS, named before the run:
+  GREEN => the gate is a convergence fix. Best case. Ship it on (already on).
+  RED, gate fired in the log ("Resolve re-locks a mutex...") => the gate works as
+    a detector but the model cannot redraw its way out, so the deadlock needs a
+    REPAIR (like the fix-loop repairs for dropped fixtures): mechanically rewrite
+    RLock+deferred-RUnlock+later-Lock into a single Lock at the top. That is the
+    next build, and it is a small, safe, deterministic transform — the correct
+    version is literally "delete the RLock/RUnlock pair, hoist Lock to the top",
+    which I already did by hand to prove the bug (green 69.8%).
+  RED, gate did NOT fire => my detector misses this artifact's exact shape (maybe
+    a formatting variant), and I open it and fix the detector before anything else.
+
+RUN PLAN (after mutex-intra finishes — one process, no parallel generation):
+  ./_ab_run.sh shortener   (gate is on by default now; no env flag)
+  then: read the log for the gate's dirty-reason, count Resolve's lock calls in
+  the artifact, and run _mutant_check is N/A here (this is about the store's own
+  deadlock, which the suite's own timeout already exercises).
