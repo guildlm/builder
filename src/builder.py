@@ -940,6 +940,25 @@ def _generate_prompt(
     # exactly this (CreateTransaction held Lock() and called GetAccount, which
     # RLocks). It is a standard-idiom failure — a real Go developer never nests
     # the two — so teach it wherever a file guards state with a mutex.
+    # The wording above is entirely CROSS-METHOD ("call another method of this
+    # type"). shortener 2026-07-17 showed the INTRA-METHOD case it does not cover,
+    # 4/4 in one process: a single Resolve() that RLock()s to read, then — still
+    # holding the read lock — Lock()s to write. A read lock cannot be upgraded to
+    # a write lock on the same RWMutex; it blocks forever. mutex_rule fires on the
+    # file and the model, reading a rule about A-calls-B, still writes the
+    # lock-yourself-twice bug. The extra sentence is gated behind a switch so it
+    # ships zero blast radius until an A/B earns it: current wording is the OFF
+    # arm (already measured, 4/4 deadlock in PID 3082), extended wording the ON.
+    mutex_intra = (
+        " AND DO NOT LOCK YOURSELF TWICE: a SINGLE method must take the lock ONCE. "
+        "If it needs to WRITE, take mu.Lock() at the TOP — never RLock() to read "
+        "and then Lock() to write later in the SAME method (a read lock cannot be "
+        "upgraded to a write lock on the same RWMutex; it DEADLOCKS forever, a test "
+        "TIMEOUT, no compile error). A method that mutates ANY shared field — even "
+        "one counter, like Hits++ — is a WRITER: Lock() once at the top, no RLock "
+        "anywhere in it."
+        if rule_enabled("mutex_intra") else ""
+    )
     mutex_rule = (
         "MUTEX REENTRANCY (sync.Mutex / sync.RWMutex is NOT reentrant): once a "
         "method has taken the lock — mu.Lock() or mu.RLock() — it must NOT, "
@@ -949,7 +968,7 @@ def _generate_prompt(
         "DEADLOCKS forever, and it shows up only as a test TIMEOUT, never a "
         "compile error. While holding the lock, touch the shared fields/maps "
         "DIRECTLY (`m.items[id]`, `_, ok := m.items[id]`) instead of calling "
-        "the accessor methods.\n\n"
+        "the accessor methods." + mutex_intra + "\n\n"
         if (task.spec.path.endswith(".go")
             and not task.spec.path.endswith("_test.go")
             and not rule_disabled("mutex")
