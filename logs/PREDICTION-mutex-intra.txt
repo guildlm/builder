@@ -1,0 +1,52 @@
+PREDICTION — does extending mutex_rule's wording fix the intra-method deadlock?
+Written 2026-07-17 20:12 (clock READ — mtime-checked), BEFORE the run.
+
+THE FINDING THIS TESTS (committed 59a4ef8, proved model-free earlier tonight):
+shortener's store.go Resolve() takes RLock() then, still holding it, Lock() on
+the same RWMutex — an intra-method self-deadlock. 4/4 in this server process
+(PID 3082), across the completeness A/B's four arms. mutex_rule FIRES on the file
+but its wording is entirely cross-method ("call ANOTHER METHOD of this type"), so
+it does not describe one method locking itself twice, and the model writes the
+deadlock anyway. Model-free proof: a single Lock() -> GREEN 69.8%. One line.
+
+THE CONTROL IS ALREADY MEASURED — I do not need to re-run it. Current wording =
+4/4 deadlock in PID 3082, established minutes ago by the completeness A/B (ON and
+OFF arms alike; the extension is orthogonal to completeness). So this is a
+same-process A/B where the OFF arm is history and only the ON arm is new.
+
+THE CHANGE: one sentence appended to mutex_rule, GATED behind
+rule_enabled("mutex_intra"). Off by default — verified: default prompt does NOT
+contain it, GUILDLM_ENABLE_RULES=mutex_intra does, and only on files whose
+purpose names sync.Mutex. Zero blast radius until this earns it. 80 builder unit
+tests still pass. The off-arm and on-arm are therefore the SAME builder commit,
+which is the condition rule_disabled()'s own docstring demands (running the
+off-arm from an older commit "silently changes MORE than the rule under test").
+
+I PREDICT (falsifiable, 3 reps, GUILDLM_ENABLE_RULES=mutex_intra, same process):
+  Resolve() takes Lock() ONCE, no RLock. The deadlock CLEARS in all 3 reps.
+  shortener goes GREEN, coverage ~70. testfuncs unchanged at 8 (this is a store
+  bug, not a test bug — the tests were always fine; they were hanging on it).
+  Confidence: MODERATE-TO-HIGH. The bug is a standard-idiom slip and the added
+  sentence names it in the exact shape it appears (Hits++ -> writer -> Lock at
+  top). But the model ignored the cross-method half often enough that this rule
+  exists at all, so wording is not a guarantee — hence 3 reps, not 1.
+
+WHAT WOULD REFUTE ME, named so I cannot slide past it:
+  - Deadlock persists in any rep => the wording does not reach this failure. The
+    extension does not ship, and either the wording is wrong or prompt-level
+    teaching cannot fix this class and it needs a GATE (a check that rejects a
+    method containing both RLock and Lock on the same receiver). I would say so.
+  - shortener goes green but a DIFFERENT spec's mutex file breaks => the sentence
+    has a cost elsewhere, and per today's blast-radius law I must audit the specs
+    where mutex_rule currently works BEFORE shipping. That check (ledger,
+    taskapipro, workapi, kvservice, ratelimit — the mutex-bearing specs) is the
+    REQUIRED second half before any default flip, and this run does not replace
+    it. This run only answers "does it fix the thing it was written for".
+  - Green returns but coverage is well below ~70, or testfuncs move off 8 => the
+    fix perturbed more than the lock, and I open the artifact instead of counting
+    it a win. (The 49->48 that started today began exactly this way.)
+
+SCOPE, stated so I do not overclaim: a PASS here means the wording FIXES the bug
+it was built for, in one process. It does NOT by itself justify turning the
+extension on by default — that needs the mutex-spec regression sweep above, same
+as every default this project has shipped. One experiment, one question.
