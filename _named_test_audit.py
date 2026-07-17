@@ -17,12 +17,26 @@ METHOD, and its limits, stated rather than implied:
   - A spec NAMES a test when its file purposes mention `TestSomething`. That is
     the spec-writer's contract with the model; this project's law is that
     implicit means broken and naming is the spec-writer's job.
-  - A named test COUNTS AS PRESENT if its name appears anywhere in the project's
-    *_test.go files — not merely as `func TestX`. A model may legitimately fold a
-    named case into a subtest (`t.Run("TestX", ...)`), and calling that a miss
-    would be my grep confirming what I want rather than what is true.
-  - MISSING therefore means: the spec said the name, and the name is nowhere in
-    any test file. That is a real gap, not a stylistic difference.
+  - A named test COUNTS AS PRESENT if its name appears as a WHOLE IDENTIFIER in
+    the project's *_test.go files — not merely as `func TestX`. A model may
+    legitimately fold a named case into a subtest (`t.Run("TestX", ...)`), and
+    calling that a miss would be my grep confirming what I want rather than what
+    is true.
+  - WHOLE IDENTIFIER, not substring, and that distinction is not pedantry: the
+    first version of this file matched substrings, so TestCreateAccountDuplicate
+    read as PRESENT purely because TestCreateAccountDuplicateIsErrExists contains
+    it — and TestList could NEVER have been reported missing while TestListLimit
+    existed. That is a FALSE NEGATIVE in the direction of "nothing is wrong",
+    which is the direction this project's greps keep failing in. (Today alone:
+    a guard-drop story died because the grep matched a substring INSIDE the
+    correct guard.) An auditor that cannot report a miss is decoration.
+  - RENAMED is its own class, reported separately: no exact match, but some test
+    function's name STARTS with the spec's name (TestGetAccountMissing ->
+    TestGetAccountMissingIsErrNotFound). The scenario is almost certainly there
+    under a longer name. That is a naming drift, not a hole, and calling it a
+    hole would be cheating in the opposite direction.
+  - MISSING therefore means: the spec said the name, and no test file contains it
+    as a whole identifier, and no test function extends it. That is a real gap.
   - This measures the MODEL's output against the SPEC's words. It does not
     measure whether the test is any good. A named test that is present but
     vacuous is out of scope here and needs the artifact read.
@@ -87,15 +101,32 @@ def audit(spec: str) -> dict | None:
     named = spec_named_tests(spec_path)
     if not named:
         return {"spec": spec, "named": 0, "missing": [], "subtest_only": [],
-                "funcs": 0}
+                "renamed": [], "funcs": 0}
     blob, funcs = artifact_test_text(art)
-    missing = sorted(n for n in named if n not in blob)
-    # Named, not a top-level func, but present in the text: folded into a
-    # subtest or a helper. Present — but worth seeing, because it is the
-    # difference between the model obeying the name and merely echoing it.
-    subtest_only = sorted(n for n in named if n not in funcs and n not in missing)
+
+    def whole(name: str) -> bool:
+        """Present as a complete identifier — `TestList` does not match inside
+        `TestListLimit`. (?!\\w) is the whole point of this function."""
+        return re.search(rf"\b{re.escape(name)}(?!\w)", blob) is not None
+
+    missing, renamed, subtest_only = [], [], []
+    for n in sorted(named):
+        if whole(n):
+            if n not in funcs:
+                # Named, not a top-level func, but there as a whole identifier:
+                # folded into a subtest or a helper. Present — worth seeing,
+                # because it is the difference between obeying the name and
+                # merely echoing it.
+                subtest_only.append(n)
+            continue
+        ext = sorted(f for f in funcs if f.startswith(n))
+        if ext:
+            renamed.append(f"{n} -> {ext[0]}")
+        else:
+            missing.append(n)
     return {"spec": spec, "named": len(named), "missing": missing,
-            "subtest_only": subtest_only, "funcs": len(funcs)}
+            "subtest_only": subtest_only, "renamed": renamed,
+            "funcs": len(funcs)}
 
 
 def main() -> int:
@@ -120,6 +151,9 @@ def main() -> int:
         if r["subtest_only"]:
             print(f"{'':<24} {'':>5} {'':>5} {'':>5}  "
                   f"(subtest/helper only: {', '.join(r['subtest_only'][:4])})")
+        if r["renamed"]:
+            print(f"{'':<24} {'':>5} {'':>5} {'':>5}  "
+                  f"(renamed, present: {'; '.join(r['renamed'][:3])})")
     print("-" * 78)
     print(f"{'TOTAL':<24} {total_named:>5} {total_missing:>5}")
     for r in skipped:
