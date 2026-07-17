@@ -55,3 +55,28 @@ capacity/refill, then assert the burst is still bounded by capacity. Not doing i
 tonight (server busy, and a spec edit is a global perturbation I will not fire
 blind); recorded as the next ratelimit action with the before/after audit
 mandatory.
+
+--- 21:2x — CONTROL (predicted CAUGHT, to bound the claim and not just confirm it) ---
+Deliberately picked the case I expected to BITE, because two MISSED predictions in
+a row is exactly the shape of a story I want to be true. taskapi: 41 tests, a
+test-spec that NAMES TestCreateDuplicate. Mutated CreateTask's dup guard to return
+nil instead of ErrExists.
+PREDICTED: CAUGHT (RED). RESULT: CAUGHT.
+    --- FAIL: TestCreateDuplicate: second CreateTask: err = <nil>, want ErrExists
+So "coverage cannot see invariants" is NOT universal, and I am glad I checked
+rather than generalising from two holes.
+
+THE DISCRIMINATOR IS THE TEST-SPEC, and the three cases pin it exactly:
+    taskapi    test-spec NAMES the invariant (TestCreateDuplicate)  -> CAUGHT
+    ledger     test-spec named it, model DROPPED it                 -> MISSED
+    ratelimit  test-spec SILENT on the cap                          -> MISSED
+It is not model quality and not project complexity. It is whether the test-spec
+NAMES the invariant. When it does, the model writes the test and the suite bites;
+when it is silent, or the named test is dropped, the suite is toothless and green
+lies. This is the project's own founding thesis — silence in the spec is where
+things break — applied to TEST specs specifically, and now with a control that
+disconfirms the over-general version.
+
+CONSEQUENCE FOR THE AGENT: the test-spec must name every invariant, and the
+quality gate needs BOTH halves — the named-test audit (is the named test present)
+AND mutation (does it bite). Coverage is neither. That is the durable design note.
