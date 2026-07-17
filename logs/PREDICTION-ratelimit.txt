@@ -1,0 +1,57 @@
+PREDICTION — ratelimit's burst cap: promised, and is it tested?
+Written 2026-07-17 21:1x (clock READ), BEFORE the mutation. Model-free.
+
+THE INVARIANT: a token bucket's whole point is that burst is bounded by capacity
+even after a long idle. bucket.go clamps it:
+    b.tokens += elapsed * b.refillPerSec
+    if b.tokens > float64(b.capacity) { b.tokens = float64(b.capacity) }
+Drop that clamp and a client that idles 100s on a refill of 1/s accumulates 100
+tokens and can fire 100 requests at once — the rate limiter is defeated. Same
+SHAPE as the ledger hole: a real, security-relevant invariant that green may not
+pin.
+
+WHAT THE TEST ACTUALLY DOES (read, not assumed): TestBucket makes a capacity-2
+bucket, spends both tokens, asserts the 3rd is denied, advances the fake clock ONE
+second (refillPerSec 1 => +1 token), asserts one more Allow. It NEVER idles longer
+than capacity/refill, so tokens never try to exceed the cap. The clamp is not
+exercised by this path.
+
+I PREDICT: remove the clamp, and build+vet+test stay GREEN. No test idles long
+enough to accumulate more than `capacity` tokens and then checks the burst is
+still bounded.
+IF IT GOES RED: a test does pin the cap and I report the gap as imaginary.
+
+--- 21:2x — RESULT: prediction HELD, but the finding is SUBTLER than ledger's ---
+Clamp removed -> build+vet+test GREEN. The suite has NO TEETH for the burst cap.
+
+BUT — and this is the honest distinction I nearly flattened — the ratelimit
+ARTIFACT IS CORRECT. The clamp IS present, because the IMPLEMENTATION-spec names
+it: "Seconds()*refillPerSec capped at capacity". The model did the right thing.
+What is missing is a TEST, and the TEST-spec's silence is why: it asks only for
+"NewBucket(2,1) allows 2 then denies; advance one second allows one more" — a path
+that never idles long enough to try to exceed the cap. So no test defends the
+invariant, and the mutation proves it.
+
+TWO DISTINCT SHAPES OF THE SAME THESIS, now both measured:
+  ledger      — code WRONG: a spec-NAMED test was dropped, and its absence let a
+                genuinely broken artifact (credits vanish) ship green. Model
+                failure, caught by the named-test audit.
+  ratelimit   — code RIGHT, suite TOOTHLESS: the clamp is there, but the test-spec
+                never asks for the long-idle case, so the suite cannot defend it.
+                A future draw that drops the clamp — or any regression — ships
+                green. NOT caught by the named-test audit (the spec names no cap
+                test to be missing), NOT caught by coverage (the clamp line is
+                executed by the short test; executed is not asserted). ONLY
+                mutation finds it.
+UNIFYING INSIGHT: coverage measures LINES RUN; it cannot measure INVARIANTS
+DEFENDED. A line can be executed by a test that never checks what it produces.
+Mutation is the only instrument here that asks "does the suite have teeth", and
+it found a hole the audit structurally cannot see because the hole is an UNNAMED
+promise, not a dropped named one.
+
+THE FIX (spec edit, so blast radius, so audit before/after): strengthen
+ratelimit_test.go's purpose to NAME a cap test — idle the fake clock well past
+capacity/refill, then assert the burst is still bounded by capacity. Not doing it
+tonight (server busy, and a spec edit is a global perturbation I will not fire
+blind); recorded as the next ratelimit action with the before/after audit
+mandatory.
