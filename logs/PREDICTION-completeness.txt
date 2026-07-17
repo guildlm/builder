@@ -255,3 +255,38 @@ consistent). THE DEADLOCK WAS THE WHOLE RED. One line.
    arms are green, and the arms were already identical. The rule is fully cleared.
 => shortener's remaining problem is not a test-authoring problem at all; it is a
    mutex_rule COVERAGE GAP, and it has a one-line fix the rule ought to induce.
+
+--- 20:3x — logstats LEAD, RESOLVED (mostly against myself), model-free ---
+This morning's "test count tracks named count" flagged logstats as under-tested:
+2 test funcs, 9 functions, coverage 82.0. I filed it as a LEAD and said the
+honest step was to break what it promises and see if anything bites. Did that.
+
+FIRST, the count was MISLEADING and I am saying so: 2 test FUNCTIONS, but
+TestConsume is a dense integration test — ~12 assertions covering total, bad-line
+count, sort-by-Count-DESCENDING, ErrorCount (Status>=500), and AvgLatencyMS. Most
+of stats.go's promises ARE checked. My proxy (function count) over-alarmed here;
+the artifact is the truth and the proxy was not.
+
+THE ONE REAL GAP: the spec promises Report() sorts by Count desc, "ties broken by
+Path ascending". TestConsume's paths have counts 2 and 1 — NO TIE. So the
+tie-breaker is the one promised behaviour no test exercises.
+PREDICTION (before the mutation): break the tie-breaker (sort ties by Path
+DESCENDING instead of ascending) and the suite STAYS GREEN — no test has two
+equal-count paths to distinguish the orders. If it goes RED, a test does pin it
+and my gap is imaginary; I report that.
+
+--- 20:3x — logstats MUTATION RESULT: prediction HELD, and the lead DEFLATES ---
+Flipped Report()'s tie-breaker ASC->DESC. build+vet+test GREEN. The tie-breaker
+is genuinely unexercised — a real gap — but it is LOW-STAKES: the order of
+equal-Count paths in a report, not money vanishing. This is NOT another ledger.
+
+HONEST CLOSE ON THE MORNING'S LEAD: the function-count proxy OVER-ALARMED on
+logstats. "2 tests / 9 funcs / 82.0" read as under-tested; the artifact shows
+TestConsume pins nearly every promise stats.go makes. The correlation was worth
+a look and the look corrected it — which is exactly why I filed it as a lead and
+not a finding, and why the rule today is that the artifact settles it, not the
+count. One real but minor gap, and no inflation of it.
+=> The named-test AUDIT (does a NAMED test exist) and the MUTATION check (does a
+   test BITE) are the load-bearing instruments. Function-count is a weak proxy
+   that flags candidates and must never be reported as a hole on its own. Noted
+   so I do not resurrect it as a metric.
