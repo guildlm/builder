@@ -1,0 +1,32 @@
+PREDICTION — eventbus: is the non-blocking send defended? (mutation, model-free)
+Written BEFORE the mutation (ordering verifiable vs the log; no wall-clock typed
+from memory, per the discipline fix).
+
+Publish sends non-blocking (select + default) so a FULL subscriber (buffer 16)
+does not block Publish while it holds the lock — otherwise the whole bus deadlocks.
+Close (no test named TestClose) closes all channels.
+
+I PREDICT:
+  - Remove `default:` (make the send BLOCKING) -> MISSED (green). No test fills a
+    subscriber's 16-buffer without receiving, so the block never triggers. If MISSED,
+    it is a real hole: a full/slow subscriber deadlocks Publish under the lock.
+  - Make Close a no-op -> likely MISSED (no TestClose checks channels are closed).
+IF CAUGHT: a test does pin it and I report the gap as imaginary.
+
+--- RESULT: both MISSED, both predictions held. TWO holes, and a SYSTEMIC pattern. ---
+  blocking send (default removed) -> green (MISSED). Real hole: a full subscriber
+    deadlocks Publish under the lock; impl-spec REQUIRES non-blocking send.
+  Close gutted -> green (MISSED). No TestClose; impl-spec requires Close to close
+    all channels.
+
+SYSTEMIC RECOGNITION: 4 specs checked (ledger, ratelimit, lrucache, eventbus), 4
+have impl-REQUIRED invariants with NO test that verifies them. This is not four
+isolated bugs — it is a property of how the test-specs are written across the
+suite: they name the HAPPY-PATH tests and omit the ones that pin the harder
+invariants (a boundary, a recency refresh, a non-blocking send, a full credit).
+The one-by-one fix works and is validated, but the durable fix is a POLICY/LINT:
+every invariant the impl-spec states in the imperative ("MUST", "non-blocking",
+"move to front", "capped at") should have a named test, and a spec-lint could flag
+impl-spec imperatives with no matching test name. Filed as the campaign's
+higher-level output; for now I fix the highest-value one (the non-blocking send,
+a real deadlock) end to end as the representative.

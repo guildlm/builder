@@ -1,0 +1,15 @@
+PREDICTION — eventbus fix (name+show the non-blocking-send test). Before the run.
+
+Fix validated model-free: TestPublishNonBlockingWhenFull passes on the correct
+(non-blocking) bus and FAILS (2s timeout) on the blocking mutant.
+
+I PREDICT (before/after audit MANDATORY):
+  1. Model WRITES TestPublishNonBlockingWhenFull (shown code). 4 -> 5 funcs.
+  2. GREEN, coverage ~flat-to-up.
+  3. BITES: remove `default:` on the NEW artifact -> the test times out (red).
+  4. BLAST RADIUS: before preserved (generated/_eventbus-BEFORE, 4 funcs). After =
+     those 4 + the new one = 5, nothing lost. Read bodies; the after-audit decides.
+NOTE: the spec YAML was rewritten by yaml.dump (folded->literal scalars, 68 lines
+churned). Verified semantically: every impl purpose parses byte-identical to HEAD,
+only the test purpose changed. Functionally fine (builder uses safe_load); poor git
+hygiene, recorded honestly. If any impl behaviour shifts in the run, suspect this.
