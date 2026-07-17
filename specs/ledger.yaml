@@ -230,9 +230,36 @@ files:
       NOT nil.
       TestListAccountsSorted: create "b" then "a"; ListAccounts returns them in
       the order a, b.
-      TestCreateTransactionMovesBalances: create accounts "cash" and "rev",
-      then a transaction with postings {cash +500} and {rev -500}; Balances()
-      reports cash == 500 and rev == -500.
+      TestCreateTransactionMovesBalances: this is the ONLY test here that has to
+      BUILD a Transaction — the other six only pass an Account or nothing — and a
+      construct that is described rather than shown is the one that goes missing.
+      It went missing. Here it is; write it:
+        s := NewMemStore()
+        if err := s.CreateAccount(models.Account{ID: "cash", Name: "Cash"}); err != nil {
+            t.Fatalf("CreateAccount cash: %v", err)
+        }
+        if err := s.CreateAccount(models.Account{ID: "rev", Name: "Revenue"}); err != nil {
+            t.Fatalf("CreateAccount rev: %v", err)
+        }
+        tx := models.Transaction{ID: "t1", Postings: []models.Posting{
+            {AccountID: "cash", Amount: money.Money(500)},
+            {AccountID: "rev", Amount: money.Money(-500)},
+        }}
+        if err := s.CreateTransaction(tx); err != nil {
+            t.Fatalf("CreateTransaction: %v", err)
+        }
+        b := s.Balances()
+        if b["cash"] != money.Money(500) {
+            t.Errorf("cash: got %v, want 500", b["cash"])
+        }
+        if b["rev"] != money.Money(-500) {
+            t.Errorf("rev: got %v, want -500", b["rev"])
+        }
+      ASSERT BOTH SIDES. The rev half is not decoration: with only the cash half,
+      a store that silently drops every credit passes this test AND every other
+      test in this project — measured, not supposed. money is imported for
+      exactly this test; if you skip it the import is unused and the file will
+      not compile, which is the compiler telling you a required test is missing.
       TestBalancesIsACopy: take Balances(), write into the RETURNED map, take
       Balances() again — the second call still reports the ORIGINAL value.
       Imports errors, testing, and the models and money packages.
