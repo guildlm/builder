@@ -117,3 +117,73 @@ generation run would confound both):
   ./_ab_run.sh ledger ; then _named_test_audit.py ledger ; then READ THE FILE.
   And then the real check: re-apply the mutant to the NEW artifact. If the model's
   own test does not kill it, the test is theatre and I report that.
+
+=============================================================================
+--- 15:2x (clock READ from `date`) — THE DESIGN WAS WRONG. REBUILT. ---
+=============================================================================
+CAUGHT BEFORE RUNNING, not after: my BEFORE-state is generated/ledger-v4, and I
+checked when it was made. 2026-07-15 19:24. TWO DAYS AGO, a DIFFERENT server
+process, and a builder TWELVE commits back on builder.py alone.
+
+That is the error that killed story 2 this morning, verbatim: "the guard
+artifacts were from an OLD builder — never an example of this system", i.e.
+POOLING ACROSS PROCESSES AND BUILDER VERSIONS. I rebuilt the same mistake four
+hours later, in the experiment written to study it.
+
+AND IT IS WORSE — THE AUDIT ITSELF IS POOLED. The artifacts it scored span
+07-10 to 07-17:
+    07-10  tasks-api-min          07-11  walkv, numkit, bitset, jsonapi(07-12),
+    eventbus, lrucache, expreval, jsoncodec, demo-small, workerpool,
+    genericset, priorityqueue, tasks-api-noshadownudge
+    07-15  ledger                 07-17  taskapi, workapi, usersapi, taskflow,
+    logstats, kvservice, ratelimit, shortener, tasks-api, taskapipro
+=> "177 named tests, 1 missing" is TRUE BOOKKEEPING OVER THE ARTIFACTS WE HAVE
+   and is NOT a statement about the model or the current builder. As a hygiene
+   number it stands. As a behavioural claim it is pooled garbage, and my commit
+   29c5e9c's narrative ("the model never wrote it") quietly implies the second.
+   The audit measures ARTIFACTS, not the model. Saying anything about the model
+   needs same-process runs, which is what this now is.
+
+WHAT SURVIVES UNTOUCHED, because no model was involved: the mutation result. The
+07-15 artifact + credit-drop mutant = build+vet+FULL SUITE GREEN, and the spec's
+named test kills it. That artifact IS what this project shipped, and it has a
+hole. Deterministic. That finding does not depend on which builder made it.
+
+A SECOND STORY DIED WHILE I WAS CHECKING THIS, and I nearly wrote it down: I
+inferred "completeness was ON when ledger-v4 was made, and the rule missed it
+anyway" from 173f4c7's date (it went opt-in 07-16 17:22, AFTER the artifact). So
+I checked the builder as it actually stood at bb17d7e — the completeness text is
+NOT IN IT. grep count: 0. The rule did not EXIST on 07-15; it was born 07-16
+12:10 at 612c4f3. My inference was one step from the page and it was false.
+
+=============================================================================
+THE REBUILT EXPERIMENT — 3 ARMS, ONE PROCESS (PID 3082), SAME COMMIT
+=============================================================================
+The hole is one defect with TWO rival remedies, and nobody has ever run them
+against each other. This does.
+  A. old spec, completeness OFF   (CONTROL — does the miss even reproduce HERE?)
+  B. old spec, completeness ON    (does the RULE alone fix it?)
+  C. new spec (code shown), OFF   (does the SPEC FIX alone fix it?)
+
+PREDICTIONS, WRITTEN NOW, BEFORE ANY ARM RUNS:
+  A: the miss REPRODUCES — TestCreateTransactionMovesBalances still absent.
+     Confidence: MODERATE, and I want it on the record that this is the arm I
+     am least sure of. The spec text is unchanged since the artifact was made,
+     and prose-not-shown is the thesis. But twelve builder commits landed in
+     between and any of them could have fixed it by accident. IF A WRITES THE
+     TEST, the hole is already closed, my spec fix is UNNECESSARY, and its blast
+     radius is PURE COST — I would revert af1932d's spec change and say so.
+  B: the rule ON WRITES the test. Confidence: MODERATE. Its one confirmed
+     benefit is exactly this failure — workapi's TestListSorted, 3/3, "the model
+     drops tests the spec NAMES".
+  C: the spec fix WRITES the test. Confidence: HIGH. Sixth instance of the
+     thesis; today's guard went in byte-identically 2/2 after seven straight
+     observations without it.
+
+WHY THIS IS THE DAY'S REAL EXPERIMENT: if B and C BOTH work, the rule is the
+cheaper remedy — no spec edit, therefore no blast radius, and today measured
+that a spec edit deterministically deletes a spec-named test from another file.
+But the rule costs shortener its green (5/5), which is why it is off. If C works
+and B does not, the spec fix is the only remedy and its cost must be paid.
+If NEITHER works, showing code is not sufficient for a test the model does not
+want to write, and I have been over-selling the thesis all day.

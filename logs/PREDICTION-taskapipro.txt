@@ -520,3 +520,25 @@ and each time it was wrong. The lesson I keep re-learning in new clothes is not
 LIKE DATA, I DO NOT NOTICE THAT I DID NOT MEASURE IT. A fabricated timestamp and
 a measured one are indistinguishable on the page. That is exactly why they must
 come from `date`, and from now on in this file they do.
+
+--- 15:13 (clock READ) — NONAMES COMPLETE, n=2. REFUTATION CONFIRMED. ---
+  RED     (old spec)              82.9  NOT-GREEN  testfuncs 49  TestListSorted PRESENT 2/2
+  GREEN   (my edit, WITH names)   83.5  GREEN      testfuncs 48  ABSENT 2/2
+  NONAMES (names STRIPPED)        83.4  GREEN      testfuncs 48  ABSENT 2/2
+One server process (PID 3082) for all six runs. One variable: the spec text.
+The de-dup hypothesis is dead at n=2, not n=1. Stripping the names changed the
+coverage by 0.1 and nothing else.
+
+CLOSING THE ARM: reverting the working tree to the committed spec (61a8a14, the
+"with names" wording). The two wordings are measurably equivalent — 2/2 GREEN
+each, same 48 testfuncs, 83.5 vs 83.4, and the ONLY diff in the generated
+service.go was two blank lines. So there is no measured reason to prefer either,
+and I am not going to churn a committed spec on a 0.1 that this project calls
+noise. The probe existed to answer a question, and it answered it.
+
+WHAT IS NOW ESTABLISHED, and it is the honest weak version:
+  Adding ~600 chars to ONE file's purpose deterministically deleted a spec-named
+  test from a file generated EARLIER, 2/2 with names and 2/2 without. The same
+  600 chars fixed the guard. NO SAFE FORM OF SPEC EDIT IS KNOWN — and the edit
+  that works is the edit that displaces.
+STILL OPEN: topic vs generic (design filed above at 14:11, run not started).

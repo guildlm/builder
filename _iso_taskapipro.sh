@@ -17,11 +17,19 @@
 # that same test fails the same way each rep is the whole question, and only the
 # file can answer it; green/red alone cannot.
 #
-# Usage: _iso_taskapipro.sh [reps]   (default 2)
+# A rerun used to `rm -rf` the artifacts of the run before it: KEEP was
+# _iso-<spec>-<i>, so rep 1 of today overwrote rep 1 of the run whose conclusion
+# I had already committed. The artifact IS the evidence — the guard's presence
+# is only checkable by reading it — so an experiment that destroys the arm it is
+# being compared against cannot be re-examined when the answer looks confirming.
+# TAG separates the arms; default keeps the old name so nothing else breaks.
+#
+# Usage: _iso_taskapipro.sh [reps] [tag]   (default 2, untagged)
 set -uo pipefail
 cd "$(dirname "$0")"
 SPEC=taskapipro
 REPS="${1:-2}"
+TAG="${2:-}"
 SUM="logs/iso-${SPEC}-$(date +%m%d%H%M).log"
 : > "$SUM"
 echo "########## ISO $SPEC x$REPS — SAME server process (pid on 8080) ##########" >> "$SUM"
@@ -30,7 +38,7 @@ echo "named test funcs in spec: $(grep -coE 'Test[A-Z][A-Za-z]+:' "specs/${SPEC}
 for i in $(seq 1 "$REPS"); do
   echo "########## REP=$i ##########" >> "$SUM"
   ./_ab_run.sh "$SPEC" >> "$SUM" 2>&1
-  KEEP="./generated/_iso-${SPEC}-${i}"
+  KEEP="./generated/_iso-${SPEC}${TAG:+-$TAG}-${i}"
   rm -rf "$KEEP"
   cp -r "./generated/${SPEC}-v4" "$KEEP" 2>/dev/null && echo "=== kept artifact -> $KEEP ===" >> "$SUM"
   TF=$(grep -rhoE "^func Test[A-Za-z0-9_]+" "$KEEP" --include="*_test.go" 2>/dev/null | sort -u | wc -l | tr -d ' ')
