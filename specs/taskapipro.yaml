@@ -180,10 +180,22 @@ files:
       s.store.CreateTask(ctx, t) and on error return (models.Task{}, err); else
       return (t, nil). Get/Delete delegate to the store. List: fetch via
       s.store.ListTasks(ctx), apply status filtering on the CONCRETE
-      []models.Task FIRST (range the tasks and keep those whose t.Status matches —
-      accessing .Status is valid here because these are models.Task, not a type
-      parameter), THEN pass the filtered []models.Task to the generic helper
-      paginate[T any](items []T, limit, offset int) []T. paginate ONLY slices by
+      []models.Task FIRST, THEN pass the filtered []models.Task to the generic helper
+      paginate[T any](items []T, limit, offset int) []T.
+      An EMPTY status means NO FILTER. Every caller that is not filtering passes
+      "", and a bare `if t.Status == status` keeps NOTHING for them: List returns
+      an empty slice and TestList/TestListLimit/TestListNegativeOffset all fail
+      with `got [], want 1` against a store that really does hold the tasks. The
+      guard is the first line of the loop, so here is the whole loop — write it:
+        var filtered []models.Task
+        for _, t := range items {
+            if status != "" && t.Status != status {
+                continue                      // "" => no filter, keep everything
+            }
+            filtered = append(filtered, t)
+        }
+      (accessing .Status is valid here because these are models.Task, not a type
+      parameter). paginate ONLY slices by
       limit/offset, and it must be UNPANICKABLE on any (limit, offset) an HTTP
       query string can produce. "Never panic" is not a wish — it is THREE named
       guards, and the one most often dropped is the second:
