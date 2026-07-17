@@ -178,3 +178,80 @@ to answer it, and until it has one, this paragraph is a lead, not a result.
 AND IF I DO FIX logstats' SPEC: it is a spec edit, so it perturbs every other file
 in that project. Audit before AND after. That rule is 40 minutes old and cost me
 a spec-named test to learn.
+
+--- 20:1x (clock READ) — SHORTENER A/B COMPLETE. SPLIT RESULT, REPORTED HONESTLY. ---
+4 runs, ONE process (PID 3082), arms alternated. ALL FOUR IDENTICAL:
+  testfuncs=8 · invented_helpers=none · guessed_code=0 · 56.1% · NOT-GREEN
+  ON rep1 == OFF rep1 == ON rep2 == OFF rep2, on every metric, and the 8 test
+  functions are the SAME 8 names the spec now names.
+
+PREDICTION 2 ("ON ~= OFF; the rule has NO EFFECT here now"): HELD, decisively.
+  ON and OFF are indistinguishable. The rule that once turned shortener from
+  2-tests-green into 10-tests-0%-red now does NOTHING — it neither adds tests nor
+  removes green, because the spec already names the 8 and shows the flow, so the
+  default has nothing left to say. That was the whole thesis of the prediction.
+
+THE REFUTATION CLAUSE I NAMED DID NOT FIRE: "ON breaks green again (invented
+  helper / guessed code / >8 incoherent tests) => the cost is the RULE'S OWN."
+  invented_helpers=none, guessed_code=0, testfuncs=8 not 10. So the cost is NOT
+  the rule's own. The rule is EXONERATED as the cause of shortener's break. This
+  is the answer the code queued the experiment to get, and it is clean.
+
+PREDICTION 1 ("GREEN, ~73"): REFUTED on green. It is 56.1 NOT-GREEN — on BOTH
+  arms. I predicted green because I assumed the fixed spec had made shortener
+  fully green; the 07-17 sweep did measure 73.1 GREEN. But green did NOT come
+  back here, and NOT because of the rule (ON==OFF proves that). Reporting the
+  refutation: my "GREEN" was wrong. What I got right is the part that mattered
+  for the rule — its cost is gone — and I am not going to let that launder the
+  wrong half.
+
+WHY IT IS RED, opened rather than assumed: `panic: test timed out after 1m0s`,
+  4/4. A DEADLOCK, not a failed assertion. store.go's Resolve():
+      s.mu.RLock(); defer s.mu.RUnlock()
+      ... read ...
+      s.mu.Lock();  defer s.mu.Unlock()   // <-- while STILL holding the RLock
+  A sync.RWMutex read lock cannot be upgraded to a write lock on the same mutex;
+  it blocks forever. RedirectFound and StatsCountsOneHit call Resolve, so they
+  hang. Identical in all 4 arms.
+
+THIS IS THE taskapipro PATTERN AGAIN, AND I WILL NOT MISNAME IT: 4/4 deterministic
+  RED in THIS process, against a 73.1 GREEN from ANOTHER process (the sweep). That
+  is "deterministic within a process, different across processes" — the project's
+  own recurring shape. I am NOT calling it a regression. src/builder.py generation
+  logic is UNCHANGED today (git log: no commits touch it), so it is not something
+  I broke. Whether the other process wrote Resolve correctly is a cross-process
+  question and out of scope; the deadlock is REAL and deterministic HERE, 4/4.
+
+THE RULE THAT SHOULD HAVE CAUGHT IT DID NOT, AND ITS WORDING SAYS WHY: mutex_rule
+  FIRES on shortener's store.go (verified: store.go's purpose names sync.RWMutex).
+  But its text is entirely about CROSS-METHOD reentrancy — "call ANOTHER METHOD of
+  this type that locks the SAME mutex", example "CreateX/Apply calling GetX/Exists".
+  This deadlock is INTRA-METHOD: ONE function RLocks then Locks itself. The rule
+  does not describe that case, so the model — reading the rule — still writes it.
+  This is a coverage GAP in the rule's wording, not the model ignoring the rule.
+  It is the SAME class of finding as the ledger deadlock that first motivated
+  mutex_rule, one level more specific.
+
+NEXT (prediction written before the proof, next block): confirm model-free that
+  the deadlock is the WHOLE red — fix Resolve, expect green ~73. If green returns,
+  then (a) the deadlock is the entire failure, (b) completeness has NO cost here
+  even in principle, both arms would be green, and (c) it is a one-line bug with a
+  standing rule that ought to catch it and doesn't.
+
+--- 20:2x — DEADLOCK PROOF, model-free, prediction BEFORE the run ---
+Copy _shortener-ON-1. Fix Resolve so it takes the write lock ONCE (drop the
+RLock/RUnlock pair; Resolve mutates Hits, so it is a writer — take Lock() at the
+top). Change nothing else.
+I PREDICT: build+vet+test go GREEN, coverage back to ~73 (the sweep's number).
+IF IT STAYS RED: the deadlock is not the whole story, something else is broken,
+and I open the next failure instead of declaring victory.
+
+--- 20:2x — PROOF RESULT: PREDICTION HELD. Resolve single-Lock -> GREEN 69.8%. ---
+Fixed Resolve to take Lock() ONCE (it mutates Hits, so it is a writer; the RLock
+was never needed). Changed nothing else. build+vet+test GREEN, coverage 69.8%
+(the sweep's 73.1 includes the fix-loop's own test additions; 69.8 raw is
+consistent). THE DEADLOCK WAS THE WHOLE RED. One line.
+=> completeness has NO cost here even in principle: with the deadlock gone both
+   arms are green, and the arms were already identical. The rule is fully cleared.
+=> shortener's remaining problem is not a test-authoring problem at all; it is a
+   mutex_rule COVERAGE GAP, and it has a one-line fix the rule ought to induce.
