@@ -187,3 +187,92 @@ But the rule costs shortener its green (5/5), which is why it is off. If C works
 and B does not, the spec fix is the only remedy and its cost must be paid.
 If NEITHER works, showing code is not sufficient for a test the model does not
 want to write, and I have been over-selling the thesis all day.
+
+=============================================================================
+--- 16:4x (clock READ) — 3-ARM COMPLETE. ALL THREE PREDICTIONS HELD. ---
+=============================================================================
+One server process (PID 3082), one commit, ~75 min, three arms:
+
+  ARM              testfuncs  store pkg  named test  mutant
+  A old spec, OFF     31        5/7      ABSENT      MISSED — GREEN ON BROKEN CODE
+  B old spec, ON      33        7/7      PRESENT     CAUGHT — teeth
+  C new spec, OFF     33        7/7      PRESENT     CAUGHT — teeth
+
+A: PREDICTED "the miss reproduces" — HELD, and this was the arm I said I was
+   least sure of. It matters most: the hole is LIVE on the current builder in
+   this process, not an artifact of a stale 07-15 tree. So the spec fix is NOT
+   unnecessary and af1932d stands. Had A written the test I had committed, in
+   advance, to reverting it.
+   A is WORSE than the old artifact, incidentally: 5/7 store tests where 07-15
+   had 6/7 (it lost TestBalancesIsACopy too). Cross-builder, so I am NOT calling
+   that a regression — I am noting it and leaving it unattributed.
+B: PREDICTED "the rule alone writes it" — HELD. And it writes TWO of the spec's
+   missing tests (TestCreateTransactionMovesBalances AND TestBalancesIsACopy),
+   and the mutant DIES on it.
+C: PREDICTED "the spec fix alone writes it" — HELD, and the test BITES.
+
+BOTH REMEDIES WORK. That is the first time they have been run against each other.
+
+=============================================================================
+THE PART I DID NOT PREDICT, AND IT IS THE BIGGEST THING TODAY
+=============================================================================
+The mutant check REFUSED to score arm C: "MUTANT DID NOT APPLY: found 0 sites".
+The guard I built into it this morning fired, and it was right to. The code had
+MOVED — and where it moved is the finding:
+
+  spec says: store.go = "the Store INTERFACE only — no implementation in this
+             file"; memory.go = the MemStore implementation.
+  ARM A:  store.go 109 lines / 7 funcs (the WHOLE implementation)
+          memory.go 1 line / 0 funcs  <- A DEAD FILE
+  ARM B:  identical. Dead memory.go.
+  ARM C:  store.go 16 lines / 0 funcs (interface only — CORRECT)
+          memory.go 99 lines / 7 funcs (the implementation — CORRECT)
+
+MY SPEC EDIT — which only added test CODE to the STORE TEST's purpose — moved the
+implementation into the file the plan assigns it to and un-killed a dead file.
+This is exactly the pathology scope_rule was written for ("EVERY multi-package
+spec in the suite carried one of these dead files: workapi, taskapi, taskapipro,
+tasks-api"), and scope_rule is ON in arms A and B. It did not prevent it. A test
+file's purpose did.
+
+AND NOTHING WAS LOST. C = A + 2, exactly the two missing store tests. The three
+apparent "losses" were RENAMES TOWARD THE SPEC'S EXACT NAMES:
+    TestCreateAccountDuplicateIsErrExists -> TestCreateAccountDuplicate
+    TestGetAccountMissingIsErrNotFound    -> TestGetAccountMissing
+    TestListAccountsEmptyIsNotNil         -> TestListAccountsEmpty
+    TestListAccountsSortedByID            -> TestListAccountsSorted
+
+=> THE HONEST HEADLINE, and it is sharper than this morning's: THE BLAST RADIUS
+   IS REAL AND ITS SIGN IS NOT PREDICTABLE. The same class of act — add code to
+   one file's purpose — DELETED a spec-named test in taskapipro (2/2, and 2/2
+   again with names stripped) and ADDED two, fixed three names and repaired the
+   package's file structure in ledger. I cannot tell from the edit which way it
+   will go. That is not "spec edits are dangerous" and it is not "spec edits are
+   good": it is that a spec edit is a GLOBAL, UNSIGNED perturbation, and the only
+   honest way to ship one is to AUDIT BOTH DIRECTIONS AFTERWARDS. Which is why
+   the tool exists, and why it caught this.
+
+TWO OF MY OWN COUNTS WERE WRONG AND I CAUGHT BOTH BY RECONCILING:
+  - "C = 32, so it lost one elsewhere" — false alarm. Per-package it is
+    10+6+4+6+7 = 33. My project-wide `sort -u` COLLAPSED TestGetAccountMissing,
+    which arm C has in TWO packages. The count was my instrument, not the data.
+  - "C lost TestGetAccountMissingIsErrNotFound" — false alarm, a rename.
+  Both alarms pointed at a loss that was not there; this morning's errors all
+  pointed at findings that were bigger than they were. The direction flipped, the
+  cause did not: I read a derived number instead of the thing itself.
+
+=============================================================================
+CONSEQUENCE FOR THE COMPLETENESS RULE — ITS LEDGER HAS CHANGED
+=============================================================================
+The rule is OFF by default because of "a cost that reproduces and a benefit that
+does not" (173f4c7). The benefit has now reproduced TWICE MORE, independently:
+    ratelimit  0 effect        (2 processes, 7 arms)
+    workapi   +1 named test    (3/3, pre-gate)
+    ledger    +2 named tests   (this run) — AND one of them has DEMONSTRATED
+                                TEETH: without it, a ledger that vaporises money
+                                ships green.
+That is no longer "a benefit that does not reproduce". The cost side is untouched
+by this and still stands (shortener, 5/5) — but shortener's SPEC has since been
+fixed, which is the exact condition the code itself set for re-testing it. That
+run is next, and its prediction is already filed in PREDICTION-completeness.txt,
+written before any of this.

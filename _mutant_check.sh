@@ -36,8 +36,21 @@ cd "$WORK/proj"
 # then break exactly that promise.
 case "$SPEC" in
   ledger)
-    TARGET="internal/store/store.go"
+    # NOT a hardcoded path. The apply loop's FILE is not stable across runs: with
+    # one spec the model implements MemStore inside store.go (leaving memory.go a
+    # dead one-line `package store`); with another it lands in memory.go where the
+    # plan actually puts it. Hardcoding internal/store/store.go made this check
+    # exit 2 on the arm that mattered most. Find the behaviour, not the filename —
+    # the mutant targets a promise, and a promise does not live at a path.
     DESC="every credit silently dropped (double-entry ledger loses money)"
+    TARGET="$(grep -rlE '^\s*s\.balances\[p\.AccountID\] \+= p\.Amount' \
+              internal/store --include='*.go' 2>/dev/null | grep -v _test | head -1)"
+    if [ -z "$TARGET" ]; then
+      echo "MUTANT DID NOT APPLY: no apply loop found under internal/store."
+      echo "The code moved further than this pattern reaches. A mutant that does"
+      echo "not apply is not a passing test — it is no test at all."
+      exit 2
+    fi
     python3 - "$TARGET" <<'PY'
 import sys, pathlib
 p = pathlib.Path(sys.argv[1]); s = p.read_text()
