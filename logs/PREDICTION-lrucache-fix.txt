@@ -1,0 +1,19 @@
+PREDICTION — lrucache fix (extract Put-recency into a named+shown test)
+Written 2026-07-17 22:2x (clock READ), BEFORE the run. Same pattern as ratelimit.
+
+Fix validated model-free already: TestUpdateMarksRecentlyUsed passes on correct
+code, fails on the Put-no-MoveToFront mutant. Now put it in the test-spec, shown
+as code, and run.
+
+I PREDICT (one run, before/after audit MANDATORY):
+  1. Model WRITES TestUpdateMarksRecentlyUsed (shown code = thesis). 5 -> 6 funcs.
+  2. GREEN, coverage ~flat (the MoveToFront line already ran; now it is asserted).
+  3. The new test BITES: re-mutate Put's MoveToFront on the NEW artifact -> red.
+  4. BLAST RADIUS: before-state preserved (generated/_lrucache-BEFORE, 5 funcs:
+     TestConcurrentAccessIsRaceFree, TestEvictsLeastRecentlyUsed,
+     TestGetMarksRecentlyUsed, TestPutGet, TestUpdateExistingKey). After = those 5
+     + TestUpdateMarksRecentlyUsed = 6, nothing lost/renamed. NOT certain — the
+     after-audit decides (ratelimit renamed 2 tests cosmetically; taskapipro lost
+     one). Read the bodies, do not count.
+REFUTE/REVERT: any of the 5 lost or renamed-and-weakened; or the new test written
+  toothless (re-mutant survives); or not green. Keep only on a clean after-audit.

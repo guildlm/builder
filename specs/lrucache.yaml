@@ -55,6 +55,21 @@ files:
       true and Get("c") ok true.
       TestUpdateExistingKey: c := New(2); c.Put("a", 1); c.Put("a", 2); assert
       c.Len() == 1; v, ok := c.Get("a"); assert ok true and v.(int) == 2.
+      TestUpdateMarksRecentlyUsed: a Put on an EXISTING key must REFRESH its
+      recency (the impl moves it to the front), so an updated key is NOT evicted
+      as if stale. Assert value + Len alone never checks this — a separate test
+      must force an eviction and prove the updated key survived. Write it exactly:
+        c := New(2)
+        c.Put("a", 1)
+        c.Put("b", 2)   // order: b front, a back
+        c.Put("a", 9)   // updating "a" must make it most-recently-used
+        c.Put("c", 3)   // capacity 2 -> the LRU ("b") is evicted, "a" survives
+        if _, ok := c.Get("a"); !ok {
+            t.Errorf("updated key a should survive eviction, but is gone")
+        }
+        if _, ok := c.Get("b"); ok {
+            t.Errorf("b was least-recently-used and should have been evicted")
+        }
       TestConcurrentAccessIsRaceFree: c := New(100); run several goroutines with a
       sync.WaitGroup that each call Put and Get on their own keys (e.g. key
       fmt.Sprintf("k%d", i)); after they finish, assert the test simply completed
