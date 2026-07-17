@@ -80,3 +80,35 @@ disconfirms the over-general version.
 CONSEQUENCE FOR THE AGENT: the test-spec must name every invariant, and the
 quality gate needs BOTH halves — the named-test audit (is the named test present)
 AND mutation (does it bite). Coverage is neither. That is the durable design note.
+
+--- 21:3x — CORRECTION: "test-spec SILENT" WAS WRONG. It NAMES the cap in prose. ---
+Fifth self-caught error today, SAME root as the other four: I claimed "the
+test-spec is SILENT on the cap" from a 150-char TRUNCATED grep that cut off at
+"...advancing the fake time by one second allows exactly". Reading the FULL
+purpose, the very next clause (char 889) is:
+    "tokens never exceed capacity after a long idle gap."
+The test-spec is NOT silent. It names the cap invariant IN PROSE, inside
+TestBucket's description. The model wrote TestBucket with a single clock.Add(1s)
+and DROPPED that clause. I built a whole classification ("silent" vs "named") on
+a view I had truncated with my own -c 150.
+
+THE CORRECTED, and now UNIFIED, PICTURE — all three are one thesis, not two:
+    taskapi    cap-equiv (dup) named as a DISTINCT FUNCTION  -> written -> CAUGHT
+    ledger     invariant named as a distinct function, DROPPED -> MISSED
+    ratelimit  invariant described as a PROSE CLAUSE inside another test's
+               description, not its own function, not shown as code, DROPPED -> MISSED
+The discriminator is NOT named-vs-silent. It is HOW CONCRETELY the test-spec pins
+the test: a distinct named function that the model writes (taskapi) has teeth; a
+named function the model drops (ledger) or a prose clause buried in another test's
+description (ratelimit) does not. This is the SAME described-vs-shown thesis as
+every other failure today: the more concretely the spec realises the test —
+distinct function > prose clause, shown code > described — the more it survives.
+
+THE FINDING STANDS, THE CAUSE IS CORRECTED: mutation MISSED (suite toothless) is
+real and measured. What was wrong was the word "silent". The FIX is now the SAME
+as ledger and simpler than "add a test to a silent spec": EXTRACT the buried prose
+clause into its own NAMED test and SHOW the code —
+    TestBucketCapAfterIdle: NewBucket(2, 1), fake clock; spend both tokens; advance
+    the clock by an HOUR; assert the next THREE Allow() calls are true, true, FALSE
+    — i.e. the idle refilled to exactly capacity (2), not to 3600.
+This makes it a distinct named+shown test, the shape that survives.
