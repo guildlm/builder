@@ -116,3 +116,49 @@ def test_sequential_lock_unlock_lock_is_clean():
 
 def test_non_go_is_ignored_by_is_clean():
     assert _is_clean(DEADLOCK, False, TC)
+
+
+# The deadlock has three shapes, not one; the gate must catch all three, since a
+# model that stops writing RLock-then-Lock may still write Lock-then-Lock.
+DOUBLE_WRITE = """package main
+func (s *S) F() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.helper()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+}
+"""
+
+WRITE_THEN_READ = """package main
+func (s *S) F() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+}
+"""
+
+# Two DIFFERENT mutexes, each acquired once. The rule keys on the mutex
+# EXPRESSION, so this must stay clean — the false positive a naive "any two lock
+# calls" rule would produce.
+TWO_MUTEXES = """package main
+func (s *S) F() {
+	s.a.Lock()
+	defer s.a.Unlock()
+	s.b.RLock()
+	defer s.b.RUnlock()
+}
+"""
+
+
+def test_double_write_lock_flagged():
+    assert mutex_self_deadlock(DOUBLE_WRITE) == {"F"}
+
+
+def test_write_then_read_flagged():
+    assert mutex_self_deadlock(WRITE_THEN_READ) == {"F"}
+
+
+def test_two_different_mutexes_is_clean():
+    assert mutex_self_deadlock(TWO_MUTEXES) == set()
