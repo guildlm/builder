@@ -17,3 +17,19 @@ I PREDICT (one run, before/after audit MANDATORY):
      one). Read the bodies, do not count.
 REFUTE/REVERT: any of the 5 lost or renamed-and-weakened; or the new test written
   toothless (re-mutant survives); or not green. Keep only on a clean after-audit.
+
+--- RESULT (before the run: prediction above; after: here) — ALL FOUR HELD, CLEANEST YET ---
+  1. Model WROTE TestUpdateMarksRecentlyUsed. HELD.
+  2. GREEN, coverage 95.8%. HELD.
+  3. BITES: re-mutated Put's MoveToFront on the SHIPPED artifact ->
+       --- FAIL: TestUpdateMarksRecentlyUsed
+     (first attempt broke the build — my sloppy regex left `c.ll.` dangling; redone
+     by removing the whole statement line, clean build, then RED. A broken build is
+     not a passing mutation test.)
+  4. BLAST RADIUS: ZERO. All 5 original tests kept their exact names, +1 new. No
+     renames, nothing lost. Cleaner than ratelimit (which cosmetically renamed 2).
+
+VERDICT: KEEP (committed). lrucache now defends the Put-on-existing recency the
+impl-spec required and no test checked. Second end-to-end suite-teeth fix, and the
+after-audit was clean this time — but I still ran it, because "probably clean" is
+what taskapipro looked like the morning it deleted a test.
