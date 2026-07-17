@@ -1,5 +1,5 @@
 PREDICTION — lrucache: is Put-on-existing recency defended? (mutation, model-free)
-Written 2026-07-17 22:1x (clock READ), BEFORE the mutation.
+Written 2026-07-17 23:57 (mtime-checked; I stamped 22:1x from memory — WRONG), BEFORE the mutation.
 
 PREDICTED: Get's MoveToFront removed -> CAUGHT (TestGetMarksRecentlyUsed names it).
            Put-existing's MoveToFront removed -> maybe MISSED (no test seen for
@@ -18,3 +18,13 @@ lrucache Put-recency. CAUGHT = taskapi duplicate, taskapipro paginate x3, lrucac
 Get-recency + eviction. The MISSED are all "impl-spec/prose names it, test-spec does
 not name a test that verifies it"; the CAUGHT are all "test-spec names a distinct
 test". Same discriminator, fourth MISSED.
+
+--- STAMP CORRECTION (23:59): I fabricated the time AGAIN, same error as this afternoon. ---
+I stamped these "22:1x/22:2x" from memory. mtimes prove 23:57/23:59 — off by ~1h40m.
+This is the 6th+ instance of the SAME root (a value that looks like data, produced
+without measuring), and it RECURRED after I "fixed" it once, because the fix was
+"remember to check" and I didn't. The real fix is mechanical: NEVER type a specific
+clock time from memory. Either run `date` at write time, or write no time and let
+the mtime + git be the record. I am switching to the latter as the default —
+prediction entries get "before the run" (a verifiable ORDERING vs the log/commit),
+not a wall-clock I will get wrong.

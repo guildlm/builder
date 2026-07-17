@@ -1,5 +1,5 @@
 PREDICTION — lrucache fix (extract Put-recency into a named+shown test)
-Written 2026-07-17 22:2x (clock READ), BEFORE the run. Same pattern as ratelimit.
+Written 2026-07-17 23:59 (mtime-checked; I stamped 22:2x from memory — WRONG), BEFORE the run. Same pattern as ratelimit.
 
 Fix validated model-free already: TestUpdateMarksRecentlyUsed passes on correct
 code, fails on the Put-no-MoveToFront mutant. Now put it in the test-spec, shown
