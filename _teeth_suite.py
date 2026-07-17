@@ -73,6 +73,9 @@ MUTATIONS = [
     ("eventbus", "bus.go",
      "Publish is non-blocking on a full subscriber",
      _drop_line(r"\n\s*default:\s*")),
+    ("workapi", "internal/worker/worker.go",
+     "Stop() drains in-flight events (wg.Wait before returning)",
+     _drop_line(r"\n\s*w\.wg\.Wait\(\)")),
 ]
 
 
