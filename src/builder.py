@@ -4236,6 +4236,68 @@ def has_assertions(code: str) -> bool:
     return bool(_ASSERTION_RE.search(code))
 
 
+_LOCK_CALL_RE = re.compile(r"\b([A-Za-z_]\w*(?:\.\w+)*)\.(?:RLock|Lock)\(\)")
+_DEFER_UNLOCK_CALL_RE = re.compile(
+    r"\bdefer\s+([A-Za-z_]\w*(?:\.\w+)*)\.(?:RUnlock|Unlock)\(\)"
+)
+_FUNC_HEADER_RE = re.compile(r"\bfunc\b[^{;]*\{", re.S)
+
+
+def _func_bodies(code: str):
+    """Yield (name, body) for each top-level func/method, matching braces.
+
+    Regex, like the rest of the check chain — the toolchain is not invoked to
+    decide a candidate is dirty. Nested braces inside the body are balanced by
+    counting, so a struct literal or closure does not truncate the body.
+    """
+    for fm in _FUNC_HEADER_RE.finditer(code):
+        header = code[fm.start():fm.end()]
+        m = (re.search(r"\)\s*([A-Za-z_]\w*)\s*\(", header)
+             or re.search(r"\bfunc\s+([A-Za-z_]\w*)\s*\(", header))
+        name = m.group(1) if m else "func"
+        depth, i, n = 1, fm.end(), len(code)
+        while i < n and depth:
+            if code[i] == "{":
+                depth += 1
+            elif code[i] == "}":
+                depth -= 1
+            i += 1
+        yield name, code[fm.end():i - 1]
+
+
+def mutex_self_deadlock(code: str) -> set[str]:
+    """Methods that acquire a mutex AGAIN after deferring its unlock — a deadlock.
+
+    shortener 2026-07-17 shipped Resolve() = RLock(); defer RUnlock(); ...; Lock().
+    A read lock cannot be upgraded to a write lock on the same sync.RWMutex, so it
+    blocks forever — a test TIMEOUT, never a compile error. mutex_rule's prose is
+    entirely cross-method ("call ANOTHER method"), and an A/B (mutex-intra) proved
+    a sentence teaching the intra-method shape does NOT stop the model writing it:
+    the prior "RLock the read half, Lock the write half" wins over the prompt.
+
+    So it belongs in a check, by the same rule as self_dropped_decls: decidable
+    FROM THE FILE ALONE, no spec, no purpose, no call graph. If a method DEFERS
+    the unlock of a mutex M — holding M until the function returns — and then
+    acquires M again anywhere after that defer, the second acquire is nested
+    inside the first on a non-reentrant lock and deadlocks UNCONDITIONALLY.
+
+    Deliberately narrow, because a gate that rejects correct code is worse than
+    none: it flags ONLY deferred-then-reacquired, which cannot be anything but a
+    deadlock. It does not touch the cross-method case (a call graph, and
+    mutex_rule's job) and does not flag Lock/Unlock/Lock sequential code. Validated
+    against every mutex-bearing artifact in the suite: 3/3 on the deadlocked files,
+    0 false positives on 14 correct ones.
+    """
+    bad: set[str] = set()
+    for name, body in _func_bodies(code):
+        for dm in _DEFER_UNLOCK_CALL_RE.finditer(body):
+            mutex = dm.group(1)
+            if any(lk.group(1) == mutex for lk in _LOCK_CALL_RE.finditer(body[dm.end():])):
+                bad.add(name)
+                break
+    return bad
+
+
 def self_dropped_decls(candidate: str, previous: str, sibling_decls: set[str] | None) -> set[str]:
     """Package-scope names ``previous`` declared, ``candidate`` no longer declares,
     and ``candidate`` still REFERENCES — with no sibling to provide them.
@@ -4393,6 +4455,9 @@ def why_dirty(
         return f"missing promised {', '.join(sorted(missing))}"
     if previous and (gone := self_dropped_decls(code, previous, sibling_decls)):
         return f"drops {', '.join(sorted(gone))} — still used, no sibling declares it"
+    if deadlocked := mutex_self_deadlock(code):
+        return (f"{', '.join(sorted(deadlocked))} re-locks a mutex it already holds"
+                " (deferred unlock) — deadlocks")
     if require_assertions and not has_assertions(code):
         return "asserts nothing"
     return ""
@@ -4424,6 +4489,8 @@ def _is_clean(
     if required_decls and not required_decls <= top_level_decls(code):
         return False
     if previous and self_dropped_decls(code, previous, sibling_decls):
+        return False
+    if mutex_self_deadlock(code):
         return False
     if require_assertions and not has_assertions(code):
         return False
