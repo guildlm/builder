@@ -1,0 +1,119 @@
+PREDICTION — ledger spec fix (show the code for the one test the model dropped)
+Written 2026-07-17 14:08, BEFORE the run. Prediction first, as always.
+
+THE HOLE (proved earlier today, deterministic, model-free — see PREDICTION-completeness.txt):
+  ledger's spec names SEVEN store tests and the model wrote SIX. The one missing,
+  TestCreateTransactionMovesBalances, is the only one whose absence matters: wrap
+  the apply loop in `if p.Amount > 0` so every credit is silently dropped — money
+  vanishing from a double-entry ledger — and build, vet and the FULL suite stay
+  GREEN. Write the spec's named test verbatim and it fails instantly
+  (`rev: got 0.00, want -500`). The spec named exactly the right test.
+
+WHY THIS ONE AND NOT THE OTHER SIX — the pattern is the project's own law, and I
+checked it rather than assuming it:
+  Of the seven, TestCreateTransactionMovesBalances is the ONLY one that must BUILD
+  a mechanical construct (models.Transaction{Postings: []models.Posting{{...,
+  money.Money(-500)}}}). The other six pass an Account or nothing. The spec
+  DESCRIBED that construct in prose and SHOWED nothing.
+  Independent corroboration in the same artifact, which I went looking for AFTER
+  forming the story rather than treating the story as proof: the spec's own
+  sentence "Imports errors, testing, and the models and money packages" is also
+  violated — the generated file imports errors, testing, models. NO money. The
+  model dropped the test that needed the construct, and then correctly omitted the
+  now-unused import. Two independent signals, one cause.
+  This is the same shape as the ledger deadlock, shortener, logstats, and today's
+  taskapipro guard: DESCRIBED breaks, SHOWN works.
+
+THE FIX: replaced the prose with the exact code I already verified — it compiles,
+it passes on the correct store, it fails on the mutant. Plus the reason the rev
+half is not decoration, and a note that the money import is the compiler's way of
+telling you the test is missing.
+
+I PREDICT (falsifiable, one rep, same process, artifact kept):
+  1. The model WRITES TestCreateTransactionMovesBalances. ledger goes 1 missing
+     -> 0 missing on _named_test_audit.py. Test funcs 32 -> 33.
+     Confidence: high. This is the sixth instance of the thesis, and today's
+     taskapipro case put the guard in BYTE-IDENTICALLY 2/2 after seven straight
+     observations without it.
+  2. GREEN, coverage ~flat. The new test executes lines the other tests already
+     reach — the same reason the workapi gain was "invisible to coverage". IF
+     COVERAGE JUMPS I DO NOT CELEBRATE, I GET SUSPICIOUS. (That instinct is what
+     found today's hole: an unexplained 49->48 on a run I could have filed as a win.)
+  3. BLAST RADIUS: NOTHING ELSE IS LOST. 32 -> 33, not 32 -> 32-with-a-swap.
+
+  (3) IS THE REAL TEST AND I AM STATING WHY I MIGHT BE WRONG. This edit adds
+  ~1400 chars to one file's purpose, and _file_list (builder.py:1156) puts EVERY
+  purpose in EVERY prompt — so it is in all 20 files' prompts, including files
+  generated earlier. That is EXACTLY the mechanism that deleted TestListSorted
+  from taskapipro this morning, 2/2, from an edit in another file's section. I am
+  doing the same class of thing again, on purpose, with the instrument to see it.
+  My reason for predicting no loss is the hypothesis the NONAMES probe is testing
+  right now: taskapipro's edit NAMED other tests (TestList/TestListLimit/
+  TestListNegativeOffset) and I think the store test author de-duplicated against
+  them. This edit names NO other test — it says "the other six" without naming one.
+  So the two experiments are coupled: if NONAMES comes back with TestListSorted
+  restored, this design choice is why, and (3) should hold.
+
+  ############################################################################
+  ### REVISED 14:10 — BEFORE THE RUN. THE GROUNDS FOR (3) COLLAPSED.       ###
+  ############################################################################
+  The NONAMES probe landed (rep1, pre-gate) and REFUTED the de-dup hypothesis:
+  names stripped, TestListSorted STILL ABSENT, and the store test's function list
+  is IDENTICAL to the arm that named them. It was never the names — added TEXT
+  displaces. See PREDICTION-taskapipro.txt.
+
+  So the reason I gave for (3) is gone. I am revising the prediction NOW, before
+  the run, because a prediction whose grounds collapsed is not a prediction — and
+  revising it after seeing the result is precisely how I turned a correct call
+  into a wrong one yesterday.
+
+  (3) IS WITHDRAWN. REPLACED WITH:
+    3'. I DO NOT KNOW whether ledger loses a test, and I now think it is MORE
+        LIKELY THAN NOT that something moves. The only measured statement I have
+        is: adding text to one file's purpose deterministically deleted a
+        spec-named test from an EARLIER file, and no safe form of spec edit is
+        known. My edit is the same class of act, and bigger (~1400 chars).
+        I predict: the new test IS written (1 and 2 stand — those rest on the
+        thesis, which has six instances and today's byte-identical 2/2, not on
+        the dead hypothesis). Test funcs land at 33 IF nothing is displaced, 32
+        if one is. I am NOT predicting which.
+    A prediction of "I don't know" is worth less than a sharp one, and I would
+    rather file the honest weak one than a sharp one I no longer have grounds for.
+
+  THIS IS NOW THE POINT OF THE LEDGER RUN. It stopped being a spec fix and became
+  the first DESIGNED test of the successor question: is the displacement specific
+  to text ABOUT the displaced test's topic (my ledger text is about building a
+  Transaction; taskapipro's was about List, and a LIST test died), or does any
+  large addition perturb the earlier files? Ledger's store test is where the new
+  test goes, so the audit will show both halves at once: does the named test
+  arrive, and does anything else leave.
+  WHATEVER HAPPENS, THE AUDIT RUNS BEFORE AND AFTER. That is now mandatory for
+  every spec fix, not a courtesy — and it is why the tool exists.
+
+WHAT WOULD REFUTE ME, named in advance so I cannot slide past it:
+  - Any test other than the new one disappears (32 -> 32, or a rename-and-drop)
+    => the de-dup hypothesis is DEAD: mere ADDED TEXT displaces, names or not, and
+    every spec edit is a global perturbation with no safe form. That would make
+    "fix the spec by showing code" a technique with a standing cost, and the honest
+    consequence is that EVERY spec fix from here on must be audited before/after,
+    not just this one.
+  - The model writes the test but drops the rev assertion => showing code is not
+    sufficient when the code is long; the model excerpts. A worse finding than a
+    plain miss, because the test would then be PRESENT and the hole still OPEN —
+    and the audit, which matches on names, WOULD NOT SEE IT. If that happens the
+    audit needs to grow teeth (assert the assertion), and I will say so.
+
+BEFORE-STATE, recorded now (artifact preserved at generated/_ledger-BEFORE-specfix
+because a rerun overwrites ledger-v4 — a tool of mine already destroyed one
+arm's evidence today and I am not doing it twice):
+  32 test funcs total: api/middleware 1 · api/router 5 · api/transactions 4 ·
+  models 6 · money 4 · service 6 · store 6  (store should be 7)
+  audit: 32 named, 1 missing (TestCreateTransactionMovesBalances),
+         1 renamed-present (TestCreateAccountDuplicate ->
+         TestCreateAccountDuplicateIsErrExists)
+
+RUN (only after the NONAMES probe lands — one server process, PID 3082; a second
+generation run would confound both):
+  ./_ab_run.sh ledger ; then _named_test_audit.py ledger ; then READ THE FILE.
+  And then the real check: re-apply the mutant to the NEW artifact. If the model's
+  own test does not kill it, the test is theatre and I report that.

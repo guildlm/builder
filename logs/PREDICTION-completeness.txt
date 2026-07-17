@@ -1,0 +1,140 @@
+PREDICTION — completeness rule, re-measured against a FIXED shortener spec
+Written 2026-07-17 13:55, BEFORE the run. Same discipline as PREDICTION-taskapipro.txt.
+
+WHY NOW: the code queued this experiment itself. src/builder.py's _test_rule ends
+with "WHAT WOULD EARN IT BACK, in order: (1) fix shortener's SPEC — it names no
+tests and never says to use Save's return...; (2) re-run shortener — if the break
+was the spec's, the cost disappears and the workapi gain stands alone."
+Step (1) IS DONE, and not by me today: f8d9f4c ("shortener's spec named nothing
+and showed nothing: 2 tests became 8"). Verified by reading specs/shortener.yaml,
+not assumed:
+  - it now NAMES 8 test functions ("named exactly: TestEncodeDecodeRoundTrip, ...")
+    where the rule's ledger recorded `grep -cE "func (doReq|hit|newReq)"` -> 0
+  - it now SHOWS the flow as CODE (POST -> decode -> created.Code), 13 lines of it
+  - it CLOSES the exact second failure mode by name: "NEVER GUESS A SHORT CODE,
+    AND NEVER REACH PAST THE API TO PLANT ONE... a test that ... requests a code
+    it made up (`GET /r/0`) gets 404 against handlers that are perfectly correct."
+The spec fix has also already reproduced independently (sweep 07-17: 72.4 -> 73.1).
+So both documented mechanisms of this rule's COST are now shut by the spec.
+
+THE LEDGER I AM TESTING AGAINST (from _test_rule's own comment):
+  ratelimit   0 effect      (2 processes, 7 arms)
+  workapi     +1 test       (TestListSorted, 3/3, pre-gate, INVISIBLE TO COVERAGE)
+  shortener   loses green   (5/5, across BOTH wordings)
+A cost that reproduced and a benefit that did not => OFF by default (173f4c7).
+
+I PREDICT (falsifiable, one arm each way, ALTERNATED, ONE server process):
+  1. shortener with completeness=ON is GREEN, ~73 coverage, ~8 test funcs.
+     THE COST DISAPPEARS.
+  2. ON ~= OFF on shortener. The rule has NO EFFECT here now — like ratelimit.
+  REASONING, and it is the project's own thesis: the rule was a PATCH FOR SPEC
+  SILENCE. Its demand ("count the scenarios the purpose names and write one
+  function for each") is now something the spec states OUTRIGHT and SHOWS AS CODE.
+  A default that duplicates what the spec already says has nothing left to do.
+  The cost was never the rule's: a silent spec + "write more tests" made the model
+  INVENT a helper (wording 1) and GUESS a code (wording 2). Both are now spelled
+  out, so there is nothing left to invent or guess.
+
+WHAT WOULD REFUTE ME, and I will report it as refuted:
+  - ON breaks green again (invented helper / guessed code / >8 incoherent tests)
+    => the cost is the RULE'S OWN, not the spec's. The rule stays off FOREVER and
+    the workapi gain must be bought some other way. This is the outcome that kills
+    the idea, and I am naming it in advance so I cannot slide past it.
+  - ON writes MORE than the 8 named tests => "count the scenarios" is additive to
+    a spec that already names them, i.e. the rule pushes INVENTION even on a good
+    spec. That is a cost even if it stays green.
+
+CONNECTION TO TODAY'S taskapipro FINDING (why I care beyond bookkeeping):
+  I lost TestListSorted today to my own spec edit — deterministically, 2/2, and
+  the spec NAMES that test at line 140. The rule's ONE confirmed benefit is that
+  same test name on workapi (3/3). And the ledger notes the gain is "invisible to
+  coverage: sorted and unsorted code execute the same lines" — which is exactly
+  why my run came back 83.5 GREEN while a required test had silently vanished.
+  => COVERAGE CANNOT SEE THIS CLASS OF DAMAGE. My testfuncs counter caught what
+     the primary metric structurally cannot. If this rule earns its way back, it
+     is a candidate repair for the harm I measured today.
+  => But note the honest complication, recorded now so it is not rediscovered as
+     a surprise: taskapipro's spec ALREADY names TestListSorted, and the model
+     wrote it 2/2 anyway — until my edit displaced it. So NAMING was sufficient
+     there right up until other text competed with it. Whether the rule can hold
+     a named test against competing text is a THIRD question, not this one.
+
+RUN PLAN (only after the NONAMES probe finishes — a second generation run would
+share server PID 3082 and confound both):
+  GUILDLM_ENABLE_RULES=completeness ./_ab_run.sh shortener   (ON arm)
+  ./_ab_run.sh shortener                                     (OFF arm)
+  Alternate arms, same process, keep every artifact, count test funcs AND read
+  the file. Green/red alone cannot answer this; only the artifact can.
+
+--- 13:57 — SIDE FINDING, from the audit today's loss motivated (_named_test_audit.py) ---
+The audit asks one question the metric cannot: which tests does a spec NAME that
+the model never wrote? Across 24 artifacts, 226 named tests, the suite is clean
+except ONE real hit (taskapipro's row is my own noise — its -v4 tree is being
+rewritten by the running probe; the tool now says so).
+
+  ledger: TestCreateTransactionMovesBalances — spec names it (line 233, in
+  internal/store/memory_test.go's purpose), no test file contains it.
+
+I did not stop at the name. Opened the artifact: the scenario is PARTLY covered
+by TestPostBalanced (service) and TestBalanceAfterTransaction (api) — but BOTH
+assert only cash == 500. Grepped every `-500` in the suite: all seven are INPUTS
+(posting literals, JSON bodies). NONE is an expected value. Balances() is called
+in exactly one test, TestBalancesIsACopy, on a fresh store.
+=> NOTHING IN THIS PROJECT ASSERTS THAT THE NEGATIVE SIDE OF A POSTING LANDS.
+   The spec's named test is precisely the half that is missing: "Balances()
+   reports cash == 500 AND rev == -500."
+
+PREDICTION, WRITTEN BEFORE THE RUN — a model-free, deterministic test of whether
+that gap is REAL or merely untidy. Mutate the artifact's apply loop
+(internal/store/store.go:82) so credits are silently dropped:
+    for _, p := range t.Postings { if p.Amount > 0 { s.balances[...] += p.Amount } }
+A double-entry ledger that drops one side of every transaction is as broken as a
+ledger can be: money vanishes.
+I PREDICT: `go build ./... && go vet ./... && go test ./...` STAYS FULLY GREEN.
+IF IT GOES RED: my reading is wrong, something does pin the negative side, and I
+report the gap as refuted — the audit found a name miss, not a hole.
+Working on a COPY. The artifact is evidence; today I already fixed one tool that
+was destroying its own evidence, and I am not going to hand-edit the exhibit.
+
+--- 13:58 — MUTATION RUN. PREDICTION HELD. THE GAP IS REAL AND IT IS A HOLE. ---
+PREDICTED (above, before the run): mutant STAYS FULLY GREEN.
+MEASURED, deterministic, no model involved, `-count=1` (this project has been
+burned by go's test cache once already — 0fe717f):
+
+  ledger-mut = ledger-v4 with internal/store/store.go:82 wrapped in `if p.Amount > 0`
+  i.e. EVERY CREDIT SILENTLY DROPPED. Money vanishes from a double-entry ledger.
+
+    go build ./...          PASS
+    go vet ./...            PASS
+    go test -count=1 ./...  ok api · ok models · ok money · ok service · ok store
+                            FULLY GREEN.
+
+  Coverage, store pkg: baseline 63.6 -> mutant 62.2. Reported honestly: that 1.4
+  is my added branch changing the statement count, NOT the metric detecting the
+  bug — and it is well inside the band this project routinely calls flat (today's
+  own 82.9 -> 83.5 was "flat"). Nobody would act on it. The gate is green/red, and
+  green is what ships.
+
+THE CLOSING ARGUMENT — I wrote the spec's named test verbatim from ledger.yaml
+line 233 and ran it on BOTH arms:
+    ledger-base + TestCreateTransactionMovesBalances -> ok        (PASSES)
+    ledger-mut  + TestCreateTransactionMovesBalances -> FAIL:
+        memory_test.go:106: rev: got 0.00, want -500
+=> The spec named EXACTLY the test that catches this. The model did not write it.
+   Its absence is what lets a money-vanishing ledger ship green.
+   The spec was right. The machine around it could not tell that it had been
+   ignored.
+
+SUITE-WIDE (24 artifacts, taskapipro excluded — its tree is mid-run):
+    177 spec-named tests, 1 missing. This one.
+So this is not systemic rot; it is a single hole. But it is a REAL one, and the
+green suite plus the coverage number were both structurally incapable of saying
+so. That is the finding: the metric cannot audit the contract. Only the spec's
+own words against the artifact can, which is what _named_test_audit.py now does.
+
+FOR THE COMPLETENESS EXPERIMENT still queued above: this sharpens it. The rule's
+one confirmed benefit is writing a named test the model drops (workapi, 3/3). Here
+is a second, independent instance of the same failure with a DEMONSTRATED cost.
+That raises the value side of the ledger — it does NOT lower the cost side, and
+the cost is what the rule died of. The shortener re-run still has to be run, and
+it can still refute me. I am not going to let this finding talk me into skipping it.

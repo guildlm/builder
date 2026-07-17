@@ -11,4 +11,19 @@ bin/
 # local run artifacts (distillation farm + raw traces)
 farm/
 traces/
-logs/
+# logs/* — NOT logs/. Git cannot re-include a file whose parent DIRECTORY is
+# excluded, so with `logs/` the negation below is dead text that silently does
+# nothing. Excluding the CONTENTS instead leaves the directory visible, which is
+# what makes the exception work. (Found the way everything else was found today:
+# the commit refused the file and I read the error instead of retrying it.)
+logs/*
+
+# ...except the predictions. These are not run artifacts, they are the method:
+# each one is a claim written down BEFORE its measurement, including the outcome
+# that would refute it. That ordering is the only thing separating "I predicted
+# this" from "I explained this afterwards", and it is worth exactly as much as it
+# is verifiable. Today it nearly wasn't: I stamped these files with times I never
+# read off a clock, drifting an hour into the future, and the ordering was only
+# recoverable because GIT held the real times. The timekeeper should hold the
+# record too. Raw logs stay ignored — they are regenerable; a prediction is not.
+!logs/PREDICTION-*.txt
