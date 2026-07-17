@@ -138,3 +138,43 @@ is a second, independent instance of the same failure with a DEMONSTRATED cost.
 That raises the value side of the ledger — it does NOT lower the cost side, and
 the cost is what the rule died of. The shortener re-run still has to be run, and
 it can still refute me. I am not going to let this finding talk me into skipping it.
+
+--- 14:2x (clock READ, not typed) — OBSERVATION, correlational, NOT a claim ---
+The audit can only speak where the spec NAMES tests. Six specs name none, so it
+is structurally blind on them. Looked at what the model does there, and checked
+the obvious confound BEFORE telling myself a story, because "silence -> few
+tests" is exactly the kind of tidy result I fell for six times yesterday.
+
+CONFOUND, and it is REAL for most of them: a tiny project legitimately needs few
+tests. demo-small is 1 file / 2 funcs -> 2 tests. workerpool 1 func -> 2 tests.
+Those are fine and prove nothing.
+
+BUT CONTROLLING FOR SIZE, a different pattern shows, and it is sharper:
+  spec           named  tests  non-test funcs
+  kvservice        2      2       5
+  expreval         2      2       7
+  bitset           3      3       6
+  shortener        8      8      13      (after f8d9f4c named them; was 0 -> 2)
+  logstats         0      2       9
+  tasks-api-min    0      4      10
+THE TEST COUNT TRACKS THE NAMED COUNT, NOT THE PROJECT'S SIZE. Where a spec names
+N, the model writes N — 2 tests for 7 functions if 2 is what was asked. Where a
+spec names nothing, it writes its own minimum, ~1-4, whatever the project's size.
+The one causal datum already in the tree agrees: shortener's spec named nothing
+and got 2; it was made to name 8 and got 8.
+
+CANDIDATE, NOT A FINDING: logstats. 3 files, 9 non-test functions, 2 test
+functions, and coverage 82.0 — a number nobody would look at twice. If the
+pattern holds it is under-tested by a factor of ~4 and the metric will never say
+so, which is the same shape as the ledger hole: green, plausible coverage, and a
+contract nobody checked.
+
+WHAT I AM NOT DOING: calling this a hole. Correlation across 10 specs is not the
+mutation run that proved ledger's. The honest next step is the one that proved
+the last one — pick the behaviour logstats promises, break it, and see if anything
+bites. If the mutant survives, it is a hole; if the suite bites, 2 tests were
+enough and the count was never the point. _mutant_check.sh needs a logstats mutant
+to answer it, and until it has one, this paragraph is a lead, not a result.
+AND IF I DO FIX logstats' SPEC: it is a spec edit, so it perturbs every other file
+in that project. Audit before AND after. That rule is 40 minutes old and cost me
+a spec-named test to learn.
