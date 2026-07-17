@@ -1,0 +1,20 @@
+PREDICTION — lrucache: is Put-on-existing recency defended? (mutation, model-free)
+Written 2026-07-17 22:1x (clock READ), BEFORE the mutation.
+
+PREDICTED: Get's MoveToFront removed -> CAUGHT (TestGetMarksRecentlyUsed names it).
+           Put-existing's MoveToFront removed -> maybe MISSED (no test seen for
+           "update refreshes recency").
+RESULT:    Get -> CAUGHT (FAIL TestGetMarksRecentlyUsed). Put-existing -> MISSED (green).
+
+THE HOLE, classified: impl-spec (lru.go) REQUIRES it — "Put: if the key already
+exists, update its value AND move the element to the FRONT". Code does it. But the
+test-spec's TestUpdateExistingKey asserts only Len()==1 and value==2 — NOT recency.
+So a required invariant is undefended: drop the MoveToFront-on-Put and an LRU that
+evicts a freshly-updated key ships green. Same shape as ratelimit's cap: impl-spec
+names it (code right), test-spec silent (suite toothless), only mutation finds it.
+
+Campaign tally now: MISSED = ledger credit, ratelimit cap, taskapipro status-filter,
+lrucache Put-recency. CAUGHT = taskapi duplicate, taskapipro paginate x3, lrucache
+Get-recency + eviction. The MISSED are all "impl-spec/prose names it, test-spec does
+not name a test that verifies it"; the CAUGHT are all "test-spec names a distinct
+test". Same discriminator, fourth MISSED.
