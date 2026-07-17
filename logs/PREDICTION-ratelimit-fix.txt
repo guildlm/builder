@@ -40,3 +40,34 @@ WHAT WOULD REFUTE / REVERT:
 RUN: ./_ab_run.sh ratelimit ; _named_test_audit.py ratelimit ; diff test-func
   lists vs /tmp/rl-before.txt ; _mutant_check-style clamp re-mutation on the new
   artifact. Keep or revert on the after-audit.
+
+--- 22:0x (clock READ) — RESULT: ALL FOUR PREDICTIONS HELD. CLEAN KEEP. ---
+  1. Model WROTE TestBucketCapAfterIdle. HELD (shown code = thesis, 6th instance).
+  2. GREEN, 75.0 -> 77.0. HELD (clamp line now asserted, not just executed; +2 is
+     consistent, not a suspicious jump).
+  3. The new test BITES. HELD — re-applied the clamp mutant to the SHIPPED artifact:
+       --- FAIL: TestBucketCapAfterIdle
+     The suite now DEFENDS the burst cap it was toothless on. This is the whole
+     point: not that the test exists, that it has teeth. Confirmed on the model's
+     OWN copy, not mine.
+  4. BLAST RADIUS: audited before vs after. Two names changed —
+       TestRouterHealth -> TestHealthEndpoint   (byte-identical: /health -> 200)
+       TestRouterPing   -> TestRateLimit        (byte-identical: /ping 200 then 429,
+                                                  Retry-After == 1)
+     Cosmetic renames, IDENTICAL assertions, nothing lost. Verified by reading both
+     bodies, not by counting. So the spec edit's blast radius here is benign — but
+     it IS non-zero (the model rewrote the whole test file and renamed two tests),
+     which is exactly why the after-audit is mandatory and not a formality.
+
+VERDICT: KEEP the edit (committed e76dc51). ratelimit went from a suite that could
+not defend its burst cap to one that does, +1 real test, no coverage lost, +2
+coverage. The suite-teeth thesis, applied end to end: found the hole by mutation,
+validated the fix model-free, showed the code in the spec, and confirmed the model
+writes it AND it bites AND nothing else broke.
+
+PRE-EXISTING GAP, NOTED NOT CHASED (not caused by my edit — present in BEFORE too):
+the test-spec DESCRIBES a two-clients flow test ("hit clientA once 200 and clientB
+once 200 ... then clientA 429 and clientB 429") but neither before nor after wrote
+it as its own function. Same described-not-shown pattern as the cap was. A future
+ratelimit pass could SHOW that test too. Filed, not fixed — one edit, one audited
+change at a time, which is the discipline that kept tonight clean.
