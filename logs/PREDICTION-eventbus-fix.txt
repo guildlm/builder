@@ -13,3 +13,19 @@ NOTE: the spec YAML was rewritten by yaml.dump (folded->literal scalars, 68 line
 churned). Verified semantically: every impl purpose parses byte-identical to HEAD,
 only the test purpose changed. Functionally fine (builder uses safe_load); poor git
 hygiene, recorded honestly. If any impl behaviour shifts in the run, suspect this.
+
+--- RESULT: ALL FOUR HELD. Third clean end-to-end suite-teeth fix. ---
+  1. Model WROTE TestPublishNonBlockingWhenFull. HELD.
+  2. GREEN, 68.4%. HELD.
+  3. BITES: removed `default:` on the SHIPPED artifact -> FAIL TestPublishNonBlocking
+     WhenFull (2.00s timeout). HELD — the bus deadlocks and the deadline catches it.
+  4. BLAST RADIUS: ZERO. 4 original tests kept + 1 new = 5, nothing lost/renamed.
+     (The yaml.dump reformatting did not shift any impl behaviour — coverage and the
+     other 4 tests are intact, confirming the semantic-identity check.)
+VERDICT: KEEP. eventbus now defends the non-blocking send; a full subscriber can no
+longer silently deadlock the bus without a test catching it.
+
+3 FIXES, 3 CLEAN KEEPS: ratelimit cap, lrucache Put-recency, eventbus non-blocking.
+STILL OPEN (filed): eventbus Close (gutted -> green, no TestClose) — same pattern,
+lower value. And the SYSTEMIC output: a spec-lint for impl-spec imperatives without
+a matching test name is the durable fix, above one-by-one.
