@@ -47,3 +47,32 @@ RUN PLAN (after mutex-intra finishes — one process, no parallel generation):
   then: read the log for the gate's dirty-reason, count Resolve's lock calls in
   the artifact, and run _mutant_check is N/A here (this is about the store's own
   deadlock, which the suite's own timeout already exercises).
+
+--- 21:5x (clock READ) — GATE TEST RESULT: PREDICTION REFUTED. THE GATE CONVERGES. ---
+I predicted RED (the resample reproduces the deadlock). It went GREEN 69.8%. The
+log shows the whole mechanism:
+    best-of-N gen: kept candidate 1 of 2
+    rejected gen candidate 1: Resolve re-locks a mutex it already holds
+        (deferred unlock) — deadlocks          <- THE GATE FIRED
+    best-of-N gen: kept candidate 2 of 2        <- took the resample instead
+    converged to green after fix round 1
+Shipped Resolve: `s.mu.Lock(); defer s.mu.Unlock(); l,ok:=s.links[code]; ...;
+l.Hits++; s.links[code]=l` — a single write lock, correct. Gate verdict on the
+artifact: clean.
+
+So the gate is a CONVERGENCE FIX, not merely a detector — the best-case outcome I
+named. My RED prediction was WRONG, and I am glad: I predicted the resample would
+be as stubborn as the deadlock was deterministic, and it was not. The clean
+before/after: WITHOUT the gate the deadlock shipped to the toolchain and timed out
+(completeness A/B, 4/4 red); WITH the gate, candidate 1's deadlock is rejected,
+candidate 2 ships, GREEN. n=1 on the green, but the log makes the mechanism
+explicit, not inferred. NO deadlock repair is needed — the resample already
+supplies the clean draw the gate's rejection forces it to use.
+
+WHY MY PREDICTION WAS WRONG, traced honestly: I based "too deterministic to redraw
+out of" on the completeness A/B's 4/4. But that was 4 separate FIRST draws, all
+deadlocked. The gate does not need a clean FIRST draw — it needs a clean draw
+among the RESAMPLES, and best-of-N candidate 2 (a different temperature) was clean.
+The determinism I cited was determinism of the greedy draw, not of the resample
+distribution. rep 3 of mutex-intra had already hinted the distribution has spread;
+I under-weighted it.

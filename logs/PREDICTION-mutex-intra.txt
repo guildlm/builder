@@ -92,3 +92,68 @@ chain. Prediction for it will be filed before it runs, and it will be VALIDATED
 against artifacts on disk first — the deadlocked shortener Resolve (must flag) and
 the CORRECT mutex files from ledger/taskapipro/workapi (must NOT flag). A gate
 that false-positives on correct code is worse than none.
+
+--- 21:5x — FULL RUN (3 reps): I RETRACT the rep-1 refutation as TOO STRONG. ---
+I filed "wording does not reach this failure" from rep 1 ALONE. rep 3 contradicts
+the strong form:
+  rep 1: DEADLOCK   rep 2: DEADLOCK   rep 3: single-lock, GREEN 73.1
+So WITH the extended wording: 2/3 deadlock, 1/3 CORRECT.
+WITHOUT it (completeness A/B, 4 arms, same process): 4/4 deadlock.
+
+HONEST READ, and it is neither of my two earlier framings:
+  - My ORIGINAL prediction ("3/3 cleared, GREEN") is REFUTED — it is 1/3, not 3/3.
+    The wording does NOT reliably fix it.
+  - My REP-1 refutation ("wording does not reach this AT ALL") is ALSO WRONG, too
+    strong the other way — rep 3 shows it CAN work. I wrote that from n=1 and it
+    over-claimed exactly as the original did, in the opposite direction.
+  - The measured truth is a WEAK, UNRELIABLE effect: 1/3 with wording vs 0/4
+    without. n is tiny; this is suggestive, not significant. What it does establish
+    firmly is that the model is NOT deterministic on this file — the same prompt
+    yields deadlock twice and a correct single-lock once.
+THE GATE IS STILL THE RIGHT ANSWER: a 1/3 wording effect is not good enough to
+ship green reliably, and a check that rejects the 2/3 bad draws and resamples is
+strictly better. But I am correcting the record: the wording is weakly helpful,
+not inert, and I over-stated the refutation from a single rep — the same n=1
+mistake I keep catching, this time in a refutation instead of a claim.
+
+CONSEQUENCE FOR THE GATE TEST (running now, base prompt + gate, wording OFF):
+  rep 3 proves a CORRECT Resolve is reachable by resampling. The gate rejects a
+  deadlocked draw and steps temperature; if a clean draw exists at ~1/3, the gate
+  may CONVERGE where the bare prompt shipped the deadlock. So my gate prediction
+  (RED) is now LESS certain than when I filed it. I am NOT changing the point
+  prediction — it was filed, and moving it now on this evidence is fine because it
+  is BEFORE the result, but I note: GREEN is now clearly plausible, ~1/3-ish if the
+  resample distribution matches. Recording this BEFORE the gate result lands.
+
+--- 21:5x — CORRECTION TO MY CORRECTION: rep 3 is NOT correct code. 0/3, not 1/3. ---
+I "corrected" the refutation by crediting rep 3 as a correct single-lock draw. I
+was fooled by my OWN run-script check, which only tests "RLock AND non-R Lock ->
+deadlock, else OK". rep 3's Resolve holds ONLY RLock — but MUTATES shared state
+under it:
+    s.mu.RLock(); defer s.mu.RUnlock()
+    link, ok := s.m[code]
+    link.Hits++
+    s.m[code] = link          // WRITE to the shared map under a READ lock
+    return link, nil
+That is a DATA RACE, not correct code. It shipped GREEN only because the test
+suite has no concurrent Resolve to trip -race. My check called it "single-lock=OK"
+because it was looking for the deadlock shape, not for correctness — the exact
+trap the whole day has been about: a crude proxy reported OK and I read the proxy,
+not the code.
+
+CORRECTED TALLY, extended wording: 2/3 deadlock, 1/3 DATA-RACE, 0/3 CORRECT.
+So the wording did not produce correct code in ANY rep. It pushed rep 3 off the
+deadlock and into a different, quieter bug. My rep-1 refutation ("wording does not
+reach correctness") is now BETTER supported than my correction implied — I
+over-corrected on a proxy, then have to un-correct on the code. Three swings on
+one result; only opening the file settled it.
+
+A THIRD BUG CLASS, noted not chased: mutate-shared-under-RLock. Statically
+detectable (a method holding RLock that writes a field/map it guards), invisible
+to the compiler AND to -race unless the test has concurrency. My deadlock gate
+does NOT catch it (correctly — it is not a deadlock; the GATE artifact and rep 3
+are both "clean" to that detector). A separate gate could: "a write to a
+mutex-guarded field while holding only its RLock". Lower priority than the
+deadlock (needs concurrency to bite) but the same category — a bug the green suite
+cannot see. Filed as a candidate, not built; it would need its own validation
+corpus and false-positive audit like the deadlock gate got.
