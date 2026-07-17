@@ -112,3 +112,29 @@ clause into its own NAMED test and SHOW the code —
     the clock by an HOUR; assert the next THREE Allow() calls are true, true, FALSE
     — i.e. the idle refilled to exactly capacity (2), not to 3600.
 This makes it a distinct named+shown test, the shape that survives.
+
+--- 22:1x — SECOND CONTROL: taskapipro paginate, and a WITHIN-SPEC contrast ---
+Predicted CAUGHT (all 3 paginate guards named as tests). Clean per-guard mutation:
+  neg-offset removed -> FAIL TestListNegativeOffset (panic slice[-1:])  CAUGHT
+  past-end   removed -> FAIL TestListOffsetPastEnd  (panic slice[5:1])  CAUGHT
+  limit      removed -> FAIL TestListNegativeOffset                     CAUGHT
+All three defended. (First run I truncated the grep to 3 lines and hid the
+service package — inconclusive; redone per-guard on fresh copies with full output.
+The measurement discipline, again: a truncated view is not a result.)
+
+THE CLEANEST DEMONSTRATION OF THE WHOLE THESIS IS NOW WITHIN ONE SPEC — taskapipro:
+  paginate's 3 guards: SHOWN AS CODE in the spec ("THREE named guards") -> the
+    model wrote all three tests -> all three CAUGHT. Teeth.
+  the status filter:   DESCRIBED IN PROSE ("keep those whose t.Status matches") ->
+    dropped -> this morning's entire saga (a spec-named behaviour that shipped
+    wrong, invisible to coverage, until the spec SHOWED the code).
+Same spec, same model, same run. The shown-as-code invariant is defended; the
+prose-described one was not. Named-and-shown -> teeth; described-in-prose -> dropped.
+The discriminator is not the spec's complexity or the model's skill — it is how
+CONCRETELY the invariant is realised in the test-spec, and taskapipro proves it
+against itself.
+
+TALLY across the campaign:
+  CAUGHT (teeth):    taskapi duplicate (named) · taskapipro paginate x3 (shown)
+  MISSED (toothless): ledger credit (named, DROPPED) · ratelimit cap (prose, DROPPED)
+  · taskapipro status-filter (prose, DROPPED — this morning)
