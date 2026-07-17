@@ -50,3 +50,19 @@ SCOPE, stated so I do not overclaim: a PASS here means the wording FIXES the bug
 it was built for, in one process. It does NOT by itself justify turning the
 extension on by default — that needs the mutex-spec regression sweep above, same
 as every default this project has shipped. One experiment, one question.
+
+--- 20:2x — THE REQUIRED SECOND HALF, pre-staged (not yet run) ---
+IF mutex-intra passes (clears shortener's deadlock), turning the extension on by
+default is a SEPARATE decision that needs a regression sweep — the sentence lands
+in the mutex-file prompt of EVERY mutex-bearing spec, and today's law is that a
+default's safety comes from the regime it is used in. The mutex-bearing specs
+(purpose names sync.Mutex, non-test .go file), enumerated now so the sweep is
+ready:
+  eventbus, kvservice, ledger, lrucache, ratelimit, shortener, taskapi,
+  taskapipro, taskflow, tasks-api, tasks-api-min, tasks-api-noshadownudge,
+  usersapi, walkv, workapi   (15 specs)
+The sweep: each of these ON vs OFF (extension), same process, and the pass bar is
+"no spec that is green without the sentence goes red with it". That is a ~2-4h
+run and it is NOT tonight's question. Tonight answers only whether the wording
+fixes what it was written for. The flip waits on the sweep, as every default here
+has.
