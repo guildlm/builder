@@ -66,3 +66,29 @@ The sweep: each of these ON vs OFF (extension), same process, and the pass bar i
 run and it is NOT tonight's question. Tonight answers only whether the wording
 fixes what it was written for. The flip waits on the sweep, as every default here
 has.
+
+--- 21:0x (clock READ) — REP 1 REFUTES. PROMPT WORDING DOES NOT REACH THIS. ---
+rep 1: Resolve=RLock+Lock=DEADLOCK, NOT-GREEN. The extension IS in the prompt
+(verified: "LOCK YOURSELF TWICE" present). The model read "Lock() once at the
+top, no RLock" and wrote RLock-then-Lock anyway. reps 2-3 still running for the
+record, but rep 1 alone triggers the refutation clause I named in advance:
+  "Deadlock persists in any rep => the wording does not reach this failure. The
+   extension does not ship, and ... it needs a GATE (a check that rejects a
+   method containing both RLock and Lock on the same receiver)."
+Reporting it refuted. The added sentence does NOT ship as a default (it stays
+gated off; I will not delete it — like completeness, a measured-and-parked rule
+is cheaper to revive than to rebuild — but it is OFF and marked ineffective).
+
+WHY A GATE AND NOT MORE WORDS: the model has a strong prior — RLock for the read
+half, Lock for the write half — and a sentence does not override it. This is the
+same lesson the project already learned for dropped fixtures (self_dropped_decls):
+a defect decidable FROM THE FILE ALONE belongs in a check, not a prompt. Intra-
+method double-lock is exactly that: within one method body, the same mutex
+acquired twice with the first release deferred is UNCONDITIONALLY a deadlock, and
+it is decidable from the one file with no spec, no purpose, no call graph.
+
+NEXT: build mutex_self_deadlock(code) as a static check in the why_dirty/_is_clean
+chain. Prediction for it will be filed before it runs, and it will be VALIDATED
+against artifacts on disk first — the deadlocked shortener Resolve (must flag) and
+the CORRECT mutex files from ledger/taskapipro/workapi (must NOT flag). A gate
+that false-positives on correct code is worse than none.
