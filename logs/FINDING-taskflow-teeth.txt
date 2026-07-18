@@ -148,3 +148,34 @@ order; operator precedence + LEFT-associativity `10-2-3=5` + division truncation
 secondary/edge invariants (a cap, a non-blocking send, an out-of-range guard, an
 in-memory mirror) — the promises made ALONGSIDE the headline behavior, which the
 one obvious test exercises and the edge test nobody writes would have caught.
+
+--- UPDATE 2026-07-18 (workerpool): an invariant with NO OUTPUT SIGNATURE ---
+ParallelMap must use "at most `workers` goroutines". Change the worker loop from
+`w < workers` to `w < len(items)` (one goroutine per item, unbounded): the output —
+input order + exactly-once-per-item count — is byte-identical, so both tests pass.
+A concurrency probe confirms the real change: correct code peaks at workers=2, the
+mutant peaks at 8 (len(items)). Added as a SURVIVED entry; BEFORE at
+generated/_workerpool-BEFORE.
+
+FOURTH hole shape, and the most fundamental: an invariant that leaves NO trace in
+the output at all. The sort holes had a signature nobody asserted; the bitset guard
+had an edge branch nobody ran; walkv's delete had a signature masked by replay. This
+one has no output signature to assert in the first place — bounded concurrency is
+about HOW the result is produced, not WHAT it is. Output-only tests are structurally
+blind to it, and so is line coverage (every line runs). It takes a probe that
+observes execution, not results, to see it at all.
+
+jsoncodec: checked, well-defended (exact-string marshal `{"name":"boot","at":1000}`
+pins field names + unix-seconds; round-trip + recursion-timeout cover the rest).
+Suite: 10 CAUGHT / 8 SURVIVED across 12 specs.
+
+=== TAXONOMY OF SUITE-TEETH HOLES (2026-07-18 sweep) ===
+1. No test at all for a required invariant   — taskflow/usersapi/taskapipro sort,
+   taskflow status-validation, logstats tie-break, ratelimit cap, eventbus send.
+2. Guard tested on its happy path, edge never run — bitset Clear(200).
+3. Live effect observed only via a different code path — walkv Delete (via replay).
+4. Invariant with no output signature — workerpool bounded concurrency.
+Plus a NON-hole failure mode: 5. Named, order-asserting, but PROBABILISTIC — tasks-api
+TestStoreListSorted (2 elements, ~20% catch). And the positive control: taskapi,
+where the same sort invariant IS robustly defended. The discriminator throughout:
+not "is there a green test" but "does a test EXECUTE the exact promise, deterministically".

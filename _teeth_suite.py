@@ -161,6 +161,21 @@ def _bs_drop_clear_guard(text: str) -> str | None:
         blk, "\twordIndex := i / 64\n\tb.words[wordIndex] &^= uint64(1) << uint(i%64)\n")
 
 
+def _wp_unbounded(text: str) -> str | None:
+    """workerpool: spawn one goroutine per item instead of `workers` (unbounded).
+
+    ParallelMap must use "at most `workers` goroutines". The output (input order +
+    once-per-item count) is identical whether it runs 2 goroutines or one-per-item, so
+    both output-checking tests pass on the mutant. A concurrency probe confirms the
+    real behaviour change: correct code peaks at `workers`, the mutant peaks at
+    len(items). An invariant with NO OUTPUT SIGNATURE — coverage and green cannot see it.
+    """
+    a = "for w := 0; w < workers; w++ {"
+    if text.count(a) != 1:
+        return None
+    return text.replace(a, "for w := 0; w < len(items); w++ {")
+
+
 def _wv_drop_delete(text: str) -> str | None:
     """walkv: drop Delete's in-session map removal (keep the DEL log write).
 
@@ -260,6 +275,10 @@ MUTATIONS = [
     ("walkv", "store.go",
      "Delete removes the key from the in-memory map (not just the log)",
      _wv_drop_delete),                               # HOLE: only checked after Close+reopen, never in-session
+    # --- workerpool (added 2026-07-18): an invariant with no output signature ---
+    ("workerpool", "pool.go",
+     "ParallelMap uses AT MOST `workers` goroutines (bounded concurrency)",
+     _wp_unbounded),                                 # HOLE: one-goroutine-per-item gives identical output
 ]
 
 
