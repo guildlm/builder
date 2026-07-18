@@ -54,3 +54,18 @@ taskflow AND usersapi — and taskapipro (memory) DID have a TestListSorted. The
 list-order test is the one a store spec asks for and a green suite most often
 omits: a store sorts, and nothing checks that it did. This is the strongest
 cross-spec evidence yet for guildlm-suite-teeth. Suite: 8 CAUGHT / 3 SURVIVED.
+
+--- UPDATE 2026-07-18 (logstats): a HALF-defended sort ---
+stats.go Report() sorts PathStats by Count DESCENDING, ties broken by Path
+ASCENDING — spec says verbatim "ties broken by Path ascending — deterministic
+output". TestConsume DOES assert order: report[0].Path=="/a" (Count 2),
+report[1].Path=="/b" (Count 1). But /a and /b have DIFFERENT counts, so the test
+exercises only the PRIMARY clause. No test ever gives two paths the SAME count, so
+the TIE-BREAK clause is undefended: drop `if Count==Count { return Path<Path }` and
+the suite stays green. Validated model-free; BEFORE at generated/_logstats-BEFORE.
+
+Added as a CAUGHT (reverse the primary -> report[0] becomes /b -> TestConsume red)
+plus a SURVIVED (drop the tie-break -> green). ONE sort call, ONE clause defended,
+ONE not. The lesson sharpens: a test that asserts ordering can still cover only
+PART of the ordering contract — "there is an order test" is not "the order is
+defended". Suite now 9 CAUGHT / 4 SURVIVED across 6 specs.

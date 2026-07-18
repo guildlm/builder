@@ -109,6 +109,23 @@ def _ua_drop_dup(text: str) -> str | None:
     return text.replace(blk, "\t// MUTANT: duplicate-ID guard removed\n")
 
 
+def _ls_flip_primary(text: str) -> str | None:
+    """logstats: reverse Report's PRIMARY sort (Count descending -> ascending)."""
+    a = "\t\treturn stats[i].Count > stats[j].Count"
+    if text.count(a) != 1:
+        return None
+    return text.replace(a, "\t\treturn stats[i].Count < stats[j].Count")
+
+
+def _ls_drop_tiebreak(text: str) -> str | None:
+    """logstats: drop Report's TIE-BREAK (Path ascending on equal Count)."""
+    blk = ("\t\tif stats[i].Count == stats[j].Count {\n"
+           "\t\t\treturn stats[i].Path < stats[j].Path\n\t\t}\n")
+    if text.count(blk) != 1:
+        return None
+    return text.replace(blk, "\t\t// MUTANT: tie-break (Path asc on equal Count) removed\n")
+
+
 # (spec, relative file, description, mutation). One promise per entry.
 MUTATIONS = [
     ("ledger", "internal/store/store.go",
@@ -149,6 +166,13 @@ MUTATIONS = [
     ("usersapi", "store.go",
      "List returns users sorted by ID (deterministic output)",
      _ua_drop_sort),                                 # HOLE: TestListReturnsAll checks len==2, never order
+    # --- logstats (added 2026-07-18): a SPLIT sort — half defended, half not ---
+    ("logstats", "stats.go",
+     "Report ranks paths by Count descending",
+     _ls_flip_primary),                              # CAUGHT (TestConsume asserts report[0]==/a, Count 2>1)
+    ("logstats", "stats.go",
+     "Report breaks Count ties by Path ascending (deterministic)",
+     _ls_drop_tiebreak),                             # HOLE: no test ever has two equal-Count paths
 ]
 
 
