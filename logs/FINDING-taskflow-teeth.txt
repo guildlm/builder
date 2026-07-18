@@ -109,3 +109,18 @@ caused was not cosmetic — it removed the ONLY test defending an impl-required
 invariant, and the teeth suite now regression-guards that exact hole. Suite: 10
 CAUGHT / 5 SURVIVED across 9 specs (ledger, ratelimit, lrucache, eventbus, workapi,
 taskflow, usersapi, logstats, taskapi, taskapipro).
+
+--- UPDATE 2026-07-18 (bitset): a required no-panic guard nobody exercises ---
+bitset.go Clear(i): spec says "if i/64 is beyond the current words, it is already
+clear — do nothing, do not panic". The impl guards with `if wordIndex < len(words)`.
+TestSetTestClear asserts Test(200) is false (beyond the slice) — but only ever calls
+Clear(1), never Clear beyond the slice. Drop the guard: suite stays green, yet a
+probe shows Clear(200) on a fresh set now PANICS (index out of range). Validated
+model-free; BEFORE at generated/_bitset-BEFORE. Added as a SURVIVED entry.
+
+A different SHAPE of hole from the sort family: not "an invariant with no test at
+all" but "a guard whose HAPPY path is tested (Clear(1)) while the exact edge it
+exists FOR (Clear beyond the slice) never runs". The test even proves the author
+knew about out-of-range indices — it checks Test(200) — and still omitted Clear(200).
+Coverage counts the Clear line as executed; nothing executes the branch that matters.
+Suite: 10 CAUGHT / 6 SURVIVED across 10 specs.

@@ -145,6 +145,22 @@ def _tap_drop_tasks_sort(text: str) -> str | None:
     return head + tail
 
 
+def _bs_drop_clear_guard(text: str) -> str | None:
+    """bitset: remove Clear's out-of-range guard so Clear(i) beyond words panics.
+
+    Spec: "if i/64 is beyond the current words, it is already clear — do nothing, do
+    not panic." The test does Test(200) (beyond the slice) but never Clear(200), so
+    the guard is undefended: drop it and the suite stays green, yet Clear(200) on a
+    small set now panics (validated with a probe). The unique `&^=` line anchors it.
+    """
+    blk = ("\twordIndex := i / 64\n\tif wordIndex < len(b.words) {\n"
+           "\t\tb.words[wordIndex] &^= uint64(1) << uint(i%64)\n\t}\n")
+    if text.count(blk) != 1:
+        return None
+    return text.replace(
+        blk, "\twordIndex := i / 64\n\tb.words[wordIndex] &^= uint64(1) << uint(i%64)\n")
+
+
 def _ls_flip_primary(text: str) -> str | None:
     """logstats: reverse Report's PRIMARY sort (Count descending -> ascending)."""
     a = "\t\treturn stats[i].Count > stats[j].Count"
@@ -217,6 +233,10 @@ MUTATIONS = [
     ("taskapipro", "internal/store/memory.go",
      "ListTasks sorted by ID (its TestListSorted was deleted by a spec edit)",
      _tap_drop_tasks_sort),                          # HOLE: only ListProjects order survives; tasks order undefended
+    # --- bitset (added 2026-07-18): a required no-panic guard nobody exercises ---
+    ("bitset", "bitset.go",
+     "Clear(i) beyond the words slice must not panic",
+     _bs_drop_clear_guard),                          # HOLE: test does Test(200) but never Clear(200)
 ]
 
 
