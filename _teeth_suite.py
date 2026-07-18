@@ -56,6 +56,42 @@ def _drop_block(pattern: str):
     return apply
 
 
+def _tf_drop_status(text: str) -> str | None:
+    """taskflow: remove the bad-status branch of Task.Validate (title check stays)."""
+    blk = ('\tif t.Status != "todo" && t.Status != "doing" && t.Status != "done" {\n'
+           '\t\treturn fmt.Errorf("%w: bad status %q", ErrValidation, t.Status)\n'
+           '\t}\n')
+    if text.count(blk) != 1:
+        return None
+    return text.replace(blk, "\t// MUTANT: bad-status validation removed\n")
+
+
+def _tf_drop_dup(text: str) -> str | None:
+    """taskflow: remove the duplicate-ID guard in CreateTask."""
+    blk = "\tif _, ok := s.tasks[t.ID]; ok {\n\t\treturn ErrExists\n\t}\n"
+    if text.count(blk) != 1:
+        return None
+    return text.replace(blk, "\t// MUTANT: duplicate-ID guard removed\n")
+
+
+def _tf_drop_paginate_clamp(text: str) -> str | None:
+    """taskflow: drop the negative-offset clamp INSIDE paginate, keep the past-end guard."""
+    anchor = "\tif offset >= len(items) {\n\t\treturn []T{}\n\t}\n"
+    blk = anchor + "\tif offset < 0 {\n\t\toffset = 0\n\t}\n"
+    if text.count(blk) != 1:
+        return None
+    return text.replace(blk, anchor + "\t// MUTANT: negative-offset clamp removed\n")
+
+
+def _tf_drop_sort(text: str) -> str | None:
+    """taskflow: remove the sorted-by-ID guarantee from BOTH mirrored list methods."""
+    line = "\tsort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })"
+    if text.count(line) != 2:  # one invariant, two mirrored list methods
+        return None
+    text = text.replace(line, "\t// MUTANT: sorted-by-ID invariant removed")
+    return text.replace('\t"sort"\n', "")  # drop the now-unused import so it still compiles
+
+
 # (spec, relative file, description, mutation). One promise per entry.
 MUTATIONS = [
     ("ledger", "internal/store/store.go",
@@ -76,6 +112,19 @@ MUTATIONS = [
     ("workapi", "internal/worker/worker.go",
      "Stop() drains in-flight events (wg.Wait before returning)",
      _drop_line(r"\n\s*w\.wg\.Wait\(\)")),
+    # --- taskflow (added 2026-07-18): two defended controls + two NEW holes ---
+    ("taskflow", "store.go",
+     "duplicate Task ID -> ErrExists (409)",
+     _tf_drop_dup),                                  # CAUGHT (TestCreateDuplicate)
+    ("taskflow", "pagination.go",
+     "paginate clamps a negative offset (no panic, exact count)",
+     _tf_drop_paginate_clamp),                       # CAUGHT (TestPaginateNegativeOffset)
+    ("taskflow", "store.go",
+     "List methods return items sorted by ID",
+     _tf_drop_sort),                                 # HOLE: no test asserts order
+    ("taskflow", "models.go",
+     "Task.Validate rejects a status outside {todo,doing,done}",
+     _tf_drop_status),                               # HOLE: TestCreateInvalid trips on empty title, never a bad status
 ]
 
 

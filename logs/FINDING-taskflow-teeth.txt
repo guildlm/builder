@@ -1,0 +1,43 @@
+FINDING — taskflow suite-teeth (model-free, deterministic). Measured 2026-07-18 13:36, from builder 965347f.
+
+Added 4 taskflow entries to _teeth_suite.py. Every one validated by hand in an
+isolated copy of generated/taskflow-v4 (BEFORE artifact preserved at
+generated/_taskflow-BEFORE, proving both holes survive on the SHIPPED code):
+
+DEFENDED (CAUGHT — regression guards, like the workapi control):
+  1. duplicate Task ID -> ErrExists (409). Drop the guard in CreateTask ->
+     TestCreateDuplicate goes red. Teeth.
+  2. paginate clamps a negative offset. Drop the `if offset < 0` clamp INSIDE
+     paginate (past-end guard kept) -> TestPaginateNegativeOffset slices
+     items[-1:...] and panics -> red. Teeth. (The spec itself flags this clamp as
+     "the one most often dropped"; here a test actually defends it.)
+
+NEW HOLES (SURVIVED — impl-required invariant, no test defends it):
+  3. store.go REQUIRES "List methods return items sorted by ID"; the code does
+     sort.Slice in ListTasks AND ListProjects. NO test asserts order. Delete BOTH
+     sorts (+ the now-unused sort import) and the whole suite stays GREEN.
+     TestList checks len==1; TestListLimit posts ids "1","2", GETs ?limit=1, and
+     asserts len==1 only — never WHICH task, so map-random order ships green.
+  4. models.go Task.Validate rejects a status outside todo/doing/done. The spec's
+     test purpose says verbatim: TestCreateInvalid posts "a task with a bad status
+     -> 400". The model instead wrote TestCreateInvalid with an EMPTY TITLE
+     (status stays "todo") — it trips the 400 on the empty title, never on a bad
+     status. Remove the entire status branch of Validate -> suite stays GREEN.
+     A NAMED test defending the WRONG invariant: nastier than a missing test.
+
+Both holes reinforce guildlm-suite-teeth: green suite != defended contract, and
+even a test NAMED for the invariant can exercise a different branch. Coverage runs
+lines; it does not check which promise a line keeps.
+
+FIX PLAN (filed — needs the MLX server at :8080, which is DOWN right now):
+  Per the ratelimit/lrucache/eventbus pattern: edit specs/taskflow.yaml to name+SHOW
+  the two tests (a TestListSorted that posts ids out of order and asserts index 0's
+  id < index 1's; a TestCreateBadStatus that posts status "nope" and asserts 400).
+  Minimal by-hand YAML edit (no yaml.dump churn). MANDATORY before/after audit of the
+  test-func list — the taskapipro lesson: a spec edit once SILENTLY DELETED a
+  spec-named test elsewhere. Regen with _ab_run.sh taskflow, confirm the mutations
+  now BITE (teeth suite flips both to CAUGHT), verify ZERO blast radius.
+
+STATE: teeth suite now 10 entries / 7 CAUGHT / 2 SURVIVED / 1 n-a (ledger store.go
+variant, impl moved to memory.go). Exit 1 = open holes, by design. This is honest
+hole-TRACKING, not a regression — the count reflects reality.

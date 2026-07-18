@@ -27,3 +27,8 @@ logs/*
 # recoverable because GIT held the real times. The timekeeper should hold the
 # record too. Raw logs stay ignored — they are regenerable; a prediction is not.
 !logs/PREDICTION-*.txt
+# ...and the findings. A FINDING is a prediction's sibling: a measured, model-free
+# result (a mutation that survives, a BEFORE artifact that proves a hole ships) —
+# not regenerable, because it records what a specific artifact did at a specific
+# commit. Same reason as the predictions; same exception.
+!logs/FINDING-*.txt
