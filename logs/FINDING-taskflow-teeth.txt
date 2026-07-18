@@ -41,3 +41,16 @@ FIX PLAN (filed — needs the MLX server at :8080, which is DOWN right now):
 STATE: teeth suite now 10 entries / 7 CAUGHT / 2 SURVIVED / 1 n-a (ledger store.go
 variant, impl moved to memory.go). Exit 1 = open holes, by design. This is honest
 hole-TRACKING, not a regression — the count reflects reality.
+
+--- UPDATE 2026-07-18 (usersapi): the sorted-by-ID hole is SYSTEMIC ---
+usersapi/store.go states "List returns users sorted by ID for deterministic
+output" and does sort.Slice. TestListReturnsAll POSTs ids "1" and "2", GETs the
+list, and asserts len==2 ONLY — never order. Drop the sort (+ import): suite stays
+GREEN. Validated model-free; BEFORE artifact at generated/_usersapi-BEFORE.
+Added as the third SURVIVED entry, plus a duplicate-ID CAUGHT guard.
+
+So the SAME impl-required invariant ("List sorted by ID") is UNDEFENDED in BOTH
+taskflow AND usersapi — and taskapipro (memory) DID have a TestListSorted. The
+list-order test is the one a store spec asks for and a green suite most often
+omits: a store sorts, and nothing checks that it did. This is the strongest
+cross-spec evidence yet for guildlm-suite-teeth. Suite: 8 CAUGHT / 3 SURVIVED.

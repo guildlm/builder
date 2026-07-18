@@ -92,6 +92,23 @@ def _tf_drop_sort(text: str) -> str | None:
     return text.replace('\t"sort"\n', "")  # drop the now-unused import so it still compiles
 
 
+def _ua_drop_sort(text: str) -> str | None:
+    """usersapi: remove the sorted-by-ID guarantee from List (single method)."""
+    line = "\tsort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })"
+    if text.count(line) != 1:
+        return None
+    text = text.replace(line, "\t// MUTANT: sorted-by-ID invariant removed")
+    return text.replace('\t"sort"\n', "")
+
+
+def _ua_drop_dup(text: str) -> str | None:
+    """usersapi: remove the duplicate-ID guard in Create."""
+    blk = "\tif _, ok := s.users[u.ID]; ok {\n\t\treturn ErrExists\n\t}\n"
+    if text.count(blk) != 1:
+        return None
+    return text.replace(blk, "\t// MUTANT: duplicate-ID guard removed\n")
+
+
 # (spec, relative file, description, mutation). One promise per entry.
 MUTATIONS = [
     ("ledger", "internal/store/store.go",
@@ -125,6 +142,13 @@ MUTATIONS = [
     ("taskflow", "models.go",
      "Task.Validate rejects a status outside {todo,doing,done}",
      _tf_drop_status),                               # HOLE: TestCreateInvalid trips on empty title, never a bad status
+    # --- usersapi (added 2026-07-18): one guard + the sorted-by-ID hole again ---
+    ("usersapi", "store.go",
+     "duplicate User ID -> ErrExists (409)",
+     _ua_drop_dup),                                  # CAUGHT (TestDuplicateReturns409)
+    ("usersapi", "store.go",
+     "List returns users sorted by ID (deterministic output)",
+     _ua_drop_sort),                                 # HOLE: TestListReturnsAll checks len==2, never order
 ]
 
 
