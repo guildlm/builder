@@ -69,3 +69,23 @@ plus a SURVIVED (drop the tie-break -> green). ONE sort call, ONE clause defende
 ONE not. The lesson sharpens: a test that asserts ordering can still cover only
 PART of the ordering contract — "there is an order test" is not "the order is
 defended". Suite now 9 CAUGHT / 4 SURVIVED across 6 specs.
+
+--- UPDATE 2026-07-18 (taskapi = positive control; tasks-api = a FLAKY guard) ---
+taskapi DOES defend "List sorted by ID": TestListSorted inserts ids "2" then "1"
+and asserts got==[1,2]; TestListProjectsSorted mirrors it. Dropping both sorts is
+CAUGHT 20/20 runs (multiple order tests make map-randomness catch it every time).
+Added as the POSITIVE CONTROL — the same invariant taskflow/usersapi leave open is
+robustly closed here, proving the difference is the TEST, not the code. Entry uses
+a REVERSE mutation (ascending->descending), deterministic by construction, so the
+committed tool never flakes on map order (6/6 CAUGHT).
+
+tasks-api is a THIRD category, and the sharpest yet: it HAS a named order test,
+TestStoreListSorted, that inserts two rows and asserts got==[1,2]. But with only
+TWO elements and a single test, dropping the sort is caught only ~20% of runs
+(measured: 4 CAUGHT / 16 SURVIVED over 20). The guard exists, is named for the
+invariant, and STILL lets a broken sort ship 80% of the time — a probabilistic
+defense that reads green in CI almost always and occasionally flakes red for no
+reason anyone will trust. NOT added to the suite (a deterministic regression tool
+must not carry a flaky entry), but recorded here: "a named, order-asserting test
+exists" is not even "the order is USUALLY defended". Two elements is not a test of
+sortedness; it is a coin flip wearing an assertion. Suite: 10 CAUGHT / 4 SURVIVED.

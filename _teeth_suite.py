@@ -109,6 +109,21 @@ def _ua_drop_dup(text: str) -> str | None:
     return text.replace(blk, "\t// MUTANT: duplicate-ID guard removed\n")
 
 
+def _ta_reverse_sort(text: str) -> str | None:
+    """taskapi: reverse the sorted-by-ID order in BOTH list methods (ascending -> descending).
+
+    A DROP mutation here catches only ~probabilistically (map-iteration randomness);
+    reversing gives a deterministic wrong order, so the verdict never flakes. taskapi
+    is the positive control: the SAME 'List sorted by ID' invariant that taskflow and
+    usersapi leave undefended is robustly defended here (TestListSorted +
+    TestListProjectsSorted both insert out of order and assert the sorted result).
+    """
+    a = "return out[i].ID < out[j].ID"
+    if text.count(a) != 2:
+        return None
+    return text.replace(a, "return out[i].ID > out[j].ID")
+
+
 def _ls_flip_primary(text: str) -> str | None:
     """logstats: reverse Report's PRIMARY sort (Count descending -> ascending)."""
     a = "\t\treturn stats[i].Count > stats[j].Count"
@@ -173,6 +188,10 @@ MUTATIONS = [
     ("logstats", "stats.go",
      "Report breaks Count ties by Path ascending (deterministic)",
      _ls_drop_tiebreak),                             # HOLE: no test ever has two equal-Count paths
+    # --- taskapi (added 2026-07-18): the POSITIVE control for the sort hole ---
+    ("taskapi", "internal/store/memory.go",
+     "List sorted by ID — DEFENDED (contrast: taskflow/usersapi drop it)",
+     _ta_reverse_sort),                              # CAUGHT (TestListSorted + TestListProjectsSorted)
 ]
 
 
