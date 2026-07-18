@@ -161,6 +161,25 @@ def _bs_drop_clear_guard(text: str) -> str | None:
         blk, "\twordIndex := i / 64\n\tb.words[wordIndex] &^= uint64(1) << uint(i%64)\n")
 
 
+def _wv_drop_delete(text: str) -> str | None:
+    """walkv: drop Delete's in-session map removal (keep the DEL log write).
+
+    Delete appends a DEL record AND deletes from the in-memory map. TestSetGet never
+    calls Delete; TestRecoveryAfterReopen calls it but only checks the result AFTER a
+    Close+reopen, where replay's DEL case rebuilds the map. So the LIVE map delete is
+    undefended: drop it and the suite stays green, yet a same-session Delete-then-Get
+    still returns the key (validated with a probe). Anchor on the DEL WriteString,
+    unique to Delete (replay's delete is triple-tab-indented).
+    """
+    anchor = ('+ key + "\\n"); err != nil {\n\t\treturn err\n\t}\n'
+              '\tdelete(s.m, key)\n\treturn nil\n}')
+    if text.count(anchor) != 1:
+        return None
+    repl = ('+ key + "\\n"); err != nil {\n\t\treturn err\n\t}\n'
+            '\t// MUTANT: in-session map delete removed\n\treturn nil\n}')
+    return text.replace(anchor, repl)
+
+
 def _ls_flip_primary(text: str) -> str | None:
     """logstats: reverse Report's PRIMARY sort (Count descending -> ascending)."""
     a = "\t\treturn stats[i].Count > stats[j].Count"
@@ -237,6 +256,10 @@ MUTATIONS = [
     ("bitset", "bitset.go",
      "Clear(i) beyond the words slice must not panic",
      _bs_drop_clear_guard),                          # HOLE: test does Test(200) but never Clear(200)
+    # --- walkv (added 2026-07-18): Delete's LIVE effect is only seen via replay ---
+    ("walkv", "store.go",
+     "Delete removes the key from the in-memory map (not just the log)",
+     _wv_drop_delete),                               # HOLE: only checked after Close+reopen, never in-session
 ]
 
 

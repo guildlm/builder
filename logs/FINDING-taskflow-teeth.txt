@@ -124,3 +124,27 @@ exists FOR (Clear beyond the slice) never runs". The test even proves the author
 knew about out-of-range indices — it checks Test(200) — and still omitted Clear(200).
 Coverage counts the Clear line as executed; nothing executes the branch that matters.
 Suite: 10 CAUGHT / 6 SURVIVED across 10 specs.
+
+--- UPDATE 2026-07-18 (walkv): a live effect seen only through a reopen ---
+walkv Delete appends a "DEL\tkey" record AND deletes the key from the in-memory
+map. TestSetGet never calls Delete. TestRecoveryAfterReopen calls it but asserts
+only on a SECOND store opened after Close — where replay's DEL case rebuilds the map
+from the log. So Delete's LIVE map removal is undefended: drop it (keep the log
+write) and the suite stays green, yet a probe shows a same-session Delete-then-Get
+still returns the key. Validated model-free; BEFORE at generated/_walkv-BEFORE.
+
+Third distinct shape now: (1) invariant with no test at all (sort family),
+(2) a guard whose edge branch never runs (bitset Clear), (3) a live effect observed
+only through a DIFFERENT code path than the one under test — here the durability
+replay masks the missing in-memory delete. The persistence story is well told; the
+mirror-immediately story is assumed. Suite: 10 CAUGHT / 7 SURVIVED across 11 specs.
+
+--- WELL-DEFENDED (checked, no clean hole — recorded so the sweep is honest) ---
+numkit, genericset, priorityqueue, expreval: the pure library/algorithm specs are
+robustly defended. Their invariants ARE the test subject (GCD/Clamp cases; set
+Union/Intersect correctness + non-mutation of the checked receiver; min-heap pop
+order; operator precedence + LEFT-associativity `10-2-3=5` + division truncation
+`7/2=3` + all four error paths). The holes cluster in HTTP/service specs and in
+secondary/edge invariants (a cap, a non-blocking send, an out-of-range guard, an
+in-memory mirror) — the promises made ALONGSIDE the headline behavior, which the
+one obvious test exercises and the edge test nobody writes would have caught.
