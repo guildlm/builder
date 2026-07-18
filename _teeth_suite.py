@@ -161,6 +161,26 @@ def _bs_drop_clear_guard(text: str) -> str | None:
         blk, "\twordIndex := i / 64\n\tb.words[wordIndex] &^= uint64(1) << uint(i%64)\n")
 
 
+def _tapi_create_skip_validate(text: str) -> str | None:
+    """tasks-api: make Create skip t.Validate() (Update still validates).
+
+    Both Create and Update call t.Validate() after decoding. Update's call is defended
+    (TestUpdateInvalid PUTs {"title":""} -> 400). Create's is NOT: TestInvalid400 posts
+    MALFORMED json, which trips 400 in the DECODER, never reaching Validate. So a Create
+    that skips validation ships green — a blank-title POST returns 201 (probe-confirmed).
+    The spec even shows this code twice and warns about exactly this omission. Anchor on
+    `a.store.Create(t)`, unique to Create.
+    """
+    anchor = ('\tif err := t.Validate(); err != nil {\n'
+              '\t\twriteJSON(w, http.StatusBadRequest, map[string]string{"error": err.Error()})\n'
+              '\t\treturn\n\t}\n'
+              '\tif err := a.store.Create(t); err != nil {')
+    if text.count(anchor) != 1:
+        return None
+    return text.replace(
+        anchor, '\t// MUTANT: Create skips t.Validate()\n\tif err := a.store.Create(t); err != nil {')
+
+
 def _wp_unbounded(text: str) -> str | None:
     """workerpool: spawn one goroutine per item instead of `workers` (unbounded).
 
@@ -279,6 +299,10 @@ MUTATIONS = [
     ("workerpool", "pool.go",
      "ParallelMap uses AT MOST `workers` goroutines (bounded concurrency)",
      _wp_unbounded),                                 # HOLE: one-goroutine-per-item gives identical output
+    # --- tasks-api (added 2026-07-18): right status code, wrong trigger ---
+    ("tasks-api", "handlers.go",
+     "Create validates the body (blank title -> 400, not stored)",
+     _tapi_create_skip_validate),                    # HOLE: TestInvalid400 trips 400 via malformed JSON, never Validate
 ]
 
 

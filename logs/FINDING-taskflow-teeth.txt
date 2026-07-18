@@ -179,3 +179,19 @@ Plus a NON-hole failure mode: 5. Named, order-asserting, but PROBABILISTIC — t
 TestStoreListSorted (2 elements, ~20% catch). And the positive control: taskapi,
 where the same sort invariant IS robustly defended. The discriminator throughout:
 not "is there a green test" but "does a test EXECUTE the exact promise, deterministically".
+
+--- UPDATE 2026-07-18 (tasks-api): right status code, WRONG trigger ---
+Both Create and Update call t.Validate() after decoding; the spec shows the code
+twice and warns "a handler that skips the call accepts a task with a blank title,
+answers 200, and writes it". Update's call is defended — TestUpdateInvalid PUTs
+{"title":""} and asserts 400. Create's is NOT: TestInvalid400 posts MALFORMED json
+(`{"title":`), which trips 400 in the DECODER, never reaching Validate. Delete
+Create's Validate block (Update keeps its own) and the suite stays green; a probe
+POSTing {"title":"   "} to Create gets accepted, not 400. Validated model-free;
+BEFORE at generated/_tasks-api-BEFORE.
+
+A sixth, sharp shape: the test asserts the RIGHT status code (400) for the RIGHT
+endpoint (Create) but reaches it through a DIFFERENT branch (malformed body) than the
+invariant under test (validation). "Create can return 400" is green; "Create returns
+400 BECAUSE it validated" is not. Cousin of the taskflow status-misnamed hole. Suite:
+10 CAUGHT / 9 SURVIVED across 13 specs.
