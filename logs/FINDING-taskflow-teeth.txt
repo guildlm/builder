@@ -89,3 +89,23 @@ reason anyone will trust. NOT added to the suite (a deterministic regression too
 must not carry a flaky entry), but recorded here: "a named, order-asserting test
 exists" is not even "the order is USUALLY defended". Two elements is not a test of
 sortedness; it is a coin flip wearing an assertion. Suite: 10 CAUGHT / 4 SURVIVED.
+
+--- UPDATE 2026-07-18 (taskapipro): the blast-radius DAMAGE, made concrete ---
+The session memory records that a spec edit once SILENTLY DELETED taskapipro's
+TestListSorted (tasks) — the sharpest "spec edits carry unpredictable blast radius"
+lesson of the campaign. Here is the deterministic proof it left a live hole:
+taskapipro/internal/store/memory.go sorts in BOTH ListTasks and ListProjects.
+ListProjects still has TestListProjectsSorted; ListTasks has NOTHING (its test is
+gone). Drop the ListTasks sort ALONE (keep ListProjects sort + import): suite green
+10/10. Added as a SURVIVED entry anchored on the ListProjects boundary so only the
+tasks-half sort is touched — deterministic, non-flaky.
+
+(Aside: dropping BOTH taskapipro sorts is CAUGHT only 19/20 — TestListProjectsSorted
+is itself a 2-element, map-random guard like tasks-api's. So even the surviving
+projects defense is flaky. The tasks defense is simply gone.)
+
+This closes the loop on the memory's biggest finding: the deletion the spec edit
+caused was not cosmetic — it removed the ONLY test defending an impl-required
+invariant, and the teeth suite now regression-guards that exact hole. Suite: 10
+CAUGHT / 5 SURVIVED across 9 specs (ledger, ratelimit, lrucache, eventbus, workapi,
+taskflow, usersapi, logstats, taskapi, taskapipro).

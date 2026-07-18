@@ -124,6 +124,27 @@ def _ta_reverse_sort(text: str) -> str | None:
     return text.replace(a, "return out[i].ID > out[j].ID")
 
 
+def _tap_drop_tasks_sort(text: str) -> str | None:
+    """taskapipro: drop the ListTasks sort ONLY (ListProjects sort + import stay).
+
+    This is the concrete, deterministic proof of the blast-radius damage recorded in
+    guildlm-session-resume: a spec edit SILENTLY DELETED this artifact's TestListSorted
+    (tasks). ListProjects still has TestListProjectsSorted (itself flaky), but nothing
+    defends the tasks-list order anymore — drop that one sort and the suite is green
+    10/10. Anchor on the ListProjects boundary so only the tasks-half sort is touched.
+    """
+    marker = "func (s *MemStore) ListProjects"
+    idx = text.find(marker)
+    if idx < 0:
+        return None
+    head, tail = text[:idx], text[idx:]
+    line = "\tsort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })"
+    if head.count(line) != 1:  # exactly one sort in the tasks half
+        return None
+    head = head.replace(line, "\t// MUTANT: ListTasks sorted-by-ID removed")
+    return head + tail
+
+
 def _ls_flip_primary(text: str) -> str | None:
     """logstats: reverse Report's PRIMARY sort (Count descending -> ascending)."""
     a = "\t\treturn stats[i].Count > stats[j].Count"
@@ -192,6 +213,10 @@ MUTATIONS = [
     ("taskapi", "internal/store/memory.go",
      "List sorted by ID — DEFENDED (contrast: taskflow/usersapi drop it)",
      _ta_reverse_sort),                              # CAUGHT (TestListSorted + TestListProjectsSorted)
+    # --- taskapipro (added 2026-07-18): the blast-radius damage, made concrete ---
+    ("taskapipro", "internal/store/memory.go",
+     "ListTasks sorted by ID (its TestListSorted was deleted by a spec edit)",
+     _tap_drop_tasks_sort),                          # HOLE: only ListProjects order survives; tasks order undefended
 ]
 
 
