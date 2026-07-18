@@ -195,3 +195,37 @@ endpoint (Create) but reaches it through a DIFFERENT branch (malformed body) tha
 invariant under test (validation). "Create can return 400" is green; "Create returns
 400 BECAUSE it validated" is not. Cousin of the taskflow status-misnamed hole. Suite:
 10 CAUGHT / 9 SURVIVED across 13 specs.
+
+=== SWEEP COMPLETE (2026-07-18) — every spec accounted for ===
+TEETH SUITE (13 specs, 10 CAUGHT / 9 SURVIVED / 1 n-a): ledger, ratelimit, lrucache,
+eventbus, workapi, taskflow, usersapi, logstats, taskapi, taskapipro, bitset, walkv,
+workerpool, tasks-api.
+
+WELL-DEFENDED, no clean hole (checked, recorded for honesty): numkit, genericset,
+priorityqueue, expreval, jsoncodec, shortener, jsonapi, demo-small. These are the
+pure library / algorithm specs plus two whose small surface is genuinely covered
+(jsonapi echo pins content+length; shortener's Hits==1-after-one-redirect defends
+BOTH "Resolve increments" and "Stats does not touch Hits"; demo-small tests true,
+false, normalized, and empty cases).
+
+EXCLUDED — broken baseline, NOT a valid teeth target (a green baseline is required;
+these ship RED and were nearly recorded as false CAUGHTs before a baseline check
+caught it — the discipline that saved it: build/run the UNMUTATED artifact first):
+  - tasks-api-noshadownudge: test build fails — a local var named `t` shadows
+    *testing.T (`t.Errorf undefined`), and Update/Delete test calls mismatch the
+    signatures. The "no-shadow-nudge" ablation artifact; it demonstrates the bug the
+    nudge prevents.
+  - tasks-api-min: `handlers.go: undefined: Store` — the Store type is never declared.
+These are a DIFFERENT failure class from suite-teeth: visibly red, not green-hiding-a-
+hole. Worth noting only because a mutation run against a red baseline yields garbage
+verdicts in BOTH directions (a compile error reads as CAUGHT; a build-failed test run
+reads as "hole real"). Two false verdicts came from exactly this before the baseline
+check. RULE reaffirmed: verify the baseline is GREEN before trusting any mutation.
+
+NET: 9 undefended invariants surfaced and codified this session (taskflow sort +
+status, usersapi sort, logstats tie-break, taskapipro tasks-sort, bitset Clear, walkv
+Delete, workerpool concurrency, tasks-api Create-validate), across 4 distinct hole
+shapes, 1 flaky-guard non-hole, 1 positive control. The fix arc for all of them
+(spec edit: name+SHOW the missing test; regen; confirm the mutation flips to CAUGHT;
+before/after audit) is FILED, not done: it needs the MLX server (down) and an
+unattended spec edit carries blast radius (the taskapipro deletion is the proof).
