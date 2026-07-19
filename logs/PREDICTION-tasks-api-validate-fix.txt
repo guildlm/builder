@@ -1,0 +1,42 @@
+PREDICTION — tasks-api Create-validate FIX ARC #2. Written BEFORE the regen.
+
+WHEN:   2026-07-19 13:27:00  (from `date`)
+HEAD:   7d6af39  (fix arc #1 already committed; specs/tasks-api.yaml now edited, unstaged)
+SERVER: MLX :8080 UP (go-dev-mixed-v4, pid from this session)
+
+=== BEFORE STATE (measured) ===
+- generated/tasks-api-v4 test funcs: 15 (10 handlers_test.go + 5 store_test.go),
+  snapshot in logs/AUDIT-tasks-api-validate-BEFORE.txt.
+- TestInvalid400 body (opened): `{"title":` — MALFORMED, trips 400 in json.Decode,
+  never reaches Create.Validate. No test POSTs a well-formed blank-title body to Create.
+- teeth `tasks-api` verdict BEFORE: "Create validates the body (blank title -> 400)"
+  = SURVIVED (hole). Mutation _tapi_create_skip_validate removes Create's Validate block.
+
+=== THE EDIT ===
+Unlike taskflow (sharpen existing), here I ADD a function: TestInvalid400 must STAY the
+decoder test (the spec deliberately made it so). Added TestCreateInvalid to the
+handlers_test.go purpose: POST /tasks with WELL-FORMED json {"title":"   "} -> 400,
+explicitly distinguished from TestInvalid400 (malformed->decoder). Mirror of the
+already-defended TestUpdateInvalid. Expected func count 15 -> 16.
+
+=== PREDICTIONS (falsifiable) ===
+P1. Regen builds GREEN (build+vet+test-race pass).
+P2. A new test (named ~TestCreateInvalid) POSTs a well-formed blank/spaces title to
+    POST /tasks and asserts 400.
+P3. teeth `tasks-api` flips SURVIVED -> CAUGHT, and it is a REAL test failure (mutant
+    returns 201 to the blank-title POST), NOT a compile error — verify by applying the
+    mutation and reading the failure.
+P4. Blast radius: EXACTLY one function added (TestCreateInvalid). All 15 prior funcs
+    remain, none renamed/deleted. Count 15 -> 16, delta is the one intended func only.
+    (This is the taskapipro lesson — a spec edit once silently deleted a test elsewhere.)
+
+=== REFUTATION MEANINGS ===
+R1. Model writes a MALFORMED-body test (duplicating TestInvalid400) -> hole stays
+    SURVIVED. Means: the "well-formed / distinct from decoder" wording didn't land.
+R2. Regen RED -> verdicts garbage (baseline-green rule) -> re-run or revert.
+R3. Any OTHER func changes/vanishes -> blast radius real -> revert, file it.
+R4. status flips CAUGHT but count != 16 or an unrelated func changed -> attribution
+    lost -> revert, redo.
+
+DECISION: commit ONLY if P1..P4 all hold (green + CAUGHT-real + exactly +1 func, the
+intended one). Any refutation -> revert the spec edit, record outcome, no push.

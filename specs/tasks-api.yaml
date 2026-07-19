@@ -138,6 +138,13 @@ files:
       is shipped — and until this test existed it was never called once.
       TestUpdateMissing: PUT /tasks/999, an id nobody created -> 404.
       TestUpdateInvalid: POST a task FIRST, then PUT it with an EMPTY title -> 400.
+      TestCreateInvalid: POST /tasks with WELL-FORMED JSON whose title is blank —
+      exactly this body: {"title":"   "} (spaces only, VALID json) -> 400. This is the
+      Create MIRROR of TestUpdateInvalid, and it is DISTINCT from TestInvalid400: that
+      test sends MALFORMED bytes that fail in json.Decode, so Create never reaches
+      Validate; THIS test sends valid JSON, so the ONLY thing that can return 400 is
+      Create calling t.Validate() on the blank title. Without it, a Create that skips
+      Validate accepts a blank-title task and answers 201.
       TestValidateOK: a Task VALUE with a non-empty Title -> Validate() returns nil.
       TestValidateBlankTitle: a Task VALUE whose Title is "   " (spaces only) ->
       Validate() returns a non-nil error. Validate is the contract every other

@@ -262,3 +262,36 @@ the exact request body in the test purpose was enough for the 7B to hit the righ
 branch. This is the cleanest fix-arc shape: described-AND-shown, wrong-branch test.
 Next candidates (same low-risk shape): tasks-api Create-validate (blank-title POST),
 then the taskflow sort hole (#3) — but that one ADDS a function, higher perturbation.
+
+=== FIX ARC #2 DONE 2026-07-19 (tasks-api Create-validate) ===
+Second hole CLOSED. Prediction filed BEFORE the run at
+logs/PREDICTION-tasks-api-validate-fix.txt.
+
+THE FIX (this one ADDS a function — the sharpen-existing move was unavailable):
+TestInvalid400 must STAY the decoder test (the spec deliberately made it post malformed
+JSON to trip json.Decode). So the Create-validate invariant needs its OWN test. Added
+TestCreateInvalid to the handlers_test.go purpose: POST /tasks with WELL-FORMED
+{"title":"   "} -> 400, explicitly distinguished from the malformed-JSON decoder test
+(that one never reaches Validate). The mirror of the already-defended TestUpdateInvalid.
+
+MEASURED — all 4 predictions held:
+  P1 GREEN: build+vet+test-race pass, coverage 69.3%.
+  P2 the new TestCreateInvalid posts `{"title":"   "}` (well-formed, spaces-only) to
+     POST /tasks and asserts 400.
+  P3 teeth `tasks-api` flipped SURVIVED -> CAUGHT (0 undefended). REAL failure, not a
+     false CAUGHT: mutation _tapi_create_skip_validate applies (anchor count 1), the
+     artifact still BUILDS, and TestCreateInvalid fails "want 400, got 201" — the
+     mutant accepts the blank-title POST (201), the test catches it.
+  P4 BLAST RADIUS: exactly +1 function (TestCreateInvalid). All 15 prior test funcs
+     intact, none renamed/deleted. Count 15 -> 16, delta is the one intended func.
+
+CONTRAST WITH FIX ARC #1: taskflow was a described-AND-shown wrong-branch test where
+SHARPENING the existing test (no new func) was the minimum edit. tasks-api needed an
+ADDED function because the existing wrong-branch test (TestInvalid400) is itself a
+legitimate, distinct test (decoder 400) that must be preserved — you cannot repurpose
+it without losing coverage. Two shapes of the same fix: repurpose vs add. Both landed
+first try once the spec NAMED the invariant and SHOWED the exact request body, and both
+came out blast-radius-clean under the mandatory before/after func audit.
+teeth suite is now 12 CAUGHT / 7 SURVIVED (was 10/9): taskflow status + tasks-api
+Create-validate both closed. Remaining holes: taskflow/usersapi/taskapipro sort,
+logstats tie-break, bitset Clear, walkv Delete, workerpool concurrency.
