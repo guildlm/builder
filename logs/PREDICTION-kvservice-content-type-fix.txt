@@ -1,0 +1,17 @@
+PREDICTION — kvservice Content-Type FIX ARC #10 (a NEWLY-FOUND hole in a previously-unexamined spec).
+Written BEFORE the regen. WHEN: (see git/mtime)  HEAD: pre-regen.
+
+FOUND (model-free): kvservice was the only spec neither in the teeth suite nor on the well-defended
+list. main.go spec requires "GET returns the value as text/plain"; main.go sets
+w.Header().Set("Content-Type","text/plain") but the tests assert only status (200) + body ("hi"),
+never the Content-Type. Dropping the header ships GREEN (validated: baseline green, mutant green) ->
+SURVIVED. Added _kv_drop_content_type + the entry (SURVIVED on the current artifact = a valid probe).
+
+THE EDIT: sharpened the existing TestPutThenGet (no new func) to also assert
+res.Header.Get("Content-Type") == "text/plain".
+
+PREDICTIONS: P1 GREEN. P2 TestPutThenGet asserts Content-Type == "text/plain". P3 teeth kvservice
+SURVIVED -> CAUGHT (real: drop the header -> the new assertion fails; build passes). If the regen
+writes the header a different way, the mutation may NOAPPLY -> make it match variants (the logstats
+lesson). P4 blast radius 0: func count stays 2 (TestPutThenGet, TestGetMissing), no add/delete.
+DECISION: commit only if P1..P4 hold. This one keeps the suite at 0 SURVIVED (found + fixed in one arc).

@@ -33,7 +33,8 @@ files:
       NO prior PUT). Each function builds its OWN fresh handler with
       newMux(NewStore()).
       TestPutThenGet: PUT /kv/a with body "hi" and assert 201 (Created); then GET
-      /kv/a and assert 200 with the response body equal to "hi".
+      /kv/a and assert 200, the response body equal to "hi", and
+      res.Header.Get("Content-Type") == "text/plain".
       TestGetMissing: on a FRESH handler, GET /kv/missing WITHOUT any prior PUT
       and assert 404 — do not PUT the key first, the whole point is that it is
       absent. Read response bodies with io.ReadAll and assert. Standard library

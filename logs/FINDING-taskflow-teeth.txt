@@ -538,6 +538,21 @@ validate (#2), bitset Clear (#3), walkv Delete (#4, 3 attempts + a store.go mute
 defended at the API layer when the store test wouldn't generate). 0 DEFERRED.
 teeth: 10 CAUGHT / 9 SURVIVED at session start -> 19 CAUGHT / 0 SURVIVED / 1 n-a. EVERY tracked
 invariant is now defended by a test that deterministically executes its exact promise.
+
+=== FIX ARC #10 DONE 2026-07-19 (kvservice Content-Type) — a NEWLY-FOUND hole, found + closed ===
+With every tracked hole closed, swept the specs NOT yet in the teeth suite. kvservice was the only
+one neither in the suite nor on the well-defended list (unexamined). Found a clean hole model-free:
+main.go spec requires "GET returns the value as text/plain" and the handler sets that header, but the
+tests assert only status + body, never the Content-Type -> drop the header and it ships green
+(baseline green, mutant green = SURVIVED). Added _kv_drop_content_type + the entry, then sharpened
+the existing TestPutThenGet to assert res.Header.Get("Content-Type") == "text/plain".
+First attempt (a 5-line verbose edit) CASCADED: it rippled into TestGetMissing, which started
+asserting an empty 404 body that conflicts with the handler's http.Error("not found\n") -> RED, 5
+fix rounds, no converge. TERSE retry (one clause) landed clean: GREEN 88%, no cascade, TestGetMissing
+untouched, teeth kvservice SURVIVED -> CAUGHT and REAL (drop the header -> Go body-sniffs
+"text/plain; charset=utf-8" != "text/plain" -> TestPutThenGet fails), blast radius 0 (2 funcs).
+The edit-SIZE-drives-cascade lesson, confirmed a SECOND time (after usersapi). teeth now 20 CAUGHT /
+0 SURVIVED / 1 n-a across 16 specs. NET: the 9 session-start holes + 1 newly-found = 10 closed.
 KEY LESSONS (all git-recorded): SHOW the exact assertion (prose gets skipped); a RED baseline yields
 false CAUGHTs (check green first — saved it 3x); spec-edit blast radius is SPEC-SPECIFIC and
 bidirectional (harmful cascade on usersapi, helpful on taskapipro); edit SIZE drives cascade risk

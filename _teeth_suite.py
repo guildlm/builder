@@ -292,6 +292,20 @@ def _ls_reverse_tiebreak(text: str) -> str | None:
     return None
 
 
+def _kv_drop_content_type(text: str) -> str | None:
+    """kvservice: drop the `Content-Type: text/plain` header on GET.
+
+    main.go spec: "GET /kv/{key} returns the value as text/plain". The tests assert only the
+    status code (200) and the body ("hi"), never the Content-Type, so removing the header ships
+    green — validated model-free. A newly-found hole in a previously-unexamined spec.
+    """
+    for line in ('\t\tw.Header().Set("Content-Type", "text/plain")\n',
+                 '\tw.Header().Set("Content-Type", "text/plain")\n'):
+        if text.count(line) == 1:
+            return text.replace(line, "\t\t// MUTANT: Content-Type text/plain removed\n")
+    return None
+
+
 # (spec, relative file, description, mutation). One promise per entry.
 MUTATIONS = [
     ("ledger", "internal/store/store.go",
@@ -363,6 +377,10 @@ MUTATIONS = [
     ("tasks-api", "handlers.go",
      "Create validates the body (blank title -> 400, not stored)",
      _tapi_create_skip_validate),                    # CAUGHT (fix arc #2): TestCreateInvalid posts well-formed blank title -> 400
+    # --- kvservice (added 2026-07-19): a spec-required response header nobody asserts ---
+    ("kvservice", "main.go",
+     "GET returns the value as text/plain (Content-Type header)",
+     _kv_drop_content_type),                         # CAUGHT (fix arc #10): TestPutThenGet asserts Content-Type text/plain
 ]
 
 
