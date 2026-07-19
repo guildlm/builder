@@ -1,0 +1,50 @@
+PREDICTION — taskflow status-validation FIX ARC (first autonomous fix pilot)
+Written BEFORE the spec edit and BEFORE any regen. Timestamp + git are the proof of order.
+
+WHEN:   2026-07-19 13:09:57  (from `date`, not memory)
+HEAD:   e380d60  (builder, specs/ clean at write time)
+SERVER: MLX :8080 DOWN at write time (to be started for the regen)
+
+=== BEFORE STATE (measured, this session) ===
+- generated/taskflow-v4 test-func list: 17 functions (snapshot in logs/AUDIT-taskflow-status-BEFORE.txt).
+- Current TestCreateInvalid body (opened, not grepped):
+    body := `{"id": "1", "title": "", "status": "todo"}`   // EMPTY title, VALID status
+  => the 400 comes from the empty-title branch, NEVER the bad-status branch.
+- teeth suite `taskflow` verdict BEFORE:
+    duplicate Task ID -> CAUGHT
+    paginate negative-offset clamp -> CAUGHT
+    List sorted by ID -> SURVIVED (hole #3, NOT touched by this fix)
+    Task.Validate bad-status -> SURVIVED (hole #4, THIS fix target)
+
+=== THE EDIT (minimal, lowest blast radius: sharpen an EXISTING test, add NO new func) ===
+specs/taskflow.yaml, taskflow_test.go purpose, the TestCreateInvalid line:
+  FROM: "TestCreateInvalid: POST a task with a bad status -> 400."
+  TO:   a NON-EMPTY title + INVALID status, body SHOWN, with the reason the title
+        must be non-empty (else the 400 trips on the title and never on the status).
+Rationale: sharpening the existing test keeps the func count at 17 -> the smallest
+possible perturbation -> the cleanest before/after audit. Not adding TestCreateBadStatus.
+
+=== PREDICTIONS (falsifiable) ===
+P1. Regen builds GREEN (build+vet+test -race all pass on generated/taskflow-v4).
+P2. The regenerated TestCreateInvalid posts a NON-EMPTY title with an invalid status
+    (e.g. status "nope") and asserts 400.
+P3. teeth `taskflow` status entry flips SURVIVED -> CAUGHT (removing the status branch
+    now lets the non-empty-title task through -> 200 -> test red).
+P4. The sort entry (#3) STAYS SURVIVED (untouched). dup + paginate STAY CAUGHT.
+P5. Test-func count stays 17; NO other test function silently deleted or renamed
+    (blast radius 0). This is the mandatory before/after audit — the taskapipro lesson.
+
+=== HOW THIS COULD BE REFUTED (and what each refutation means) ===
+R1. Model still writes an empty-title test despite the SHOWN body -> status stays
+    SURVIVED. Meaning: prose is not enough; must show the exact assertion, or the
+    hole is a prompt-capacity limit not a wording gap.
+R2. Regen comes out RED (compile/flaky) -> verdicts are GARBAGE (baseline-must-be-green
+    rule). Action: do NOT trust the teeth flip; re-run or revert.
+R3. A DIFFERENT test func changes/vanishes -> blast radius is real and unpredictable
+    (like taskapipro's TestListSorted deletion). Action: revert the spec edit, file it.
+R4. status flips to CAUGHT but sort ALSO changes verdict -> the edit rippled into an
+    unrelated invariant -> attribution lost -> revert, redo one hole at a time.
+
+DECISION RULE: commit ONLY if P1..P5 all hold (green + status CAUGHT + sort still
+SURVIVED + count 17 + no silent test delete). Any of R1..R4 -> revert spec edit,
+record the outcome, do NOT push. Nothing leaves local git either way.

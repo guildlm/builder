@@ -229,3 +229,36 @@ shapes, 1 flaky-guard non-hole, 1 positive control. The fix arc for all of them
 (spec edit: name+SHOW the missing test; regen; confirm the mutation flips to CAUGHT;
 before/after audit) is FILED, not done: it needs the MLX server (down) and an
 unattended spec edit carries blast radius (the taskapipro deletion is the proof).
+
+=== FIX ARC #1 DONE 2026-07-19 (taskflow status-validation, hole #4) ===
+First hole CLOSED, end to end, with the full audit discipline. Prediction written
+BEFORE the run at logs/PREDICTION-taskflow-status-fix.txt (mtime+git prove order).
+
+THE FIX (minimal, lowest blast radius): sharpened the EXISTING TestCreateInvalid
+purpose in specs/taskflow.yaml — added NO new test function, so the func count is a
+control. FROM "POST a task with a bad status -> 400" TO: post a NON-EMPTY title with
+an INVALID status, body SHOWN ({"id":"1","title":"x","status":"nope"}), plus WHY the
+title must be non-empty (else the 400 trips on the title and the status check never
+runs). Started MLX server (go-dev-mixed-v4), regen via _ab_run.sh taskflow (554s).
+
+MEASURED RESULT — all 5 predictions held:
+  P1 GREEN: build+vet+test-race pass, coverage 79.6%.
+  P2 the regenerated TestCreateInvalid posts `{"id":"1","title":"x","status":"nope"}`
+     and asserts 400 — exactly the shown body.
+  P3 teeth `taskflow` status entry flipped SURVIVED -> CAUGHT. Confirmed it is a REAL
+     test failure not a false CAUGHT: applying _tf_drop_status to the fresh models.go
+     BUILDS (no compile error) and TestCreateInvalid fails "want 400, got 201" — the
+     mutant accepts the bad-status task (201), the test catches it. (The block still
+     matches exactly once, so the mutation applied.)
+  P4 the SORT hole (#3) stayed SURVIVED (untouched); duplicate + paginate stayed CAUGHT.
+  P5 BLAST RADIUS 0: test-func set is byte-identical before/after (17 funcs, same
+     names). The taskapipro-style silent deletion did NOT happen here — audited both
+     directions. taskflow undefended count: 2 -> 1 (only the sort hole remains).
+
+LESSON: the sharpen-an-existing-test edit (vs add-a-new-function) is the minimum
+perturbation and it worked first try — the spec already NAMED the invariant and
+already SHOWED the Validate code; the test just exercised the wrong branch. Showing
+the exact request body in the test purpose was enough for the 7B to hit the right
+branch. This is the cleanest fix-arc shape: described-AND-shown, wrong-branch test.
+Next candidates (same low-risk shape): tasks-api Create-validate (blank-title POST),
+then the taskflow sort hole (#3) — but that one ADDS a function, higher perturbation.

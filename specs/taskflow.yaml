@@ -142,7 +142,12 @@ files:
       router is EMPTY, so any case with a precondition must CREATE it FIRST, by
       POSTing, in its own body:
       TestCreateOK: POST a valid task -> 201 and the body echoes it.
-      TestCreateInvalid: POST a task with a bad status -> 400.
+      TestCreateInvalid: POST a task with a NON-EMPTY title but an INVALID status —
+      exactly this body: {"id":"1","title":"x","status":"nope"} -> 400. The title is
+      non-empty ON PURPOSE: Validate rejects BOTH an empty title AND a status outside
+      {todo,doing,done}, so a task with an empty title would trip the 400 on the TITLE
+      and the status check would never run. Only a non-empty title paired with a bad
+      status ("nope") proves the STATUS branch is what returns 400.
       TestCreateDuplicate: POST the task ONCE (expect 201), then POST THE SAME id
       AGAIN -> 409. (Without the first POST there is nothing to duplicate.)
       TestGetMissing: on a fresh router, GET an id nobody created -> 404.
