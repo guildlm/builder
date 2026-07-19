@@ -394,3 +394,23 @@ proves the fix pattern: order-asserting test + reverse-mutation teeth entry = de
 defense. REPLICATE NEXT to usersapi and taskapipro (same two-part change).
 teeth suite now 15 CAUGHT / 4 SURVIVED / 1 n-a. Remaining holes: usersapi/taskapipro sort,
 logstats tie-break, workerpool concurrency.
+
+=== FIX ARC #6 ATTEMPT: usersapi sort — DEFERRED (reproducible cascade) 2026-07-19 ===
+Tried to replicate the arc-#5 pattern (reverse mutation + TestListSorted) on usersapi. It
+FAILED REPRODUCIBLY, twice: users_test.go came out with `undefined: do` at line 11, then the
+internal fix loop cascaded across the entire package without converging (27+ min each). Killed
+both; reverted specs/usersapi.yaml + the _teeth_suite.py usersapi edits to committed state;
+restored generated/usersapi-v4 from _usersapi-BEFORE (suite back to 15/4/1). Detail +
+root-cause in logs/PREDICTION-usersapi-sort-fix.txt.
+
+ROOT CAUSE: the model wrote a forbidden `func do(...)` test HELPER + table structure — the
+usersapi spec explicitly says "do NOT use one shared table loop ... one ORDERED flow test".
+The added TestListSorted paragraph lengthened the users_test.go purpose enough to tip the model
+out of the ordered-flow structure into the forbidden helper structure, which it botched. The
+IDENTICAL edit landed clean on taskflow (arc #5) — so spec-edit blast radius is SPEC-SPECIFIC:
+the same fix that closes one spec's hole can destabilize another spec's test generation entirely.
+This is a sharper form of the cascade lesson (a test-purpose edit rippling backward into the
+SAME file's generation, here tipping its whole structure). A future attempt should use a MUCH
+smaller edit (sharpen the existing list check to 2-out-of-order + a reverse mutation, which is
+deterministic even for 2 elements) rather than a new paragraph. Hole stands, honestly tracked.
+teeth suite unchanged at 15 CAUGHT / 4 SURVIVED / 1 n-a. Moving to taskapipro sort next.

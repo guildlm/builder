@@ -1,0 +1,48 @@
+PREDICTION — usersapi sorted-by-ID FIX ARC #6 (sort family, replicate the #5 pilot).
+Written BEFORE the regen.
+
+WHEN:   2026-07-19 14:12:25  (from `date`)
+HEAD:   78da26d  (arcs #1-#5 committed; specs/usersapi.yaml + _teeth_suite.py edited, unstaged)
+SERVER: MLX :8080 UP
+
+This is a direct replication of fix arc #5 (taskflow sort), which landed clean. Same two-part
+change: (a) added _ua_reverse_sort and switched the usersapi sort entry from drop to reverse
+(single list method, anchor count 1); (b) added TestListSorted to the spec: POST ids "3","1","2"
+out of order on a fresh router, GET /users, assert got[0..2].ID == "1","2","3" by index.
+
+BEFORE (measured): usersapi 9 test funcs (AUDIT-usersapi-sort-BEFORE.txt), none asserting order;
+store.go sorts once (line 71). Reverse mutation on the CURRENT artifact = SURVIVED (just
+confirmed) -> valid probe, clean before-state. dup guard = CAUGHT.
+
+PREDICTIONS:
+P1. Regen GREEN.
+P2. New TestListSorted POSTs ids out of order and asserts ascending by index.
+P3. teeth `usersapi` sort (now reverse) flips SURVIVED -> CAUGHT, deterministically; verify
+    real (reverse applies count 1, build passes, TestListSorted fails want 1,2,3 got 3,2,1).
+P4. Blast radius: +1 func (TestListSorted), count 9 -> 10; dup stays CAUGHT; others unchanged.
+
+REFUTATION: as arc #5. R2 (RED regen) -> check baseline green before trusting teeth (the walkv
+lesson). DECISION: commit only if P1..P4 hold; else revert both files, record, no push. If clean,
+one sort hole remains (taskapipro) + logstats tie-break + workerpool.
+
+=== OUTCOME 2026-07-19 ~14:50 — DEFERRED after a REPRODUCIBLE cascade (2 attempts) ===
+Both regen attempts failed the SAME way: users_test.go:11:7 `undefined: do`, then the internal
+fix loop cascaded across the whole package (store.go, middleware.go, router.go, handlers.go —
+27+ min, never converging). Killed both. The identical, minimal taskflow sort edit (arc #5)
+landed clean first try; usersapi does not.
+
+ROOT CAUSE (inspected the killed artifact): the model wrote a `func do(t, h, method, path, body)`
+test HELPER and a table/helper-driven structure — exactly what the usersapi spec FORBIDS ("do NOT
+use one shared table loop ... Instead: one ORDERED flow test"). Adding the TestListSorted paragraph
+lengthened the users_test.go purpose enough to tip the model OUT of the ordered-flow structure and
+INTO the forbidden helper structure, which it then botched (`undefined: do`). This is the cascade
+channel again — a test-purpose edit destabilizing the SAME file's generation — and it is SPEC-
+SPECIFIC: taskflow absorbed the same edit, usersapi did not.
+
+DECISION: usersapi sort DEFERRED (my one-retry guardrail, honored). Reverted specs/usersapi.yaml
+and the _teeth_suite.py usersapi changes to the committed #5 state; restored generated/usersapi-v4
+from _usersapi-BEFORE; full suite back to 15 CAUGHT / 4 SURVIVED / 1 n-a. The hole stands, honestly
+tracked. A future attempt should use a SMALLER edit (e.g. sharpen the existing list assertion to
+2-out-of-order + reverse mutation, which is deterministic for 2 elements) rather than a new
+paragraph — keep the users_test.go purpose short enough to not tip the structure. Moving on to
+taskapipro sort, then logstats, then workerpool.
