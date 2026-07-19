@@ -20,6 +20,8 @@ files:
   - path: main_test.go
     purpose: >-
       package main. Tests using net/http/httptest and encoding/json: POST a valid
-      message returns 200 with the echoed message and correct length; POST an
-      empty message returns 400. Build the handler with newMux(). Standard
-      library only.
+      message returns 200 with the echoed message and correct length; on that SAME
+      success response `res`, ALSO assert the RESPONSE header
+      res.Header.Get("Content-Type") == "application/json" (the response's own
+      Content-Type, not the request's). POST an empty message returns 400; a GET /echo
+      (non-POST) returns 405. Build the handler with newMux(). Standard library only.

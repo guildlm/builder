@@ -553,6 +553,20 @@ untouched, teeth kvservice SURVIVED -> CAUGHT and REAL (drop the header -> Go bo
 "text/plain; charset=utf-8" != "text/plain" -> TestPutThenGet fails), blast radius 0 (2 funcs).
 The edit-SIZE-drives-cascade lesson, confirmed a SECOND time (after usersapi). teeth now 20 CAUGHT /
 0 SURVIVED / 1 n-a across 16 specs. NET: the 9 session-start holes + 1 newly-found = 10 closed.
+
+=== FIX ARC #11 DONE 2026-07-19 (jsonapi) — TWO newly-found holes ===
+Continued the sweep of previously-checked specs. jsonapi (a POST /echo JSON API) had TWO clean holes
+its single TestEcho never touched: (1) the response Content-Type application/json header, and (2) the
+405 for a non-POST request. Both SURVIVED model-free (baseline green, both mutants green). Added
+_ja_drop_content_type + _ja_drop_405, and sharpened TestEcho (terse) to assert the response's
+Content-Type and to do a GET /echo -> 405. First terse pass landed the 405 but the model SKIPPED the
+Content-Type (it conflated it with the request's content-type on the http.Post call); a clarified
+"the RESPONSE's own Content-Type, not the request's" retry landed both. GREEN 82.4%, func set
+identical (both cases live inside TestEcho, no new func), both entries SURVIVED->CAUGHT and REAL
+(drop Content-Type -> Go sniffs and the assertion fails; drop the 405 guard -> GET falls through and
+returns non-405). teeth now 22 CAUGHT / 0 SURVIVED / 1 n-a across 17 specs. The response-header +
+error-path holes cluster in the small HTTP specs (kvservice, jsonapi) — exactly where a single
+happy-path test looks "done" but leaves the promises made alongside it undefended.
 KEY LESSONS (all git-recorded): SHOW the exact assertion (prose gets skipped); a RED baseline yields
 false CAUGHTs (check green first — saved it 3x); spec-edit blast radius is SPEC-SPECIFIC and
 bidirectional (harmful cascade on usersapi, helpful on taskapipro); edit SIZE drives cascade risk

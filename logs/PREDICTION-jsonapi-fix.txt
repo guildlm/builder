@@ -1,0 +1,8 @@
+PREDICTION — jsonapi FIX ARC #11 (two newly-found holes: Content-Type + 405). Before the regen.
+FOUND model-free (both SURVIVED, baseline green): main.go requires Content-Type application/json and
+405 for non-POST, but the single TestEcho asserts neither. Sharpened the test purpose (terse, one
+extra clause each — the kvservice edit-size lesson) to assert application/json and a GET /echo -> 405.
+Added _ja_drop_content_type + _ja_drop_405. P1 GREEN; P2 both assertions present; P3 both entries
+SURVIVED->CAUGHT (real); P4 blast radius small (a 405 case may add a func or a sub-case; the two
+existing behaviors intact). Watch for cascade (kvservice's verbose edit cascaded into another test);
+terse here. Commit only if green + both CAUGHT + no unrelated damage.

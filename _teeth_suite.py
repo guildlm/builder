@@ -306,6 +306,25 @@ def _kv_drop_content_type(text: str) -> str | None:
     return None
 
 
+def _ja_drop_content_type(text: str) -> str | None:
+    """jsonapi: drop the `Content-Type: application/json` header on the echo response."""
+    for line in ('\t\tw.Header().Set("Content-Type", "application/json")\n',
+                 '\tw.Header().Set("Content-Type", "application/json")\n'):
+        if text.count(line) == 1:
+            return text.replace(line, "\t\t// MUTANT: Content-Type application/json removed\n")
+    return None
+
+
+def _ja_drop_405(text: str) -> str | None:
+    """jsonapi: drop the non-POST -> 405 method guard so any method falls through."""
+    blk = ("\t\tif r.Method != http.MethodPost {\n"
+           '\t\t\thttp.Error(w, "method not allowed", http.StatusMethodNotAllowed)\n'
+           "\t\t\treturn\n\t\t}\n")
+    if text.count(blk) != 1:
+        return None
+    return text.replace(blk, "\t\t// MUTANT: non-POST 405 guard removed\n")
+
+
 # (spec, relative file, description, mutation). One promise per entry.
 MUTATIONS = [
     ("ledger", "internal/store/store.go",
@@ -381,6 +400,13 @@ MUTATIONS = [
     ("kvservice", "main.go",
      "GET returns the value as text/plain (Content-Type header)",
      _kv_drop_content_type),                         # CAUGHT (fix arc #10): TestPutThenGet asserts Content-Type text/plain
+    # --- jsonapi (added 2026-07-19): a response header and an error path nobody asserted ---
+    ("jsonapi", "main.go",
+     "echo response is Content-Type application/json",
+     _ja_drop_content_type),                         # CAUGHT (fix arc #11): TestEcho asserts application/json
+    ("jsonapi", "main.go",
+     "non-POST /echo returns 405 (method guard)",
+     _ja_drop_405),                                  # CAUGHT (fix arc #11): a GET /echo asserts 405
 ]
 
 
