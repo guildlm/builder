@@ -315,6 +315,19 @@ def _ja_drop_content_type(text: str) -> str | None:
     return None
 
 
+def _pq_reverse_less(text: str) -> str | None:
+    """priorityqueue: reverse the min-heap comparison (< -> >) so it pops highest-first.
+
+    A CAUGHT control on an algorithm spec: TestPopOrderByPriority pushes 3,1,2 and asserts the
+    pop order is 1,2,3, so flipping Less makes it pop 3,2,1 -> red. The invariant IS the test
+    subject here (why the library specs are well-defended), recorded as a positive control.
+    """
+    a = "return h[i].Priority < h[j].Priority"
+    if text.count(a) != 1:
+        return None
+    return text.replace(a, "return h[i].Priority > h[j].Priority")
+
+
 def _ja_drop_405(text: str) -> str | None:
     """jsonapi: drop the non-POST -> 405 method guard so any method falls through."""
     blk = ("\t\tif r.Method != http.MethodPost {\n"
@@ -407,6 +420,10 @@ MUTATIONS = [
     ("jsonapi", "main.go",
      "non-POST /echo returns 405 (method guard)",
      _ja_drop_405),                                  # CAUGHT (fix arc #11): a GET /echo asserts 405
+    # --- priorityqueue (added 2026-07-19): a positive control on an algorithm spec ---
+    ("priorityqueue", "pq.go",
+     "min-heap pops lowest priority first",
+     _pq_reverse_less),                              # CAUGHT control: TestPopOrderByPriority asserts pop order 1,2,3
 ]
 
 
