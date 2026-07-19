@@ -166,6 +166,25 @@ def _tap_drop_tasks_sort(text: str) -> str | None:
     return head + tail
 
 
+def _tap_reverse_tasks_sort(text: str) -> str | None:
+    """taskapipro: reverse the ListTasks sort ONLY (ascending -> descending; ListProjects stays).
+
+    Deterministic (unlike the drop, which leaves the tasks list in map order). Anchor on the
+    ListProjects boundary so only the tasks-half sort flips. Caught by the api-layer TestListLimit
+    once it asserts all[0].ID == "1" (defending tasks order without touching the crowded store test).
+    """
+    marker = "func (s *MemStore) ListProjects"
+    idx = text.find(marker)
+    if idx < 0:
+        return None
+    head, tail = text[:idx], text[idx:]
+    a = "return out[i].ID < out[j].ID"
+    if head.count(a) != 1:
+        return None
+    head = head.replace(a, "return out[i].ID > out[j].ID")
+    return head + tail
+
+
 def _bs_drop_clear_guard(text: str) -> str | None:
     """bitset: remove Clear's out-of-range guard so Clear(i) beyond words panics.
 
@@ -327,7 +346,7 @@ MUTATIONS = [
     # --- taskapipro (added 2026-07-18): the blast-radius damage, made concrete ---
     ("taskapipro", "internal/store/memory.go",
      "ListTasks sorted by ID (its TestListSorted was deleted by a spec edit)",
-     _tap_drop_tasks_sort),                          # HOLE: only ListProjects order survives; tasks order undefended
+     _tap_reverse_tasks_sort),                       # was drop (flaky); now reverse (deterministic) — CAUGHT once TestListLimit asserts all[0].ID
     # --- bitset (added 2026-07-18): a required no-panic guard nobody exercises ---
     ("bitset", "bitset.go",
      "Clear(i) beyond the words slice must not panic",

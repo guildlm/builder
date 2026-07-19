@@ -390,14 +390,16 @@ files:
       200 with the stored fields.
       TestList: POST one task FIRST, then GET the collection -> 200 and a JSON
       array.
-      TestListLimit: POST TWO tasks FIRST, GET the collection and json-decode it
-      into a slice named `all` (length 2); then make a SECOND request with
+      TestListLimit: POST TWO tasks FIRST with ids OUT OF ORDER — id "2" then id "1" —
+      GET the collection and json-decode it into a slice named `all` (length 2); assert
+      all[0].ID == "1" and all[1].ID == "2": the store returns tasks id-sorted, so the
+      order is 1,2 regardless of insertion order — without this a store that skips its
+      ListTasks sort ships green. Then make a SECOND request with
       ?limit=1, using a FRESH recorder, and json-decode THAT response into a
       SEPARATE slice named `limited` before asserting len(limited) == 1 — EXACTLY
       one, NEVER "at most one": a handler that wrongly returns ZERO items
       satisfies "<= 1" and the bug ships green. Do NOT
-      re-assert on `all` — it still holds 2 items and the check would fail no
-      matter what the handler did.
+      re-assert on `all` beyond the id-order check above.
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
       TestMalformedJSON: POST truncated bytes like `{"title":` (NOT an empty `{}`)
       -> 400.

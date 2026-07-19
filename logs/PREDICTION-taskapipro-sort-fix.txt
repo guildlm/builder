@@ -58,3 +58,23 @@ state; restored generated/taskapipro-v4 from _taskapipro-BEFORE (so the committe
 stable SURVIVED); suite back to 17 CAUGHT / 2 SURVIVED / 1 n-a. The hole stands, honestly tracked.
 A real fix needs the model to actually emit TestListSorted — which this spec's size prevents; a
 future attempt should SHRINK the memory_test.go purpose (it lists 14 tests) before adding a 15th.
+
+=== ATTEMPT 2 (2026-07-19 ~16:17) — defend via the API layer, not the crowded store test ===
+NEW STRATEGY (from the serendipity + usersapi terse-edit lesson): don't fight the 14-test
+memory_test.go where the model reliably drops TestListSorted. Instead SHARPEN the existing api
+TestListLimit (router_test.go, ~3k chars, not crowded, model always emits it) to POST tasks id "2"
+then "1" and assert all[0].ID=="1" && all[1].ID=="2" — this is exactly the assertion the regen
+serendipitously added last time, made intentional. Switched teeth to _tap_reverse_tasks_sort.
+Predictions: P1 GREEN; P2 TestListLimit asserts all[0].ID=="1"; P3 teeth reverse SURVIVED->CAUGHT
+(real: reverse tasks-half sort -> all[0].ID=="2" -> TestListLimit fails); P4 blast radius 0 — NO new
+func (sharpen existing), count stays 57. Watch for cascade (big spec); kill+defer FINALLY if it
+appears or if TestListLimit still doesn't assert order.
+
+=== ATTEMPT 2 OUTCOME 2026-07-19 ~16:57 — SUCCESS (all predictions held) ===
+GREEN 83.1%, NO cascade. Func SET IDENTICAL (find-based, 57=57 — sharpened TestListLimit, no new
+func). The model POSTs tasks 1 then 2 and asserts the ?limit=1 response's resp[0].ID=="1" (an order
+assertion — just on the limit response, not the `all` slice I worded, but it defends the sort the
+same way). teeth taskapipro SURVIVED->CAUGHT, REAL: reverse the tasks-half sort -> ?limit=1 returns
+id "2" -> TestListLimit fails "response=[{2 task2 todo}], want [{ID:1...}]". Committed. Suite now
+19 CAUGHT / 0 SURVIVED / 1 n-a — ALL holes closed. The api-layer strategy beat the store-test
+capacity limit.

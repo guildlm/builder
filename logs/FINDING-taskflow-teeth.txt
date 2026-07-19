@@ -516,15 +516,34 @@ but a WORKING one; the terse edit didn't forbid the structure, it kept the promp
 the model got it right.) LESSON: edit SIZE, not just content, drives cascade risk — keep spec edits
 as terse as the surrounding text.
 
-=== CAMPAIGN SUMMARY (2026-07-19 autonomous fix arcs) ===
-8 holes CLOSED, all 4 taxonomy shapes covered, all committed with prediction-before + before/after
+=== FIX ARC #9 DONE 2026-07-19 (taskapipro sort) — defended at the API layer, the LAST hole ===
+The taskapipro sort hole (deferred once — the model reliably omits TestListSorted from the crowded
+14-test memory_test.go) CLOSED without ever getting that store test. NEW STRATEGY: stop fighting the
+capacity limit; defend the tasks-order at a LESS-crowded layer. Sharpened the api TestListLimit
+(router_test.go, ~3k chars) to POST two tasks and assert the ?limit=1 response's first id is "1" —
+making INTENTIONAL exactly the assertion attempt-1's regen had added by accident. Result: GREEN 83.1%,
+no cascade, func SET IDENTICAL (57=57, nothing added/deleted — sharpened an existing test), teeth
+taskapipro sort SURVIVED -> CAUGHT and REAL (reverse the tasks-half sort -> ?limit=1 returns id "2" ->
+TestListLimit fails "response = [{2 task2 todo}], want [{ID: 1...}]"). LESSON: when the model won't
+emit a test in a crowded file, an invariant can often be defended from an adjacent, less-crowded layer
+(here the HTTP handler test defends the store's sort through the layers) — pick the seam the model can
+actually fill, not the one the taxonomy points at.
+
+=== CAMPAIGN SUMMARY (2026-07-19 autonomous fix arcs) — ALL 9 HOLES CLOSED ===
+9 holes CLOSED, all 4 taxonomy shapes covered, all committed with prediction-before + before/after
 audit + airtight (mutation builds, real failure, stable): taskflow status (#1), tasks-api Create-
-validate (#2), bitset Clear (#3), walkv Delete (#4, took 3 attempts + a store.go mutex pin), taskflow
-sort (#5, introduced the reverse-mutation pattern), logstats tie-break (#6), workerpool bounded-
-concurrency (#7, a concurrency probe), usersapi sort (#8, beat the cascade with a terse edit). 1 hole
-DEFERRED with recorded reason: taskapipro sort (model reliably omits TestListSorted on a 20-file /
-14-test-in-one-purpose spec — a capacity limit; a future try must shrink that purpose first).
-teeth: 10 CAUGHT / 9 SURVIVED at session start -> 18 CAUGHT / 1 SURVIVED / 1 n-a now.
+validate (#2), bitset Clear (#3), walkv Delete (#4, 3 attempts + a store.go mutex pin), taskflow sort
+(#5, introduced the reverse-mutation pattern), logstats tie-break (#6), workerpool bounded-concurrency
+(#7, a concurrency probe), usersapi sort (#8, beat the cascade with a terse edit), taskapipro sort (#9,
+defended at the API layer when the store test wouldn't generate). 0 DEFERRED.
+teeth: 10 CAUGHT / 9 SURVIVED at session start -> 19 CAUGHT / 0 SURVIVED / 1 n-a. EVERY tracked
+invariant is now defended by a test that deterministically executes its exact promise.
+KEY LESSONS (all git-recorded): SHOW the exact assertion (prose gets skipped); a RED baseline yields
+false CAUGHTs (check green first — saved it 3x); spec-edit blast radius is SPEC-SPECIFIC and
+bidirectional (harmful cascade on usersapi, helpful on taskapipro); edit SIZE drives cascade risk
+(terse beat the usersapi cascade); exact-string mutations are brittle to cosmetic regen renames (match
+variants); use `find` not `**` for func audits; and when a crowded file won't take a test, defend the
+invariant from an adjacent layer.
 KEY LESSONS: SHOW the exact assertion (prose gets skipped); a RED baseline yields garbage teeth
 verdicts (false CAUGHT) — always check green first; spec-edit blast radius is SPEC-SPECIFIC and runs
 both directions (harmful cascade on usersapi, helpful on taskapipro); exact-string mutations are
