@@ -315,6 +315,30 @@ def _ja_drop_content_type(text: str) -> str | None:
     return None
 
 
+def _sh_redirect_302(text: str) -> str | None:
+    """shortener: change the redirect status 301 -> 302 (CAUGHT control: TestRedirectFound pins 301)."""
+    a = "http.Redirect(w, r, link.URL, http.StatusMovedPermanently)"
+    if text.count(a) != 1:
+        return None
+    return text.replace(a, "http.Redirect(w, r, link.URL, http.StatusFound)")
+
+
+def _jc_marshal_nanos(text: str) -> str | None:
+    """jsoncodec: marshal the timestamp as nanoseconds instead of unix seconds (CAUGHT control)."""
+    a = "e.At.Unix()"
+    if text.count(a) != 1:
+        return None
+    return text.replace(a, "e.At.UnixNano()")
+
+
+def _ee_break_multiply(text: str) -> str | None:
+    """expreval: turn multiplication into addition so operator precedence breaks (CAUGHT control)."""
+    a = "result *= right"
+    if text.count(a) != 1:
+        return None
+    return text.replace(a, "result += right")
+
+
 def _ds_break_reverse(text: str) -> str | None:
     """demo-small: break Reverse's swap loop so it returns the input unchanged (CAUGHT control)."""
     a = "for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {"
@@ -458,6 +482,15 @@ MUTATIONS = [
     ("genericset", "set.go",
      "Len returns the exact element count",
      _gs_break_len),                                 # CAUGHT control: Test... asserts Len()==2
+    ("jsoncodec", "event.go",
+     "MarshalJSON emits the timestamp as unix SECONDS",
+     _jc_marshal_nanos),                             # CAUGHT control: TestMarshalUsesUnixSeconds pins {"at":1000}
+    ("expreval", "eval.go",
+     "operator precedence: * binds tighter than +",
+     _ee_break_multiply),                            # CAUGHT control: TestPrecedenceAndParens asserts 2+3*4==14
+    ("shortener", "handlers.go",
+     "Redirect responds 301 MovedPermanently",
+     _sh_redirect_302),                              # CAUGHT control: TestRedirectFound asserts 301 + Location
 ]
 
 
