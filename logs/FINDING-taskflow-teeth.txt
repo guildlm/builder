@@ -414,3 +414,34 @@ SAME file's generation, here tipping its whole structure). A future attempt shou
 smaller edit (sharpen the existing list check to 2-out-of-order + a reverse mutation, which is
 deterministic even for 2 elements) rather than a new paragraph. Hole stands, honestly tracked.
 teeth suite unchanged at 15 CAUGHT / 4 SURVIVED / 1 n-a. Moving to taskapipro sort next.
+
+=== FIX ARC #6 DONE 2026-07-19 (logstats tie-break) — reverse pattern on a secondary sort ===
+Sixth hole CLOSED. Chose logstats over taskapipro deliberately: taskapipro is a 20-file
+multi-package spec (long regen + higher cascade risk after the usersapi lesson); logstats is
+small and the tie-break yields to the same reverse-mutation pattern. Prediction filed BEFORE at
+logs/PREDICTION-logstats-tiebreak-fix.txt.
+
+THE FIX: Report sorts PathStats by Count DESC, ties by Path ASC. TestConsume's two paths have
+DIFFERENT counts (2 vs 1), so only the PRIMARY was tested. Added TestReportTieBreak: Consume two
+lines (`/b` then `/a`, both Count 1 = a tie), assert Report()[0].Path=="/a" && [1].Path=="/b".
+Switched the teeth tie-break entry from _ls_drop_tiebreak to _ls_reverse_tiebreak (a dropped
+tie-break leaves equal-Count elements in pdqsort's unspecified order — flaky; a reversed one is
+deterministic).
+
+MEASURED — all 4 predictions held:
+  P1 GREEN: build+vet+test-race pass, coverage 83.6%.
+  P2 the new TestReportTieBreak gives two paths equal Count and asserts Path ascending by index.
+  P3 teeth `logstats` tie-break flipped SURVIVED -> CAUGHT, deterministically; REAL failure:
+     reverse applies (count 1), build passes, TestReportTieBreak fails "report[0].Path = /b,
+     want /a" every run.
+  P4 BLAST RADIUS: +1 func (TestReportTieBreak), count 2 -> 3; TestConsume + TestParseLine intact.
+
+SUB-FINDING (exact-string mutation fragility across regens): the regen renamed the sort slice
+var `stats` -> `report`, which made BOTH logstats mutations NOAPPLY (·n/a) — including the
+PRIMARY that was CAUGHT before. An exact-string anchor is brittle to a cosmetic regen change; a
+NOAPPLY is honest (never a fake CAUGHT) but it silently drops coverage of a real invariant.
+FIX: both _ls_* mutations now try either var name ("report"/"stats") — still exact-string, no
+fragile regex (the save-point regex lesson stands). Lesson: when a fix regenerates the impl file,
+RE-RUN the whole spec's teeth and check nothing dropped to n/a, not just that the target flipped.
+teeth suite now 16 CAUGHT / 3 SURVIVED / 1 n-a. Remaining holes: usersapi sort (deferred),
+taskapipro sort, workerpool concurrency.

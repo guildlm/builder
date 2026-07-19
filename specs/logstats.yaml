@@ -100,4 +100,15 @@ files:
       index 1 {Path "/b", Count 1, ErrorCount 1, TotalLatencyMS 300} with
       AvgLatencyMS() == 300 ("/a" sorts first because its Count 2 > 1; the
       rejected /b malformed line does NOT add a second /b entry). Compare
-      AvgLatencyMS() to whole-number floats (150, 300). Standard library only.
+      AvgLatencyMS() to whole-number floats (150, 300).
+      TestReportTieBreak: a SEPARATE test with a FRESH NewStats(). Consume two valid
+      lines that give TWO paths the SAME Count, so the TIE-BREAK — not the primary
+      Count sort — decides their order; feed the alphabetically-LATER path FIRST. Build
+      the input by joining with "\n": line1 `2026-01-02T15:04:05Z GET /b 200 100`, line2
+      `2026-01-02T15:04:05Z GET /a 200 100`. Now /a and /b each have Count 1 (a tie).
+      Report() returns EXACTLY two PathStat values, and because equal Counts are broken
+      by Path ASCENDING, index 0 is {Path "/a"} and index 1 is {Path "/b"} — assert
+      report[0].Path == "/a" AND report[1].Path == "/b" as two independent checks.
+      Without the Path-ascending tie-break, two equal-Count paths come back in an
+      unspecified order and this is the only test that pins it.
+      Standard library only.

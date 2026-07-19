@@ -229,11 +229,15 @@ def _wv_drop_delete(text: str) -> str | None:
 
 
 def _ls_flip_primary(text: str) -> str | None:
-    """logstats: reverse Report's PRIMARY sort (Count descending -> ascending)."""
-    a = "\t\treturn stats[i].Count > stats[j].Count"
-    if text.count(a) != 1:
-        return None
-    return text.replace(a, "\t\treturn stats[i].Count < stats[j].Count")
+    """logstats: reverse Report's PRIMARY sort (Count descending -> ascending).
+
+    The slice var name varies by regen (stats/report); match either (exact-string, no regex).
+    """
+    for v in ("report", "stats"):
+        a = f"return {v}[i].Count > {v}[j].Count"
+        if text.count(a) == 1:
+            return text.replace(a, f"return {v}[i].Count < {v}[j].Count")
+    return None
 
 
 def _ls_drop_tiebreak(text: str) -> str | None:
@@ -243,6 +247,22 @@ def _ls_drop_tiebreak(text: str) -> str | None:
     if text.count(blk) != 1:
         return None
     return text.replace(blk, "\t\t// MUTANT: tie-break (Path asc on equal Count) removed\n")
+
+
+def _ls_reverse_tiebreak(text: str) -> str | None:
+    """logstats: reverse Report's TIE-BREAK (Path ascending -> descending on equal Count).
+
+    Deterministic (unlike a DROP, which leaves equal-Count elements in pdqsort's
+    unspecified order). A test that gives two paths the SAME Count and asserts Path
+    ascending catches the reversed tie-break every run.
+
+    The slice var name varies by regen (stats/report); match either (exact-string, no regex).
+    """
+    for v in ("report", "stats"):
+        a = f"return {v}[i].Path < {v}[j].Path"
+        if text.count(a) == 1:
+            return text.replace(a, f"return {v}[i].Path > {v}[j].Path")
+    return None
 
 
 # (spec, relative file, description, mutation). One promise per entry.
@@ -291,7 +311,7 @@ MUTATIONS = [
      _ls_flip_primary),                              # CAUGHT (TestConsume asserts report[0]==/a, Count 2>1)
     ("logstats", "stats.go",
      "Report breaks Count ties by Path ascending (deterministic)",
-     _ls_drop_tiebreak),                             # HOLE: no test ever has two equal-Count paths
+     _ls_reverse_tiebreak),                          # was drop (leaves equal-Count in pdqsort order); now reverse (deterministic) — CAUGHT once a two-equal-Count test exists
     # --- taskapi (added 2026-07-18): the POSITIVE control for the sort hole ---
     ("taskapi", "internal/store/memory.go",
      "List sorted by ID — DEFENDED (contrast: taskflow/usersapi drop it)",

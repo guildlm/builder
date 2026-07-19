@@ -1,0 +1,34 @@
+PREDICTION — logstats tie-break FIX ARC #6 (reverse-mutation pattern on a tie-break).
+Written BEFORE the regen.
+
+WHEN:   2026-07-19 14:58:02  (from `date`)
+HEAD:   e6cbdc3  (arcs #1-#5 committed + usersapi deferral recorded; specs/logstats.yaml +
+        _teeth_suite.py edited, unstaged)
+SERVER: MLX :8080 UP
+
+PATTERN: same reverse-mutation idea as arc #5 (sort), applied to logstats' TIE-BREAK.
+Report sorts PathStats by Count DESC, ties broken by Path ASC. TestConsume asserts only the
+PRIMARY (its two paths have DIFFERENT counts 2 vs 1). No test gives two paths the SAME count,
+so the tie-break is undefended. A DROP leaves equal-Count elements in pdqsort's unspecified
+order (flaky to catch); a REVERSE (Path asc -> desc) is deterministic. Switched the teeth
+tie-break entry from _ls_drop_tiebreak to _ls_reverse_tiebreak.
+
+BEFORE (measured): logstats 2 test funcs (TestConsume, TestParseLine); reverse-tiebreak on the
+CURRENT artifact = SURVIVED (just confirmed) -> valid probe. Primary sort = CAUGHT (stays).
+
+THE EDIT: added TestReportTieBreak to the spec — a fresh NewStats(), Consume two lines
+(`/b` then `/a`, both Count 1 = a tie), assert Report()[0].Path=="/a" AND [1].Path=="/b".
+
+PREDICTIONS:
+P1. Regen GREEN.
+P2. A new TestReportTieBreak gives two paths equal Count and asserts Path ascending by index.
+P3. teeth `logstats` tie-break (now reverse) flips SURVIVED -> CAUGHT deterministically; verify
+    real (reverse applies count 1, build passes, TestReportTieBreak fails — Report()[0] becomes
+    "/b" under the reversed tie-break).
+P4. Blast radius: +1 func (TestReportTieBreak), count 2 -> 3; primary sort stays CAUGHT;
+    TestConsume + TestParseLine unchanged.
+
+REFUTATION: R2 (RED regen) -> baseline-green rule, revert (walkv/usersapi lesson). R-cascade:
+logstats has a long, pinned test purpose (like usersapi) -> WATCH for a fix-cascade; if it
+cascades reproducibly, kill + defer + restore from _logstats-BEFORE. DECISION: commit only if
+P1..P4 hold; else revert both files, record, no push.
