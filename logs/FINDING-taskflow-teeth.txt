@@ -503,14 +503,28 @@ DEFERRED cleanly: reverted spec + teeth + restored the golden artifact; suite un
 A real taskapipro fix needs the model to actually emit TestListSorted, which the spec's size
 prevents — a future attempt should SHRINK the memory_test.go purpose (14 tests) before adding one.
 
+=== FIX ARC #8 DONE 2026-07-19 (usersapi sort) — the deferred cascade, beaten with a TERSE edit ===
+Reopened the usersapi sort hole (deferred earlier after 2 reproducible cascades) and CLOSED it. The
+diagnosis held: the cascade was triggered by the SIZE of the edit. Attempts 1-2 added a ~1400-char
+paragraph -> the model tipped into a forbidden `func do(...)` helper structure and botched it
+(`undefined: do`) -> full-package fix cascade. Attempt 3 used a TERSE third focused test (len 1049,
+matching the existing focused-test style) with a "NO shared helper" nudge. Result: GREEN 80.8%, NO
+cascade, TestListSorted added (POST ids "2" then "1", assert us[0].ID=="1" && us[1].ID=="2"), teeth
+usersapi sort SURVIVED -> CAUGHT and REAL (reverse applies, build passes, fails "list ids: got
+2,1, want 1,2"), blast radius +1 func (9 -> 10). (The model STILL wrote a `do` helper this time —
+but a WORKING one; the terse edit didn't forbid the structure, it kept the prompt small enough that
+the model got it right.) LESSON: edit SIZE, not just content, drives cascade risk — keep spec edits
+as terse as the surrounding text.
+
 === CAMPAIGN SUMMARY (2026-07-19 autonomous fix arcs) ===
-7 holes CLOSED, all 4 taxonomy shapes covered, all committed with prediction-before + before/after
+8 holes CLOSED, all 4 taxonomy shapes covered, all committed with prediction-before + before/after
 audit + airtight (mutation builds, real failure, stable): taskflow status (#1), tasks-api Create-
 validate (#2), bitset Clear (#3), walkv Delete (#4, took 3 attempts + a store.go mutex pin), taskflow
 sort (#5, introduced the reverse-mutation pattern), logstats tie-break (#6), workerpool bounded-
-concurrency (#7, a concurrency probe). 2 holes DEFERRED with recorded reasons: usersapi sort
-(reproducible generation cascade) and taskapipro sort (model omits TestListSorted on a 14-test spec).
-teeth: 10 CAUGHT / 9 SURVIVED at session start -> 17 CAUGHT / 2 SURVIVED / 1 n-a now.
+concurrency (#7, a concurrency probe), usersapi sort (#8, beat the cascade with a terse edit). 1 hole
+DEFERRED with recorded reason: taskapipro sort (model reliably omits TestListSorted on a 20-file /
+14-test-in-one-purpose spec — a capacity limit; a future try must shrink that purpose first).
+teeth: 10 CAUGHT / 9 SURVIVED at session start -> 18 CAUGHT / 1 SURVIVED / 1 n-a now.
 KEY LESSONS: SHOW the exact assertion (prose gets skipped); a RED baseline yields garbage teeth
 verdicts (false CAUGHT) — always check green first; spec-edit blast radius is SPEC-SPECIFIC and runs
 both directions (harmful cascade on usersapi, helpful on taskapipro); exact-string mutations are

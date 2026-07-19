@@ -114,6 +114,14 @@ def _ua_drop_sort(text: str) -> str | None:
     return text.replace('\t"sort"\n', "")
 
 
+def _ua_reverse_sort(text: str) -> str | None:
+    """usersapi: reverse the sorted-by-ID order in List (ascending -> descending). Deterministic."""
+    a = "return out[i].ID < out[j].ID"
+    if text.count(a) != 1:
+        return None
+    return text.replace(a, "return out[i].ID > out[j].ID")
+
+
 def _ua_drop_dup(text: str) -> str | None:
     """usersapi: remove the duplicate-ID guard in Create."""
     blk = "\tif _, ok := s.users[u.ID]; ok {\n\t\treturn ErrExists\n\t}\n"
@@ -304,7 +312,7 @@ MUTATIONS = [
      _ua_drop_dup),                                  # CAUGHT (TestDuplicateReturns409)
     ("usersapi", "store.go",
      "List returns users sorted by ID (deterministic output)",
-     _ua_drop_sort),                                 # HOLE: TestListReturnsAll checks len==2, never order
+     _ua_reverse_sort),                              # was drop (flaky); now reverse (deterministic) — CAUGHT once an order test exists
     # --- logstats (added 2026-07-18): a SPLIT sort — half defended, half not ---
     ("logstats", "stats.go",
      "Report ranks paths by Count descending",

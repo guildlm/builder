@@ -46,3 +46,12 @@ tracked. A future attempt should use a SMALLER edit (e.g. sharpen the existing l
 2-out-of-order + reverse mutation, which is deterministic for 2 elements) rather than a new
 paragraph — keep the users_test.go purpose short enough to not tip the structure. Moving on to
 taskapipro sort, then logstats, then workerpool.
+
+=== ATTEMPT 3 (bounded minimal retry, 2026-07-19 ~16:09) ===
+Documented forward path applied: a TERSE third focused test (not a paragraph — the len-1400
+paragraph triggered the cascade twice; this is len-1049), matching the existing focused-test
+style, with an explicit "NO shared helper" nudge to counter the forbidden `func do(...)` structure.
+TestListSorted: POST ids "2" then "1", GET, assert got[0].ID=="1" && got[1].ID=="2". Re-added
+_ua_reverse_sort + switched the entry. Predictions P1..P4 as before. HARD RULE: watch the regen for
+`persistent runtime failure`/`widening fix targets`/`undefined: do`; kill at the FIRST sign and
+DEFER FIRMLY (no 4th attempt) — restore from _usersapi-BEFORE, move on to the-algorithm thesis.
