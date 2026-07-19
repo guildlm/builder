@@ -1,0 +1,43 @@
+PREDICTION — bitset Clear-guard FIX ARC #3. Written BEFORE the regen.
+
+WHEN:   2026-07-19 13:36:50  (from `date`)
+HEAD:   589976f  (fix arcs #1+#2 committed; specs/bitset.yaml now edited, unstaged)
+SERVER: MLX :8080 UP (go-dev-mixed-v4)
+
+=== BEFORE STATE (measured) ===
+- generated/bitset-v4 test funcs: 3 (TestCount, TestSetTestClear, TestUnion),
+  snapshot logs/AUDIT-bitset-clear-BEFORE.txt.
+- TestSetTestClear (opened): calls b.Test(200) (beyond the slice) but NEVER b.Clear(200).
+  Only Clear(1) is exercised (in-range). So Clear's out-of-range guard is undefended.
+- teeth `bitset` verdict BEFORE: "Clear(i) beyond the words slice must not panic" =
+  SURVIVED. Mutation _bs_drop_clear_guard removes the `if wordIndex < len(b.words)` guard
+  -> Clear(200) on a small set panics (index out of range).
+
+=== THE EDIT (sharpen existing, like fix arc #1 — no new func) ===
+Sharpened TestSetTestClear purpose: after the existing b.Test(200) assertion, added
+b.Clear(200) (word index beyond the slice) MUST NOT PANIC and b.Test(200) still false,
+with the reason (Clear must guard i/64 >= len(words) exactly as Test does). Func count
+stays 3 — a control. DETERMINISTIC to verify: dropping the guard makes Clear(200) panic,
+which fails the test every run (no map-order flakiness, unlike the sort holes).
+
+=== PREDICTIONS (falsifiable) ===
+P1. Regen builds GREEN.
+P2. The regenerated TestSetTestClear calls b.Clear(200) (or an index beyond the slice)
+    and does NOT assert a panic-free path is optional — it just runs, and asserts
+    Test(200) still false. (A panicking Clear would crash the test.)
+P3. teeth `bitset` flips SURVIVED -> CAUGHT, DETERMINISTICALLY. Verify it is a real
+    failure: applying _bs_drop_clear_guard makes the test panic ("index out of range"),
+    go test returns non-zero. Not a compile error.
+P4. Blast radius 0: func count stays 3, same names (TestCount, TestSetTestClear,
+    TestUnion). No func added/removed/renamed.
+
+=== REFUTATION MEANINGS ===
+R1. Model omits the Clear(200) call (writes only Test(200)) -> hole stays SURVIVED.
+    Means the "add Clear(200), assert no panic" wording didn't land.
+R2. Regen RED -> verdicts garbage -> re-run/revert.
+R3. Any func changes/vanishes -> blast radius -> revert, file.
+
+DECISION: commit ONLY if P1..P4 hold (green + CAUGHT-real-deterministic + count 3, no
+silent change). Any refutation -> revert, record, no push. This is the FIRST
+deterministic (non-sort) hole in the fix campaign; sort family deferred because its
+DROP mutation catches only probabilistically (needs a reverse-mutation tool change).

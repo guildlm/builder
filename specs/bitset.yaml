@@ -33,8 +33,13 @@ files:
       these exact scenarios.
       TestSetTestClear: b := New(); b.Set(1); b.Set(65); // 65 is in the SECOND
       word, bit 1. Assert b.Test(1) is true, b.Test(65) is true, b.Test(2) is
-      false, and b.Test(200) is false (beyond the slice). Then b.Clear(1); assert
-      b.Test(1) is false and b.Test(65) is still true.
+      false, and b.Test(200) is false (beyond the slice). Then b.Clear(200) — an
+      index whose word i/64 is BEYOND the words slice — and assert it DOES NOT PANIC
+      and b.Test(200) is STILL false afterward: Clear must guard the out-of-range word
+      exactly as Test does (if i/64 >= len(words) the bit is already clear, so do
+      nothing). Without that guard Clear(200) indexes past the words slice and PANICS
+      at runtime, while every other assertion in this test still passes. Then
+      b.Clear(1); assert b.Test(1) is false and b.Test(65) is still true.
       TestCount: b := New(); b.Set(0); b.Set(1); b.Set(63); b.Set(64); assert
       b.Count() == 4.
       TestUnion: a := New(); a.Set(1); a.Set(2); c := New(); c.Set(2); c.Set(130);

@@ -295,3 +295,33 @@ came out blast-radius-clean under the mandatory before/after func audit.
 teeth suite is now 12 CAUGHT / 7 SURVIVED (was 10/9): taskflow status + tasks-api
 Create-validate both closed. Remaining holes: taskflow/usersapi/taskapipro sort,
 logstats tie-break, bitset Clear, walkv Delete, workerpool concurrency.
+
+=== FIX ARC #3 DONE 2026-07-19 (bitset Clear-guard) ===
+Third hole CLOSED — the FIRST deterministic (non-sort) one. Prediction filed BEFORE at
+logs/PREDICTION-bitset-clear-fix.txt.
+
+THE FIX (sharpen existing, like #1 — no new func): TestSetTestClear already did
+b.Test(200) (beyond the slice) but never b.Clear(200). Sharpened its purpose to add
+b.Clear(200) and assert NO PANIC + Test(200) still false, with the reason (Clear must
+guard i/64 >= len(words) exactly as Test does). This is hole shape #2 in the taxonomy
+(a guard whose happy path is tested, edge never run) — closed by exercising the edge.
+
+MEASURED — all 4 predictions held:
+  P1 GREEN: build+vet+test-race pass, coverage 100.0%.
+  P2 the regenerated TestSetTestClear calls b.Clear(200) and asserts Test(200) still
+     false afterward.
+  P3 teeth `bitset` flipped SURVIVED -> CAUGHT, DETERMINISTICALLY. Real failure, not a
+     false CAUGHT: _bs_drop_clear_guard applies (guard block count 1), the artifact
+     BUILDS, and TestSetTestClear panics "index out of range [3] with length 2"
+     (Clear(200) -> wordIndex 3, words len 2) -> go test non-zero, every run.
+  P4 BLAST RADIUS 0: func set byte-identical (3 funcs: TestCount, TestSetTestClear,
+     TestUnion). None added/removed/renamed.
+
+WHY THIS ONE FIRST (over the sort family): the sort holes' teeth mutation DROPS the
+sort, so catching it depends on Go map-iteration randomness (probabilistic, the
+tasks-api ~20% lesson). bitset's guard-drop makes Clear(200) panic DETERMINISTICALLY,
+so the fix verifies cleanly every run. The sort family needs the teeth entries switched
+to a REVERSE mutation (like the taskapi positive control) before its fix can be verified
+without flakiness — deferred as a tool change, not blocked.
+teeth suite now 13 CAUGHT / 6 SURVIVED / 1 n-a. Remaining holes: taskflow/usersapi/
+taskapipro sort, logstats tie-break, walkv Delete, workerpool concurrency.
