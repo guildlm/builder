@@ -315,6 +315,30 @@ def _ja_drop_content_type(text: str) -> str | None:
     return None
 
 
+def _ds_break_reverse(text: str) -> str | None:
+    """demo-small: break Reverse's swap loop so it returns the input unchanged (CAUGHT control)."""
+    a = "for i, j := 0, len(runes)-1; i < j; i, j = i+1, j-1 {"
+    if text.count(a) != 1:
+        return None
+    return text.replace(a, "for i, j := 0, len(runes)-1; i > j; i, j = i+1, j-1 {")
+
+
+def _nk_break_clamp(text: str) -> str | None:
+    """numkit: drop Clamp's upper bound so x above hi is not clamped (CAUGHT control)."""
+    blk = "\tif x > hi {\n\t\treturn hi\n\t}\n"
+    if text.count(blk) != 1:
+        return None
+    return text.replace(blk, "\t// MUTANT: upper clamp removed\n")
+
+
+def _gs_break_len(text: str) -> str | None:
+    """genericset: make Len off-by-one (CAUGHT control: TestLen asserts an exact count)."""
+    a = "\treturn len(s.m)\n"
+    if text.count(a) != 1:
+        return None
+    return text.replace(a, "\treturn len(s.m) + 1\n")
+
+
 def _pq_reverse_less(text: str) -> str | None:
     """priorityqueue: reverse the min-heap comparison (< -> >) so it pops highest-first.
 
@@ -424,6 +448,16 @@ MUTATIONS = [
     ("priorityqueue", "pq.go",
      "min-heap pops lowest priority first",
      _pq_reverse_less),                              # CAUGHT control: TestPopOrderByPriority asserts pop order 1,2,3
+    # --- more library positive controls (added 2026-07-19): invariant IS the test subject ---
+    ("demo-small", "stringkit.go",
+     "Reverse actually reverses the runes",
+     _ds_break_reverse),                             # CAUGHT control: TestReverse asserts exact reversed output
+    ("numkit", "numkit.go",
+     "Clamp bounds x above hi",
+     _nk_break_clamp),                               # CAUGHT control: TestClamp asserts an above-hi value clamps
+    ("genericset", "set.go",
+     "Len returns the exact element count",
+     _gs_break_len),                                 # CAUGHT control: Test... asserts Len()==2
 ]
 
 
