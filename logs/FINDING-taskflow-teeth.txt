@@ -445,3 +445,32 @@ fragile regex (the save-point regex lesson stands). Lesson: when a fix regenerat
 RE-RUN the whole spec's teeth and check nothing dropped to n/a, not just that the target flipped.
 teeth suite now 16 CAUGHT / 3 SURVIVED / 1 n-a. Remaining holes: usersapi sort (deferred),
 taskapipro sort, workerpool concurrency.
+
+=== FIX ARC #7 DONE 2026-07-19 (workerpool bounded concurrency) — the hardest hole shape ===
+Seventh hole CLOSED — taxonomy shape #4, an invariant with NO OUTPUT SIGNATURE. ParallelMap
+must use at most `workers` goroutines, but order + once-per-item count are byte-identical whether
+it runs 2 goroutines or one-per-item, so output-checking tests AND line coverage are structurally
+blind to it. Prediction filed BEFORE at logs/PREDICTION-workerpool-concurrency-fix.txt.
+
+THE FIX (a concurrency PROBE, not an output check): added TestParallelMapBoundedConcurrency — a
+mapper that tracks PEAK concurrency with sync/atomic (AddInt64 on entry, CAS a max tracker, a 10ms
+Sleep to force overlap, AddInt64 -1 on exit), then asserts peak <= workers. Shown EXACTLY in the
+spec (the show-the-code lesson) because it needs atomic CAS + a sleep the 7B must get right. No
+teeth-entry change: _wp_unbounded (`w < workers` -> `w < len(items)`) is caught by the probe directly.
+
+MEASURED — all 4 predictions held, and the CAUGHT is STABLE (not timing-flaky):
+  P1 GREEN: build+vet+test-race pass, coverage 100.0%.
+  P2 the new probe uses an atomic peak-tracker + 10ms sleep and asserts peak <= 2.
+  P3 teeth `workerpool` flipped SURVIVED -> CAUGHT; REAL failure: _wp_unbounded applies, build
+     passes, the probe fails "peak concurrency = 8, want <= 2". Ran the teeth 5x: 5/5 CAUGHT —
+     the 10ms sleep over 8 items vs 2 workers makes the overlap reliable, so no flake.
+  P4 BLAST RADIUS: +1 func (the probe), count 2 -> 3; the two existing tests intact.
+
+This is the deepest result of the campaign: the ONE hole no output test or coverage tool could
+ever see is closable — but only by a test that observes EXECUTION (goroutine overlap), not RESULTS.
+It required injecting instrumentation through the user-supplied mapper `fn`, which the API happens
+to allow. Not every no-signature invariant will have such a seam.
+teeth suite now 17 CAUGHT / 2 SURVIVED / 1 n-a. Remaining holes: usersapi sort (deferred,
+reproducible cascade), taskapipro sort (20-file spec, deferred for cascade risk). All FOUR hole
+SHAPES in the taxonomy now have at least one CLOSED example: no-test (taskflow/logstats),
+edge-never-run (bitset), effect-via-other-path (walkv), no-output-signature (workerpool).

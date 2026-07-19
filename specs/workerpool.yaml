@@ -22,4 +22,29 @@ files:
     purpose: >-
       package pool. Tests for ParallelMap: squaring 1..8 with 3 workers returns
       results in order and calls fn exactly once per item (count with
-      sync/atomic); workers=0 still processes every item. Standard library only.
+      sync/atomic); workers=0 still processes every item.
+      TestParallelMapBoundedConcurrency: PROVE ParallelMap never runs more than
+      `workers` goroutines at once — the one invariant with NO output signature (order
+      and count are identical whether it runs 2 goroutines or one-per-item, so only a
+      concurrency PROBE can see it). Use workers=2 over 8 items with a mapper that
+      tracks PEAK concurrency, written EXACTLY like this:
+        var cur, max int64
+        ParallelMap([]int{0, 1, 2, 3, 4, 5, 6, 7}, 2, func(x int) int {
+            n := atomic.AddInt64(&cur, 1)
+            for {
+                m := atomic.LoadInt64(&max)
+                if n <= m || atomic.CompareAndSwapInt64(&max, m, n) {
+                    break
+                }
+            }
+            time.Sleep(10 * time.Millisecond)
+            atomic.AddInt64(&cur, -1)
+            return x
+        })
+        if max > 2 {
+            t.Errorf("peak concurrency = %d, want <= 2 (bounded by workers)", max)
+        }
+      The sleep forces the active workers to overlap so the peak is observable: correct
+      code peaks at 2, a pool that spawns one goroutine per item peaks at 8. Imports
+      sync/atomic and time.
+      Standard library only.

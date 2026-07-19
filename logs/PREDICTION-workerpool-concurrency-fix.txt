@@ -1,0 +1,37 @@
+PREDICTION — workerpool bounded-concurrency FIX ARC #7. Written BEFORE the regen.
+
+WHEN:   2026-07-19 15:07:40  (from `date`)
+HEAD:   994feba  (arcs #1-#6 committed; specs/workerpool.yaml edited, unstaged)
+SERVER: MLX :8080 UP
+
+THE HARDEST HOLE SHAPE: an invariant with NO OUTPUT SIGNATURE. ParallelMap must use at most
+`workers` goroutines, but order + once-per-item count are identical whether it runs 2 goroutines
+or one-per-item. Output-checking tests and line coverage are structurally blind to it. The teeth
+mutation _wp_unbounded changes `for w := 0; w < workers` to `< len(items)` (one goroutine per
+item). No teeth-entry change needed — the probe catches the behavioral mutation directly.
+
+THE FIX (a concurrency PROBE, not an output check): pass a mapper that tracks PEAK concurrency
+with sync/atomic and a 10ms sleep to force overlap, then assert peak <= workers. Correct code
+peaks at `workers` (2); the mutant peaks at len(items) (8). Shown EXACTLY in the spec (the
+show-the-code lesson) because it uses atomic CompareAndSwap + a sleep the model must get right.
+
+BEFORE (measured): workerpool 2 test funcs (TestParallelMapOrderAndCount,
+TestParallelMapZeroWorkers), neither observes concurrency; teeth = SURVIVED. Small spec (3 files).
+
+PREDICTIONS:
+P1. Regen GREEN (build+vet+test-race — the probe is race-clean via atomic).
+P2. A new TestParallelMapBoundedConcurrency uses an atomic peak-tracker + sleep and asserts
+    peak <= workers (2).
+P3. teeth `workerpool` flips SURVIVED -> CAUGHT; verify real: _wp_unbounded applies, build passes,
+    the probe test fails "peak concurrency = 8, want <= 2".
+P4. Blast radius: +1 func (the probe), count 2 -> 3; the two existing tests unchanged.
+
+REFUTATION: R1 the model writes a weak probe (no sleep, or asserts count not concurrency) -> hole
+stays SURVIVED (peak may read 1-2 without a sleep). R2 RED regen (a botched atomic/sleep test) ->
+baseline-green rule, revert. R-flaky: if the probe is timing-fragile it could flake under -race;
+the 10ms sleep over 8 items vs 2 workers should be robust, but WATCH the teeth verdict across a
+couple of runs. R-cascade: small spec, low risk, but watch.
+
+DECISION: commit only if P1..P4 hold AND the teeth CAUGHT is stable (not timing-flaky). Else
+revert, record, no push. If it lands, only the two cascade-risky sort holes remain
+(usersapi deferred, taskapipro).
