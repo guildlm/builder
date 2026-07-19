@@ -325,3 +325,40 @@ to a REVERSE mutation (like the taskapi positive control) before its fix can be 
 without flakiness — deferred as a tool change, not blocked.
 teeth suite now 13 CAUGHT / 6 SURVIVED / 1 n-a. Remaining holes: taskflow/usersapi/
 taskapipro sort, logstats tie-break, walkv Delete, workerpool concurrency.
+
+=== FIX ARC #4 DONE 2026-07-19 (walkv Delete live-map) — took 3 attempts, all recorded ===
+Fourth hole CLOSED, but the FIRST fix arc that did not land first try. The 3-attempt
+record is the value here (full detail in logs/PREDICTION-walkv-delete-fix.txt):
+
+ATTEMPT 1 — REFUTED twice. (a) The regen came out RED (store.go declared sync.Mutex but
+  called RLock/RUnlock — a build error). (b) My spec edit DESCRIBED the same-session
+  assertion in prose but never SHOWED the Go line, and the model skipped it — the test
+  stayed reopen-only. Reverted; restored the artifact from _walkv-BEFORE.
+  KEY: the teeth read walkv as CAUGHT, but that was a FALSE CAUGHT — the mutation ran on
+  a RED baseline (build already broken -> any mutant also fails to build -> non-zero ->
+  "CAUGHT"). The baseline-must-be-green rule caught it, exactly the save-point warning.
+
+ATTEMPT 2 — SPLIT. Showing the EXACT assert line (`if v, ok := s.Get("gone"); ok {...}`)
+  landed P2 (the same-session check appeared). But store.go went RED again with the same
+  RLock-on-Mutex bug. Diagnosed: the green original uses Lock()/Unlock() everywhere; the
+  store.go purpose says "a sync.Mutex" but never pins the methods, so the model reaches
+  for RLock on the read path (Get) — plausibly nudged by my test edit's Get-emphasis via
+  the cascade channel (every file's purpose is in every prompt). Root cause = an
+  underspecified store.go purpose, not lottery.
+
+ATTEMPT 3 — GREEN, all predictions held. Kept the show-the-line test edit AND pinned the
+  store.go purpose: "use s.mu.Lock()/Unlock() in EVERY method incl. Get; a plain
+  sync.Mutex has NO RLock/RUnlock; never call them." Result: build+vet+test-race GREEN
+  (84.4% cov); store.go now Lock()/Unlock() throughout; the same-session check present;
+  teeth walkv SURVIVED -> CAUGHT and REAL (mutation applies, artifact BUILDS, test fails
+  "same-session Get(gone)=\"x\", want gone"); blast radius 0 (2 funcs, byte-identical).
+
+LESSONS (three, all from this one arc):
+  1. SHOW the exact assertion line — prose-only gets skipped (attempt 1 vs 2).
+  2. A test-purpose edit can cascade BACKWARD into an impl file's generation (the Get
+     emphasis -> RLock in store.go). Blast radius runs both directions; audit BOTH the
+     test funcs AND that every impl file still builds.
+  3. When a regen is RED, the teeth verdict is GARBAGE (false CAUGHT). ALWAYS confirm the
+     baseline builds green before trusting a flip — this arc is the live proof.
+teeth suite now 14 CAUGHT / 5 SURVIVED / 1 n-a. Remaining holes: taskflow/usersapi/
+taskapipro sort, logstats tie-break, workerpool concurrency.

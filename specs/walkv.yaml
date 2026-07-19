@@ -33,8 +33,11 @@ files:
       Delete(key string) error: append a "DEL\tkey\n" record, then delete from the
       map.
       Close() error: close the file handle.
-      Guard the map and file with a sync.Mutex so the store is safe for concurrent
-      use. Standard library only (os, bufio, strings, sync).
+      Guard the map and file with a single sync.Mutex so the store is safe for
+      concurrent use. Use s.mu.Lock() / s.mu.Unlock() in EVERY method, INCLUDING the
+      read methods like Get — a plain sync.Mutex has NO RLock/RUnlock, so never call
+      s.mu.RLock() or s.mu.RUnlock() (that does not compile). Standard library only
+      (os, bufio, strings, sync).
 
   - path: store_test.go
     purpose: >-
@@ -46,7 +49,10 @@ files:
       s.Close().
       TestRecoveryAfterReopen: path := filepath.Join(t.TempDir(), "wal.log"); s,
       _ := Open(path); s.Set("k","v1"); s.Set("k","v2"); s.Set("gone","x");
-      s.Delete("gone"); s.Close(). Now OPEN THE SAME path into a fresh store s2, _
+      s.Delete("gone"); THEN, BEFORE s.Close(), add EXACTLY this line to assert the
+      LIVE in-memory removal in the SAME session (Delete must delete from the map now,
+      not only via replay): if v, ok := s.Get("gone"); ok { t.Fatalf("same-session
+      Get(gone)=%q, want gone", v) }. s.Close(). Now OPEN THE SAME path into a fresh store s2, _
       := Open(path); assert s2.Get("k") == ("v2", true) (last write wins) and
       s2.Get("gone") == ("", false) (the delete was replayed); s2.Close(). This is
       the durability assertion — the second store recovers state purely by

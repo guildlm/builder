@@ -1,0 +1,89 @@
+PREDICTION — walkv Delete live-map FIX ARC #4. Written BEFORE the regen.
+
+WHEN:   2026-07-19 13:40:48  (from `date`)
+HEAD:   7327fcc  (fix arcs #1-#3 committed; specs/walkv.yaml edited, unstaged)
+SERVER: MLX :8080 UP (go-dev-mixed-v4)
+
+=== BEFORE STATE (measured) ===
+- generated/walkv-v4 test funcs: 2 (TestSetGet, TestRecoveryAfterReopen),
+  snapshot logs/AUDIT-walkv-delete-BEFORE.txt.
+- TestSetGet never calls Delete. TestRecoveryAfterReopen calls Delete but checks
+  Get("gone") ONLY on the reopened store s2 (via log replay), never on s in-session.
+- teeth `walkv` BEFORE: "Delete removes the key from the in-memory map (not just the
+  log)" = SURVIVED. Mutation _wv_drop_delete removes `delete(s.m, key)` (keeps the DEL
+  log write) -> same-session Get returns the key, but reopen still recovers.
+
+=== THE EDIT (sharpen existing, no new func) ===
+Sharpened TestRecoveryAfterReopen: after s.Delete("gone") and BEFORE s.Close(), assert
+s.Get("gone") == ("", false) in the FIRST store — the live in-memory removal, not the
+replayed one. Func count stays 2. DETERMINISTIC: dropping delete(s.m,key) makes the
+in-session Get return ("x", true), failing the new assertion every run (no map-order
+dependence — Get is a direct map lookup).
+
+=== PREDICTIONS (falsifiable) ===
+P1. Regen builds GREEN.
+P2. The regenerated TestRecoveryAfterReopen asserts s.Get("gone")==("","false") on the
+    FIRST store, before Close (same-session), in addition to the s2 reopen assertions.
+P3. teeth `walkv` flips SURVIVED -> CAUGHT, DETERMINISTICALLY. Verify real failure:
+    _wv_drop_delete applied -> in-session Get("gone") returns ("x", true) -> assertion
+    fails, go test non-zero. Not a compile error.
+P4. Blast radius 0: func count stays 2 (TestSetGet, TestRecoveryAfterReopen), no
+    add/remove/rename.
+
+=== REFUTATION MEANINGS ===
+R1. Model puts the Get("gone") check only AFTER reopen (on s2) again, or omits the
+    same-session assertion -> hole stays SURVIVED. The "STILL IN THE FIRST STORE, BEFORE
+    Close" wording didn't land.
+R2. Regen RED -> garbage verdicts -> re-run/revert.
+R3. Any func changes -> blast radius -> revert, file.
+R4. The model reorders/moves the Close so the check runs post-Close -> subtle miss;
+    audit the actual body, not just the verdict.
+
+DECISION: commit ONLY if P1..P4 hold. Else revert, record, no push. This is the second
+deterministic (non-sort) hole; walkv Delete is taxonomy shape #3 (a live effect seen
+only via a different code path — here durability replay masked the missing live delete).
+
+=== ATTEMPT 1 OUTCOME 2026-07-19 ~13:44 — REFUTED (R1 + R2), reverted ===
+P1 REFUTED: regen came out RED. store.go declared `mu sync.Mutex` (line 11) but called
+  s.mu.RLock()/RUnlock() (lines 70-71) — a plain Mutex has no read-lock. Build failed.
+  (The store.go purpose says "Mutex" plain, so RLock/RUnlock is simply wrong — a model
+  inconsistency. May be plain generation noise or the cascade channel perturbing store.go
+  from the longer test purpose; not separable from one run.)
+P2 REFUTED: the regenerated TestRecoveryAfterReopen did NOT add the same-session check —
+  it kept `s.Delete("gone"); s.Close()` verbatim and only checked Get("gone") on the
+  reopened s2. My edit DESCRIBED the same-session assertion in prose but never SHOWED the
+  exact Go line — and prose-without-code got skipped, unlike arcs #1/#2/#3 which all
+  SHOWED the exact body.
+P3 was a FALSE CAUGHT: teeth read walkv as CAUGHT, but only because the mutation ran on a
+  RED baseline (build already broken -> any mutant still fails to build -> non-zero ->
+  "CAUGHT"). The baseline-must-be-green rule caught it — exactly the save-point lesson.
+RECOVERY: reverted specs/walkv.yaml; restored generated/walkv-v4 from _walkv-BEFORE
+  (builds green, teeth back to a valid SURVIVED); removed the _fail-walkv archive.
+
+=== ATTEMPT 2 PREDICTION (written before the retry run) ===
+FIX to the edit: SHOW the exact same-session assertion line (the pattern that landed 3×),
+not prose. Still only the store_test.go purpose (minimal). Insert, right after
+s.Delete("gone") and before s.Close(), verbatim:
+  if v, ok := s.Get("gone"); ok { t.Fatalf("same-session Get(gone)=%q,true; want gone", v) }
+Predictions same as P1..P4. Added risk: the store.go RED may recur (regen lottery /
+possible cascade). If P1 RED again OR P2 still missed -> DEFER walkv, move to logstats;
+do not keep re-rolling. One retry only.
+
+=== ATTEMPT 2 OUTCOME 2026-07-19 ~13:49 — SPLIT: P2 FIXED, P1 RED again ===
+P2 SOLVED: showing the exact assert line landed — the regenerated TestRecoveryAfterReopen
+  now has `if v, ok := s.Get("gone"); ok { t.Fatalf(...) }` right after Delete, before
+  Close (same session). The prose->code lesson confirmed: SHOW the line, don't describe it.
+P1 STILL RED: store.go AGAIN wrote `mu sync.Mutex` + s.mu.RLock()/RUnlock() on Get.
+  DIAGNOSED (not lottery): the green original _walkv-BEFORE/store.go uses Lock()/Unlock()
+  everywhere; the store.go PURPOSE says "a sync.Mutex" but never pins the methods, so the
+  model reaches for RLock on the read path (Get) — plausibly nudged by my test edit's
+  Get-emphasis via the cascade channel. Root cause = an underspecified store.go purpose.
+
+=== ATTEMPT 3 (root-cause fix, 2-file edit; written before the run) ===
+This is NOT a blind re-roll — it fixes the identified defect. Kept the test show-line
+edit AND pinned store.go's purpose: "use s.mu.Lock()/Unlock() in EVERY method incl. Get;
+a plain sync.Mutex has NO RLock/RUnlock; never call them". Predictions P1..P4 as before,
+now P1 (green build) is the one the store.go pin targets. Blast-radius audit must cover
+BOTH files: store_test.go func set unchanged (2) AND store.go builds. If P1 RED a THIRD
+time -> defer walkv firmly (the generation defect resists the pin -> a model limit, file
+it). Otherwise expect GREEN + P2 present + teeth CAUGHT (now real, green baseline).
