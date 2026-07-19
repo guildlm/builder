@@ -297,7 +297,7 @@ MUTATIONS = [
      _tf_reverse_sort),                              # was drop (flaky); now reverse (deterministic) — CAUGHT once TestListSorted exists
     ("taskflow", "models.go",
      "Task.Validate rejects a status outside {todo,doing,done}",
-     _tf_drop_status),                               # HOLE: TestCreateInvalid trips on empty title, never a bad status
+     _tf_drop_status),                               # CAUGHT (fix arc #1): TestCreateInvalid posts {"title":"x","status":"nope"}
     # --- usersapi (added 2026-07-18): one guard + the sorted-by-ID hole again ---
     ("usersapi", "store.go",
      "duplicate User ID -> ErrExists (409)",
@@ -323,19 +323,19 @@ MUTATIONS = [
     # --- bitset (added 2026-07-18): a required no-panic guard nobody exercises ---
     ("bitset", "bitset.go",
      "Clear(i) beyond the words slice must not panic",
-     _bs_drop_clear_guard),                          # HOLE: test does Test(200) but never Clear(200)
+     _bs_drop_clear_guard),                          # CAUGHT (fix arc #3): TestSetTestClear now calls Clear(200)
     # --- walkv (added 2026-07-18): Delete's LIVE effect is only seen via replay ---
     ("walkv", "store.go",
      "Delete removes the key from the in-memory map (not just the log)",
-     _wv_drop_delete),                               # HOLE: only checked after Close+reopen, never in-session
+     _wv_drop_delete),                               # CAUGHT (fix arc #4): same-session Get("gone") asserted before Close
     # --- workerpool (added 2026-07-18): an invariant with no output signature ---
     ("workerpool", "pool.go",
      "ParallelMap uses AT MOST `workers` goroutines (bounded concurrency)",
-     _wp_unbounded),                                 # HOLE: one-goroutine-per-item gives identical output
+     _wp_unbounded),                                 # CAUGHT (fix arc #7): TestParallelMapBoundedConcurrency probes peak goroutines
     # --- tasks-api (added 2026-07-18): right status code, wrong trigger ---
     ("tasks-api", "handlers.go",
      "Create validates the body (blank title -> 400, not stored)",
-     _tapi_create_skip_validate),                    # HOLE: TestInvalid400 trips 400 via malformed JSON, never Validate
+     _tapi_create_skip_validate),                    # CAUGHT (fix arc #2): TestCreateInvalid posts well-formed blank title -> 400
 ]
 
 
