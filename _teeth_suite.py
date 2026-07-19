@@ -92,6 +92,19 @@ def _tf_drop_sort(text: str) -> str | None:
     return text.replace('\t"sort"\n', "")  # drop the now-unused import so it still compiles
 
 
+def _tf_reverse_sort(text: str) -> str | None:
+    """taskflow: reverse the sorted-by-ID order in BOTH list methods (ascending -> descending).
+
+    Deterministic by construction (unlike a DROP, whose catch depends on Go map-iteration
+    randomness). Used once a spec has a real order-asserting test — an ascending assertion
+    catches a descending sort every run. Mirrors the taskapi positive control.
+    """
+    a = "return out[i].ID < out[j].ID"
+    if text.count(a) != 2:  # one invariant, two mirrored list methods
+        return None
+    return text.replace(a, "return out[i].ID > out[j].ID")
+
+
 def _ua_drop_sort(text: str) -> str | None:
     """usersapi: remove the sorted-by-ID guarantee from List (single method)."""
     line = "\tsort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })"
@@ -261,7 +274,7 @@ MUTATIONS = [
      _tf_drop_paginate_clamp),                       # CAUGHT (TestPaginateNegativeOffset)
     ("taskflow", "store.go",
      "List methods return items sorted by ID",
-     _tf_drop_sort),                                 # HOLE: no test asserts order
+     _tf_reverse_sort),                              # was drop (flaky); now reverse (deterministic) — CAUGHT once TestListSorted exists
     ("taskflow", "models.go",
      "Task.Validate rejects a status outside {todo,doing,done}",
      _tf_drop_status),                               # HOLE: TestCreateInvalid trips on empty title, never a bad status

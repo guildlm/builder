@@ -159,6 +159,14 @@ files:
       asserting len(limited) == 1 — EXACTLY one, NEVER "at most one": a paginate
       that wrongly returns ZERO items satisfies "at most 1" and the bug ships
       green. Do NOT re-assert on `all`.
+      TestListSorted: POST THREE tasks with ids OUT OF ORDER — first "3", then "1",
+      then "2" (each a valid task, its own fresh request body) — then GET /tasks and
+      decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
+      back ASCENDING: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3". The store
+      holds tasks in a map (random iteration order), so ONLY ListTasks's sort makes
+      this order deterministic — a store that returns them unsorted, or sorted the
+      wrong way, ships green unless a test pins the exact order. Assert each index by
+      id, not just that the slice is non-empty.
       TestPaginateNegativeOffset: call paginate DIRECTLY (a unit test, no HTTP) on
       a 3-item slice with limit=0, offset=-1 -> no panic and EXACTLY 3 items. This
       is not hypothetical: a paginate without the `offset < 0` clamp slices

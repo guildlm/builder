@@ -1,0 +1,48 @@
+PREDICTION — taskflow sorted-by-ID FIX ARC #5 (sort family pilot). Written BEFORE the regen.
+
+WHEN:   2026-07-19 13:56:57  (from `date`)
+HEAD:   9a6ca4c  (arcs #1-#4 committed; specs/taskflow.yaml + _teeth_suite.py edited, unstaged)
+SERVER: MLX :8080 UP (go-dev-mixed-v4)
+
+=== CONTEXT: the sort family needs a TOOL change, not just a spec edit ===
+The 3 sort holes (taskflow/usersapi/taskapipro) share a verification problem: the teeth
+mutation DROPPED the sort, and a dropped sort yields Go map-iteration order (random), so
+the catch is probabilistic (the tasks-api ~20% lesson). A real order-asserting test DOES
+defend the invariant — deterministically against a REVERSED sort. So the principled fix
+is: (a) add an order-asserting test to the spec, AND (b) switch the teeth entry from DROP
+to REVERSE (ascending->descending), which an ascending assertion catches every run. This
+mirrors the taskapi POSITIVE CONTROL, which already uses reverse. Done here for taskflow.
+
+=== BEFORE STATE (measured) ===
+- teeth `_tf_drop_sort` -> `_tf_reverse_sort` (new fn added, entry switched). On the CURRENT
+  artifact (no order test yet) the reverse mutation is SURVIVED — confirmed just now — so
+  it is a valid probe of an undefended invariant, and a clean before-state.
+- generated/taskflow-v4 has 17 test funcs (snapshot logs/AUDIT-taskflow-sort-BEFORE.txt),
+  none asserting list order (grep-confirmed empty). store.go sorts in BOTH ListTasks and
+  ListProjects (2x `return out[i].ID < out[j].ID`).
+
+=== THE EDIT ===
+Added TestListSorted to the taskflow_test.go purpose: POST ids "3","1","2" out of order,
+GET /tasks, assert got[0..2].ID == "1","2","3" (ascending, pinned by index). Adds ONE
+function -> expected count 17 -> 18.
+
+=== PREDICTIONS (falsifiable) ===
+P1. Regen builds GREEN (build+vet+test-race pass).
+P2. A new TestListSorted POSTs ids out of order and asserts the returned ids ascending
+    (pinned by index, not just non-empty).
+P3. teeth `taskflow` sort entry (now reverse) flips SURVIVED -> CAUGHT, DETERMINISTICALLY.
+    Verify real: applying _tf_reverse_sort makes both lists descending; TestListSorted's
+    got[0].ID=="1" assertion fails (it becomes "3"); build passes; go test non-zero.
+P4. Blast radius: exactly +1 func (TestListSorted). The other 17 funcs unchanged; the
+    already-fixed status entry stays CAUGHT, dup+paginate stay CAUGHT. Count 17 -> 18.
+
+=== REFUTATION MEANINGS ===
+R1. Model writes TestListSorted with only 2 ids or only a len check -> reverse may still
+    be caught (2 ids reversed is deterministic too) but weaker; if it asserts only len,
+    hole stays SURVIVED. Audit the body.
+R2. Regen RED -> garbage verdicts -> re-run/revert (the walkv lesson: check baseline green).
+R3. Any other func changes / status regresses -> blast radius -> revert, file.
+
+DECISION: commit ONLY if P1..P4 hold. This is the sort-family PILOT; if it lands clean,
+replicate to usersapi and taskapipro (same reverse-mutation + order-test pattern). Else
+revert both files, record, no push.

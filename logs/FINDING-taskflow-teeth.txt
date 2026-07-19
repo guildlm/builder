@@ -362,3 +362,35 @@ LESSONS (three, all from this one arc):
      baseline builds green before trusting a flip — this arc is the live proof.
 teeth suite now 14 CAUGHT / 5 SURVIVED / 1 n-a. Remaining holes: taskflow/usersapi/
 taskapipro sort, logstats tie-break, workerpool concurrency.
+
+=== FIX ARC #5 DONE 2026-07-19 (taskflow sorted-by-ID) — sort-family PILOT ===
+Fifth hole CLOSED, and it required a TEETH-TOOL change, not just a spec edit. Prediction
+filed BEFORE at logs/PREDICTION-taskflow-sort-fix.txt.
+
+THE PROBLEM WITH THE SORT FAMILY: its teeth mutation DROPPED the sort, and a dropped sort
+yields Go map-iteration order (random), so the catch is probabilistic (the tasks-api ~20%
+lesson). You cannot verify a sort fix deterministically against a drop mutation.
+
+THE FIX (two parts): (a) added a REVERSE mutation `_tf_reverse_sort` to _teeth_suite.py and
+switched the taskflow sort entry from drop to reverse — ascending->descending, deterministic,
+mirroring the taskapi positive control that already used reverse; (b) added TestListSorted to
+the spec: POST ids "3","1","2" out of order, GET, assert got[0..2].ID == "1","2","3" pinned by
+index. Before the regen, confirmed the reverse mutation was SURVIVED on the old artifact (a
+valid probe of the undefended invariant); after, it flips to CAUGHT.
+
+MEASURED — all 4 predictions held:
+  P1 GREEN: build+vet+test-race pass, coverage 79.7%.
+  P2 the new TestListSorted POSTs ids out of order and asserts the returned ids ascending,
+     pinned by index (tasks[0].ID=="1", [1]=="2", [2]=="3").
+  P3 teeth `taskflow` sort flipped SURVIVED -> CAUGHT, DETERMINISTICALLY. Real failure:
+     _tf_reverse_sort applies to BOTH sorts (anchor count 2), the artifact BUILDS, and
+     TestListSorted fails "list sorted ids: want 1,2,3, got 3,2,1" every run.
+  P4 BLAST RADIUS: exactly +1 func (TestListSorted). Count 17 -> 18; the other 17 unchanged;
+     the arc-#1 status fix and dup+paginate all stay CAUGHT.
+
+WHY THIS MATTERS: the sort-by-ID hole is the campaign's strongest cross-spec finding
+(taskflow + usersapi undefended, taskapi defended — same code, different test). This pilot
+proves the fix pattern: order-asserting test + reverse-mutation teeth entry = deterministic
+defense. REPLICATE NEXT to usersapi and taskapipro (same two-part change).
+teeth suite now 15 CAUGHT / 4 SURVIVED / 1 n-a. Remaining holes: usersapi/taskapipro sort,
+logstats tie-break, workerpool concurrency.
