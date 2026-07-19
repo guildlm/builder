@@ -567,6 +567,20 @@ identical (both cases live inside TestEcho, no new func), both entries SURVIVED-
 returns non-405). teeth now 22 CAUGHT / 0 SURVIVED / 1 n-a across 17 specs. The response-header +
 error-path holes cluster in the small HTTP specs (kvservice, jsonapi) — exactly where a single
 happy-path test looks "done" but leaves the promises made alongside it undefended.
+
+=== FULL VALID-SPEC COVERAGE 2026-07-19 (positive controls for the well-defended specs) ===
+With every hole closed, extended the suite to the library/algorithm specs the earlier sweep marked
+"well-defended, no clean hole" — as POSITIVE CONTROLS (like taskapi): a mutation of the core
+invariant that the EXISTING test catches (all verified CAUGHT against the shipped artifact, no regen
+needed). Added: priorityqueue (reverse the min-heap Less -> pop order red), demo-small (break
+Reverse's swap loop), numkit (drop Clamp's upper bound), genericset (Len off-by-one), jsoncodec
+(marshal nanos not unix-seconds), expreval (multiply-becomes-add breaks precedence), shortener
+(redirect 301->302). The teeth suite now covers EVERY valid generated spec — 29 CAUGHT / 0 SURVIVED
+/ 1 n-a across 22 specs. The only two specs without an entry are tasks-api-min and
+tasks-api-noshadownudge, intentionally excluded because their baseline ships RED (a mutation on a red
+baseline yields garbage verdicts — the baseline-must-be-green rule). NET for the whole session: 9
+session-start holes + 3 newly-found holes CLOSED, 7 positive controls ADDED, teeth 10/9 -> 29/0.
+Every generated spec's core promise now has a codified, deterministic regression guard.
 KEY LESSONS (all git-recorded): SHOW the exact assertion (prose gets skipped); a RED baseline yields
 false CAUGHTs (check green first — saved it 3x); spec-edit blast radius is SPEC-SPECIFIC and
 bidirectional (harmful cascade on usersapi, helpful on taskapipro); edit SIZE drives cascade risk
