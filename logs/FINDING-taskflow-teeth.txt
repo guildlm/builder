@@ -474,3 +474,44 @@ teeth suite now 17 CAUGHT / 2 SURVIVED / 1 n-a. Remaining holes: usersapi sort (
 reproducible cascade), taskapipro sort (20-file spec, deferred for cascade risk). All FOUR hole
 SHAPES in the taxonomy now have at least one CLOSED example: no-test (taskflow/logstats),
 edge-never-run (bitset), effect-via-other-path (walkv), no-output-signature (workerpool).
+
+=== FIX ARC #8 ATTEMPT: taskapipro sort — DEFERRED (model omits TestListSorted) 2026-07-19 ===
+Sharpened the spec's existing TestListSorted (tasks) sentence to show the exact ascending
+assertion (mirroring TestListProjectsSorted) and switched the teeth entry to a tasks-half REVERSE
+mutation. Regen ran CLEAN (no cascade, GREEN 82.9%), but the fix DEFERRED. Detail in
+logs/PREDICTION-taskapipro-sort-fix.txt.
+
+WHY DEFERRED: P2 refuted — TestListSorted (tasks) is STILL not generated (grep 0 across all 8 test
+files), even though the spec NAMES it, SHOWS the exact assertion, and points to the mirror. The
+model reliably OMITS it on this 14-tests-in-one-purpose spec (2 pieces of evidence: original + this
+regen). A model-capacity limit, not a wording gap.
+
+TWO sharp sub-findings:
+1. BLAST RADIUS did NOT recur: clean `find`-based diff of the func SET (old artifact vs new) is
+   IDENTICAL, 57=57 — nothing deleted. The spec's famous silent-deletion did not happen this time.
+   (My first BEFORE count of 70 was a DOUBLE-COUNT from a `**/*_test.go … memory_test.go` glob;
+   the real count is 57. Lesson: use `find`, not shell `**`, for the audit — a miscounted baseline
+   nearly manufactured a false blast-radius story.)
+2. A BENEFICIAL cascade, but not a reliable fix: the teeth briefly read CAUGHT on the new artifact
+   WITHOUT TestListSorted — because the regen strengthened TestListLimit (internal/api) to assert
+   resp[0].ID=="1" under ?limit=1, which a reversed ListTasks sort breaks. Verified the OLD artifact's
+   TestListLimit does NOT assert order and is SURVIVED under reverse, so the closure came from the
+   REGEN's cascade, not the intended test. Spec-edit blast radius that HELPED — but serendipitous
+   and non-reproducible, so it does not count as a fix I can stand behind.
+
+DEFERRED cleanly: reverted spec + teeth + restored the golden artifact; suite unchanged at 17/2/1.
+A real taskapipro fix needs the model to actually emit TestListSorted, which the spec's size
+prevents — a future attempt should SHRINK the memory_test.go purpose (14 tests) before adding one.
+
+=== CAMPAIGN SUMMARY (2026-07-19 autonomous fix arcs) ===
+7 holes CLOSED, all 4 taxonomy shapes covered, all committed with prediction-before + before/after
+audit + airtight (mutation builds, real failure, stable): taskflow status (#1), tasks-api Create-
+validate (#2), bitset Clear (#3), walkv Delete (#4, took 3 attempts + a store.go mutex pin), taskflow
+sort (#5, introduced the reverse-mutation pattern), logstats tie-break (#6), workerpool bounded-
+concurrency (#7, a concurrency probe). 2 holes DEFERRED with recorded reasons: usersapi sort
+(reproducible generation cascade) and taskapipro sort (model omits TestListSorted on a 14-test spec).
+teeth: 10 CAUGHT / 9 SURVIVED at session start -> 17 CAUGHT / 2 SURVIVED / 1 n-a now.
+KEY LESSONS: SHOW the exact assertion (prose gets skipped); a RED baseline yields garbage teeth
+verdicts (false CAUGHT) — always check green first; spec-edit blast radius is SPEC-SPECIFIC and runs
+both directions (harmful cascade on usersapi, helpful on taskapipro); exact-string mutations are
+brittle to cosmetic regen renames (make them match variants); use `find` not `**` for func audits.

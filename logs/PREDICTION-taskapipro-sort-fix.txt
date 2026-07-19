@@ -1,0 +1,60 @@
+PREDICTION — taskapipro ListTasks-sort FIX ARC #8 (the last sort-family member, big spec).
+Written BEFORE the regen.
+
+WHEN:   2026-07-19 15:16:22  (from `date`)
+HEAD:   91dd32e  (arcs #1-#7 committed; specs/taskapipro.yaml + _teeth_suite.py edited, unstaged)
+SERVER: MLX :8080 UP
+
+CONTEXT: taskapipro is a 20-file multi-package spec (cascade risk + ~15 min regen). Chosen over a
+usersapi retry because it has a MIRROR TEMPLATE the model can follow: TestListProjectsSorted EXISTS
+in the artifact; the tasks twin TestListSorted is what's missing (the spec NAMES it, but the model
+omitted it — the "deleted TestListSorted" the session memory records). Lower cascade risk than
+usersapi (no forbidden structure to invent; just mirror the projects test).
+
+BEFORE (measured): taskapipro 70 test funcs; TestListSorted (tasks) ABSENT (grep count 0);
+TestListProjectsSorted present (memory_test.go:113). memory.go sorts in BOTH ListTasks (line 53)
+and ListProjects (line 94). Switched teeth _tap_drop_tasks_sort -> _tap_reverse_tasks_sort (reverse
+the TASKS-half sort only, anchored on the ListProjects boundary). Reverse on the CURRENT artifact =
+SURVIVED (just confirmed) -> valid probe.
+
+THE EDIT: sharpened the spec's existing TestListSorted sentence (it was vague "-> id-sorted") to
+CreateTask ids out of order (2 then 1) and assert got[0].ID=="1" && got[1].ID=="2" by index —
+mirroring TestListProjectsSorted, showing the exact assertion.
+
+PREDICTIONS:
+P1. Regen GREEN (watch for a cascade like usersapi — kill+defer if it appears).
+P2. TestListSorted (tasks) now EXISTS and asserts ascending by index.
+P3. teeth taskapipro (reverse tasks-sort) flips SURVIVED -> CAUGHT deterministically; verify real
+    (reverse applies to the tasks half only, build passes, TestListSorted fails got[0].ID=="2").
+P4. Blast radius: TestListSorted ADDED (count 70 -> 71); NO other func deleted/renamed — this is the
+    CRITICAL audit for taskapipro, whose memory records a spec edit SILENTLY DELETING a test here.
+    Diff the full 70-func list before/after; the delta must be exactly +TestListSorted.
+
+REFUTATION: R-cascade (big spec) -> if the fix loop widens across the package, kill + restore from
+_taskapipro-BEFORE + defer. R2 RED -> baseline-green rule. R3 any OTHER func vanishes -> the exact
+blast-radius damage this spec is famous for -> revert, record. DECISION: commit only if P1..P4 hold
+AND the full func audit shows a clean +1. Else revert both files + restore artifact, record, no push.
+
+=== OUTCOME 2026-07-19 ~15:57 — DEFERRED (P2 refuted: TestListSorted still not generated) ===
+Regen ran clean (NO cascade, GREEN 82.9%). But:
+- P2 REFUTED: TestListSorted (tasks) is STILL ABSENT (grep count 0 across all 8 test files) — the
+  model reliably OMITS it even with the sharpened spec that NAMES it, SHOWS the exact assertion, and
+  points to the mirror TestListProjectsSorted. Two pieces of evidence now (original artifact + this
+  regen). A model capacity limit on this 14-tests-in-one-purpose spec.
+- P4 audit correction: my BEFORE snapshot (70) was DOUBLE-COUNTED (the `**/*_test.go … memory_test.go`
+  glob listed memory_test.go twice). The real count via `find` is 57. Clean find-based diff of the
+  func SET (BEFORE=_taskapipro-BEFORE vs AFTER) is IDENTICAL — 57=57, nothing added, nothing deleted.
+  So the famous silent-deletion blast radius did NOT recur. (Lesson re-learned: use `find`, not `**`.)
+- SURPRISE (a BENEFICIAL cascade, but not a reliable fix): teeth showed CAUGHT on the new artifact
+  even without TestListSorted. Traced it: TestListLimit (internal/api) now asserts resp[0].ID=="1"
+  under ?limit=1, so a REVERSED ListTasks sort makes it fail. Verified the OLD _taskapipro-BEFORE
+  TestListLimit does NOT assert order and is SURVIVED under reverse -> the closure came from the
+  REGEN strengthening TestListLimit via the cascade channel, NOT from my intended TestListSorted.
+  A case where spec-edit blast radius helped (strengthened an unrelated test) — but serendipitous
+  and non-reproducible, so NOT a fix I can stand behind.
+
+DECISION (honoring the rule): DEFERRED. Reverted specs/taskapipro.yaml + _teeth_suite.py to committed
+state; restored generated/taskapipro-v4 from _taskapipro-BEFORE (so the committed drop entry is a
+stable SURVIVED); suite back to 17 CAUGHT / 2 SURVIVED / 1 n-a. The hole stands, honestly tracked.
+A real fix needs the model to actually emit TestListSorted — which this spec's size prevents; a
+future attempt should SHRINK the memory_test.go purpose (it lists 14 tests) before adding a 15th.
