@@ -1,0 +1,48 @@
+FINDING — mechanism audit (`_gate_audit.py --mechanisms`), 2026-07-20
+=====================================================================
+
+The mechanisms audit — the check that historically found 5 of 7 system bugs by
+asking "which machinery has NEVER announced itself across every run?" — flagged 3
+mechanisms as unexplained-silent across 362 real runs. Investigated all three.
+VERDICT: all benign; NO guarded-shut gate. (A negative result, recorded so the
+next reader does not re-run the same 30 minutes.)
+
+1. "converged to green on the final deterministic pass"  (src/builder.py:4969)
+   REACHABLE RARE SUCCESS PATH. Fires only when the model's LAST fix round leaves
+   a purely-mechanical bug that the final deterministic gate fixpoint then repairs
+   to green. By the time the final pass runs, the per-round pre-pass has already
+   cleared almost every mechanical defect, so this needs the model to introduce a
+   fresh mechanical bug in exactly the last round — rare, not dead, not guarded.
+   -> KEPT VISIBLE (it is a success log; observing it fire would be informative).
+
+2. "restored go.mod deterministically"  (src/builder.py:4857)
+   BENIGN DEFENSIVE GUARD. Reachable in principle (_offending_files matches
+   basenames and go.mod is in `written`, and Go emits `go.mod:...` on parse
+   errors), but go.mod is generated deterministically from the module path
+   (_gomod_content) and is NEVER handed to the model, so it is never malformed ->
+   never an offending file -> never restored. Same category as the already-
+   excluded "rejected fix of": a guard whose silence is the good outcome.
+   -> RECLASSIFIED to _EXPECTED_SILENT in _gate_audit.py.
+
+3. "wrapped the argument to"  (arg-adapter gate, src/builder.py:3757)
+   REACHABLE GATE, DEFECT CLASS ABSENT FROM CORPUS — NOT guarded-shut.
+   Looked promising: the error shape it keys on ("as X value in argument to Y")
+   appears in 21 real logs (all taskapipro) while this gate never fired — the
+   exact "defect occurred but gate stayed silent" pattern that flagged the
+   middleware gate historically. But the 21 hits are the MIDDLEWARE variant
+   ("... as Middleware value in argument to Chain", Logging(logger) -> Middleware),
+   which is the separate middleware gate's domain, NOT this one. The arg-adapter
+   gate's own defect — a Store->*API layer-skip (NewRouter(NewStore()) missing the
+   unique NewAPI adapter) — did not occur in the corpus. On the overlapping
+   middleware errors this gate correctly BAILS (no unique http.Handler->Middleware
+   adapter) and lets the middleware gate handle them; had it mis-fired it would
+   have logged "wrapped the argument to", which never appears.
+   -> KEPT VISIBLE (reachable; re-check if a Store->*API skip ever appears).
+
+NET: 3 unexplained -> 2 (both reachable-but-untriggered, correctly left visible).
+No change to the core builder; the only edit is one _EXPECTED_SILENT entry.
+
+METHOD NOTE: "error shape appears in logs + gate never fired" is a STRONG lead but
+not proof — an overlapping regex (arg-adapter vs middleware) can make one gate's
+correct bail look like another gate's silent miss. Confirm WHICH gate owns the
+shape and check for a correct bail before calling it guarded-shut.

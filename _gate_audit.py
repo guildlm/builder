@@ -139,6 +139,9 @@ _EXPECTED_SILENT = (
     "maintain", "review", "trace write failed", "spec-lint",
     "fix-round budget scaled to",   # inert at --max-fix-rounds 5: ceil(19/4) == 5
     "rejected fix of",              # a guard; never needing it is the good outcome
+    "restored go.mod",              # a guard: go.mod is deterministic-by-construction and
+                                    # never handed to the model, so it is never malformed and
+                                    # never needs restoring — silent is the healthy state
 )
 
 
