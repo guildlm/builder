@@ -20,6 +20,9 @@ import re
 from src.builder import (
     _fix_assignment_arity,
     _fix_if_composite_literal,
+    _fix_mux_return_type,
+    _fix_pointer_to_interface,
+    _fix_self_qualified_package,
     _fix_string_int_conversion,
     _fix_swapped_error_assignment,
     _fix_unused_var,
@@ -132,34 +135,84 @@ def test_no_phase_one_gate_can_shift_a_line():
 
 
 def test_the_in_place_gates_really_do_preserve_the_line_count():
-    """The static check above, confirmed by actually running them."""
+    """The static check above, confirmed by actually RUNNING each gate.
+
+    Structural inspection catches the two historical escapes (an added import, an
+    inserted/removed line), but three phase-one gates rewrite the WHOLE file text
+    with a re.sub — mux-return, pointer-to-interface, self-qualifier — and there
+    line-preservation is invisible from the shape of the code: only running them
+    proves the replacement adds no newline. They are covered here.
+
+    Every case also asserts the gate FIRED. A regex drift that stops a case from
+    triggering would otherwise leave `out` empty and pass the line-count check
+    vacuously — coverage that measures nothing, which is the failure this whole
+    file exists to prevent one level up.
+    """
     cases = [
         (
             _fix_assignment_arity,
-            "package p\n\nfunc f() {\n\terr := g()\n}\n",
+            {"p.go": "package p\n\nfunc f() {\n\terr := g()\n}\n"},
             "./p.go:4:2: assignment mismatch: 1 variable but g returns 2 values",
         ),
         (
             _fix_unused_var,
-            "package p\n\nfunc f() {\n\tu, err := g()\n\t_ = err\n}\n",
+            {"p.go": "package p\n\nfunc f() {\n\tu, err := g()\n\t_ = err\n}\n"},
             "./p.go:4:2: declared and not used: u",
         ),
         (
+            # The gate only swaps when the assignment and the != nil comparison
+            # share the line the compiler names — the compound-if form. The old
+            # fixture split them across two lines, so the gate never fired and the
+            # line-count check ran on an empty result (vacuous until the assert
+            # below started demanding a fire).
             _fix_swapped_error_assignment,
-            "package p\n\nfunc f() {\n\terr, _ := g()\n\tif err != nil {\n\t}\n}\n",
-            "./p.go:5:5: invalid operation: err != nil (mismatched types T and "
+            {"p.go": "package p\n\nfunc f() {\n\tif err, _ := g(); err != nil {\n\t}\n}\n"},
+            "./p.go:4:19: invalid operation: err != nil (mismatched types T and "
             "untyped nil)",
         ),
         (
+            # Needs the real _IFLIT_RE shape ("found assignment ... missing
+            # parentheses around composite literal") and a wrappable named-type
+            # literal on the if line — the old fixture matched neither, so the gate
+            # never fired.
             _fix_if_composite_literal,
-            "package p\n\nfunc f() {\n\tif x := T{}; x.ok {\n\t}\n}\n",
-            "./p.go:4:10: expected boolean expression, found composite literal",
+            {"p.go": "package p\n\nfunc f() {\n\tif got, want := 1, T{}; got != want {\n\t}\n}\n"},
+            "./p.go:4:2: expected boolean expression, found assignment (missing "
+            "parentheses around composite literal?)",
+        ),
+        # --- the three whole-text (re.sub) gates: line-preservation is NOT visible
+        # from the code's shape, so only running them proves the sub adds no newline ---
+        (
+            _fix_self_qualified_package,
+            {"store.go": "package store\n\nvar ErrNotFound = 1\n\n"
+             "func Get() int { return store.ErrNotFound }\n"},
+            "./store.go:5:23: undefined: store",
+        ),
+        (
+            _fix_pointer_to_interface,
+            {"h.go": "package p\n\ntype Store interface{ Do() }\n\n"
+             "type H struct{ s *Store }\n"},
+            "./h.go:5:19: h.s.Do undefined (type *Store is pointer to interface, "
+            "not interface)",
+        ),
+        (
+            _fix_mux_return_type,
+            {"router.go": "package p\n\nfunc newRouter() *http.ServeMux {\n"
+             "\treturn Chain(mux)\n}\n"},
+            "./router.go:4:9: cannot use Chain(mux) (value of interface type "
+            "http.Handler) as *http.ServeMux value in return statement: need type "
+            "assertion",
         ),
     ]
-    for gate, code, err in cases:
-        out = gate({"p.go": code}, err)
+    for gate, written, err in cases:
+        out = gate(written, err)
+        assert out, (
+            f"{gate.__name__} did not fire on its fixture — the input no longer "
+            f"triggers it, so the line-count check below would pass vacuously. "
+            f"Repair the fixture, do not delete the case."
+        )
         for path, new in out.items():
-            assert len(new.splitlines()) == len(code.splitlines()), (
+            assert len(new.splitlines()) == len(written[path].splitlines()), (
                 f"{gate.__name__} changed the line count of {path} — it belongs in "
                 f"phase TWO, or every line-indexed gate behind it will corrupt a file"
             )

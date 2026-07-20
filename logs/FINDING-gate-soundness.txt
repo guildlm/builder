@@ -1,0 +1,52 @@
+FINDING — deterministic-gate soundness review (phase-1 line safety), 2026-07-20
+================================================================================
+
+Reviewed the two-phase architecture of `_run_deterministic_gates` for the class of
+bug it was built to prevent: a phase-1 ("in place") gate that actually SHIFTS lines,
+which invalidates the compiler line:col numbers every later phase-1 gate indexes on
+and silently corrupts a file (the taskapipro `tk1 := ...` -> `tk1, _ := ...`
+disaster). Phase 1 runs all line-count-preserving repairs together; phase 2 runs the
+line-shifting ones one-at-a-time with a re-compile between.
+
+VERDICT: architecture SOUND, NO live bug. All 15 phase-1 gates were read and each is
+genuinely line-count-preserving:
+  - 12 use the splitlines / `lines[i] = <newline-free>` / join pattern (or a per-line
+    map), which cannot change the line count by construction.
+  - 3 do WHOLE-TEXT re.sub/replace — _fix_mux_return_type (`\1http.Handler\2` +
+    drop `.(*http.ServeMux)`), _fix_pointer_to_interface (`\*+(T)\b`->`\1`, strips
+    stars), _fix_self_qualified_package (`pkg.Sym`->`Sym`, drops qualifier) — all
+    with newline-free replacements. Verified by running each.
+
+TESTING GAP (the real finding): line safety had two guards —
+  - test_no_phase_one_gate_can_shift_a_line: STRUCTURAL, dynamically covers all
+    phase-1 gates but only pattern-matches the two HISTORICAL escapes (`_ensure_import`,
+    `lines.insert/pop/del`). Blind to (a) `lines[i] = "a\nb"` and (b) a whole-text
+    re.sub whose replacement changes the newline count — exactly the mechanism the 3
+    whole-text gates use (safely today, but nothing tested that they STAY safe).
+  - test_the_in_place_gates_really_do_preserve_the_line_count: BEHAVIORAL (actually
+    runs a gate and counts lines) but only covered 4 of 15 gates, hardcoded.
+
+FIX APPLIED (tests/test_gate_line_safety.py):
+  - Extended the behavioral test to 7 gates, adding the 3 whole-text re.sub gates —
+    the ones whose line-preservation is invisible from the code's shape.
+  - Added an `assert out` (gate FIRED) guard to every case: an empty result means the
+    fixture stopped triggering the gate, which would make the line-count check pass
+    vacuously — coverage measuring nothing, the very failure this file guards against.
+
+BONUS — the fire-guard immediately caught TWO PRE-EXISTING VACUOUS fixtures:
+  - _fix_swapped_error_assignment: fixture split the assignment and the `!= nil`
+    comparison across two lines, but the gate only swaps when both share the line the
+    compiler names (the compound-if `if err, _ := g(); err != nil {`). Never fired.
+  - _fix_if_composite_literal: fixture's error ("found composite literal") did not
+    match _IFLIT_RE ("found assignment ... missing parentheses around composite
+    literal"). Never fired.
+  Both fixtures were rewritten to actually trigger their gate; full suite 323 green.
+
+RESIDUAL / RECOMMENDED: the behavioral test now covers 7/15; the other 8 phase-1 gates
+still rest on the structural heuristic (which is adequate for them — they use the
+`lines[i] =` pattern the heuristic reasons about). If a future phase-1 gate is added,
+give it a behavioral case here too, not just the structural check.
+
+META-LESSON: an "assert it fired" guard is the cheapest defense against a green-but-
+vacuous test — the same green-suite-does-not-defend insight as the teeth work, one
+level down in the tests THEMSELVES.
