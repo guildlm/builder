@@ -31,6 +31,18 @@ WORK="$(mktemp -d)"; trap 'rm -rf "$WORK"' EXIT
 cp -r "$ART" "$WORK/proj"
 cd "$WORK/proj"
 
+# BASELINE must be GREEN or a red mutant proves nothing: it would go red for the
+# wrong reason (a fake CAUGHT). Check the UNMUTATED tree first — the same guard
+# _teeth_suite.py enforces. The by-hand runs were burned by this 4x on red
+# baselines (walkv/usersapi/taskapipro); an instrument that cannot tell "red
+# because defended" from "red because already broken" is measuring nothing.
+if ! { go build ./... && go vet ./... && go test -count=1 ./...; } >/dev/null 2>&1; then
+  echo "BASELINE-RED: the UNMUTATED artifact already fails build/vet/test."
+  echo "A mutant on a red baseline reports a fake CAUGHT. Fix the baseline first,"
+  echo "then re-run — this verdict is void."
+  exit 2
+fi
+
 # The mutants are per-spec and each one is a REAL bug a reader would call a bug,
 # not a syntactic tweak: the point is to name a behaviour the project promises and
 # then break exactly that promise.
