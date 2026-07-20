@@ -37,14 +37,6 @@ from src.builder import GoToolchain, _run_deterministic_gates  # noqa: E402
 
 GENERATED = pathlib.Path(__file__).parent / "generated"
 
-# The log line each gate emits when it fires, mapped back to a readable name.
-GATE_SIGNATURES = {
-    "renamed the loop variable shadowing": "shadowed-tester",
-    "added the specified constructor": "constructor-alias",
-    "wrapped the argument to": "argument-adapter",
-    "by value instead of calling it": "middleware-value",
-    "added missing method": "interface-missing-method",
-}
 
 # Strip the parts of a diagnostic that vary between artifacts (paths, line
 # numbers, identifier names) so the same DEFECT buckets together.
@@ -94,7 +86,6 @@ def audit(d: pathlib.Path, tc: GoToolchain) -> dict | None:
         if ok:
             return {"name": d.name, "status": "already-green"}
 
-        fired: list[str] = []
         for _ in range(8):
             written = {
                 str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")
@@ -103,12 +94,10 @@ def audit(d: pathlib.Path, tc: GoToolchain) -> dict | None:
             changed = _run_deterministic_gates(written, surface, module)
             if not changed:
                 break
-            for line in surface.splitlines():
-                pass
             for path, content in changed.items():
                 (work / path).write_text(content)
-        # Which gates fired is read from what the gates logged; re-derive it by
-        # diffing instead, so this stays independent of log formatting.
+        # Status is derived by DIFFING (did the tree change, did it reach green),
+        # not by parsing gate logs — so it stays independent of log formatting.
         after_ok, after = tc.check(work)
         residual = [s for s in (signature(l) for l in after.splitlines()) if s]
         # A compile diagnostic carries a COLUMN; a failing assertion does not.
