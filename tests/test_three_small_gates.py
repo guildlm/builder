@@ -80,6 +80,18 @@ def test_a_bang_on_a_non_bool_can_only_have_meant_not_equal():
     assert len(body.splitlines()) == len(code.splitlines())  # phase one
 
 
+def test_a_bare_negation_with_no_comparison_is_left_for_the_model():
+    # `if !x.Error() {` is `!string` with no `== rhs`. The gate only rewrites the
+    # `!x == y` comparison form; a bare negation is a different bug it must not
+    # touch (there is no comparison whose sense to flip).
+    code = "package store\n\nfunc f() {\n\tif !tt.getWant.Error() {\n\t}\n}\n"
+    err = (
+        "./p.go:4:5: invalid operation: operator ! not defined on "
+        "tt.getWant.Error() (value of type string)"
+    )
+    assert _fix_negated_comparison({"p.go": code}, err) == {}
+
+
 # ------------------------------------------------------------------- slice.Equal
 
 def test_a_slice_has_no_equal_method():
@@ -110,3 +122,15 @@ def test_slice_equal_composes_in_the_chain():
     )
     out = _run_deterministic_gates({"p.go": code}, err, None)
     assert "reflect.DeepEqual(tt.listWant, got)" in out["p.go"]
+
+
+def test_equal_on_a_non_slice_type_is_left_alone():
+    # reflect.DeepEqual is the answer only because the receiver is a SLICE. `.Equal`
+    # undefined on a struct is a different problem (the type may want its own Equal),
+    # so the gate's regex requires a []T receiver and must not fire here.
+    code = "package store\n\nfunc f() {\n\tif !x.Equal(y) {\n\t}\n}\n"
+    err = (
+        "./p.go:4:6: x.Equal undefined "
+        "(type MyStruct has no field or method Equal)"
+    )
+    assert _fix_slice_equal({"p.go": code}, err) == {}

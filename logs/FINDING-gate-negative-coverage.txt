@@ -1,0 +1,44 @@
+FINDING — deterministic-gate negative-test coverage audit, 2026-07-20
+=====================================================================
+
+The project's law is "a gate that rejects correct code is worse than no gate," so
+every gate needs a NEGATIVE test: hand it input that must NOT trigger it and assert
+it returns {}. Without one, a gate can OVER-FIRE (mangle correct code) and no test
+notices. An AST audit — for each of the 33 gates in _run_deterministic_gates, does
+any test function that calls it also assert an empty result ({} / not out / len 0)?
+— found the coverage was 27/33.
+
+SIX gates lacked a does-not-fire test:
+  ZERO unit test at all (not referenced by any test file):
+    _fix_atomic_inc, _fix_drained_request, _fix_dead_error_assertion
+  Positive-only (fires-and-repairs test, but no bail test):
+    _fix_negated_comparison, _fix_slice_equal, _fix_mux_return_type
+    (_fix_mux_return_type's only reference was the line-count case added earlier
+     this session — no behavioural or bail coverage.)
+
+FIXED — added POSITIVE + NEGATIVE tests for the four pure-Python gates (coverage
+27/33 -> 31/33; full suite 323 -> 329 green). Each negative exercises a REAL safety
+guard, not just an empty error:
+  - _fix_atomic_inc (tests/test_gate_negative_coverage.py): positive Inc->Add(1);
+    negative bails when the compiler's line and the source disagree (call on a
+    different line than the diagnostic names).
+  - _fix_mux_return_type (same file): positive *http.ServeMux->http.Handler;
+    negative leaves an already-http.Handler signature alone.
+  - _fix_negated_comparison (tests/test_three_small_gates.py): negative leaves a
+    bare `!x` with no `== rhs` — the gate only rewrites the `!x == y` form.
+  - _fix_slice_equal (same file): negative leaves `.Equal` on a non-slice (struct)
+    type — reflect.DeepEqual is the answer only for slices.
+
+REMAINING (2/33) — deferred, and why: _fix_drained_request and
+_fix_dead_error_assertion are STRUCTURAL gates that `go run` an external Go tool
+(tools/freshreq.go, tools/deadassert.go) rather than transforming text in Python.
+A unit test must craft Go source the tool rewrites (fire) and source it declines
+(bail), and depends on the Go toolchain — slower and more fragile than the pure-
+Python cases. They have NO direct unit test today; recommended follow-up is a
+Go-tool-integration test for each (fire + bail), or at minimum confirming the chain
+tests in test_builder.py exercise them.
+
+METHOD NOTE: negative coverage is the OVER-fire counterpart to the vacuity scan's
+UNDER-fire (a test that never fires proves nothing; a gate with no bail test can
+fire when it shouldn't and nobody sees). Both are the same green-suite-does-not-
+defend insight, applied to the gates and to their tests.
