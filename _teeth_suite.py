@@ -56,6 +56,48 @@ def _drop_block(pattern: str):
     return apply
 
 
+def _reverse_id_sort(n: int):
+    """Reverse `out[i].ID < out[j].ID` in exactly `n` mirrored list methods (ascending -> descending).
+
+    Deterministic by construction — an ascending-order assertion catches a descending sort every
+    run, unlike a DROP whose catch depends on Go map-iteration randomness. `n` pins how many
+    mirrored list methods share the invariant, so a regen that adds or removes a method reports
+    NOAPPLY instead of a false verdict. Used once a spec has a real order-asserting test; taskapi
+    is the positive control (robustly defended) that taskflow/usersapi leave open.
+    """
+    def apply(text: str) -> str | None:
+        a = "return out[i].ID < out[j].ID"
+        if text.count(a) != n:
+            return None
+        return text.replace(a, "return out[i].ID > out[j].ID")
+    return apply
+
+
+def _drop_exists_guard(index_expr: str):
+    """Drop a `if _, ok := <index_expr>; ok { return ErrExists }` duplicate-ID guard (unique)."""
+    def apply(text: str) -> str | None:
+        blk = f"\tif _, ok := {index_expr}; ok {{\n\t\treturn ErrExists\n\t}}\n"
+        if text.count(blk) != 1:
+            return None
+        return text.replace(blk, "\t// MUTANT: duplicate-ID guard removed\n")
+    return apply
+
+
+def _drop_content_type(mime: str):
+    """Drop the `w.Header().Set("Content-Type", <mime>)` response header (either indent level).
+
+    A spec-required response header a happy-path test leaves unasserted — remove it and the suite
+    ships green (validated model-free on kvservice text/plain + jsonapi application/json).
+    """
+    def apply(text: str) -> str | None:
+        for line in (f'\t\tw.Header().Set("Content-Type", "{mime}")\n',
+                     f'\tw.Header().Set("Content-Type", "{mime}")\n'):
+            if text.count(line) == 1:
+                return text.replace(line, "\t\t// MUTANT: Content-Type header removed\n")
+        return None
+    return apply
+
+
 def _tf_drop_status(text: str) -> str | None:
     """taskflow: remove the bad-status branch of Task.Validate (title check stays)."""
     blk = ('\tif t.Status != "todo" && t.Status != "doing" && t.Status != "done" {\n'
@@ -66,14 +108,6 @@ def _tf_drop_status(text: str) -> str | None:
     return text.replace(blk, "\t// MUTANT: bad-status validation removed\n")
 
 
-def _tf_drop_dup(text: str) -> str | None:
-    """taskflow: remove the duplicate-ID guard in CreateTask."""
-    blk = "\tif _, ok := s.tasks[t.ID]; ok {\n\t\treturn ErrExists\n\t}\n"
-    if text.count(blk) != 1:
-        return None
-    return text.replace(blk, "\t// MUTANT: duplicate-ID guard removed\n")
-
-
 def _tf_drop_paginate_clamp(text: str) -> str | None:
     """taskflow: drop the negative-offset clamp INSIDE paginate, keep the past-end guard."""
     anchor = "\tif offset >= len(items) {\n\t\treturn []T{}\n\t}\n"
@@ -81,89 +115,6 @@ def _tf_drop_paginate_clamp(text: str) -> str | None:
     if text.count(blk) != 1:
         return None
     return text.replace(blk, anchor + "\t// MUTANT: negative-offset clamp removed\n")
-
-
-def _tf_drop_sort(text: str) -> str | None:
-    """taskflow: remove the sorted-by-ID guarantee from BOTH mirrored list methods."""
-    line = "\tsort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })"
-    if text.count(line) != 2:  # one invariant, two mirrored list methods
-        return None
-    text = text.replace(line, "\t// MUTANT: sorted-by-ID invariant removed")
-    return text.replace('\t"sort"\n', "")  # drop the now-unused import so it still compiles
-
-
-def _tf_reverse_sort(text: str) -> str | None:
-    """taskflow: reverse the sorted-by-ID order in BOTH list methods (ascending -> descending).
-
-    Deterministic by construction (unlike a DROP, whose catch depends on Go map-iteration
-    randomness). Used once a spec has a real order-asserting test — an ascending assertion
-    catches a descending sort every run. Mirrors the taskapi positive control.
-    """
-    a = "return out[i].ID < out[j].ID"
-    if text.count(a) != 2:  # one invariant, two mirrored list methods
-        return None
-    return text.replace(a, "return out[i].ID > out[j].ID")
-
-
-def _ua_drop_sort(text: str) -> str | None:
-    """usersapi: remove the sorted-by-ID guarantee from List (single method)."""
-    line = "\tsort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })"
-    if text.count(line) != 1:
-        return None
-    text = text.replace(line, "\t// MUTANT: sorted-by-ID invariant removed")
-    return text.replace('\t"sort"\n', "")
-
-
-def _ua_reverse_sort(text: str) -> str | None:
-    """usersapi: reverse the sorted-by-ID order in List (ascending -> descending). Deterministic."""
-    a = "return out[i].ID < out[j].ID"
-    if text.count(a) != 1:
-        return None
-    return text.replace(a, "return out[i].ID > out[j].ID")
-
-
-def _ua_drop_dup(text: str) -> str | None:
-    """usersapi: remove the duplicate-ID guard in Create."""
-    blk = "\tif _, ok := s.users[u.ID]; ok {\n\t\treturn ErrExists\n\t}\n"
-    if text.count(blk) != 1:
-        return None
-    return text.replace(blk, "\t// MUTANT: duplicate-ID guard removed\n")
-
-
-def _ta_reverse_sort(text: str) -> str | None:
-    """taskapi: reverse the sorted-by-ID order in BOTH list methods (ascending -> descending).
-
-    A DROP mutation here catches only ~probabilistically (map-iteration randomness);
-    reversing gives a deterministic wrong order, so the verdict never flakes. taskapi
-    is the positive control: the SAME 'List sorted by ID' invariant that taskflow and
-    usersapi leave undefended is robustly defended here (TestListSorted +
-    TestListProjectsSorted both insert out of order and assert the sorted result).
-    """
-    a = "return out[i].ID < out[j].ID"
-    if text.count(a) != 2:
-        return None
-    return text.replace(a, "return out[i].ID > out[j].ID")
-
-
-def _tap_drop_tasks_sort(text: str) -> str | None:
-    """taskapipro: drop the ListTasks sort ONLY (ListProjects sort + import stay).
-
-    This is the concrete, deterministic proof of the blast-radius damage recorded in
-    guildlm-session-resume: a spec edit SILENTLY DELETED this artifact's TestListSorted
-    (tasks). ListProjects still has TestListProjectsSorted (itself flaky), but nothing
-    defends the tasks-list order anymore — drop that one sort and the suite is green
-    10/10. Anchor on the ListProjects boundary so only the tasks-half sort is touched.
-    """
-    marker = "func (s *MemStore) ListProjects"
-    idx = text.find(marker)
-    if idx < 0:
-        return None
-    head, tail = text[:idx], text[idx:]
-    line = "\tsort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })"
-    if head.count(line) != 1:  # exactly one sort in the tasks half
-        return None
-    head = head.replace(line, "\t// MUTANT: ListTasks sorted-by-ID removed")
-    return head + tail
 
 
 def _tap_reverse_tasks_sort(text: str) -> str | None:
@@ -267,15 +218,6 @@ def _ls_flip_primary(text: str) -> str | None:
     return None
 
 
-def _ls_drop_tiebreak(text: str) -> str | None:
-    """logstats: drop Report's TIE-BREAK (Path ascending on equal Count)."""
-    blk = ("\t\tif stats[i].Count == stats[j].Count {\n"
-           "\t\t\treturn stats[i].Path < stats[j].Path\n\t\t}\n")
-    if text.count(blk) != 1:
-        return None
-    return text.replace(blk, "\t\t// MUTANT: tie-break (Path asc on equal Count) removed\n")
-
-
 def _ls_reverse_tiebreak(text: str) -> str | None:
     """logstats: reverse Report's TIE-BREAK (Path ascending -> descending on equal Count).
 
@@ -289,29 +231,6 @@ def _ls_reverse_tiebreak(text: str) -> str | None:
         a = f"return {v}[i].Path < {v}[j].Path"
         if text.count(a) == 1:
             return text.replace(a, f"return {v}[i].Path > {v}[j].Path")
-    return None
-
-
-def _kv_drop_content_type(text: str) -> str | None:
-    """kvservice: drop the `Content-Type: text/plain` header on GET.
-
-    main.go spec: "GET /kv/{key} returns the value as text/plain". The tests assert only the
-    status code (200) and the body ("hi"), never the Content-Type, so removing the header ships
-    green — validated model-free. A newly-found hole in a previously-unexamined spec.
-    """
-    for line in ('\t\tw.Header().Set("Content-Type", "text/plain")\n',
-                 '\tw.Header().Set("Content-Type", "text/plain")\n'):
-        if text.count(line) == 1:
-            return text.replace(line, "\t\t// MUTANT: Content-Type text/plain removed\n")
-    return None
-
-
-def _ja_drop_content_type(text: str) -> str | None:
-    """jsonapi: drop the `Content-Type: application/json` header on the echo response."""
-    for line in ('\t\tw.Header().Set("Content-Type", "application/json")\n',
-                 '\tw.Header().Set("Content-Type", "application/json")\n'):
-        if text.count(line) == 1:
-            return text.replace(line, "\t\t// MUTANT: Content-Type application/json removed\n")
     return None
 
 
@@ -409,23 +328,23 @@ MUTATIONS = [
     # --- taskflow (added 2026-07-18): two defended controls + two NEW holes ---
     ("taskflow", "store.go",
      "duplicate Task ID -> ErrExists (409)",
-     _tf_drop_dup),                                  # CAUGHT (TestCreateDuplicate)
+     _drop_exists_guard("s.tasks[t.ID]")),           # CAUGHT (TestCreateDuplicate)
     ("taskflow", "pagination.go",
      "paginate clamps a negative offset (no panic, exact count)",
      _tf_drop_paginate_clamp),                       # CAUGHT (TestPaginateNegativeOffset)
     ("taskflow", "store.go",
      "List methods return items sorted by ID",
-     _tf_reverse_sort),                              # was drop (flaky); now reverse (deterministic) — CAUGHT once TestListSorted exists
+     _reverse_id_sort(2)),                           # was drop (flaky); now reverse (deterministic) — CAUGHT once TestListSorted exists
     ("taskflow", "models.go",
      "Task.Validate rejects a status outside {todo,doing,done}",
      _tf_drop_status),                               # CAUGHT (fix arc #1): TestCreateInvalid posts {"title":"x","status":"nope"}
     # --- usersapi (added 2026-07-18): one guard + the sorted-by-ID hole again ---
     ("usersapi", "store.go",
      "duplicate User ID -> ErrExists (409)",
-     _ua_drop_dup),                                  # CAUGHT (TestDuplicateReturns409)
+     _drop_exists_guard("s.users[u.ID]")),           # CAUGHT (TestDuplicateReturns409)
     ("usersapi", "store.go",
      "List returns users sorted by ID (deterministic output)",
-     _ua_reverse_sort),                              # was drop (flaky); now reverse (deterministic) — CAUGHT once an order test exists
+     _reverse_id_sort(1)),                           # was drop (flaky); now reverse (deterministic) — CAUGHT once an order test exists
     # --- logstats (added 2026-07-18): a SPLIT sort — half defended, half not ---
     ("logstats", "stats.go",
      "Report ranks paths by Count descending",
@@ -436,7 +355,7 @@ MUTATIONS = [
     # --- taskapi (added 2026-07-18): the POSITIVE control for the sort hole ---
     ("taskapi", "internal/store/memory.go",
      "List sorted by ID — DEFENDED (contrast: taskflow/usersapi drop it)",
-     _ta_reverse_sort),                              # CAUGHT (TestListSorted + TestListProjectsSorted)
+     _reverse_id_sort(2)),                           # CAUGHT (TestListSorted + TestListProjectsSorted)
     # --- taskapipro (added 2026-07-18): the blast-radius damage, made concrete ---
     ("taskapipro", "internal/store/memory.go",
      "ListTasks sorted by ID (its TestListSorted was deleted by a spec edit)",
@@ -460,11 +379,11 @@ MUTATIONS = [
     # --- kvservice (added 2026-07-19): a spec-required response header nobody asserts ---
     ("kvservice", "main.go",
      "GET returns the value as text/plain (Content-Type header)",
-     _kv_drop_content_type),                         # CAUGHT (fix arc #10): TestPutThenGet asserts Content-Type text/plain
+     _drop_content_type("text/plain")),              # CAUGHT (fix arc #10): TestPutThenGet asserts Content-Type text/plain
     # --- jsonapi (added 2026-07-19): a response header and an error path nobody asserted ---
     ("jsonapi", "main.go",
      "echo response is Content-Type application/json",
-     _ja_drop_content_type),                         # CAUGHT (fix arc #11): TestEcho asserts application/json
+     _drop_content_type("application/json")),        # CAUGHT (fix arc #11): TestEcho asserts application/json
     ("jsonapi", "main.go",
      "non-POST /echo returns 405 (method guard)",
      _ja_drop_405),                                  # CAUGHT (fix arc #11): a GET /echo asserts 405
@@ -509,6 +428,13 @@ def _mutate_lru(text: str) -> str | None:
     return "\n".join(out) if done else None
 
 
+_GO_TEST = ["go", "test", "-count=1", "-timeout", "60s", "./..."]
+
+
+def _go_test(work: Path):
+    return subprocess.run(_GO_TEST, cwd=work, capture_output=True, text=True)
+
+
 def _run(spec: str, rel: str, desc: str, mutate) -> tuple[str, str]:
     art = GEN / f"{spec}-v4"
     src = art / rel
@@ -522,9 +448,13 @@ def _run(spec: str, rel: str, desc: str, mutate) -> tuple[str, str]:
     with tempfile.TemporaryDirectory() as td:
         work = Path(td) / "proj"
         shutil.copytree(art, work)
+        # A CAUGHT/SURVIVED verdict is only meaningful if the UNMUTATED artifact is green:
+        # a red baseline makes the mutant red for the wrong reason (fake CAUGHT). This bit the
+        # by-hand runs 4x (walkv/usersapi/taskapipro) — encode "check baseline green first."
+        if _go_test(work).returncode != 0:
+            return "BASELINE-RED", "unmutated artifact already fails — verdict void, fix baseline first"
         (work / rel).write_text(mutated)
-        r = subprocess.run(["go", "test", "-count=1", "-timeout", "60s", "./..."],
-                           cwd=work, capture_output=True, text=True)
+        r = _go_test(work)
     return ("CAUGHT", "suite red — defended") if r.returncode != 0 \
         else ("SURVIVED", "GREEN on broken code — UNDEFENDED")
 
@@ -534,20 +464,24 @@ def main() -> int:
     rows = [m for m in MUTATIONS if not wanted or m[0] in wanted]
     print(f"{'spec':<12} {'verdict':<9} invariant")
     print("-" * 74)
-    undef = 0
+    undef = void = 0
     for spec, rel, desc, mut in rows:
         verdict, note = _run(spec, rel, desc, mut)
         if verdict == "SURVIVED":
             undef += 1
-        mark = {"CAUGHT": "✓", "SURVIVED": "✗ UNDEFENDED", "NOAPPLY": "· n/a",
-                "SKIP": "· skip"}.get(verdict, verdict)
+        elif verdict == "BASELINE-RED":
+            void += 1
+        mark = {"CAUGHT": "✓", "SURVIVED": "✗ UNDEFENDED", "BASELINE-RED": "✗ BASELINE-RED",
+                "NOAPPLY": "· n/a", "SKIP": "· skip"}.get(verdict, verdict)
         print(f"{spec:<12} {mark:<9} {desc}")
-        if verdict in ("NOAPPLY", "SKIP"):
+        if verdict in ("NOAPPLY", "SKIP", "BASELINE-RED"):
             print(f"{'':<12} {'':<9} ({note})")
     print("-" * 74)
     print(f"{undef} invariant(s) UNDEFENDED (suite green on broken code).")
+    if void:
+        print(f"{void} entr(y/ies) VOID — unmutated baseline already red (verdict untrustworthy).")
     print("SURVIVED = coverage cannot see it; a test never written lowers no number.")
-    return 1 if undef else 0
+    return 1 if (undef or void) else 0
 
 
 if __name__ == "__main__":
