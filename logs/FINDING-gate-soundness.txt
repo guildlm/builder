@@ -50,3 +50,25 @@ give it a behavioral case here too, not just the structural check.
 META-LESSON: an "assert it fired" guard is the cheapest defense against a green-but-
 vacuous test — the same green-suite-does-not-defend insight as the teeth work, one
 level down in the tests THEMSELVES.
+
+--------------------------------------------------------------------------------
+FOLLOW-UP — suite-wide vacuity scan (2026-07-20, same session)
+
+Having found two vacuous fixtures via the "assert it fired" guard, scanned all 39
+test files / 31 gate tests for the same class — a gate test whose assertions pass
+vacuously when the gate returns {} (non-fire). Checked every risky shape:
+  - `for x in out.items()/values()` with no `assert out`  -> ONLY in
+    test_gate_line_safety.py (already fixed). No other test uses it.
+  - `"<path>" not in out` (dict-key check)                -> 6 instances
+    (constructor_alias, interface_missing_method, nomethod_routing,
+    pointer_to_interface, missing_symbol_widen, builder:1108); ALL paired with a
+    positive `out[path]` index or `assert "x" in out` that fails on empty. Guarded.
+  - `X not in <string gate output>` (strip_redecl x8)     -> guarded: the gate
+    returns the FULL string, so on non-fire the forbidden decl is still present
+    and the negative assertion FAILS. Each also has a positive `in` assertion.
+  - `.get(path, default)` in a negative assert / `.join(values())` vacuity -> none.
+
+VERDICT: the vacuity was ISOLATED, not systemic. Its unique ingredient was a
+PRIMARY property (line count) that is trivially true on {} with no positive/index
+guard; every other gate test asserts the repaired content, which fails on {}.
+No further fix needed.
