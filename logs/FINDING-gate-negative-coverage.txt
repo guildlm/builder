@@ -42,3 +42,18 @@ METHOD NOTE: negative coverage is the OVER-fire counterpart to the vacuity scan'
 UNDER-fire (a test that never fires proves nothing; a gate with no bail test can
 fire when it shouldn't and nobody sees). Both are the same green-suite-does-not-
 defend insight, applied to the gates and to their tests.
+
+--------------------------------------------------------------------------------
+COMPLETE (2026-07-20, same session) — 33/33
+
+The two deferred structural gates now have fire + bail tests
+(tests/test_structural_gates.py, skipped without the Go toolchain, matching
+test_argument_adapter.py's convention):
+  - _fix_drained_request: positive rebuilds a request served twice (NewRequest now
+    appears twice); negative leaves an already-reassigned request alone.
+  - _fix_dead_error_assertion: positive removes the `if err != nil { t.Fatalf }`
+    guard that made errors.Is unreachable; negative keeps the guard when the
+    errors.Is check is on a DIFFERENT err (guard is legitimate).
+
+Every one of the 33 deterministic gates now has a negative (does-not-fire) test.
+Full suite 323 -> 333 green over the session's coverage work.
