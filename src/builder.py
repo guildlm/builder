@@ -318,6 +318,16 @@ class RoleRoutingCoder:
         role = role_for_path(match.group(1) if match else "")
         return self._by_role.get(role, self._default).generate(prompt, temperature)
 
+    def escalate(self, path: str) -> bool:
+        """Forward escalation to the coder that owns this file's role, so fleet routing
+        COMPOSES with role routing (each role may itself be a FleetCoder — e.g. a dev fleet
+        plus a single test specialist). Without this the fix loop would call escalate on the
+        RoleRoutingCoder, which has none, and a wrapped fleet would silently never escalate.
+        Returns False when the owning coder is not a fleet (nothing to advance)."""
+        target = self._by_role.get(role_for_path(path), self._default)
+        escalate = getattr(target, "escalate", None)
+        return bool(escalate(path)) if callable(escalate) else False
+
 
 class FleetCoder:
     """Escalate a file that keeps failing the gate to the next model in a fleet.

@@ -9,7 +9,7 @@ regress an unrouted build.
 """
 import pytest
 
-from src.builder import FakeCoder, FleetCoder
+from src.builder import FakeCoder, FleetCoder, RoleRoutingCoder
 
 
 def _prompt(path):
@@ -73,3 +73,23 @@ def test_single_member_fleet_is_backward_compatible():
 def test_empty_fleet_rejected():
     with pytest.raises(ValueError):
         FleetCoder([])
+
+
+def test_role_routing_forwards_escalation_to_the_owning_role_fleet():
+    """A dev fleet + a single test specialist: escalating a dev file advances the dev
+    fleet; escalating a test file (owned by a non-fleet coder) is a no-op. This is what
+    lets fleet routing compose with the existing role routing."""
+    dev_fleet = FleetCoder([
+        FakeCoder({"impl.go": ["base"]}),
+        FakeCoder({"impl.go": ["spec"]}),
+    ])
+    test_coder = FakeCoder({"impl_test.go": ["t"]})
+    router = RoleRoutingCoder({"dev": dev_fleet, "test": test_coder})
+
+    # dev file -> forwarded to the dev fleet, which advances
+    assert router.escalate("impl.go") is True
+    assert dev_fleet.member_for("impl.go") == 1
+    assert router.generate("TARGET_FILE: impl.go") == "spec"
+
+    # test file -> owning coder is not a fleet, so escalation is a no-op
+    assert router.escalate("impl_test.go") is False
