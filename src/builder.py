@@ -319,6 +319,51 @@ class RoleRoutingCoder:
         return self._by_role.get(role, self._default).generate(prompt, temperature)
 
 
+class FleetCoder:
+    """Escalate a file that keeps failing the gate to the next model in a fleet.
+
+    The ensemble evidence (guild-code go/crucible/ROUTING-DESIGN.md): on go_dev_bench NO
+    single model beats the base, yet a {base, go-dev-final, go-dev-14b} fleet solves every
+    task (48/48) because the specialists rescue the base's exact blind spots (rune/string,
+    concurrency). Passing the Builder's build+vet+test gate IS success, so escalating a
+    stuck file to a model that gets what the base misses converts directly to a green build.
+
+    Policy: base first (the best single model), per FILE. ``generate`` always calls the
+    file's CURRENT member; the fix loop calls :meth:`escalate` when a file has failed the
+    gate for too long, advancing that one file to the next member. A one-member fleet never
+    escalates, so it behaves exactly like that coder (backward compatible).
+    """
+
+    def __init__(self, fleet: "Sequence[Coder]") -> None:
+        if not fleet:
+            raise ValueError("FleetCoder needs at least one member")
+        self._fleet: list[Coder] = list(fleet)
+        # file path -> index of the member currently generating that file (default 0)
+        self._rank: dict[str, int] = {}
+
+    @staticmethod
+    def _target(prompt: str) -> str:
+        match = re.search(r"TARGET_FILE:\s*(\S+)", prompt)
+        return match.group(1) if match else "?"
+
+    def generate(self, prompt: str, temperature: float | None = None) -> str:
+        idx = self._rank.get(self._target(prompt), 0)
+        return self._fleet[idx].generate(prompt, temperature)
+
+    def escalate(self, path: str) -> bool:
+        """Advance ``path`` to the next fleet member. Returns True iff it advanced
+        (False when already on the last member, so the caller can stop trying)."""
+        idx = self._rank.get(path, 0)
+        if idx + 1 < len(self._fleet):
+            self._rank[path] = idx + 1
+            return True
+        return False
+
+    def member_for(self, path: str) -> int:
+        """Which fleet index is currently generating ``path`` (for logging/asserts)."""
+        return self._rank.get(path, 0)
+
+
 # --------------------------------------------------------------------------- #
 # Retrieval — ground the small model in known-good verified examples
 # --------------------------------------------------------------------------- #
