@@ -4060,6 +4060,56 @@ def _fix_self_qualified_package(
     return changed
 
 
+def _fix_external_test_package(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``undefined: Reverse`` in a ``_test.go`` that is ``package X_test`` but calls the
+    bare symbol.
+
+    The mirror of ``_fix_self_qualified_package``. An EXTERNAL test package (``X_test``)
+    can only reach the package under test through the qualifier (``X.Reverse``); a bare
+    ``Reverse`` there is undefined. When the test uses the bare name it plainly meant the
+    INTERNAL test package, so the fix is to drop the ``_test`` suffix from the package clause
+    (``package X_test`` -> ``package X``), bringing the package's own symbols into scope.
+
+    Safe by construction: fires only for a ``*_test.go`` file whose clause is ``X_test``, that
+    is NAMED in an ``undefined: Sym`` error, AND whose undefined bare ``Sym`` is actually
+    declared in the sibling ``package X`` files — so switching to internal is exactly what the
+    bare reference assumed. A test that correctly qualifies (``X.Reverse``) never triggers it
+    (no bare undefined). Line-preserving: only the package clause changes."""
+    pairs = [(m.group(1), m.group(2)) for m in _UNDEF_BARE_RE.finditer(error_output)]
+    if not pairs:
+        return {}
+    changed: dict[str, str] = {}
+    for path, code in written.items():
+        if not path.endswith("_test.go"):
+            continue
+        pkg = pkg_name_of(code)
+        if not pkg.endswith("_test"):
+            continue
+        base = path.rsplit("/", 1)[-1]
+        # undefined bare symbols the compiler reported IN THIS file
+        here = {sym for f, sym in pairs if f.rsplit("/", 1)[-1] == base}
+        if not here:
+            continue
+        internal = pkg[: -len("_test")]
+        # symbols declared by the sibling INTERNAL package X in the same directory
+        own: set[str] = set()
+        for p, c in written.items():
+            if (p.endswith(".go") and not p.endswith("_test.go")
+                    and _dir_of(p) == _dir_of(path) and pkg_name_of(c) == internal):
+                own |= top_level_decls(c) | method_decls(c)
+        if not (here & own):
+            continue
+        new = re.sub(rf"^package\s+{re.escape(pkg)}\b", f"package {internal}",
+                     code, count=1, flags=re.M)
+        if new != code:
+            changed[path] = new
+            _log(f"  {path} uses bare symbols of {internal} in external test package "
+                 f"{pkg} — switched to internal (package {internal})")
+    return changed
+
+
 # `invalid operation: operator ! not defined on tt.getWant.Error() (value of type
 # string)`
 _BANG_ON_NONBOOL_RE = re.compile(
@@ -4225,6 +4275,7 @@ def _run_deterministic_gates(
     inplace.update(_fix_handlerfunc_wrap({**written, **inplace}, output))
     inplace.update(_fix_pointer_to_interface({**written, **inplace}, output))
     inplace.update(_fix_self_qualified_package({**written, **inplace}, output))
+    inplace.update(_fix_external_test_package({**written, **inplace}, output))
     inplace.update(_fix_negated_comparison({**written, **inplace}, output))
     if inplace:
         return inplace

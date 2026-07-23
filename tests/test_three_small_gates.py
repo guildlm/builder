@@ -8,6 +8,7 @@ guess.
 """
 
 from src.builder import (
+    _fix_external_test_package,
     _fix_negated_comparison,
     _fix_self_qualified_package,
     _fix_slice_equal,
@@ -134,3 +135,69 @@ def test_equal_on_a_non_slice_type_is_left_alone():
         "(type MyStruct has no field or method Equal)"
     )
     assert _fix_slice_equal({"p.go": code}, err) == {}
+
+
+# ------------------------------------------------ external test package + bare symbol
+
+STRINGKIT_IMPL = (
+    "package stringkit\n\n"
+    "func Reverse(s string) string { return s }\n\n"
+    "func IsPalindrome(s string) bool { return true }\n"
+)
+
+EXT_TEST_BARE = """package stringkit_test
+
+import "testing"
+
+func TestReverse(t *testing.T) {
+	if Reverse("abc") != "cba" {
+		t.Fatal("bad")
+	}
+}
+"""
+
+
+def test_external_test_package_using_bare_symbol_switches_to_internal():
+    """`package stringkit_test` calling bare `Reverse` is undefined — an external test
+    package must qualify (`stringkit.Reverse`). The bare call means the model wanted the
+    internal test package, so drop the `_test` suffix from the clause."""
+    written = {"stringkit.go": STRINGKIT_IMPL, "stringkit_test.go": EXT_TEST_BARE}
+    err = "./stringkit_test.go:6:5: undefined: Reverse"
+    out = _fix_external_test_package(written, err)
+    assert "stringkit_test.go" in out
+    body = out["stringkit_test.go"]
+    assert body.startswith("package stringkit\n")
+    assert "package stringkit_test" not in body
+    assert len(body.splitlines()) == len(EXT_TEST_BARE.splitlines())  # line-preserving
+
+
+def test_correctly_qualified_external_test_is_untouched():
+    # `stringkit.Reverse` is valid in an external test package — no bare undefined, so the
+    # gate must not fire (and there'd be no such error anyway).
+    qualified = EXT_TEST_BARE.replace("Reverse(", "stringkit.Reverse(").replace(
+        'import "testing"', 'import (\n\t"testing"\n\n\t"x/stringkit"\n)')
+    written = {"stringkit.go": STRINGKIT_IMPL, "stringkit_test.go": qualified}
+    assert _fix_external_test_package(written, "") == {}
+
+
+def test_does_not_invent_a_symbol_the_package_lacks():
+    # `undefined: Missing` — not declared in package stringkit, so switching to internal
+    # would not resolve it; the gate must refuse rather than mask a real bug.
+    src = EXT_TEST_BARE.replace("Reverse", "Missing")
+    written = {"stringkit.go": STRINGKIT_IMPL, "stringkit_test.go": src}
+    err = "./stringkit_test.go:6:5: undefined: Missing"
+    assert _fix_external_test_package(written, err) == {}
+
+
+def test_only_the_file_the_error_names():
+    # A second, correct external test in the same dir must not be rewritten just because a
+    # sibling triggered — the gate keys on the file the compiler named.
+    other = "package stringkit_test\n\nimport \"testing\"\n\nfunc TestOther(t *testing.T) {}\n"
+    written = {
+        "stringkit.go": STRINGKIT_IMPL,
+        "stringkit_test.go": EXT_TEST_BARE,
+        "other_test.go": other,
+    }
+    err = "./stringkit_test.go:6:5: undefined: Reverse"
+    out = _fix_external_test_package(written, err)
+    assert set(out) == {"stringkit_test.go"}  # other_test.go left alone
