@@ -4782,6 +4782,12 @@ def _generate_file(
 # How many progress-gated rounds may follow the flat budget (see _fix_loop).
 _EXTENSION_ROUNDS = 3
 
+# Fleet routing: a file that keeps landing in the fix targets for this many rounds under
+# its current model is handed to the next fleet member (see FleetCoder). Base-first, so the
+# base gets this many attempts before a specialist is tried. No effect unless the coder is a
+# FleetCoder — a single-model coder has no `escalate`, so this is inert for an unrouted build.
+_FLEET_ESCALATE_AFTER = 2
+
 # Run-specific noise in toolchain/test output that must not make two otherwise
 # identical error surfaces look different: heap addresses, goroutine ids, test
 # wall times, and the pointer-suffixed frame offsets in panic traces.
@@ -4832,6 +4838,9 @@ def _fix_loop(
     pinned: dict[str, set[str]] = {}
     # dir -> runtime-failure rounds seen, for root-cause target widening
     runtime_rounds: dict[str, int] = {}
+    # file -> consecutive fix rounds it has been a target under its CURRENT fleet member;
+    # drives escalation to the next member (see FleetCoder / _FLEET_ESCALATE_AFTER).
+    fleet_stuck: dict[str, int] = {}
     # Progress-gated extension: a layered project peels one error stratum per
     # round (build -> vet -> test-compile -> panics -> assertions), so the last
     # stratum routinely surfaces exactly when the flat budget runs out. Extra
@@ -4906,6 +4915,17 @@ def _fix_loop(
             task = _task_for(tasks, path)
             if task is None:
                 continue
+            # Fleet escalation: this file is still failing the gate under its current model.
+            # After a few attempts, hand it to the next fleet member — the ensemble evidence
+            # (guild-code go/crucible/ROUTING-DESIGN.md) is that a specialist rescues exactly
+            # the files the base cannot, and passing the gate IS success here. Inert for a
+            # single-model coder (no `escalate`), so an unrouted build is unaffected.
+            fleet_stuck[path] = fleet_stuck.get(path, 0) + 1
+            if fleet_stuck[path] >= _FLEET_ESCALATE_AFTER:
+                escalate = getattr(coder, "escalate", None)
+                if callable(escalate) and escalate(path):
+                    _log(f"  escalating {path} to the next fleet member")
+                    fleet_stuck[path] = 0
             _log(f"  fixing {path}")
             fix_shots = (
                 retriever.top_k(

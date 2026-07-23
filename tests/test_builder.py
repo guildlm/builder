@@ -13,6 +13,7 @@ import pytest
 
 from src.builder import (
     FakeCoder,
+    FleetCoder,
     FileSpec,
     FileTask,
     GoToolchain,
@@ -201,6 +202,42 @@ def test_build_loop_gives_up_when_unfixable(tmp_path):
     )
     ok, _ = build(spec, coder, tmp_path, max_fix_rounds=2)
     assert not ok
+
+
+@requires_go
+def test_fleet_escalates_to_a_member_that_can_fix_it(tmp_path):
+    """A file the base member can NEVER fix converges once escalation hands it to a
+    member that can — the end-to-end payoff of the ensemble finding. base is broken on
+    every call; the specialist writes good Go. With _FLEET_ESCALATE_AFTER=2, main.go is a
+    target for 2 fix rounds under base, then escalates and the specialist greens it."""
+    spec = _sample_spec()
+    base = FakeCoder({"go.mod": [f"```mod\n{GO_MOD}```"], "main.go": [f"```go\n{BAD_GO}```"]})
+    specialist = FakeCoder({"go.mod": [f"```mod\n{GO_MOD}```"],
+                            "main.go": [f"```go\n{GOOD_GO}```"]})
+    fleet = FleetCoder([base, specialist])
+
+    ok, files = build(spec, fleet, tmp_path, max_fix_rounds=5)
+
+    assert ok, "escalation to the specialist should green the build"
+    assert (tmp_path / "main.go").read_text() == GOOD_GO
+    assert fleet.member_for("main.go") == 1, "main.go should have escalated to the specialist"
+    # base was tried (generation + fix rounds) before the specialist ever fixed it
+    assert base.calls.count("main.go") >= 2
+    assert specialist.calls.count("main.go") >= 1
+
+
+@requires_go
+def test_fleet_of_one_is_identical_to_the_bare_coder(tmp_path):
+    """A single-member fleet must converge exactly like the coder alone (no escalation
+    path taken) — the backward-compatibility guarantee that makes wiring FleetCoder into
+    _fix_loop safe for every existing unrouted build."""
+    spec = _sample_spec()
+    coder = FakeCoder({"go.mod": [f"```mod\n{GO_MOD}```"],
+                       "main.go": [f"```go\n{BAD_GO}```", f"```go\n{GOOD_GO}```"]})
+    ok, _ = build(spec, FleetCoder([coder]), tmp_path, max_fix_rounds=4)
+    assert ok
+    assert (tmp_path / "main.go").read_text() == GOOD_GO
+    assert coder.calls.count("main.go") == 2  # generated once, fixed once — same as bare
 
 
 # --------------------------------------------------------------------------- #
