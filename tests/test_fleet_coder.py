@@ -9,7 +9,7 @@ regress an unrouted build.
 """
 import pytest
 
-from src.builder import FakeCoder, FleetCoder, RoleRoutingCoder
+from src.builder import FakeCoder, FleetCoder, RoleRoutingCoder, _parse_fleet
 
 
 def _prompt(path):
@@ -93,3 +93,18 @@ def test_role_routing_forwards_escalation_to_the_owning_role_fleet():
 
     # test file -> owning coder is not a fleet, so escalation is a no-op
     assert router.escalate("impl_test.go") is False
+
+
+@pytest.mark.parametrize("spec, expected", [
+    (None, []),
+    ("", []),
+    ("   ", []),
+    ("go-dev-final", [("go-dev-final", None)]),
+    ("go-dev-final,go-dev-14b", [("go-dev-final", None), ("go-dev-14b", None)]),
+    ("go-dev-14b@http://localhost:8081/v1",
+     [("go-dev-14b", "http://localhost:8081/v1")]),
+    (" go-dev-final , go-dev-14b@u ", [("go-dev-final", None), ("go-dev-14b", "u")]),
+    ("a,,b", [("a", None), ("b", None)]),  # blank members skipped
+])
+def test_parse_fleet(spec, expected):
+    assert _parse_fleet(spec) == expected

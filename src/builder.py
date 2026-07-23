@@ -374,6 +374,24 @@ class FleetCoder:
         return self._rank.get(path, 0)
 
 
+def _parse_fleet(spec: str | None) -> list[tuple[str, str | None]]:
+    """Parse a ``--fleet`` value into (model, base_url) escalation members.
+
+    Comma-separated; each member is ``model`` (served at the main --base-url) or
+    ``model@base_url`` (its own endpoint, e.g. a per-model MLX server). Order is the
+    escalation order AFTER the base coder, so the recommended fleet from the evidence
+    (ROUTING-DESIGN.md) is ``--fleet go-dev-final,go-dev-14b@<14b-url>``. Empty/blank -> [].
+    """
+    members: list[tuple[str, str | None]] = []
+    for raw in (spec or "").split(","):
+        member = raw.strip()
+        if not member:
+            continue
+        model, _, base = member.partition("@")
+        members.append((model.strip(), base.strip() or None))
+    return members
+
+
 # --------------------------------------------------------------------------- #
 # Retrieval — ground the small model in known-good verified examples
 # --------------------------------------------------------------------------- #
@@ -5620,6 +5638,12 @@ try:
         shots: int = typer.Option(
             2, "--shots", help="How many retrieved examples to show (needs --examples)."
         ),
+        fleet: str = typer.Option(
+            None, "--fleet",
+            help="Escalation fleet for impl files: 'model' or 'model@base_url', comma-"
+                 "separated, tried after the base --model when a file keeps failing the "
+                 "gate. Recommended: 'go-dev-final,go-dev-14b@<14b-url>' (ROUTING-DESIGN.md).",
+        ),
     ) -> None:
         """Generate a project from SPEC into OUT using a pluggable coder model."""
         spec_obj = Spec.from_yaml(spec)
@@ -5628,7 +5652,16 @@ try:
         # could satisfy. Say so before spending the time, not after.
         for problem in lint_spec(spec_obj):
             _log(f"  spec-lint: {problem}")
-        dev_coder = OpenAICoder(model=model, base_url=base_url)
+        dev: Coder = OpenAICoder(model=model, base_url=base_url)
+        # Wrap the impl coder in an escalation fleet if requested: base first, then each
+        # --fleet member for a file that keeps failing the gate (composes with role routing
+        # below — the dev role becomes a fleet, tests stay on the test specialist).
+        fleet_members = _parse_fleet(fleet)
+        if fleet_members:
+            dev = FleetCoder([dev] + [
+                OpenAICoder(model=m, base_url=b or base_url) for m, b in fleet_members])
+            _log(f"  impl fleet: {model} -> {', '.join(m for m, _ in fleet_members)}")
+        dev_coder = dev
         if test_model:
             # The guild splits work: dev specialist writes impl, test specialist
             # writes the tests.
