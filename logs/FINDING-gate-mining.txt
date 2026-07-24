@@ -27,8 +27,22 @@ WHY THIS ONE IS NOT ADDED AS A GATE (the honest call):
   is even semantically right, but the gate cannot know that in general. So this gap belongs
   to the MODEL (or a risk-accepting heuristic), not to the deterministic chain.
 
-TAKEAWAY: the deterministic gate chain is in good shape — it clears 15/18 of the archived
-backlog. The remaining recurring failure is an arity/value mismatch that is deliberately
-left to the model. This is a NEGATIVE result on "add another gate" and a POSITIVE result on
-"is the chain effective". The one clean gate this session (external-test-package) came from
-a live demo, not this corpus — the corpus's remaining tail is model-shaped, not gate-shaped.
+SECOND PASS — the other families (taskapipro / workapi / taskflow / tasks-api), 29 archives:
+  - 20/29 now GREEN under the current chain.
+  - 9 remain red, and NONE is a clean recurring gate shape: one is a SYNTAX error
+    (`missing ',' in argument list` — malformed generation, model-shaped), the rest fail on
+    something other than a compile error the keyword scan recognises (test assertions /
+    runtime — compiles-but-wrong, which is the model's job, not the gate's).
+
+COMBINED (47 archives): ~35 now GREEN under the current chain (~74% of the historical
+backlog, deterministically), and the remaining ~12 are all MODEL-shaped — arity/value
+guesses, raw syntax breakage, or wrong-behaviour assertions. No further clean, single-meaning
+gate emerged from the corpus.
+
+TAKEAWAY: the deterministic gate chain is in good shape — it clears ~35/47 of the archived
+backlog on its own. The residual tail is deliberately model-shaped (a gate for it would have
+to guess). This is a NEGATIVE result on "mine the corpus for another gate" and a strong
+POSITIVE result on "is the chain effective". The one clean gate added this session
+(external-test-package) came from a LIVE demo, not this corpus — new gate shapes come from
+NEW failure modes (fresh runs), not from re-mining a backlog the chain has already grown to
+cover. So the gate-mining vein is exhausted; the next gate will come from a new failing run.
