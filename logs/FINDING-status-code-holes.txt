@@ -313,3 +313,26 @@ WHAT THE SWEEP ACTUALLY DOES NOW — three corrections, each found by the previo
   cleaner corpus, except the one that invented a hole. Under-sampling and false-positives
   are not symmetrical risks — the first is invisible and flattering, the second is loud and
   gets caught by the next instrument that disagrees.
+
+  THE RE-RUN, with every correction in:
+
+      status code      matched 123   probed 123      full coverage
+      response header  matched  10   probed   9      shapes 2 and 3 still take one
+      sort order       matched   7   probed   6        site per FILE — stated, not hidden
+      error wrapping   matched  10   probed  10
+
+      148 probes · 13 SURVIVED · 2 SURVIVED* (known-benign)
+
+  Against the first run's 39 probes and 9 survivors. Two things worth reading off it:
+
+  - The 27 StatusInternalServerError sites, unprobed until a swap was defined for them,
+    produced ZERO new survivors. Full coverage of a shape can confirm health as well as
+    find holes, and the confirmation only means something because the coverage line proves
+    the sites were actually visited.
+  - Four new SURVIVED candidates appeared purely from probing more sites — jsonapi and
+    kvservice (StatusBadRequest), ratelimit (StatusTooManyRequests), and two more in
+    taskflow (StatusConflict, and a second StatusOK). Every one needs the spec check before
+    it counts; on past form roughly half will turn out to be behaviour no spec asked for.
+
+  The 1 header and 1 sort site still unprobed are the same per-file-first limit, left in
+  place for now and named here so the number is not mistaken for completeness.
