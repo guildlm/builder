@@ -148,7 +148,18 @@ def score(project: str, smoke: str | None) -> dict:
     if trivial:
         tests = False
         t_out = f"tests pass but assert nothing (trivial): {', '.join(trivial)}"
+    # HOW MANY tests failed, beside whether any did. `test: false` is what carried two
+    # specs as "blocked on coder capability" through two full regenerations and a
+    # 3100-second run: it says nothing about whether ONE test failed or forty, and both
+    # turned out to be one edit from green (taskflow one confused test function, tasks-api
+    # one missing line in a constructor). A boolean is a numerator with the denominator
+    # thrown away, which is the same failure this repo found in four other instruments
+    # today. Cheap here — the count is already in the output being truncated to 300 chars.
+    failed = re.findall(r"^\s*--- FAIL: (\w+)", t_out, re.M)
     res["stages"]["test"] = {"ok": tests, "detail": t_out[:300]}
+    if failed:
+        res["stages"]["test"]["failed"] = sorted(set(failed))
+        res["stages"]["test"]["failed_count"] = len(set(failed))
 
     res["score"] = int(builds) + int(vets) + int(tests)
 
@@ -253,7 +264,18 @@ def main() -> int:
             mark = "✓" if st["ok"] else "✗"
             line = f"  {mark} {name}"
             if not st["ok"] and st["detail"]:
-                line += f"  — {st['detail'].splitlines()[0][:120]}"
+                # Print the COUNT, not just the first failure. This line showed
+                # "--- FAIL: TestGetOKAndMissing" for an artifact with SIX failures and
+                # for one with ONE, and those two readings are what kept taskflow and
+                # tasks-api labelled "blocked on coder capability" through two full
+                # regenerations. Both were one edit from green.
+                if st.get("failed_count"):
+                    n = st["failed_count"]
+                    line += f"  — {n} failing: {', '.join(st['failed'][:4])}"
+                    if n > 4:
+                        line += f", +{n - 4} more"
+                else:
+                    line += f"  — {st['detail'].splitlines()[0][:120]}"
             elif st["ok"] and st.get("detail"):
                 line += f"  — {st['detail'][:80]}"
             print(line)
