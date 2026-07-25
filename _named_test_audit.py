@@ -93,6 +93,21 @@ def audit(spec: str) -> dict | None:
     # rewriting taskapipro-v4 — a fabricated catastrophe that would have sent me
     # hunting a bug that did not exist. Compare against what the spec DECLARES:
     # short by any file means mid-run, and mid-run means say so, not score it.
+    # AND ONLY EVIDENCE ABOUT THE SPEC IT WAS BUILT FROM. This compares a LIVE spec
+    # against a FROZEN artifact, so the moment a spec names a new test the audit reports it
+    # MISSING — not because the coder refused to write it, but because the archive predates
+    # the sentence. Today that showed up as shortener "missing" the exact three tests I had
+    # just closed and watched pass in fresh runs. Same shape as the mid-run case above: a
+    # real-looking failure manufactured by comparing across time. Flag it, do not score it.
+    # LIMITATION, demonstrated rather than assumed: mtime is the only cheap signal here
+    # and it is forgeable. The over-fire check for this flag was `touch`ing an
+    # artifact's .go files, and that alone made a genuinely stale artifact report as
+    # fresh — as a checkout, a copy or a rsync would too. So the flag is a HINT THAT
+    # CAN MISS, never a proof of freshness: its absence means nothing, its presence is
+    # worth heeding. (jsonapi-v4's mtimes were touched by that very check, so its flag
+    # is unreliable until it is regenerated.)
+    stale = spec_path.stat().st_mtime > max((p.stat().st_mtime for p in art.rglob("*.go")),
+                                            default=0)
     declared = {f["path"] for f in yaml.safe_load(spec_path.read_text())
                 .get("files", []) if f.get("path", "").endswith(".go")}
     present = {str(p.relative_to(art)) for p in art.rglob("*.go")}
@@ -103,7 +118,7 @@ def audit(spec: str) -> dict | None:
         return {"spec": spec, "named": 0, "missing": [], "subtest_only": [],
                 "renamed": [], "funcs": 0}
     blob, funcs = artifact_test_text(art)
-    return {"spec": spec, "named": len(named), "funcs": len(funcs),
+    return {"spec": spec, "named": len(named), "funcs": len(funcs), "stale": stale,
             **classify(named, blob, funcs)}
 
 
@@ -219,11 +234,19 @@ def self_test() -> int:
 def main() -> int:
     if "--self-test" in sys.argv:
         return self_test()
-    wanted = sys.argv[1:]
+    wanted = [a for a in sys.argv[1:] if not a.startswith('-')]
+    explicit = bool(wanted)
     if not wanted:
         wanted = sorted(p.stem for p in SPECS.glob("*.yaml")
                         if (GEN / f"{p.stem}-v4").is_dir())
     rows = [r for r in (audit(s) for s in wanted) if r]
+    # An UNMATCHED NAME MUST NOT READ AS "CLEAN". Asked about a spec that does not exist,
+    # this printed the header, no rows, and exited 0 — indistinguishable from "audited it,
+    # nothing missing". Found by probing every instrument with a target that does not
+    # exist, after the same shape nearly cost a result in _hole_closed.
+    if explicit and not rows:
+        raise SystemExit(f"none of {', '.join(wanted)} matched a spec with a -v4 artifact; "
+                         f"an empty report is not the same as a clean one")
     skipped = [r for r in rows if r.get("incomplete")]
     rows = [r for r in rows if not r.get("incomplete")]
     total_named = total_missing = 0
@@ -233,6 +256,8 @@ def main() -> int:
         total_named += r["named"]
         total_missing += len(r["missing"])
         miss = ", ".join(r["missing"][:4])
+        if r.get("stale") and r["missing"]:
+            miss += "   [STALE: spec edited after this artifact was generated]"
         if len(r["missing"]) > 4:
             miss += f", +{len(r['missing']) - 4} more"
         print(f"{r['spec']:<24} {r['named']:>5} {len(r['missing']):>5} "

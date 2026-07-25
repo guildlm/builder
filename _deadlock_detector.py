@@ -79,10 +79,16 @@ def mutex_self_deadlock(code: str) -> set[str]:
 
 if __name__ == "__main__":
     import sys
+    # An unreadable file must make this EXIT NONZERO. It used to print the OSError and
+    # carry on with status 0, so anything scripting it read a missing file as a pass.
+    failed = False
     for path in sys.argv[1:]:
         try:
             hits = mutex_self_deadlock(open(path).read())
         except OSError as e:
             print(f"{path}: {e}")
+            failed = True
             continue
         print(f"{path}: {'DEADLOCK ' + ', '.join(sorted(hits)) if hits else 'clean'}")
+    if failed:
+        sys.exit(1)

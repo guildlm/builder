@@ -1,0 +1,58 @@
+FINDING — four instruments reported "clean" when asked about nothing
+=====================================================================
+2026-07-25. Swept every instrument with a target that does not exist, after that exact
+shape nearly cost a result earlier today.
+
+WHY THE SWEEP HAPPENED
+  _hole_closed.py, called as `--dir X --probe=...` instead of positionally, took "--dir"
+  as the artifact path, globbed an absent directory, found no sites and printed
+
+        drop Content-Type applies in: None
+        (1) SKIPPED — nothing for drop Content-Type in this artifact
+
+  which is indistinguishable from a real answer about a real artifact. I found it by
+  accident. An accident is not a method, so I probed all nine.
+
+RESULT — 9 instruments, 4 answered about nothing with status 0
+  _named_test_audit.py   an unmatched spec name printed the header, NO ROWS, exit 0.
+                         "You typo'd the name" and "audited it, nothing missing" rendered
+                         identically.
+  _teeth_suite.py        a typo'd name selected zero mutations and reported a clean run.
+                         This is the suite whose headline is "29 CAUGHT / 0 SURVIVED";
+                         "0 probes, 0 SURVIVED" summarises to the same reassuring shape.
+                         The one number a teeth report must never lose is how many
+                         mutations it actually ran.
+  _deadlock_detector.py  printed the OSError for an unreadable file and exited 0, so
+                         anything scripting it read a missing file as a pass.
+  _unrouted_compat.py    ignores argv entirely — passing a directory does nothing while
+                         looking like it was used. Lesser: it still does its real job.
+
+  Clean: _hole_hunt (long-running, no verdict), _escalation_surface, _gate_audit (argparse
+  rejects unknown args), score_backend ("not a directory").
+
+FIXED, EACH PROVEN BOTH WAYS
+  Every fix was shown to fire on the exact call that used to read as clean, AND shown not
+  to over-fire: `_named_test_audit shortener` and the whole-corpus run still work, the
+  self-test still passes, `_teeth_suite ratelimit` still runs its mutation, and
+  `_deadlock_detector` on a real file still exits 0.
+
+A SECOND BUG, FOUND BY RUNNING THE FIX
+  With the guard in place, `_named_test_audit shortener` reported THREE missing tests —
+  TestContentTypeJSON, TestHealthOK, TestShortenMalformedJSON — the exact three holes I
+  closed today and watched pass in fresh runs. The audit compares a LIVE spec against a
+  FROZEN artifact, so every newly named test reads as one the coder refused to write. Same
+  shape as the mid-run case this script already guarded: a real-looking failure manufactured
+  by comparing across time. Now flagged [STALE], not scored.
+
+  And the freshness signal has a limit I demonstrated rather than assumed: the over-fire
+  check for the new flag was `touch`ing an artifact, and that alone made a genuinely stale
+  artifact report as fresh — as a checkout or a copy would. The flag is a hint that can
+  MISS. Its presence is worth heeding; its absence means nothing. (jsonapi-v4's mtimes were
+  touched by that check and its flag is unreliable until regenerated.)
+
+THE PATTERN, WHICH IS THE POINT
+  Every one of these tools was written to answer "is this defended?" and every one of them
+  answered "yes" to a question about nothing. Empty input, unmatched selector and unreadable
+  file all collapse into the same output as a clean result, because "no findings" is what
+  clean looks like. A checker that cannot distinguish NO PROBLEMS from NO WORK DONE is not
+  measuring anything — and it is the failure mode green output hides best.

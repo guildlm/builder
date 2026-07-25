@@ -523,6 +523,14 @@ def main() -> int:
         return self_test()
     wanted = set(sys.argv[1:])
     rows = [m for m in MUTATIONS if not wanted or m[0] in wanted]
+    # ZERO SELECTED MUTATIONS IS AN ERROR, NOT A GREEN RUN. This is the teeth suite: its
+    # headline is "29 CAUGHT / 0 SURVIVED", and a typo'd name produced "0 probes, 0
+    # SURVIVED" — which summarises to the same reassuring shape. The one number a teeth
+    # report must never lose is how many mutations it actually ran.
+    if wanted and not rows:
+        known = ", ".join(sorted({m[0] for m in MUTATIONS}))
+        raise SystemExit(f"no registered mutation matches {', '.join(sorted(wanted))}\n"
+                         f"known specs: {known}")
     print(f"{'spec':<12} {'verdict':<9} invariant")
     print("-" * 74)
     undef = void = 0
