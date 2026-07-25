@@ -71,6 +71,46 @@ def module_of(d: pathlib.Path) -> str | None:
     return m.group(1) if m else None
 
 
+def drive_gates(work: pathlib.Path, module: str | None, tc: GoToolchain,
+                rounds: int,
+                initial: tuple[bool, str] | None = None) -> tuple[bool, str, bool]:
+    """Run the deterministic gate chain over ``work`` to a fixpoint.
+
+    Returns (green, final_toolchain_output, touched) where ``touched`` says whether the
+    gates rewrote anything.
+
+    ONE copy, because the two callers here each carried the same two defects and both had
+    to be fixed by hand today:
+
+      - The check result is CARRIED across iterations, not re-taken. A check is
+        build+vet+test and the archive holds projects whose generated tests deadlock, so a
+        re-check of an untouched tree can cost the whole `go test -timeout 60s`. Both
+        callers were taking two such duplicates per artifact.
+
+      - ``touched`` is decided by DIFFING THE TREE. Both callers decided it by comparing
+        toolchain OUTPUT across two runs, and that output is not a function of the code:
+        the same tree checked twice yields different goroutine ids, different heap
+        addresses and different durations. Every artifact whose tests panic therefore
+        compared unequal to itself and was scored "advanced" with no gate having fired.
+        (src/builder.py has `_error_signature` for exactly this normalisation; these tools
+        simply never reached for it.)
+    """
+    # ``initial`` lets a caller that has already checked this tree hand its result in
+    # rather than pay for it twice — the whole point of the carry.
+    after_ok, after = initial if initial is not None else tc.check(work)
+    tree_before = {str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")}
+    written = dict(tree_before)
+    for _ in range(rounds):
+        changed = _run_deterministic_gates(written, after, module)
+        if not changed:
+            break
+        for path, content in changed.items():
+            (work / path).write_text(content)
+        after_ok, after = tc.check(work)
+        written = {str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")}
+    return after_ok, after, written != tree_before
+
+
 def audit(d: pathlib.Path, tc: GoToolchain) -> dict | None:
     module = module_of(d)
     if module is None:
@@ -86,34 +126,9 @@ def audit(d: pathlib.Path, tc: GoToolchain) -> dict | None:
         if ok:
             return {"name": d.name, "status": "already-green"}
 
-        # The check result is CARRIED, not re-taken. A check is build+vet+test and the
-        # archive holds projects whose generated tests deadlock, so each one can cost the
-        # full `go test -timeout 60s`. This loop used to re-check the same tree twice over:
-        # the first iteration repeated `before`, and the trailing check repeated the last
-        # iteration's. Same numbers either way — the tree is unchanged between them — for
-        # roughly half the wall clock, which is the difference between auditing the whole
-        # archive and giving up partway.
-        after_ok, after = ok, before
-        tree_before = {str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")}
-        written = dict(tree_before)
-        for _ in range(8):
-            changed = _run_deterministic_gates(written, after, module)
-            if not changed:
-                break
-            for path, content in changed.items():
-                (work / path).write_text(content)
-            after_ok, after = tc.check(work)
-            written = {str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")}
         # Status is derived by DIFFING (did the tree change, did it reach green),
         # not by parsing gate logs — so it stays independent of log formatting.
-        #
-        # DIFF THE TREE, which is what the line above always claimed and the code did not
-        # do: it compared the toolchain's OUTPUT across two runs. That output is not a
-        # function of the code. Checking one unchanged artifact twice yields different
-        # goroutine ids, different heap addresses and different durations, so any artifact
-        # whose tests panic compared unequal to itself and was scored "advanced" — the
-        # gates had touched nothing. A tool whose job is to pick the next gate WITH DATA
-        # was inflating its own progress count.
+        after_ok, after, touched = drive_gates(work, module, tc, 8, initial=(ok, before))
         residual = [s for s in (signature(l) for l in after.splitlines()) if s]
         # A compile diagnostic carries a COLUMN; a failing assertion does not.
         # They are different backlogs: the first is what a gate could still fix,
@@ -121,8 +136,7 @@ def audit(d: pathlib.Path, tc: GoToolchain) -> dict | None:
         compiles = bool(re.search(r"\.go:\d+:\d+:", after))
         return {
             "name": d.name,
-            "status": "green-by-gates" if after_ok else (
-                "advanced" if written != tree_before else "stuck"),
+            "status": "green-by-gates" if after_ok else ("advanced" if touched else "stuck"),
             "residual": residual if compiles else [],
             "assertions": [] if compiles else assertion_shapes(after),
             "kind": "compile" if compiles else "test",
@@ -228,30 +242,10 @@ def audit_regression() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             work = pathlib.Path(tmp) / d.name
             shutil.copytree(d, work)
-            # Same two corrections as audit() above, and this mode is the one that
-            # produced FINDING-gate-mining: the check is carried instead of re-taken
-            # (it was running two duplicate build+vet+test passes per artifact), and
-            # "advanced" is decided by DIFFING THE TREE. This mode states the intended
-            # semantics in its own output — "STUCK means the gates changed NOTHING" —
-            # while comparing toolchain text that changes between runs of identical
-            # code (goroutine ids, heap addresses, durations), so any artifact whose
-            # tests panic could never be reported stuck.
-            after_ok, after = tc.check(work)
-            tree_before = {
-                str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")
-            }
-            written = dict(tree_before)
-            for _ in range(20):
-                changed = _run_deterministic_gates(written, after, module)
-                if not changed:
-                    break
-                for path, content in changed.items():
-                    (work / path).write_text(content)
-                after_ok, after = tc.check(work)
-                written = {
-                    str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")
-                }
-        touched = written != tree_before
+            # This mode is the one that produced FINDING-gate-mining, and it states the
+            # intended semantics in its own output below — "STUCK means the gates changed
+            # NOTHING" — which is what drive_gates now actually measures.
+            after_ok, _after, touched = drive_gates(work, module, tc, 20)
         if after_ok:
             green.append(d.name)
         elif touched:
