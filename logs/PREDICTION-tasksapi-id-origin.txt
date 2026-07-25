@@ -1,0 +1,46 @@
+PREDICTION — tasks-api's six failures are ONE spec silence
+===========================================================
+2026-07-25 evening. Second RED spec diagnosed the same way as taskflow, and it has a
+different shape with a sharper root.
+
+WHAT THE SUITE SAYS
+      TestGetOKAndMissing   expected 200, got 404
+      TestDelete            expected 204, got 404
+      TestUpdateOK          expected 200, got 404
+      TestStoreCreateGet    expected 200, got 404
+      TestStoreUpdateDelete expected 200/200/204, got 404 x3
+      TestStoreListSorted   Expected first task ID 1, got ID 0
+                            Expected second task ID 2, got ID 1
+
+  Six failures, ONE cause. The store hands the first task ID 0; every test then asks for
+  id 1 and gets 404. The last row is the one that says it outright, and it is the only one
+  that does — the other five present as routing or lookup bugs.
+
+THE SPEC SILENCE
+      "...a map[int]Task and an auto-incrementing nextID."
+
+  It never says where nextID STARTS. A Go int field zero-values to 0, so the first task
+  gets ID 0, while every generated test assumes 1 — which is what auto-increment means
+  everywhere else, and the model is right to assume it.
+
+AND IT IS NOT MERELY A DISAGREEMENT — IT IS A LATENT BUG
+      func (s *MemStore) Update(t Task) error {
+          if t.ID == 0 { return ErrNotFound }
+
+  The code uses 0 as the "unset ID" sentinel, which is idiomatic and correct on its own.
+  Combined with a sequence that STARTS at 0, the first task ever created is permanently
+  unupdatable. Both halves are defensible; the spec never made them agree. That is a defect
+  that ships green in any suite whose tests happen to start from the second record.
+
+THE EDIT — say where it starts, and say why
+  NewMemStore sets nextID to 1, with the reason inline: 0 is both the zero value and the
+  sentinel Update uses for "no ID", so a task with ID 0 can never be addressed.
+
+PREDICTION
+  1. The store starts at 1 and all six failures go away together — they are one bug.
+  2. tasks-api greens. Registered LOW confidence: it is 8 spec entries, it took 3100s and
+     9 escalations to fail last time, and both of today's difficulty predictors are dead,
+     so I have no basis for a forecast beyond "the known blocker is removed".
+  3. If it stays red, the new failure is NOT an ID-origin 404 — same falsifier shape as
+     taskflow's: a different failure means the diagnosis was right and there is a second
+     wall behind it.

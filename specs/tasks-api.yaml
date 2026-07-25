@@ -36,6 +36,11 @@ files:
       so omitting it breaks the build.
       (2) `type MemStore struct` — the thread-safe in-memory implementation,
       guarded by sync.RWMutex with a map[int]Task and an auto-incrementing nextID.
+      NewMemStore MUST set nextID to 1, so the FIRST task created gets ID 1 — never 0.
+      An int field zero-values to 0, so leaving nextID unset hands the first task ID 0,
+      and Update below treats ID 0 as "no ID given" and returns ErrNotFound. Both of
+      those are reasonable alone; together they make the first task ever created
+      permanently unupdatable, and every test that asks for id 1 gets 404.
       Implement ALL FIVE methods on *MemStore (pointer receivers, since they take
       the mutex): Create validates and assigns ID + CreatedAt; List returns a copy
       sorted by ID; Get/Update/Delete return the sentinel ErrNotFound when the id
