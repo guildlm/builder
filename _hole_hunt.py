@@ -33,7 +33,11 @@ SWAP = {"StatusNotFound": "StatusBadRequest", "StatusCreated": "StatusOK",
         "StatusBadRequest": "StatusNotFound", "StatusTooManyRequests": "StatusServiceUnavailable",
         "StatusMovedPermanently": "StatusFound", "StatusNoContent": "StatusOK",
         "StatusConflict": "StatusBadRequest", "StatusMethodNotAllowed": "StatusBadRequest",
-        "StatusUnprocessableEntity": "StatusBadRequest", "StatusOK": "StatusAccepted"}
+        "StatusUnprocessableEntity": "StatusBadRequest", "StatusOK": "StatusAccepted",
+        # 27 sites in the corpus write 500 and had no swap, so the sweep
+        # skipped them and the coverage line said so. 502 is the plausible
+        # neighbour: still a server-side failure, still wrong.
+        "StatusInternalServerError": "StatusBadGateway"}
 CODE = re.compile(r"^\s*(?!//)(?!\s*\*).*http\.(Status[A-Za-z]+)")
 
 # SHAPE 4: error wrapping. `fmt.Errorf("...: %w", ErrX)` -> `%v` leaves the message
@@ -212,102 +216,108 @@ if "--self-test" in sys.argv:
     raise SystemExit(self_test())
 
 
-rows = []
-for art in sorted(GEN.glob("*-v4")):
-    for f in sorted(art.glob("*.go")):
-        if f.name.endswith("_test.go"):
-            continue
-        # EVERY matching line, not the first in the file. --all-sites said "every site"
-        # and meant "one per file": the coverage counter put it at 14 probed of 123
-        # matched. A flag that under-delivers on its own name is the under-sampling
-        # defect wearing a disguise, and it is the fourth time in this file.
-        hits = []
-        for ln in f.read_text(errors="ignore").splitlines():
-            m = CODE.match(ln)
-            if m and m.group(1) in SWAP:
-                hits.append((f.name, m.group(1), ln.strip()))
-                if not ALL_SITES:
-                    break
-        for hit in hits:
-            rel, old, line = hit
-            new = SWAP[old]
-            # Mutate the LINE that was found, not the first textual occurrence in the
-            # file. `re.subn(..., count=1)` over whole-file text hits whichever comes
-            # first — and shortener's handlers.go names StatusMovedPermanently in a
-            # DOC COMMENT six lines above the code. The sweep dutifully reported
-            # SURVIVED for a mutation that only ever edited a comment: a hole announced
-            # where none exists, which is the one direction a hole hunter must not fail
-            # in. The site detector already skips comment lines; the mutator did not.
-            def mut(text, ln=line, o=old, n=new):
-                if text.count(ln) != 1:
-                    return None          # ambiguous line — refuse rather than guess
-                return text.replace(ln, ln.replace(f"http.{o}", f"http.{n}", 1), 1)
-            v, note = verdict_for(art, rel, mut)
-            # LABEL a known-benign shape, do not suppress it. `statusRecorder{..., status:
-            # http.StatusOK}` is the DEFAULT a logging middleware records before the
-            # handler writes anything, so mutating it changes log output and nothing else.
-            # It has surfaced as a SURVIVED row twice (taskflow, usersapi) and cost a
-            # code-read both times. Suppressing the class is how a hole hunter goes quiet;
-            # naming it keeps the row visible and stops it being re-litigated.
-            if v == "SURVIVED" and "statusRecorder" in line:
-                v = "SURVIVED*"
-            rows.append((art.name, rel, f"{old}->{new}", v))
-            print(f"{art.name:<26} {rel:<22} {old}->{new:<26} {v}", flush=True)
-        if hits and not ALL_SITES:
-            break
-print("\n=== shape 2: drop a response header ===")
-rows += header_rows()
-print("\n=== shape 3: reverse a sort comparator ===")
-rows += sort_rows()
-print("\n=== shape 4: unwrap an error (%w -> %v) ===")
-rows += wrap_rows()
-surv = [r for r in rows if r[3] == "SURVIVED"]
-# COVERAGE, counted independently of the sweep. Under-sampling was this tool's most
-# repeated defect — three times in one day it probed one site and printed a clean table,
-# and the missing rows were the answer (logs/FINDING-instruments-are-unmeasured.txt).
-# The check deliberately does NOT reuse the sweep's own site selection: it re-scans the
-# corpus for each pattern and compares the totals, so a selector that silently narrows
-# shows up as a gap rather than as a smaller, tidier report.
-def matching_sites(pattern, per_line=False):
-    """Count sites the pattern matches. `per_line` for the LINE-ANCHORED patterns (CODE,
-    HEADER): they start with ^ and are compiled without MULTILINE because the sweep feeds
-    them one line at a time, so scanning whole-file text with them finds nothing. The
-    first version of this counter did exactly that and reported `matched 0, probed 14` —
-    a coverage check that under-counted, in the tool built to catch under-counting."""
-    n = 0
-    for art in GEN.glob("*-v4"):
-        for f in art.glob("*.go"):
+def main() -> int:
+    rows = []
+    for art in sorted(GEN.glob("*-v4")):
+        for f in sorted(art.glob("*.go")):
             if f.name.endswith("_test.go"):
                 continue
-            text = f.read_text(errors="ignore")
-            if per_line:
-                n += sum(1 for ln in text.splitlines() if pattern.match(ln))
-            else:
-                n += len(pattern.findall(text))
-    return n
+            # EVERY matching line, not the first in the file. --all-sites said "every site"
+            # and meant "one per file": the coverage counter put it at 14 probed of 123
+            # matched. A flag that under-delivers on its own name is the under-sampling
+            # defect wearing a disguise, and it is the fourth time in this file.
+            hits = []
+            for ln in f.read_text(errors="ignore").splitlines():
+                m = CODE.match(ln)
+                if m and m.group(1) in SWAP:
+                    hits.append((f.name, m.group(1), ln.strip()))
+                    if not ALL_SITES:
+                        break
+            for hit in hits:
+                rel, old, line = hit
+                new = SWAP[old]
+                # Mutate the LINE that was found, not the first textual occurrence in the
+                # file. `re.subn(..., count=1)` over whole-file text hits whichever comes
+                # first — and shortener's handlers.go names StatusMovedPermanently in a
+                # DOC COMMENT six lines above the code. The sweep dutifully reported
+                # SURVIVED for a mutation that only ever edited a comment: a hole announced
+                # where none exists, which is the one direction a hole hunter must not fail
+                # in. The site detector already skips comment lines; the mutator did not.
+                def mut(text, ln=line, o=old, n=new):
+                    if text.count(ln) != 1:
+                        return None          # ambiguous line — refuse rather than guess
+                    return text.replace(ln, ln.replace(f"http.{o}", f"http.{n}", 1), 1)
+                v, note = verdict_for(art, rel, mut)
+                # LABEL a known-benign shape, do not suppress it. `statusRecorder{..., status:
+                # http.StatusOK}` is the DEFAULT a logging middleware records before the
+                # handler writes anything, so mutating it changes log output and nothing else.
+                # It has surfaced as a SURVIVED row twice (taskflow, usersapi) and cost a
+                # code-read both times. Suppressing the class is how a hole hunter goes quiet;
+                # naming it keeps the row visible and stops it being re-litigated.
+                if v == "SURVIVED" and "statusRecorder" in line:
+                    v = "SURVIVED*"
+                rows.append((art.name, rel, f"{old}->{new}", v))
+                print(f"{art.name:<26} {rel:<22} {old}->{new:<26} {v}", flush=True)
+            if hits and not ALL_SITES:
+                break
+    print("\n=== shape 2: drop a response header ===")
+    rows += header_rows()
+    print("\n=== shape 3: reverse a sort comparator ===")
+    rows += sort_rows()
+    print("\n=== shape 4: unwrap an error (%w -> %v) ===")
+    rows += wrap_rows()
+    surv = [r for r in rows if r[3] == "SURVIVED"]
+    # COVERAGE, counted independently of the sweep. Under-sampling was this tool's most
+    # repeated defect — three times in one day it probed one site and printed a clean table,
+    # and the missing rows were the answer (logs/FINDING-instruments-are-unmeasured.txt).
+    # The check deliberately does NOT reuse the sweep's own site selection: it re-scans the
+    # corpus for each pattern and compares the totals, so a selector that silently narrows
+    # shows up as a gap rather than as a smaller, tidier report.
+    def matching_sites(pattern, per_line=False):
+        """Count sites the pattern matches. `per_line` for the LINE-ANCHORED patterns (CODE,
+        HEADER): they start with ^ and are compiled without MULTILINE because the sweep feeds
+        them one line at a time, so scanning whole-file text with them finds nothing. The
+        first version of this counter did exactly that and reported `matched 0, probed 14` —
+        a coverage check that under-counted, in the tool built to catch under-counting."""
+        n = 0
+        for art in GEN.glob("*-v4"):
+            for f in art.glob("*.go"):
+                if f.name.endswith("_test.go"):
+                    continue
+                text = f.read_text(errors="ignore")
+                if per_line:
+                    n += sum(1 for ln in text.splitlines() if pattern.match(ln))
+                else:
+                    n += len(pattern.findall(text))
+        return n
 
 
-print("\ncoverage — sites the patterns match in the corpus vs rows probed above:")
-for label, pat, per_line, probed in (
-    ("status code", CODE, True,
-     len([r for r in rows if "->" in r[2] and "Status" in r[2]])),
-    ("response header", HEADER, True,
-     len([r for r in rows if r[2].startswith("drop ")])),
-    ("sort order", COMPARATOR, False,
-     len([r for r in rows if r[2].startswith("reverse")])),
-    ("error wrapping", WRAP, False,
-     len([r for r in rows if r[2].startswith("%w")])),
-):
-    total = matching_sites(pat, per_line)
-    flag = "" if probed >= total else f"   <- {total - probed} NOT PROBED"
-    print(f"  {label:<16} matched {total:>3}   probed {probed:>3}{flag}")
+    print("\ncoverage — sites the patterns match in the corpus vs rows probed above:")
+    for label, pat, per_line, probed in (
+        ("status code", CODE, True,
+         len([r for r in rows if "->" in r[2] and "Status" in r[2]])),
+        ("response header", HEADER, True,
+         len([r for r in rows if r[2].startswith("drop ")])),
+        ("sort order", COMPARATOR, False,
+         len([r for r in rows if r[2].startswith("reverse")])),
+        ("error wrapping", WRAP, False,
+         len([r for r in rows if r[2].startswith("%w")])),
+    ):
+        total = matching_sites(pat, per_line)
+        flag = "" if probed >= total else f"   <- {total - probed} NOT PROBED"
+        print(f"  {label:<16} matched {total:>3}   probed {probed:>3}{flag}")
 
-star = [r for r in rows if r[3] == "SURVIVED*"]
-print(f"\n{len(rows)} probes · {len(surv)} SURVIVED (green build, real behaviour change)"
-      + (f" · {len(star)} SURVIVED* (known-benign: a statusRecorder default, log-only)"
-         if star else ""))
-for r in surv:
-    print("   ", r)
-print("\nA SURVIVED row is a CANDIDATE. The next question is always whether the SPEC\n"
-      "promises the behaviour that was broken — on the first run one survivor was a\n"
-      "genuine undefended promise and the other was log-only output.")
+    star = [r for r in rows if r[3] == "SURVIVED*"]
+    print(f"\n{len(rows)} probes · {len(surv)} SURVIVED (green build, real behaviour change)"
+          + (f" · {len(star)} SURVIVED* (known-benign: a statusRecorder default, log-only)"
+             if star else ""))
+    for r in surv:
+        print("   ", r)
+    print("\nA SURVIVED row is a CANDIDATE. The next question is always whether the SPEC\n"
+          "promises the behaviour that was broken — on the first run one survivor was a\n"
+          "genuine undefended promise and the other was log-only output.")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
