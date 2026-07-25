@@ -100,13 +100,26 @@ if target:
         # Grade every site, not just the pinned one.
         verdicts = {f: verdict_for(NEW, f, break_it)[0] for f in sites}
         held = sum(1 for x in verdicts.values() if x == "CAUGHT")
-        print(f"      ALL SITES: {held} of {len(sites)} defended")
+        # SITES OF A SHAPE ARE NOT ALWAYS SITES OF A PROMISE, and this cannot tell them
+        # apart. taskflow's three %w sites all wrap ErrValidation — one promise, three
+        # sites, and "1 of 3" is the right reading. shortener's two StatusOK sites are
+        # /health in router.go and Stats in handlers.go: DIFFERENT promises that happen to
+        # share a mutation shape, where "1 of 2 defended" reads as a half-closed hole and
+        # is nothing of the kind.
+        #
+        # The first version of this printed "NOT CLOSED" for both. It over-fired on the
+        # very first artifact it was pointed at after shipping, because I checked that a
+        # one-site promise was unchanged and that a multi-site one listed its sites, and
+        # never checked whether the sites belonged to ONE promise.
+        print(f"      OTHER SITES OF THIS SHAPE: {held} of {len(sites)} defended")
         for f, x in sorted(verdicts.items()):
             if x != "CAUGHT":
-                print(f"        {f:<22} {x}   <- still open")
+                print(f"        {f:<22} {x}")
         if held < len(sites):
-            print(f"      NOT CLOSED — a promise is closed when every site is defended,"
-                  f" and {len(sites) - held} of {len(sites)} are not.")
+            print(f"      -> If those sites are the SAME promise, it is not closed"
+                  f" ({len(sites) - held} open). If they are separate promises sharing a"
+                  f" mutation shape, they are separate holes. Read the spec; this cannot"
+                  f" tell them apart.")
 else:
     print(f"  (1) SKIPPED — nothing for {LABEL} in this artifact")
 

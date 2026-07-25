@@ -37,3 +37,29 @@ THE PRACTICAL RULE
   Before recording a hole as closed, count the SITES of the promise. A one-site promise
   graded on one tree is a real closure. A multi-site promise graded by flipping one probe
   is a sample, and on a spec that varies run to run it is a sample of one draw.
+
+CORRECTION — a SHAPE's sites are not a PROMISE's sites (2026-07-26, same hour)
+==============================================================================
+The rule above was enforced in _hole_closed, which then over-fired on the first artifact
+it was pointed at.
+
+      shortener   StatusOK -> StatusAccepted   2 sites
+                    router.go     /health returns 200 "ok"      CAUGHT  <- the closure
+                    handlers.go   Stats returns 200 with JSON   SURVIVED
+
+  Those are TWO DIFFERENT PROMISES that happen to share a mutation shape, and the tool
+  printed "NOT CLOSED — 1 of 2". The health hole is closed; the Stats one is a separate
+  hole that was never claimed.
+
+  taskflow's case is the opposite and is what motivated the rule: its three %w sites all
+  wrap the SAME sentinel from the SAME Validate contract, so "1 of 3" is the right reading
+  there.
+
+  Nothing in the artifact distinguishes the two situations — it needs the spec. So the tool
+  now reports "OTHER SITES OF THIS SHAPE: N of M defended", lists the open ones, and states
+  both readings instead of picking one.
+
+  Worth noting how this got through: the checks I ran before shipping were "a one-site
+  promise is unchanged" and "a multi-site one lists every site". Both passed. I never asked
+  whether the multiple sites were the same PROMISE, which is the assumption the whole
+  feature rests on. An over-fire check has to test the ASSUMPTION, not the mechanics.
