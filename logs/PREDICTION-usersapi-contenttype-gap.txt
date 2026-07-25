@@ -1,0 +1,38 @@
+PREDICTION — usersapi's Content-Type gap, and a refutation confirmed from the other side
+=========================================================================================
+2026-07-25. Sixth closure attempt; the LAST closeable gap on the tally (tasks-api and
+taskflow are both RED, so their gaps cannot be graded).
+
+CONTROL, RUN FIRST
+      handlers.go:74  drop Content-Type   SURVIVED
+      spec mentions Content-Type: 0 times
+      site is LIVE — Set precedes w.WriteHeader, so it reaches the response (checked
+      because this file's own 429 survivor turned out to be a dead double-write today)
+
+  usersapi names only TWO tests across EIGHT entries (TestListSorted, TestRecoverPanic).
+  Everything else is described as a flow. That is the widest gap between promised
+  behaviour and named tests in any spec I have run.
+
+I AM NOT PREDICTING GREEN OR RED, AND THAT IS THE POINT
+  Two predictors died today on shortener-vs-ratelimit: spec entries and corrective-clause
+  density. I have nothing left to guess with, so I am not going to dress up a guess. The
+  run is the measurement.
+
+  But it is worth running for a reason beyond the closure. usersapi is EIGHT entries — the
+  size at which tasks-api went RED, and the size that this morning's boundary called too
+  big. The refutation so far rests on ratelimit: a spec that should have been HARD and was
+  easy. usersapi tests the same claim from the other side. If it greens, "8 entries is too
+  big" is dead twice over and from both directions; if it goes RED, the size story survives
+  on one side while still being refuted on the other, which is not a rescue but is worth
+  stating precisely rather than leaving implied.
+
+THE EDIT — state the promise, name the test
+      TestContentTypeJSON: on a fresh router, GET /users and assert the RESPONSE header
+      Content-Type is exactly "application/json" off the recorder. Every JSON response
+      sets it.
+
+PREDICTION
+  1. TestContentTypeJSON written and passes.
+  2. drop Content-Type flips SURVIVED -> CAUGHT at handlers.go.
+  3. usersapi's registered mutation (list sort order) stays CAUGHT.
+  4. Green or red: NO PREDICTION. Recorded as unknown, deliberately.
