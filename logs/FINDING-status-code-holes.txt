@@ -160,3 +160,36 @@ SHAPE 3 — reverse a sort comparator. SIX sites, ZERO holes.
   bounded by which shapes someone thinks to write — the same limit the hand campaign had,
   moved up one level, and worth saying plainly rather than letting the tool imply
   completeness.
+
+---------------------------------------------------------------------------
+SHAPE 4 — unwrap an error (%w -> %v). The sharpest probe here, and the best yield.
+
+  `fmt.Errorf("...: %w", ErrX)` -> `%v` leaves the message BYTE-IDENTICAL and breaks
+  errors.Is. A test that compares the error string still passes; only a test that actually
+  calls errors.Is notices. So a SURVIVED here is not merely a missing test — it is a test
+  that checks the wrong thing, which no amount of reading the suite for coverage reveals.
+
+      logstats    parse.go    %w -> %v   CAUGHT
+      taskflow    models.go   %w -> %v   SURVIVED
+      tasks-api   task.go     %w -> %v   SURVIVED
+      tasks-api-min / -noshadownudge     BASELINE-RED (void)
+
+  Both survivors are spec-promised, checked rather than assumed:
+      taskflow   "errors.Is: ErrNotFound, ErrExists, ErrValidation" — named explicitly.
+      tasks-api  mentions errors.Is twice.
+  So both are REAL: the spec asks for sentinel errors to be identifiable by errors.Is, the
+  implementation wraps them correctly, and nothing would notice if it stopped.
+
+  YIELD BY SHAPE, all sites:
+      status codes      3 genuine holes / 9 probes
+      response headers  1 genuine / 8 probes  (+3 spec gaps)
+      sort order        0 genuine / 6 probes  (fully defended)
+      error wrapping    2 genuine / 5 probes  <- highest rate
+      TOTAL            34 probes, 11 survivors, 6 genuine undefended promises
+
+  Error wrapping being the best yield is not an accident of this corpus. The other three
+  shapes change something a test can SEE by accident — a status code, a header, an order.
+  This one changes nothing observable except through the one API that checks it, so a
+  suite passes unless someone deliberately wrote errors.Is. It is the shape most likely to
+  be undefended and the least likely to be noticed, which is the definition of where a
+  mutation sweep earns its keep.

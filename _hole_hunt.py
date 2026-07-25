@@ -36,6 +36,36 @@ SWAP = {"StatusNotFound": "StatusBadRequest", "StatusCreated": "StatusOK",
         "StatusUnprocessableEntity": "StatusBadRequest", "StatusOK": "StatusAccepted"}
 CODE = re.compile(r"^\s*(?!//)(?!\s*\*).*http\.(Status[A-Za-z]+)")
 
+# SHAPE 4: error wrapping. `fmt.Errorf("...: %w", ErrX)` -> `%v` leaves the message
+# BYTE-IDENTICAL and breaks errors.Is. That is the sharpest probe in this file: a test
+# that compares the error string still passes, and only a test that actually calls
+# errors.Is notices. Six specs promise errors.Is behaviour by name, so when this survives
+# it is a promise with a test that checks the wrong thing — not merely a missing test.
+WRAP = re.compile(r'fmt\.Errorf\("([^"]*)%w([^"]*)"')
+
+
+def wrap_rows():
+    out = []
+    for art in sorted(GEN.glob("*-v4")):
+        for f in sorted(art.glob("*.go")):
+            if f.name.endswith("_test.go"):
+                continue
+            text = f.read_text(errors="ignore")
+            m = WRAP.search(text)
+            if not m:
+                continue
+            orig = m.group(0)
+            def mut(t, a=orig, b=orig.replace("%w", "%v", 1)):
+                return t.replace(a, b, 1) if a in t else None
+            v, _ = verdict_for(art, f.name, mut)
+            out.append((art.name, f.name, "%w -> %v (errors.Is breaks)", v))
+            print(f"{art.name:<26} {f.name:<22} {'%w -> %v (errors.Is breaks)':<26} {v}",
+                  flush=True)
+            if not ALL_SITES:
+                break
+    return out
+
+
 # SHAPE 3: sort order. TEETH.md already fixes the FORM this must take — deleting a
 # sort.Slice catches only probabilistically, because the unsorted result depends on Go's
 # map-iteration randomness, so an ascending assertion may pass by luck. REVERSING the
@@ -205,6 +235,8 @@ print("\n=== shape 2: drop a response header ===")
 rows += header_rows()
 print("\n=== shape 3: reverse a sort comparator ===")
 rows += sort_rows()
+print("\n=== shape 4: unwrap an error (%w -> %v) ===")
+rows += wrap_rows()
 surv = [r for r in rows if r[3] == "SURVIVED"]
 star = [r for r in rows if r[3] == "SURVIVED*"]
 print(f"\n{len(rows)} probes · {len(surv)} SURVIVED (green build, real behaviour change)"
