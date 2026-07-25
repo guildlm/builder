@@ -51,6 +51,21 @@ narrow 7–14B Go specialist punch above a big general model:
   specialist hunts for semantic bugs a green build hides (off-by-one, wrong status
   code, ignored error). An edit is kept only if the project stays green — review
   can help, never hurt.
+- **Fleet routing / escalation** (`--fleet model@url,model@url`) — the base model
+  writes every file; a file that keeps failing the gate is escalated to the next
+  member, per file. This exists because no single model wins: on the 48-task dev
+  bench the best single model *is* the plain base (44/48), yet a
+  `{base, 7B specialist, 14B specialist}` union solves all 48 — each member owns a
+  niche the base misses. Passing `build+vet+test` **is** the success criterion, so
+  the gate that selects is the gate that scores. Measured at project scale on
+  `specs/shortener.yaml`: same base, same 8-round budget, `--fleet` the only
+  difference — **base-only 2/3 RED → fleet 3/3 GREEN** (independently re-verified
+  with `go test`). Two honest caveats: it costs wall clock (+63% there, and up to
+  3.1× on a spec it never greens — cost scales with *unresolved* escalations, so
+  the expensive case is the one where routing is not working), and escalation is
+  **not monotone** — a member can sit on a bug the base had already fixed. Which is
+  why only a file the toolchain *blames* is escalated; files pulled into a repair
+  by root-cause widening are fixed but never escalated.
 
 Measure it at the level that matters with [`score_backend.py`](score_backend.py):
 a whole generated backend scored `build + vet + test + server-runs` (0..4) by the
