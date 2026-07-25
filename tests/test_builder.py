@@ -240,6 +240,61 @@ def test_fleet_of_one_is_identical_to_the_bare_coder(tmp_path):
     assert coder.calls.count("main.go") == 2  # generated once, fixed once — same as bare
 
 
+# Escalation granularity: a persistent test failure WIDENS the fix targets to the whole
+# package (_widen_runtime_targets) so the model can repair whichever side is wrong. The
+# widened files are a HYPOTHESIS about the root cause, not files the toolchain blamed —
+# escalating them buys nothing and costs a bigger model's generation on every later round.
+_WIDEN_IMPL_GO = (
+    "package main\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n\nfunc main() {}\n"
+)
+# Compiles and runs; the assertion is simply wrong (1+2 != 4). go blames ONLY the test
+# file, and no deterministic gate guesses assertion values, so the loop never converges.
+_WIDEN_TEST_GO = (
+    "package main\n\nimport \"testing\"\n\n"
+    "func TestAdd(t *testing.T) {\n\tif Add(1, 2) != 4 {\n\t\tt.Fatalf(\"boom\")\n\t}\n}\n"
+)
+
+
+@requires_go
+def test_escalation_counts_only_the_blamed_file_not_the_widened_package(tmp_path):
+    """Only the file the toolchain NAMES accumulates escalation strikes.
+
+    The fix loop repairs a wider set than the error blames: after a package fails at
+    runtime twice, its implementation files join the targets so the model can fix
+    whichever side violates the spec. Escalation must NOT follow that widening —
+    a widened file is a guess at the root cause, and the live A/B measured the cost
+    of not distinguishing them (guild-code RESULT-fleet-ab.txt: 12 escalations on a
+    7-file project, "escalation goes fleet-wide rather than staying targeted").
+
+    Here `mathx_test.go` asserts a wrong value, so go blames it and only it, while
+    `mathx.go` is correct and joins the targets purely by widening. The blamed file
+    must still escalate (the mechanism is alive) and the widened file must not."""
+    spec = Spec(
+        name="demo", description="a demo", go_module="example.com/demo",
+        files=(
+            FileSpec(path="go.mod", purpose="module file"),
+            FileSpec(path="mathx.go", purpose="Add returns a+b; main is empty"),
+            FileSpec(path="mathx_test.go", purpose="tests Add"),
+        ),
+    )
+    canned = {
+        "go.mod": [f"```mod\n{GO_MOD}```"],
+        "mathx.go": [f"```go\n{_WIDEN_IMPL_GO}```"],
+        "mathx_test.go": [f"```go\n{_WIDEN_TEST_GO}```"],
+    }
+    base, specialist = FakeCoder(canned), FakeCoder(canned)
+    fleet = FleetCoder([base, specialist])
+
+    ok, _ = build(spec, fleet, tmp_path, max_fix_rounds=5)
+
+    assert not ok, "a wrong assertion value is model-shaped; the loop cannot converge"
+    # Non-vacuity: mathx.go really WAS widened into the fix targets (generated once,
+    # then handed back for repair). Without this the assertion below is trivially true.
+    assert base.calls.count("mathx.go") >= 2, "widening never happened — test proves nothing"
+    assert fleet.member_for("mathx_test.go") == 1, "the BLAMED file must still escalate"
+    assert fleet.member_for("mathx.go") == 0, "a widened file must not escalate"
+
+
 # --------------------------------------------------------------------------- #
 # Prompt construction — guards against the multi-file "redeclared" failure
 # where the coder pastes copies of functions that already exist in the package.

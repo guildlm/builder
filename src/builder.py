@@ -4975,7 +4975,12 @@ def _fix_loop(
             if ok:
                 _log(f"converged to green after fix round {rnd} (deterministic)")
                 return True
-        targets = _offending_files(output, list(written)) or list(written)
+        # Files the toolchain NAMES. Everything added afterwards — the widened root-cause
+        # candidates, and the all-files fallback when the error names nothing we know — is
+        # a HYPOTHESIS about where the defect lives, which is the right basis for offering
+        # the model a repair but the wrong basis for spending an escalation (see below).
+        blamed = _offending_files(output, list(written))
+        targets = list(blamed) or list(written)
         targets = _widen_runtime_targets(targets, written, runtime_rounds, output)
         targets = _widen_missing_symbol_targets(targets, written, output)
         targets = _widen_promised_symbol_targets(
@@ -4999,12 +5004,27 @@ def _fix_loop(
             # (guild-code go/crucible/ROUTING-DESIGN.md) is that a specialist rescues exactly
             # the files the base cannot, and passing the gate IS success here. Inert for a
             # single-model coder (no `escalate`), so an unrouted build is unaffected.
-            fleet_stuck[path] = fleet_stuck.get(path, 0) + 1
-            if fleet_stuck[path] >= _FLEET_ESCALATE_AFTER:
-                escalate = getattr(coder, "escalate", None)
-                if callable(escalate) and escalate(path):
-                    _log(f"  escalating {path} to the next fleet member")
-                    fleet_stuck[path] = 0
+            #
+            # Only a BLAMED file earns a strike. The widened targets are offered a repair on
+            # a hypothesis (the impl may be what the failing test is right about; the missing
+            # symbol's owner may be the one to declare it) — a file nobody blamed may be
+            # perfectly correct, so escalating it buys no fix and costs a bigger model's
+            # generation on every later round. The live A/B measured that leak: 12
+            # escalations on a 7-file project because "the widened set accumulates its own
+            # stuck-counter, so escalation goes fleet-wide rather than staying targeted"
+            # (guild-code RESULT-fleet-ab.txt). It is not only cost — escalation is NOT
+            # monotone there (the base fixed a codec bug that an escalated member then sat
+            # on for two rounds), so moving an unblamed file is a real risk, not a safe
+            # upgrade. When the error names nothing we know, `blamed` is empty and NOTHING
+            # escalates: an unattributed error gives no basis for choosing a file, and
+            # picking one at random is the shot-in-the-dark this guard exists to stop.
+            if path in blamed:
+                fleet_stuck[path] = fleet_stuck.get(path, 0) + 1
+                if fleet_stuck[path] >= _FLEET_ESCALATE_AFTER:
+                    escalate = getattr(coder, "escalate", None)
+                    if callable(escalate) and escalate(path):
+                        _log(f"  escalating {path} to the next fleet member")
+                        fleet_stuck[path] = 0
             _log(f"  fixing {path}")
             fix_shots = (
                 retriever.top_k(
