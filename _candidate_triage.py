@@ -71,6 +71,43 @@ def dead_double_write(code: str, needle: str) -> str | None:
     return None
 
 
+def dead_else_branch(pkg_text: str, code: str, needle: str) -> str | None:
+    """An else-branch reached only by an error the callee never returns.
+
+    The shape, seen three times today:
+
+        if err := s.CreateTask(t); err != nil {
+            if errors.Is(err, ErrExists) { ...409... } else { ...500... }
+        }
+
+    CreateTask returns ErrExists or nil and nothing else, so the else is unreachable and
+    mutating its status changes nothing. This is the check the tool used to say it could
+    not do; it was done by hand for taskflow's six 500s, and by hand is how it gets
+    skipped.
+    """
+    for m in re.finditer(r"if err :?= ([\w.]+)\.(\w+)\(", code):
+        method = m.group(2)
+        tail = code[m.end():m.end() + 900]
+        # The needle must be INSIDE the else block. Checking only that it appears
+        # somewhere in the tail called the REACHABLE branch dead — the self-test caught
+        # that, the third time today a self-test caught a defect in the checker it guards.
+        else_at = tail.find("else")
+        if else_at < 0 or needle not in tail[else_at:]:
+            continue
+        handled = set(re.findall(r"errors\.Is\(err,\s*(\w+)\)", tail))
+        if not handled:
+            continue
+        body = re.search(rf"func \([^)]*\) {method}\([^)]*\)[^{{]*{{(.*?)\n}}",
+                         pkg_text, re.S)
+        if not body:
+            continue
+        returns = set(re.findall(r"return (?:\w+, )?(Err\w+)", body.group(1)))
+        if returns and returns <= handled:
+            return (f"{method} returns only {', '.join(sorted(returns))}, all handled by "
+                    f"the errors.Is branch — the else carrying {needle} is unreachable")
+    return None
+
+
 def self_test():
     spec = "Create validates the body and returns 400 on a blank title."
     assert spec_mentions(spec, "StatusBadRequest") == ["400"]
@@ -87,7 +124,19 @@ def self_test():
         "flagged two writes on separate branches"
     # the three-way split must hold: dead beats unpromised, unpromised-but-live is a gap
     assert spec_mentions("no codes here", "StatusOK") == []
-    print("OK — spec mentions detected, dead double-write flagged, live and branched writes not")
+    # the third check, against the shape it was written for
+    pkg = ("func (s *Store) CreateTask(t Task) error {\n\tif _, ok := s.m[t.ID]; ok {\n"
+           "\t\treturn ErrExists\n\t}\n\treturn nil\n}\n")
+    call = ("if err := s.CreateTask(t); err != nil {\n"
+            "\t\tif errors.Is(err, ErrExists) {\n\t\t\twriteError(w, http.StatusConflict, \"x\")\n"
+            "\t\t} else {\n\t\t\twriteError(w, http.StatusInternalServerError, \"y\")\n\t\t}\n")
+    assert dead_else_branch(pkg, call, "StatusInternalServerError"), "missed a dead else"
+    assert dead_else_branch(pkg, call, "StatusConflict") is None, \
+        "flagged the REACHABLE branch as dead"
+    wider = pkg.replace("return nil", "return ErrOther")
+    assert dead_else_branch(wider, call, "StatusInternalServerError") is None, \
+        "called an else dead when the callee returns an unhandled error"
+    print("OK — spec mentions, dead double-write, dead else-branch; live/branched/reachable not")
 
 
 if "--self-test" in sys.argv:
@@ -108,11 +157,13 @@ if not src.exists():
 
 code = src.read_text(errors="ignore")
 mentions = spec_mentions(spec_p.read_text(), needle)
-dead = dead_double_write(code, needle)
+pkg = "".join(f.read_text(errors="ignore") for f in src.parent.glob("*.go")
+              if not f.name.endswith("_test.go"))
+dead = dead_double_write(code, needle) or dead_else_branch(pkg, code, needle)
 
 print(f"candidate: {spec_name} · {rel} · {needle}\n")
 print(f"  1. does the SPEC promise it?  {'yes: ' + ', '.join(mentions) if mentions else 'NO'}")
-print(f"  2. dead double-write?         {dead or 'no'}")
+print(f"  2. can the site take effect?  {'NO — ' + dead if dead else 'yes'}")
 # "Unpromised" is not one verdict but two, and collapsing them mislabels the most
 # actionable case. kvservice's 400 is unpromised AND unreachable — noise. tasks-api's
 # Content-Type is unpromised but LIVE: the API really does set it and the spec really
@@ -131,10 +182,11 @@ if not dead:
     # its branch guards io.ReadAll failing, which an httptest body never does. Writing a
     # spec sentence for a branch that cannot execute buys nothing, so the gap verdict
     # needs the same caveat the promise verdict needed.
-    print("  Still to check by hand: is the branch REACHABLE? An else-branch whose if\n"
-          "  already handles the only error the callee returns is dead, and so is a guard\n"
-          "  on an error that cannot occur — no grep sees either. It is how taskflow's six\n"
-          "  500s and kvservice's 400 were both ruled out.")
+    print("  Two reachability shapes are checked above: a dead double-write, and an\n"
+          "  else-branch whose if already handles every error the callee returns.\n"
+          "  STILL BY HAND: a guard on an error that cannot occur at all — kvservice's 400\n"
+          "  guards io.ReadAll failing, which an httptest body never does, and nothing\n"
+          "  here can see that the caller never supplies a failing reader.")
 # 0 only when there is work to do on a PROMISE. A spec gap is real work too, so it
 # gets its own code rather than being lumped with dead sites.
 raise SystemExit(0 if (mentions and not dead) else (2 if not dead else 1))
