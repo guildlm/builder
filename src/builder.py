@@ -1470,6 +1470,36 @@ def _widen_missing_symbol_targets(
     return out
 
 
+def _fix_targets(
+    written: dict[str, str],
+    output: str,
+    runtime_rounds: dict[str, int],
+    specs: Sequence[FileSpec],
+) -> tuple[list[str], list[str]]:
+    """Which files a fix round repairs, and which of them the toolchain BLAMED.
+
+    Two different questions with two different answers, which is why they are returned
+    separately. REPAIR wants breadth: the file the error names may be the one that is
+    right (a failing assertion accuses the test, but the implementation may be what
+    violates the spec), so the wideners add root-cause candidates, and an error naming
+    nothing we recognise falls back to every file. ESCALATION wants precision: handing a
+    file to a bigger fleet member costs that model on every later round and is not even
+    monotone, so it is spent only on files the toolchain actually named.
+
+    ``blamed`` is a subset of ``targets`` except for files the caller strips afterwards
+    (go.mod, which is restored deterministically and never handed to a model). Pure apart
+    from mutating ``runtime_rounds`` (the runtime widener's per-directory counter) and
+    logging, so both the fix loop and _escalation_surface.py can call the SAME code — a
+    tool that re-implemented this selection would drift from the loop and silently
+    measure a target set the builder never uses."""
+    blamed = _offending_files(output, list(written))
+    targets = list(blamed) or list(written)
+    targets = _widen_runtime_targets(targets, written, runtime_rounds, output)
+    targets = _widen_missing_symbol_targets(targets, written, output)
+    targets = _widen_promised_symbol_targets(targets, written, output, specs)
+    return targets, blamed
+
+
 def _log(msg: str) -> None:
     print(f"[guildlm-build] {msg}", file=sys.stderr, flush=True)
 
@@ -4975,16 +5005,13 @@ def _fix_loop(
             if ok:
                 _log(f"converged to green after fix round {rnd} (deterministic)")
                 return True
-        # Files the toolchain NAMES. Everything added afterwards — the widened root-cause
-        # candidates, and the all-files fallback when the error names nothing we know — is
-        # a HYPOTHESIS about where the defect lives, which is the right basis for offering
-        # the model a repair but the wrong basis for spending an escalation (see below).
-        blamed = _offending_files(output, list(written))
-        targets = list(blamed) or list(written)
-        targets = _widen_runtime_targets(targets, written, runtime_rounds, output)
-        targets = _widen_missing_symbol_targets(targets, written, output)
-        targets = _widen_promised_symbol_targets(
-            targets, written, output, [t.spec for t in tasks]
+        # Files to repair, and the subset the toolchain NAMED. Everything else in
+        # `targets` — the widened root-cause candidates, and the all-files fallback when
+        # the error names nothing we know — is a HYPOTHESIS about where the defect lives:
+        # the right basis for offering the model a repair, the wrong basis for spending an
+        # escalation (see below).
+        targets, blamed = _fix_targets(
+            written, output, runtime_rounds, [t.spec for t in tasks]
         )
         # go.mod is fully determined by the module path (stdlib-only projects) —
         # never hand it to the model (one bad sample poisons EVERY later round:
