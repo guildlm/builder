@@ -136,6 +136,37 @@ def classify(named: set[str], blob: str, funcs: set[str]) -> dict:
     return {"missing": missing, "subtest_only": subtest_only, "renamed": renamed}
 
 
+MIRROR_RE = re.compile(r"the same (?:\w+ )?(?:four|three|two|set|methods)? ?for (\w+)"
+                       r"|mirroring the (\w+)", re.I)
+
+
+def mirror_gap(spec_text: str) -> tuple[str, int, int] | None:
+    """A spec that mirrors an implementation BY REFERENCE but not its tests BY NAME.
+
+    Measured, not guessed. taskflow says "the same four for Project" and names 13 tests on
+    the tasks side and 6 on projects; three of the corpus's undefended promises are on that
+    projects route, found by three different mutation shapes. taskapi uses the SAME phrase
+    and names 19 and 17 — and has none of them (logs/FINDING-mirrored-routes.txt).
+
+    So the idiom is fine and the asymmetry is the defect: the model implements everything
+    it is told to implement and tests everything it is told to test, and a spec that
+    mirrors one and not the other doubles the code while holding coverage still.
+
+    Returns (mirrored_entity, primary_named, mirror_named) when the mirror side has fewer
+    than half the primary's named tests, else None.
+    """
+    m = MIRROR_RE.search(spec_text)
+    if not m:
+        return None
+    entity = m.group(1) or m.group(2)
+    named = set(re.findall(r"\bTest[A-Za-z]+", spec_text))
+    mirror = {n for n in named if entity.lower() in n.lower()}
+    primary = named - mirror
+    if not primary or len(mirror) * 2 >= len(primary):
+        return None
+    return entity, len(primary), len(mirror)
+
+
 def self_test() -> int:
     """Hold the classifier to the four distinctions its METHOD notes argue for.
 
@@ -165,12 +196,23 @@ def self_test() -> int:
         for k, v in want.items():
             if got[k] != v:
                 failures.append(f"[{label}] {k}: got {got[k]}, want {v}")
+    # The mirror check, held to the two real specs that isolate it: taskflow mirrors the
+    # code and not the tests and must flag; taskapi mirrors both and must not. A detector
+    # with only a positive case cannot be told from one that flags everything.
+    here = Path(__file__).parent
+    tf, ta = here / "specs/taskflow.yaml", here / "specs/taskapi.yaml"
+    if tf.exists() and ta.exists():
+        if mirror_gap(tf.read_text()) is None:
+            failures.append("taskflow mirrors code but not tests (13 vs 6) and was NOT flagged")
+        if mirror_gap(ta.read_text()) is not None:
+            failures.append("taskapi mirrors BOTH (19 vs 17) and was flagged anyway")
+
     for f in failures:
         print(f"FAIL: {f}")
     if failures:
         return 1
     print("OK — whole identifiers count, substrings do not, absent is MISSING, "
-          "and a subtest is present")
+          "a subtest is present, and the mirror check separates taskflow from taskapi")
     return 0
 
 
