@@ -15,7 +15,27 @@ to run.
 """
 import pathlib, re, sys
 
-NAMED = re.compile(r"\b(Test[A-Z][A-Za-z0-9_]*):")
+# ONE EXTRACTOR, shared with _named_test_audit. This file had its own regex requiring a
+# COLON after the test name, and six specs name tests with an em dash instead —
+# `TestListSorted — POST users id "2" then "1"`. It silently measured 1 of usersapi's 3
+# named tests, 8 of shortener's 11, 19 of workapi's 31, and I published "0 intermittent"
+# for several of them without noticing the denominator was wrong. Two extractors that
+# disagree is one extractor too many.
+def _named_re():
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("nta", "_named_test_audit.py")
+    mod = importlib.util.module_from_spec(spec)
+    argv, sys.argv = sys.argv, ["_named_test_audit.py", "--import-only"]
+    try:
+        spec.loader.exec_module(mod)
+    except SystemExit:
+        pass
+    finally:
+        sys.argv = argv
+    return mod.NAME_RE
+
+
+NAMED = _named_re()
 WRITTEN = re.compile(r"^func (Test[A-Z][A-Za-z0-9_]*)\s*\(", re.M)
 
 
@@ -105,6 +125,18 @@ for a in args[1:]:
 if len(trees) < 2:
     raise SystemExit("give at least TWO trees — durability cannot be measured from one, "
                      "and reading one tree twice is the mistake this exists to prevent")
+
+# Show each tree's inferred generation time. The mtime caveat MATERIALISED: today's
+# non-vacuity proofs deleted and restored files inside generated/ratelimit-v4, so an
+# archive weeks old carried a timestamp 20 minutes NEWER than the spec entry it predates,
+# and TestContentTypeJSON was reported intermittent when it is not. Printing the times
+# makes an implausible one visible instead of silently wrong.
+import datetime as _dt
+print("  trees, by inferred generation time (mtime — forgeable, check for surprises):")
+for _n, _a in zip([t[0] for t in trees], args[1:]):
+    _t = tree_time(pathlib.Path(_a))
+    print(f"      {_n:<26} {_dt.datetime.fromtimestamp(_t):%Y-%m-%d %H:%M}")
+print()
 
 named = named_in_spec(spec_path.read_text())
 always, sometimes, never = report(named, trees)

@@ -121,3 +121,39 @@ THIS KILLS THE SIZE EXPLANATION PROPERLY
   today — per-spec budget, per-file test count, per-file prose length, and now total named
   tests — are all refuted. The honest position is unchanged and now better evidenced: I do
   not know why taskflow drops tests, and I know four things it is not.
+
+THE SCOREBOARD WAS COMPUTED ON A SUBSET — 2026-07-26
+=====================================================
+_test_durability had its own regex for "tests the spec names", requiring a COLON after the
+name. Six specs name tests with an em dash instead — `TestListSorted — POST users id "2"`.
+Compared against _named_test_audit, which had the validated extractor all along:
+
+      ratelimit    3 counted, 4 real        shortener   8 counted, 11 real
+      usersapi     1 counted, 3 real        taskapi    28 counted, 35 real
+      workapi     19 counted, 31 real       taskapipro 37 counted, 49 real
+
+  So every "0 intermittent" published today for those specs was measured on a SUBSET, and
+  usersapi's was measured on one test out of three. Two extractors that disagree is one
+  extractor too many; they now share the validated one.
+
+RE-MEASURED, AND THE CONCLUSIONS SURVIVE
+      shortener   11 named, 5 trees   0 intermittent   (stronger than the 8-test version)
+      usersapi     3 named, 2 trees   0 intermittent
+      ratelimit    4 named, 3 trees   0 intermittent — see below
+
+  The undercount had HIDDEN NOTHING: correcting it found more stability, not less.
+
+AND THE mtime CAVEAT MATERIALISED, ON MY OWN EDITS
+  Corrected, ratelimit first reported TestContentTypeJSON as intermittent. It is not. The
+  eligibility filter uses each tree's newest file mtime as its generation time, and
+  generated/ratelimit-v4 — an archive weeks old — carries a timestamp 20 minutes NEWER
+  than the spec entry it predates, because today's non-vacuity proofs deleted and restored
+  registry.go and reformatted bucket.go inside it.
+
+      archive     22:40    <- weeks old, touched by today's proofs
+      fresh tree  22:21    <- generated before it
+
+  An archive dated after a tree generated earlier is the visible symptom, so the tool now
+  PRINTS each tree's inferred time. The limitation was documented in the tool's own comment
+  before it bit; documenting a limitation does not stop it, and the fix is to make its
+  symptom visible rather than to trust the note.
