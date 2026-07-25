@@ -1,0 +1,39 @@
+FINDING — taskflow's closures are intermittent per SITE, not just per test
+==========================================================================
+2026-07-26. The per-site re-grade the "partial closure" finding called for.
+
+Every closure today was graded by flipping ONE probe on ONE tree. Where a promise has
+several sites, that is a sample. taskflow is the only spec with four trees, so it is the
+only place the full accounting can be done. Every site of all three promises, all four
+trees:
+
+      tree                %w (3 sites)   sort (2 sites)   Content-Type (1 site)   defended
+      taskflow-code         0 / 3           1 / 2            1 / 1                 2 / 6
+      taskflow-projsort     0 / 3           2 / 2            0 / 1                 2 / 6
+      taskflow-errwrap      3 / 3           1 / 2            0 / 1                 4 / 6
+      taskflow-split        1 / 3           1 / 2            1 / 1                 3 / 6
+
+TWO THINGS THIS SETTLES
+  1. NO TREE DEFENDS EVERYTHING. The best run covers 4 of 6 sites. There is no artifact in
+     which taskflow's three closed promises are simultaneously defended, and there never
+     was — the tally of "closures" was assembled from different runs.
+  2. EVERY PROMISE FAILS SOMEWHERE. %w is 0/3 twice and 3/3 once. sort is 2/2 once and 1/2
+     three times. Content-Type is 1/1 twice and 0/1 twice. Not one of them holds across all
+     four trees.
+
+  So on this spec a closure is not a property of the spec at all. It is a property of a
+  (run, site) pair, and reporting it as "closed" collapses two dimensions of variation into
+  a word that implies neither.
+
+WHAT IT DOES NOT SAY
+  This is ONE spec — the only unstable one in the corpus. shortener (4 trees), tasks-api
+  (3), ratelimit (2) and jsonapi (2) each measured 0 intermittent tests, and their
+  Content-Type promises are single-site and CAUGHT on every tree checked. So this is not
+  "closures are meaningless"; it is "closures on taskflow are, and single-site promises on
+  stable specs are not". The five Content-Type closures were checked at every site today
+  and each has exactly ONE site, all CAUGHT.
+
+THE PRACTICAL RULE
+  Before recording a hole as closed, count the SITES of the promise. A one-site promise
+  graded on one tree is a real closure. A multi-site promise graded by flipping one probe
+  is a sample, and on a spec that varies run to run it is a sample of one draw.
