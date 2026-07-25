@@ -118,3 +118,35 @@ ADDENDUM, same day — the pattern is not about old code or other people
     campaign's "prove it fires", applied to prose instead of behaviour — with the
     difference that nothing can automate it, because the thing being checked is whether two
     descriptions of the same thing still agree.
+
+---------------------------------------------------------------------------
+ADDENDUM 2 — a SECOND recurring pattern, and it is worse than the first
+
+  The prose-vs-code defects above are embarrassing but loud once seen. This one is quiet:
+  three times in one day, in one tool, I sampled ONE site and reported a clean sweep.
+
+    1. _hole_hunt shapes 1-2: probed the first mutable site per artifact. Adding
+       --all-sites found 3 more survivors, two of them genuine holes — half the total.
+    2. shape 3 (sort order): the comparator regex was anchored to the whole line, and five
+       of the six comparators in the corpus are written inline
+       (`sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })`). It probed
+       ONE site of six and reported a clean sweep — in a shape added to fix under-sampling.
+    3. shape 4 (error wrapping): probed the first `%w` per file. taskflow's models.go
+       wraps ErrValidation three times and defends two; tasks-api defends ErrNotFound four
+       times and ErrInvalidTask never. One-site probing reports whichever it lands on.
+
+  WHY IT IS WORSE THAN THE PROSE DEFECTS
+    A wrong docstring is discovered by anyone who reads the code next to it. Under-sampling
+    produces a NUMBER, and the number is always in the flattering direction: fewer holes,
+    cleaner corpus, campaign closer to done. Nothing looks wrong. The tool ran, the table
+    printed, every row was correct — and the rows that were never generated are the answer.
+
+    It is the same failure the entire teeth campaign exists to name, one level up. A green
+    suite is not evidence of a defended contract; a clean sweep is not evidence of a clean
+    corpus. Both are absence-of-findings read as absence-of-defects.
+
+  THE CHEAP DISCIPLINE
+    Before believing a sweep, ask what it did NOT probe, and check that number against the
+    corpus by hand. `grep -c` on the pattern the tool matches, compared to the number of
+    rows it printed, would have caught all three in seconds. That is the sweep equivalent
+    of the before-table: not "did it find anything" but "did it look everywhere it claims".
