@@ -87,7 +87,23 @@ def dead_else_branch(pkg_text: str, code: str, needle: str) -> str | None:
     """
     for m in re.finditer(r"if err :?= ([\w.]+)\.(\w+)\(", code):
         method = m.group(2)
-        tail = code[m.end():m.end() + 900]
+        # BOUND THE WINDOW TO THE STATEMENT. A fixed 900-character tail runs past the end
+        # of the if/else and swallows whatever function comes next: it found Content-Type
+        # inside writeJSON, three functions below a Delete handler, and declared a closure
+        # I had verified CAUGHT to be unreachable. Brace-match instead.
+        start = code.find("{", m.end())
+        if start < 0:
+            continue
+        depth, end = 0, len(code)
+        for i in range(start, len(code)):
+            if code[i] == "{":
+                depth += 1
+            elif code[i] == "}":
+                depth -= 1
+                if depth == 0:
+                    end = i
+                    break
+        tail = code[m.end():end]
         # The needle must be INSIDE the else block. Checking only that it appears
         # somewhere in the tail called the REACHABLE branch dead — the self-test caught
         # that, the third time today a self-test caught a defect in the checker it guards.
@@ -133,6 +149,12 @@ def self_test():
     assert dead_else_branch(pkg, call, "StatusInternalServerError"), "missed a dead else"
     assert dead_else_branch(pkg, call, "StatusConflict") is None, \
         "flagged the REACHABLE branch as dead"
+    # A needle far below the if/else must NOT be picked up — the fixed-window version
+    # reached into the next function and mislabelled a verified closure.
+    trailing = call + "\t}\n}\n\nfunc writeJSON(w http.ResponseWriter) {\n" + \
+        "\tw.Header().Set(\"Content-Type\", \"application/json\")\n}\n"
+    assert dead_else_branch(pkg, trailing, "Content-Type") is None, \
+        "reached past the if/else into the next function"
     wider = pkg.replace("return nil", "return ErrOther")
     assert dead_else_branch(wider, call, "StatusInternalServerError") is None, \
         "called an else dead when the callee returns an unhandled error"
