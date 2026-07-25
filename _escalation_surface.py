@@ -129,6 +129,7 @@ def measure(d: pathlib.Path, tc: GoToolchain, budget: float) -> dict | None:
         written = {str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")}
         written["go.mod"] = (work / "go.mod").read_text()
         targets, blamed = targets_of(written, output, module)
+        impl = [p for p in targets if p.endswith(".go") and not p.endswith("_test.go")]
         return {
             "name": d.name,
             "status": "test" if _is_test_failure(output) else "compile",
@@ -136,6 +137,14 @@ def measure(d: pathlib.Path, tc: GoToolchain, budget: float) -> dict | None:
             "targets": len(targets),
             "blamed": len(blamed),
             "unattributed": not blamed,
+            # Can escalation reach the implementation at all? A runtime failure names the
+            # TEST, so an implementation defect enters the fix targets only by widening —
+            # and a rule that escalates only blamed files can then never hand it to a
+            # stronger model, however many rounds it spends. This counts the artifacts
+            # where that hole is open: implementation files are being repaired and not one
+            # of them is blamed.
+            "impl_repaired": len(impl),
+            "impl_blamed": len([p for p in impl if p in blamed]),
             # The gate chain had not gone quiet when the budget ran out, so this row's
             # error surface is less gate-repaired than the fix loop's would be. Kept in
             # the table (it is still a real target split) but counted separately.
@@ -240,6 +249,19 @@ def main() -> int:
     print(f"  artifacts where the sets differ: {len(wider)}/{len(live)}")
     print(f"  artifacts with an UNATTRIBUTED error (old rule struck every file, "
           f"new rule strikes none): {len(unattr)}/{len(live)}")
+
+    # The structural question, not the cost question: where blame can never reach.
+    unreachable = [r for r in live if r["impl_repaired"] and not r["impl_blamed"]]
+    by_kind = {}
+    for r in live:
+        hit, tot = by_kind.get(r["status"], (0, 0))
+        by_kind[r["status"]] = (hit + (1 if r in unreachable else 0), tot + 1)
+    print(f"  artifacts where NO implementation file is blamed while implementation files "
+          f"ARE being repaired: {len(unreachable)}/{len(live)}")
+    print("      (in these, a blamed-only escalation rule can never hand an implementation "
+          "defect to a stronger model)")
+    for kind, (hit, tot) in sorted(by_kind.items()):
+        print(f"      {kind:<8} {hit}/{tot}")
     partial = [r for r in rows if r.get("partial")]
     if partial:
         # No silent caps: a bounded run that does not say what it bounded reads as
