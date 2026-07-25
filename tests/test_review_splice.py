@@ -51,7 +51,7 @@ ORIGINAL = (
 
 def test_replaces_a_method_and_keeps_everything_else():
     frag = "func (s *Store) Bump() int {\n\ts.n += 2\n\treturn s.n\n}\n"
-    out = _splice_fragment(frag, ORIGINAL)
+    out, _why = _splice_fragment(frag, ORIGINAL)
 
     assert out is not None
     assert out.startswith("package svc"), "the package clause survives"
@@ -62,27 +62,35 @@ def test_replaces_a_method_and_keeps_everything_else():
 
 def test_replaces_a_plain_func_too():
     frag = "func Helper() error {\n\treturn nil\n}\n"
-    out = _splice_fragment(frag, ORIGINAL)
+    out, _why = _splice_fragment(frag, ORIGINAL)
 
     assert out is not None and "return nil" in out
     assert "func (s *Store) Bump()" in out
 
 
-def test_a_fragment_that_ADDS_a_function_is_refused():
+def test_a_fragment_that_ADDS_a_function_is_refused_and_says_why():
     """An addition has no unambiguous insertion point, and nothing says the rest of the
-    file is still what the reviewer saw. Refusing is the whole difference from guessing."""
+    file is still what the reviewer saw. Refusing is the whole difference from guessing.
+
+    The REASON matters as much as the refusal: measured on shortener, this case is
+    overwhelmingly the reviewer answering about a sibling file it was shown as context,
+    and a log line that says "adds or redefines more than functions" hides that."""
     frag = "func BrandNew() int {\n\treturn 1\n}\n"
-    assert _splice_fragment(frag, ORIGINAL) is None
+    out, why = _splice_fragment(frag, ORIGINAL)
+    assert out is None
+    assert "BrandNew" in why and "different file" in why
 
 
 def test_a_fragment_carrying_more_than_functions_is_refused():
     """An import or a type is not a replacement — merging it means deciding where it goes."""
     frag = "import \"fmt\"\n\nfunc Helper() error {\n\treturn fmt.Errorf(\"x\")\n}\n"
-    assert _splice_fragment(frag, ORIGINAL) is None
+    out, why = _splice_fragment(frag, ORIGINAL)
+    assert out is None and "more than functions" in why
 
 
 def test_prose_only_reply_is_refused():
-    assert _splice_fragment("looks fine to me\n", ORIGINAL) is None
+    out, why = _splice_fragment("looks fine to me\n", ORIGINAL)
+    assert out is None and "no functions" in why
 
 
 def test_multi_line_signature_keeps_its_body():
@@ -93,7 +101,7 @@ def test_multi_line_signature_keeps_its_body():
         "package svc\n\nfunc Long(\n\ta int,\n\tb int,\n) int {\n\treturn a + b\n}\n"
     )
     frag = "func Long(\n\ta int,\n\tb int,\n) int {\n\treturn a * b\n}\n"
-    out = _splice_fragment(frag, original)
+    out, _why = _splice_fragment(frag, original)
 
     assert out is not None
     assert "return a * b" in out and "return a + b" not in out

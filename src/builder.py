@@ -1775,7 +1775,7 @@ def _func_blocks(code: str) -> dict[str, tuple[int, int]]:
     return out
 
 
-def _splice_fragment(fragment: str, original: str) -> str | None:
+def _splice_fragment(fragment: str, original: str) -> tuple[str | None, str]:
     """Put a review reply that is only the FIXED FUNCTIONS back into the whole file.
 
     The review specialist answers the way a human reviewer answers — prose, then the
@@ -1794,28 +1794,37 @@ def _splice_fragment(fragment: str, original: str) -> str | None:
       - replacement is positional and exact: the original's block for that name is
         swapped for the fragment's.
 
-    Returns None whenever the contract does not hold, which the caller treats exactly as
-    it treated a fragment before. The result still faces the non-regressing green check —
-    this widens what review can PROPOSE, never what it can keep.
+    Returns (spliced, "") on success and (None, reason) otherwise; the caller logs the
+    reason. It is returned rather than re-derived because a second copy of these checks is
+    how every measurement bug in this repo started, and because the reasons are not
+    interchangeable — "the reviewer answered about a different file" and "the reply carries
+    a type declaration" call for different responses from whoever reads the log.
+    The result still faces the non-regressing green check: this widens what review can
+    PROPOSE, never what it can keep.
     """
     frag = _func_blocks(fragment)
     if not frag:
-        return None
+        return None, "the reply declares no functions"
     flines = fragment.splitlines()
     covered = {k for _, (a, b) in frag.items() for k in range(a, b + 1)}
     for idx, line in enumerate(flines):
         s = line.strip()
         if idx not in covered and s and not s.startswith("//"):
-            return None                      # imports/types/stray code — out of contract
+            return None, f"the reply carries more than functions ({s[:40]!r})"
     orig = _func_blocks(original)
-    if any(name not in orig for name in frag):
-        return None                          # would ADD a declaration, not replace one
+    absent = sorted(n for n in frag if n not in orig)
+    if absent:
+        # Overwhelmingly this is the reviewer fixing a SIBLING it was shown as context
+        # rather than the file it was asked about — measured on shortener, where reviewing
+        # handlers.go and main.go both returned codec.go's Encode.
+        return None, ("it declares " + ", ".join(absent) + ", which this file does not "
+                      "have — the reviewer answered about a different file")
     olines = original.splitlines()
     for name in sorted(frag, key=lambda k: orig[k][0], reverse=True):
         a, b = orig[name]
         fa, fb = frag[name]
         olines[a:b + 1] = flines[fa:fb + 1]
-    return "\n".join(olines) + "\n"
+    return "\n".join(olines) + "\n", ""
 
 
 def _gomod_content(module: str) -> str:
@@ -5606,10 +5615,9 @@ def _review_pass(
             # Skipping it here costs one toolchain check less and, more importantly,
             # turns silence into a sentence the operator can act on.
             if not candidate.lstrip().startswith("package "):
-                spliced = _splice_fragment(candidate, written[path])
+                spliced, why = _splice_fragment(candidate, written[path])
                 if spliced is None:
-                    _log(f"  review returned a FRAGMENT for {path} that cannot be spliced "
-                         f"back (it adds or redefines more than functions) — discarded")
+                    _log(f"  review returned a FRAGMENT for {path}, discarded — {why}")
                     continue
                 _log(f"  review returned a fragment for {path}; spliced its "
                      f"{len(_func_blocks(candidate))} function(s) into the file")
