@@ -1,0 +1,47 @@
+PREDICTION — does the review pass reach the semantic residual? (design + call, unrun)
+=====================================================================================
+2026-07-25. Written BEFORE the experiment, per this project's habit of recording the
+prediction so the result cannot be reinterpreted afterwards.
+
+WHY THIS IS THE NEXT QUESTION
+  The gate chain has cleared the mechanical stratum for the models in use: of 44 archived
+  failures, 8 still fail to compile and 36 compile and fail a TEST
+  (FINDING-gate-mining addendum 2). Gates cannot reach behaviour. Routing can, measured
+  twice today. The review pass is the OTHER shipped lever aimed squarely at behaviour —
+  "after green, hunt for semantic bugs a green build hides" — and it has never run in any
+  of the 578 archived runs. Tested logic, zero field evidence.
+
+THE MEASUREMENT PROBLEM, which is the interesting part
+  A/B-ing a full build with and without --review-model does NOT work. If both arms end
+  green, score_backend reports 3/3 for both and the difference is invisible — the bugs
+  this pass targets are exactly the ones a green score cannot see. That is the same wall
+  the teeth campaign was built to get around.
+
+  So the ground truth has to be planted. The teeth mutations are deterministic functions
+  that break a NAMED invariant in a known place. The design:
+    1. take a green artifact and apply a mutation whose suite does NOT catch it — a
+       SURVIVED case, meaning green build, real bug, known location;
+    2. run _review_pass over that project with a served go-review model;
+    3. ask exactly one question: did it name the mutated file and undo the break?
+  Ground truth is exact, because the break is ours.
+
+  Obstacle to solve first: the registry is currently 29 CAUGHT / 0 SURVIVED, so no
+  registered mutation gives a green-with-bug artifact. A SURVIVED case must be found or
+  written before this can run. That is real work and it is the honest cost of the design.
+
+PREDICTION (recorded now, to be graded later)
+  Low yield, for a structural reason rather than a hunch about model quality. The review
+  pass sees a green project and is asked to find what is wrong with it, with no failing
+  signal to localise the fault — the opposite of the fix loop, whose entire strength is
+  that the toolchain names a file. Today's law is that a failing assertion names the
+  TEST and never the implementation; the review pass does not even get an assertion. It
+  is searching, not repairing.
+  Specifically I expect: it proposes edits, most are cosmetic or wrong, the non-regressing
+  guard reverts the harmful ones (so "never hurt" holds), and it finds the planted bug in
+  a minority of cases. If that is what happens, the honest conclusion is that review is a
+  weak lever on this residue and routing remains the strong one.
+
+  I have been wrong in this direction before, and recently: I predicted routing would not
+  help taskapipro's cross-file contract mismatch because the loop reasons one file at a
+  time. It did help. The mechanism bounded the mechanism, not the outcome. So this
+  prediction is a prediction, not a reason to skip the run.

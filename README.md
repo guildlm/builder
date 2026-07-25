@@ -49,8 +49,15 @@ narrow 7–14B Go specialist punch above a big general model:
   `_test.go`. Each role is its own model/adapter.
 - **Non-regressing review pass** (`--review-model`) — after green, the Go *review*
   specialist hunts for semantic bugs a green build hides (off-by-one, wrong status
-  code, ignored error). An edit is kept only if the project stays green — review
-  can help, never hurt.
+  code, ignored error). An edit is kept only if the project stays green.
+  Status, stated precisely because the two halves are not equally established:
+  **"never hurt" is verified** — the pass reverts an edit that breaks the build, and
+  tests pin both directions. **"can help" is UNMEASURED at project scale**: this pass
+  has never run in any of the 578 archived runs (no A/B has passed
+  `--review-model`), so its value against real semantic residue is an expectation,
+  not a result. That residue is where the project's remaining failures live — 36 of
+  44 archived failures now compile and fail a TEST — so measuring this is the open
+  question, not a formality.
 - **Fleet routing / escalation** (`--fleet model@url,model@url`) — the base model
   writes every file; a file that keeps failing the gate is escalated to the next
   member, per file. This exists because no single model wins: on the 48-task dev
