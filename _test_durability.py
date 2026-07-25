@@ -21,22 +21,34 @@ import pathlib, re, sys
 # named tests, 8 of shortener's 11, 19 of workapi's 31, and I published "0 intermittent"
 # for several of them without noticing the denominator was wrong. Two extractors that
 # disagree is one extractor too many.
-def _named_re():
-    import importlib.util
-    spec = importlib.util.spec_from_file_location("nta", "_named_test_audit.py")
-    mod = importlib.util.module_from_spec(spec)
-    argv, sys.argv = sys.argv, ["_named_test_audit.py", "--import-only"]
-    try:
-        spec.loader.exec_module(mod)
-    except SystemExit:
-        pass
-    finally:
-        sys.argv = argv
-    return mod.NAME_RE
+_NTA = None
 
 
-NAMED = _named_re()
-WRITTEN = re.compile(r"^func (Test[A-Z][A-Za-z0-9_]*)\s*\(", re.M)
+def _nta():
+    """_named_test_audit, imported once. It owns BOTH extractors."""
+    global _NTA
+    if _NTA is None:
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("nta", "_named_test_audit.py")
+        mod = importlib.util.module_from_spec(spec)
+        argv, sys.argv = sys.argv, ["_named_test_audit.py", "--import-only"]
+        try:
+            spec.loader.exec_module(mod)
+        except SystemExit:
+            pass
+        finally:
+            sys.argv = argv
+        _NTA = mod
+    return _NTA
+
+
+NAMED = _nta().NAME_RE
+# The Go-side reader is shared too. These two files had DIFFERENT patterns for "tests
+# the artifact contains" — mine required an uppercase letter after Test and an opening
+# paren, the other required neither — and they agree on all 25 archived artifacts today.
+# Agreeing now is not the same as agreeing later, and the spec-side pair that disagreed
+# had been silently wrong for hours. Measured first, then unified so they cannot diverge.
+_WRITTEN_READER = None
 
 
 def named_in_spec(text: str) -> set[str]:
@@ -44,10 +56,10 @@ def named_in_spec(text: str) -> set[str]:
 
 
 def written_in_tree(tree: pathlib.Path) -> set[str]:
-    out = set()
-    for f in tree.rglob("*_test.go"):
-        out |= set(WRITTEN.findall(f.read_text(errors="ignore")))
-    return out
+    global _WRITTEN_READER
+    if _WRITTEN_READER is None:
+        _WRITTEN_READER = _nta().artifact_test_text
+    return _WRITTEN_READER(tree)[1]
 
 
 def entered_spec(spec_path: pathlib.Path, test: str) -> int | None:

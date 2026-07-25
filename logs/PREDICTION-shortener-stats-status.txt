@@ -39,3 +39,33 @@ PREDICTION
   Worth watching: shortener is the spec where I have FOUR trees and measured 0 intermittent
   tests, so unlike taskflow this closure should be durable. If it is not, that is the more
   interesting result and it would put shortener in taskflow's category.
+
+GRADED — 2026-07-26
+===================
+      rc=0   1438s   9 fix rounds   9 escalations   GREEN
+
+  1. the test asserts rec3.Code before decoding   HIT
+  2. StatusOK -> StatusAccepted CAUGHT at handlers.go   HIT
+  3. the /health site stays CAUGHT                HIT — "2 of 2 sites defended"
+  4. shortener stays green                        HIT
+  registered mutation (Redirect 301) still CAUGHT — no regression
+
+  Both sites of the shape are now defended, which also retires the row that started this:
+  the over-fire that read "1 of 2" and sent me looking at the second site is now moot,
+  because the second site is closed.
+
+THE COST IS THE FINDING
+  No test was ADDED. One sentence was made more demanding — assert the status as its own
+  step, before the decode — and the run went from shortener's usual shape to its worst:
+
+      previous shortener runs   891-1351s,  0-5 fix rounds
+      this run                  1438s,      9 fix rounds, 9 escalations
+
+  So precision in a spec is not free. The eight closures before this one mostly ADDED a
+  named test, and several of those runs were cheap or even cheaper than the control
+  (taskflow's errors.Is closure greened first-pass at 524s). This one only rewrote an
+  existing sentence to demand an ordering — status first, body second — and cost nearly
+  double.
+
+  One data point, so no rule is being drawn. Recorded because the intuition it contradicts
+  is the obvious one: that tightening a sentence is cheaper than adding a test.
