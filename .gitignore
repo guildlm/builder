@@ -36,6 +36,11 @@ logs/*
 # file was silently ignored — the claim and the behaviour disagreed, and only running
 # `git ls-files` on it said so.
 !logs/hole-hunt-rows.tsv
+# Do not verify this with `git check-ignore` — it reports pattern matching and says
+# nothing about tracking, so it answered "ignored" for a file that was already
+# committed and diffing correctly. The question is whether a CHANGE shows up:
+#   git ls-files --error-unmatch logs/hole-hunt-rows.tsv   (tracked?)
+#   append a row, then `git status --short`                (does it diff?)
 
 !logs/PREDICTION-*.txt
 # ...and the findings. A FINDING is a prediction's sibling: a measured, model-free
