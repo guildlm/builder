@@ -37,9 +37,9 @@ left among the ones I thought of". Sweeping instead, across four shapes and ever
 | status code | swap for a plausible neighbour | 3 / 9 |
 | response header | delete the `Header().Set` line | 1 / 8 (+3 spec gaps) |
 | sort order | REVERSE the comparator (never delete the sort) | 0 / 6 |
-| error wrapping | `%w` → `%v` | **2 / 5** |
+| error wrapping | `%w` → `%v`, every wrap in the file | **2 / 10** |
 
-**34 probes, 11 survivors, 6 genuine undefended promises** — including `shortener`'s
+**39 probes, 11 survivors, 6 genuine undefended promises** — including `shortener`'s
 `GET /health -> 200 "ok"`, which the spec states outright and **no test touches at all**.
 
 Error wrapping is the best yield and that is not an accident of this corpus: the other
@@ -51,6 +51,16 @@ likely to be spotted by reading.
 Sort order yielding nothing is also a result: it is the invariant this campaign hardened by
 hand, three of those six are registered mutations, and an independent sweep agreeing with
 the registry is the cross-check the registry never had.
+
+**Probe every site, not one per file — "defended" is a property of a SITE.** `taskflow`'s
+`models.go` wraps `ErrValidation` three times and the suite defends two of them; probing
+one wrap per file reports whichever it happens to hit. `tasks-api` is sharper still: its
+tests call `errors.Is` four times, which reads as a suite that takes sentinel errors
+seriously, and all four check `ErrNotFound` — while the spec's other sentinel,
+`ErrInvalidTask`, has no assertion anywhere. "The suite tests errors.Is" is not a fact
+about a suite; it is a fact about one sentinel in one place, and every audit that
+aggregates above that level — including a human reading for coverage — reports the
+defended half and stops.
 
 Two rules keep it honest:
 
