@@ -46,3 +46,34 @@ POSITIVE result on "is the chain effective". The one clean gate added this sessi
 (external-test-package) came from a LIVE demo, not this corpus — new gate shapes come from
 NEW failure modes (fresh runs), not from re-mining a backlog the chain has already grown to
 cover. So the gate-mining vein is exhausted; the next gate will come from a new failing run.
+
+---------------------------------------------------------------------------
+ADDENDUM 2026-07-25 — the tool that produced this had a measurement bug.
+  The headline SURVIVES; a number this finding never printed did not.
+
+  _gate_audit.py decided its "advanced" verdict by comparing the toolchain's OUTPUT
+  before and after the gate chain. That output is not a function of the code: the same
+  unchanged tree, checked twice, differs in goroutine ids, heap addresses and durations.
+  Every artifact whose tests PANIC therefore compared unequal to itself and was scored
+  "advanced" with no gate having fired. Both modes carried it (audit() and --regress);
+  both are fixed (builder 5ba77de, 0cbea6b) and the fixpoint driver is now one function
+  (c6b70fe) so a third copy cannot drift. The code's own comment already said the status
+  was "derived by DIFFING (did the tree change)" — that is now what it does.
+
+  MEASURED IMPACT, same 12 archives, old tool vs fixed:
+      old      1 green ·  8 advanced ·  3 stuck   (43s)
+      fixed    1 green ·  0 advanced · 11 stuck   (21s)
+      the GREEN set is byte-identical between the two.
+  So the inflation was large — 8 of 12 "advanced" verdicts were artifacts nothing had
+  touched — and it lands entirely on a bucket this finding does not use. The ~35/47
+  headline is a `green` count, which comes from a real toolchain verdict, and it stands.
+
+  ONE CLARIFICATION THIS FINDING DOES OWE THE READER. Its METHOD line says "no model,
+  only go vet + _run_deterministic_gates", so its "GREEN" means the compile/vet stratum
+  is clear. The Builder's own gate — and _gate_audit --regress — is build+vet+TEST, and
+  by that criterion the same corpus reports 11/44. Both are true of different questions:
+  the gates repair MECHANICAL breakage, and a project can compile and vet cleanly while
+  its generated tests still fail on behaviour no gate can supply. Read "~35/47 clear the
+  chain" as a statement about compile/vet, never as "these projects now pass".
+  (--regress now prints the stratum each artifact reaches, so the two cannot be confused
+  again: builder bbe8052.)
