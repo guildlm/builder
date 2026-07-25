@@ -37,3 +37,44 @@ PREDICTION
   steer HOW the assertion is written, not just that it exists. If the model writes a
   string comparison anyway, that is the interesting result, and it says the "name a test"
   method has a ceiling exactly where the assertion's FORM matters.
+
+===========================================================================
+GRADED — the interesting question was answered YES; the closure was not gradeable.
+
+  RUN: 3-member fleet, 3100s, 9 fix rounds, 9 escalations, rc=1, score 2/3.
+
+  1. "TestValidateWrapsErrInvalidTask is written and passes."  HELD — including the part
+     this run existed to test. The model wrote it AND asserted the way the spec demanded:
+
+         task := Task{Title: "   "}
+         err := task.Validate()
+         if !errors.Is(err, ErrInvalidTask) { ... }
+
+     Not a message comparison. This was the first spec sentence that had to steer HOW an
+     assertion is written rather than that one exists, and it worked. The lower confidence
+     recorded above was misplaced: naming a test carries the form of its assertion too, if
+     the sentence says which form and why.
+     Verified in isolation: `go test -run TestValidateWrapsErrInvalidTask` -> ok.
+
+  2. "The build greens."  FAILED, and not for any reason connected to the edit. Three
+     handler tests fail with 404 where they expect 200/204 — a lookup/routing defect in
+     the regenerated code, in files the edit never mentions.
+
+  3, 4. UNGRADEABLE. A red baseline voids every verdict; that is this campaign's own rule
+     and it applies to my runs as much as to anyone's.
+
+  WHAT THIS COSTS AND WHAT IT BUYS
+    The hole stays open. tasks-api is the third spec that a bare base cannot green and that
+    the fleet could not green either in 8 rounds — 9 fix rounds and 9 escalations, 3100s,
+    and still 2/3. Two of the three closures that DID land were on shortener, a 7-file
+    spec; the two failures were on 8-to-14-file specs.
+
+    So the method's real constraint is not the edit, it is the coder: closing a hole
+    requires regenerating a GREEN artifact, and green is exactly what the coder cannot
+    reliably deliver on the bigger specs — which is the same wall RESULT-fleet-ab.txt
+    reports from the other side (taskapipro 2/3 with the fleet, unchanged at 16 rounds).
+
+    Worth stating plainly because it bounds the campaign: the sweep finds holes in any
+    artifact, but closing one is only possible where the coder can green the spec. On the
+    specs where it cannot, the hole is real, documented, and not closeable by this route
+    today.
