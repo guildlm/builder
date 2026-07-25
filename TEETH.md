@@ -126,11 +126,11 @@ Go's map-iteration randomness, so the verdict flakes. Every sort/order invariant
 **REVERSE** mutation (`<` → `>`) instead: an ascending-order assertion catches a descending
 sort *every* run. A mutation that cannot be relied on to fail is not a test.
 
-## The four shapes of a hole
+## The five shapes of a hole
 
 Holes cluster in HTTP/service specs and in secondary/edge invariants; pure-library specs
-(the invariant *is* the test subject) are well-defended. The undefended ones fell into four
-shapes:
+(the invariant *is* the test subject) are well-defended. The undefended ones fell into five
+shapes — the first four found by hand, the fifth only by a per-site sweep:
 
 1. **No test at all** for a required invariant — e.g. `List sorted by ID` (taskflow,
    usersapi, taskapipro): both list methods call `sort.Slice`, no test checks order.
@@ -145,7 +145,20 @@ shapes:
    one-per-item. Coverage and output tests are structurally blind; only a concurrency probe
    (peak-goroutine count) sees it.
 
-A fifth non-hole shape is a **flaky guard**: a named order test that exists but with only two
+5. **One promise, several sites, and the suite pins some of them.** The MAJORITY shape in
+   the 2026-07-25 sweep — four of nine holes. `jsonapi` writes 400 in two places and tests
+   one; `ratelimit` writes 429 twice and tests one; `taskflow` wraps `ErrValidation` three
+   times and tests two; `tasks-api` asserts `errors.Is` four times and all four check the
+   same one of its two sentinels. At the level of a file, an API or a promise these read as
+   covered, because at that level they ARE: *"does the suite check 400?"* — yes. *"does it
+   use errors.Is?"* — yes, four times. The undefended half appears only if the question is
+   asked once per SITE.
+
+   This is also why a hand-run campaign misses them honestly. A person picks the promise,
+   writes one mutation, and stops when it is caught — and the mutation lands on whichever
+   site comes to mind, usually the one the test they just read already covers.
+
+A non-hole shape to know is the **flaky guard**: a named order test that exists but with only two
 elements catches a broken sort ~20% of the time. "A named test exists" ≠ "the invariant is
 usually defended."
 
