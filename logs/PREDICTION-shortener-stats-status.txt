@@ -1,0 +1,41 @@
+PREDICTION — shortener's Stats 200, found by investigating my own over-fire
+============================================================================
+2026-07-26. Ninth closure attempt, and the first found by a tool being WRONG.
+
+HOW IT SURFACED
+  The all-sites rule shipped an hour ago declared shortener's health closure "NOT CLOSED —
+  1 of 2 sites". That was an over-fire: the two StatusOK sites are /health in router.go
+  (the closure, CAUGHT) and Stats in handlers.go (SURVIVED) — different promises sharing a
+  mutation shape. Correcting the tool meant looking at the second site, which turned out to
+  be a real, unclaimed hole.
+
+THE CONTROL
+      handlers.go   StatusOK -> StatusAccepted   SURVIVED
+      spec says:    "GET /stats/+created.Code -> 200, decode the Link, assert Hits == 1"
+      generated test: decodes rec3.Body and asserts Hits, never reads rec3.Code
+
+  SITE COUNT, per the rule now enforced: this promise has ONE site. The shape has two, but
+  the other belongs to /health and is already defended. So a single-probe grade is the
+  right grade here.
+
+WHY THE MODEL SKIPPED IT — a difference visible inside one spec
+  The same spec's TestRedirectFound says "-> 301" and the generated test DOES assert it.
+  The difference is what follows the arrow: the redirect sentence's only assertion is the
+  status, while the stats sentence continues "decode the Link, assert Hits == 1", and the
+  status got lost among the assertions that came after it. Not a guess — both tests are in
+  the same file, written by the same run, and one arrow survived while the other did not.
+
+THE EDIT
+  Say it as its own step and put it BEFORE the decode: assert rec3.Code == http.StatusOK
+  first, then decode. Same recipe as the eight before it — name the assertion, do not leave
+  it implied by an arrow.
+
+PREDICTION
+  1. The generated test asserts rec3.Code before decoding.
+  2. StatusOK -> StatusAccepted flips SURVIVED -> CAUGHT at handlers.go.
+  3. The /health site stays CAUGHT — the two must not collapse into one assertion.
+  4. shortener stays green.
+
+  Worth watching: shortener is the spec where I have FOUR trees and measured 0 intermittent
+  tests, so unlike taskflow this closure should be durable. If it is not, that is the more
+  interesting result and it would put shortener in taskflow's category.

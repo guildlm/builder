@@ -125,7 +125,12 @@ files:
       read it with rec.Body.String(), do NOT json.Decode it (this is the one
       endpoint in this service that does not return JSON).
       TestStatsCountsOneHit: POST as above, then GET /r/+created.Code EXACTLY
-      ONCE (this is what increments Hits), and ONLY THEN GET /stats/+created.Code
-      -> 200, decode the Link, assert Hits == 1. Do NOT check stats without a
+      ONCE (this is what increments Hits), and ONLY THEN GET /stats/+created.Code.
+      Assert the STATUS FIRST, as its own step, BEFORE touching the body:
+        if rec3.Code != http.StatusOK { t.Fatalf("stats: got %d", rec3.Code) }
+      then decode the Link and assert Hits == 1. Do not leave the 200 implied by an
+      arrow in a sentence that goes on to ask for two more assertions — written that
+      way it is skipped, while the same spec's "-> 301" in TestRedirectFound, whose
+      only assertion IS the status, gets written every time. Do NOT check stats without a
       preceding redirect: a fresh link has Hits 0, so it would see 0, not 1.
       Standard library only.
