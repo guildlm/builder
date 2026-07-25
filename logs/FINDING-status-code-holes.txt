@@ -376,6 +376,19 @@ THE FOUR NEW CANDIDATES, SPEC-CHECKED — three genuine, and all three the same 
   ⚠️ CORRECTED BELOW: ratelimit's 429 turned out to be a dead-value false positive, so the
   genuine count is 8, of which 3 are now closed and 5 remain open.
 
+  ⚠️ AND THE SPEC-GAP COUNT WAS ONE TOO HIGH. "Five Content-Type cases, none of which the
+  spec asks for" double-counted taskflow: its spec DOES promise the header ("writeJSON ...
+  sets Content-Type application/json"), which is why it is already among the genuine holes.
+  Counted per spec:
+      taskflow    promised  -> HOLE (already in the 9)
+      ratelimit   silent    -> spec gap
+      tasks-api   silent    -> spec gap
+      usersapi    silent    -> spec gap
+      shortener   silent    -> spec gap  (being closed now by STATING the promise)
+  So FOUR spec gaps, not five. Found by checking each spec instead of re-quoting the
+  number, which is the same discipline that caught the jsonapi mis-aim an hour earlier —
+  and the same failure mode: a tally repeated often enough to stop being re-derived.
+
   THE SHAPE IS NOW THE MAJORITY FINDING, not an oddity. Four of the nine — taskflow's
   ErrValidation (1 undefended wrap of 3), tasks-api's ErrInvalidTask (4 errors.Is asserts,
   all on the OTHER sentinel), jsonapi's second 400, ratelimit's second 429 — are the same
