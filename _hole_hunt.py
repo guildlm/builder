@@ -217,12 +217,18 @@ for art in sorted(GEN.glob("*-v4")):
     for f in sorted(art.glob("*.go")):
         if f.name.endswith("_test.go"):
             continue
-        hit = None
+        # EVERY matching line, not the first in the file. --all-sites said "every site"
+        # and meant "one per file": the coverage counter put it at 14 probed of 123
+        # matched. A flag that under-delivers on its own name is the under-sampling
+        # defect wearing a disguise, and it is the fourth time in this file.
+        hits = []
         for ln in f.read_text(errors="ignore").splitlines():
             m = CODE.match(ln)
             if m and m.group(1) in SWAP:
-                hit = (f.name, m.group(1), ln.strip()); break
-        if hit:
+                hits.append((f.name, m.group(1), ln.strip()))
+                if not ALL_SITES:
+                    break
+        for hit in hits:
             rel, old, line = hit
             new = SWAP[old]
             def mut(text, o=old, n=new):
@@ -239,8 +245,8 @@ for art in sorted(GEN.glob("*-v4")):
                 v = "SURVIVED*"
             rows.append((art.name, rel, f"{old}->{new}", v))
             print(f"{art.name:<26} {rel:<22} {old}->{new:<26} {v}", flush=True)
-            if not ALL_SITES:
-                break
+        if hits and not ALL_SITES:
+            break
 print("\n=== shape 2: drop a response header ===")
 rows += header_rows()
 print("\n=== shape 3: reverse a sort comparator ===")
