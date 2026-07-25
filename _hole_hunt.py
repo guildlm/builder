@@ -1,25 +1,29 @@
 #!/usr/bin/env python3
-"""Systematic hole hunt: swap one status code per artifact, ask whether the suite notices.
+"""Systematic hole hunt: break something the spec promised, ask whether the suite notices.
 
 The teeth campaign found its holes by hand, one invariant at a time, and reached 29
 CAUGHT / 0 SURVIVED — which reads as "no holes left" and is really "no holes left among
-the ones we thought to check". This sweeps instead: for every archived artifact, find a
-status-code write in the CODE (not a comment), swap it for a plausible neighbour, and ask
-whether the suite goes red.
+the ones we thought to check". This sweeps instead, over every archived artifact, in two
+shapes: swap a status-code write for a plausible neighbour, and delete a response-header
+line outright. Both are the documented hole shape — error paths and headers in small HTTP
+specs — so this is the cheapest place to sweep, not the only one.
 
-Status codes are the documented hole shape — response headers and error paths in small
-HTTP specs — so this is the cheapest place to sweep, not the only one.
+    python _hole_hunt.py                 # first mutable site per artifact (cheap pass)
+    python _hole_hunt.py --all-sites     # every site; found half the genuine holes
+    python _hole_hunt.py --self-test     # prove the hunt can still tell CAUGHT from
+                                         # SURVIVED, and that the benign label matches
 
-    python _hole_hunt.py
-
-A SURVIVED row is a green build with a real behaviour change. It is a candidate, NOT a
-verdict: the next question is always whether the SPEC promises the behaviour that was
-broken. On the first run one of the two survivors was a genuine undefended promise and
-the other was log-only output, and nothing but reading the spec could tell them apart.
-See logs/FINDING-status-code-holes.txt.
+READING THE OUTPUT, which is where this tool can mislead:
+  SURVIVED   a green build with a real behaviour change. A CANDIDATE, not a verdict — the
+             next question is always whether the SPEC promises what was broken. Across 23
+             probes, 9 survivors were 4 genuine undefended promises, 2 known-benign, and 3
+             behaviour the spec never asked for (which are SPEC gaps, not test gaps).
+  SURVIVED*  a known-benign shape: a `statusRecorder` default, whose mutation changes log
+             output only. Labelled rather than filtered — dropping a class from a hole
+             hunter is how it goes quiet on the day that class hides a real defect.
 
 Uses _teeth_suite.verdict_for, so an artifact whose baseline is already red reports
-BASELINE-RED rather than a fake CAUGHT.
+BASELINE-RED rather than a fake CAUGHT. Full results: logs/FINDING-status-code-holes.txt.
 """
 import re, sys, pathlib
 sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
