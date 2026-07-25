@@ -435,13 +435,13 @@ def _go_test(work: Path):
     return subprocess.run(_GO_TEST, cwd=work, capture_output=True, text=True)
 
 
-def _run(spec: str, rel: str, desc: str, mutate) -> tuple[str, str]:
-    art = GEN / f"{spec}-v4"
+def verdict_for(art: Path, rel: str, mutate) -> tuple[str, str]:
+    """The whole judgement, over ANY project directory — which is what makes it
+    checkable. `_run` supplies the archived artifact; --self-test supplies planted
+    fixtures whose answer is known in advance."""
     src = art / rel
     if not src.exists():
         return "SKIP", f"{rel} not in artifact"
-    if mutate is None and spec == "lrucache":
-        mutate = _mutate_lru
     mutated = mutate(src.read_text()) if mutate else None
     if mutated is None:
         return "NOAPPLY", "mutation did not apply (code moved / already differs)"
@@ -459,7 +459,68 @@ def _run(spec: str, rel: str, desc: str, mutate) -> tuple[str, str]:
         else ("SURVIVED", "GREEN on broken code — UNDEFENDED")
 
 
+def _run(spec: str, rel: str, desc: str, mutate) -> tuple[str, str]:
+    if mutate is None and spec == "lrucache":
+        mutate = _mutate_lru
+    return verdict_for(GEN / f"{spec}-v4", rel, mutate)
+
+
+_MOD = "module example.com/t\n\ngo 1.23\n"
+_IMPL = "package t\n\nfunc Double(n int) int {\n\treturn n * 2\n}\n"
+_DEFENDED = ("package t\n\nimport \"testing\"\n\n"
+             "func TestDouble(t *testing.T) {\n\tif Double(3) != 6 {\n"
+             "\t\tt.Fatalf(\"Double(3) = %d, want 6\", Double(3))\n\t}\n}\n")
+# Runs the code and asserts nothing about the value — the shape a green suite hides behind.
+_UNDEFENDED = ("package t\n\nimport \"testing\"\n\n"
+               "func TestDouble(t *testing.T) {\n\t_ = Double(3)\n}\n")
+
+
+def self_test() -> int:
+    """Prove the instrument separates a defended invariant from an undefended one.
+
+    This tool decides whether a green suite actually defends its contract, and every
+    teeth number in the repo is its verdict. So it has to be shown distinguishing the
+    three outcomes on code whose answer is known before the run:
+
+      CAUGHT        real assertion + broken code  -> suite must go red
+      SURVIVED      vacuous test  + broken code   -> suite stays green, the hole is real
+      BASELINE-RED  the unmutated project already fails -> verdict VOID, not a CAUGHT
+
+    The third is the one that cost four by-hand runs to learn: a red baseline turns every
+    mutant red for the wrong reason and reports a fake CAUGHT.
+    """
+    break_double = lambda text: text.replace("return n * 2", "return n + 2")  # noqa: E731
+
+    cases = [
+        ("CAUGHT", _DEFENDED, _IMPL),
+        ("SURVIVED", _UNDEFENDED, _IMPL),
+        # baseline already red: the test expects 6 from an impl that returns 5
+        ("BASELINE-RED", _DEFENDED, "package t\n\nfunc Double(n int) int {\n\treturn n + 2\n}\n"),
+    ]
+    failures = []
+    for want, test_src, impl_src in cases:
+        with tempfile.TemporaryDirectory() as td:
+            art = Path(td) / "art"
+            art.mkdir()
+            (art / "go.mod").write_text(_MOD)
+            (art / "t.go").write_text(impl_src)
+            (art / "t_test.go").write_text(test_src)
+            got, note = verdict_for(art, "t.go", break_double)
+        if got != want:
+            failures.append(f"expected {want}, got {got} ({note})")
+
+    for f in failures:
+        print(f"FAIL: {f}")
+    if failures:
+        return 1
+    print("OK — a defended invariant is CAUGHT, a vacuous one SURVIVES, "
+          "and a red baseline voids the verdict instead of faking a CAUGHT")
+    return 0
+
+
 def main() -> int:
+    if "--self-test" in sys.argv:
+        return self_test()
     wanted = set(sys.argv[1:])
     rows = [m for m in MUTATIONS if not wanted or m[0] in wanted]
     print(f"{'spec':<12} {'verdict':<9} invariant")
