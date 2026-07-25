@@ -1,6 +1,19 @@
-FINDING — two holes a hand-run campaign missed, and only one of them counts
-===========================================================================
-2026-07-25, model-free. `_hole_hunt.py`, run over all 25 archived -v4 artifacts.
+FINDING — sweeping for holes a hand-run campaign could not have thought of
+=========================================================================
+2026-07-25, model-free. `_hole_hunt.py` over all 25 archived -v4 artifacts.
+
+FINAL: four shapes, every site — 34 probes, 11 survivors, 6 genuine undefended promises.
+  status code      3 genuine / 9      response header  1 genuine / 8 (+3 spec gaps)
+  sort order       0 genuine / 6      error wrapping   2 genuine / 5
+
+(The filename says status-code because that is the shape it started with; three more
+followed and the sections below are in the order they were run, each with its own spec
+check. The title is what the file is about; the name is where it began.)
+
+The document is written in the order the work happened, so the first section's headline —
+"two holes, only one of them counts" — is true of the first pass and superseded by the
+totals above. Read on for how each shape was chosen, what it caught, and which survivors
+turned out not to be holes at all.
 
 WHY SWEEP AT ALL
   The teeth campaign reached 29 CAUGHT / 0 SURVIVED by choosing invariants to test one at
