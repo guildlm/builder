@@ -25,6 +25,7 @@ READING THE OUTPUT, which is where this tool can mislead:
 Uses _teeth_suite.verdict_for, so an artifact whose baseline is already red reports
 BASELINE-RED rather than a fake CAUGHT. Full results: logs/FINDING-status-code-holes.txt.
 """
+import pathlib
 import re, sys, pathlib
 sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
 from _teeth_suite import verdict_for, GEN
@@ -48,9 +49,30 @@ CODE = re.compile(r"^\s*(?!//)(?!\s*\*).*http\.(Status[A-Za-z]+)")
 WRAP = re.compile(r'fmt\.Errorf\("([^"]*)%w([^"]*)"')
 
 
+def artifacts():
+    """The artifacts to sweep: the positional targets, or the whole archive.
+
+    ONE selector for all four shapes and the coverage counter. The first attempt at this
+    patched main()'s loop alone and left wrap_rows/sort_rows/header_rows globbing the
+    archive, so a run given an explicit directory still answered about -v4 artifacts — the
+    same silent-substitution bug, half-fixed, which is worse than not fixed because the
+    call now LOOKS honoured.
+    """
+    targets = [a for a in sys.argv[1:] if not a.startswith("-")]
+    if not targets:
+        return sorted(GEN.glob("*-v4"))
+    out = []
+    for t in targets:
+        d = pathlib.Path(t)
+        if not d.is_dir():
+            raise SystemExit(f"{t} is not a directory")
+        out.append(d)
+    return out
+
+
 def wrap_rows():
     out = []
-    for art in sorted(GEN.glob("*-v4")):
+    for art in artifacts():
         for f in sorted(art.glob("*.go")):
             if f.name.endswith("_test.go"):
                 continue
@@ -96,7 +118,7 @@ COMPARATOR = re.compile(r'(\w+\[i\]\.\w+) < (\w+\[j\]\.\w+)')
 
 def sort_rows():
     out = []
-    for art in sorted(GEN.glob("*-v4")):
+    for art in artifacts():
         for f in sorted(art.glob("*.go")):
             if f.name.endswith("_test.go"):
                 continue
@@ -129,7 +151,7 @@ HEADER = re.compile(r'^\s*w\.Header\(\)\.Set\("([^"]+)", *"[^"]*"\)')
 
 def header_rows():
     out = []
-    for art in sorted(GEN.glob("*-v4")):
+    for art in artifacts():
         for f in sorted(art.glob("*.go")):
             if f.name.endswith("_test.go"):
                 continue
@@ -236,8 +258,14 @@ def replace_at(index: int, old: str, new: str):
 
 
 def main() -> int:
+    # A POSITIONAL ARGUMENT MUST NOT BE SILENTLY IGNORED. This swept the whole archive
+    # while I was reading its output as a report on a freshly generated tree I had passed
+    # on the command line — every row came back tagged "-v4" and the answer was about
+    # artifacts I had not asked about. Same shape as the four instruments fixed earlier
+    # today; this one escaped that sweep only because it is slow enough to time out
+    # before it can answer, so it got filed as "no verdict" instead of as this.
     rows = []
-    for art in sorted(GEN.glob("*-v4")):
+    for art in artifacts():
         for f in sorted(art.glob("*.go")):
             if f.name.endswith("_test.go"):
                 continue
@@ -299,7 +327,7 @@ def main() -> int:
         first version of this counter did exactly that and reported `matched 0, probed 14` —
         a coverage check that under-counted, in the tool built to catch under-counting."""
         n = 0
-        for art in GEN.glob("*-v4"):
+        for art in artifacts():
             for f in art.glob("*.go"):
                 if f.name.endswith("_test.go"):
                     continue

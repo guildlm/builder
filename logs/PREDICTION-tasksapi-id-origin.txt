@@ -44,3 +44,38 @@ PREDICTION
   3. If it stays red, the new failure is NOT an ID-origin 404 — same falsifier shape as
      taskflow's: a different failure means the diagnosis was right and there is a second
      wall behind it.
+
+GRADED — 2026-07-25 night
+=========================
+      rc=0   329s   2 fix rounds   0 escalations
+
+  1. store starts at 1, all six failures go together        HIT — nextID: 1 is in the
+     constructor and every one of the six is gone
+  2. tasks-api greens                                       PARTIAL — see below
+  3. the new failure is NOT an ID-origin 404                HIT
+
+  From 3100s/9 escalations/RED to 329s/0 escalations, by one sentence in the spec. The
+  diagnosis was right and the fix was cheap.
+
+BUT "GREEN" HERE IS NOT REPRODUCIBLE, AND THAT IS THE REAL RESULT
+  The builder returned rc=0. Running the suite again afterwards:
+
+      full suite, 12 runs:  PASS=9  FAIL=3
+
+      --- FAIL: TestList200
+          expected tasks S and S, got task2 and task1
+
+  MemStore.List iterates the map directly and does not sort. The spec requires it —
+  "List returns a copy sorted by ID" — so this is a plain implementation defect against an
+  explicit requirement, and it survived because ONE test run cannot tell a correct sort
+  from a lucky map iteration. Go randomises map order per run; with two items a wrong
+  implementation passes about as often as it fails.
+
+  So the builder's green verdict is a SAMPLE, not a proof, wherever the code has
+  order-nondeterminism. It reported success on the run that happened to come out sorted.
+  Note the test passes 6 out of 6 when run ALONE and fails 3 in 12 with the full suite —
+  the flake rate itself depends on what else ran, which is why a single -run probe would
+  have "cleared" it.
+
+  This is the same shape as everything else measured today, now in the production path:
+  a numerator with no denominator. "tests passed" needs "on how many runs".
