@@ -45,3 +45,31 @@ WHAT THIS COSTS THE SESSION'S HEADLINE
   costs one build and would replace an assumption with a number.
 
   Recorded rather than run now, because a taskflow build is already occupying the fleet.
+
+MEASURED — 2026-07-26, the same hour
+=====================================
+Ran the experiment this finding named: ratelimit re-generated UNCHANGED, then re-graded
+against the independent second tree.
+
+      ratelimit re-run    rc=0  283s  0 fix rounds
+      3 named in spec · both trees wrote ALL 3 · 0 intermittent
+      drop Content-Type on the INDEPENDENT tree:  CAUGHT
+
+  So ratelimit's closure is durable, and that is now a number rather than an assumption.
+
+THE SCOREBOARD, WITH NOTHING GENERALISED FROM IT
+      ratelimit   MEASURED, 2 trees   0 of 3 named tests intermittent   closure HOLDS
+      taskflow    MEASURED, 3 trees   3 of 20 intermittent              2 closures LOST
+      shortener, usersapi, jsonapi    UNMEASURED, one tree each
+
+  Two specs measured, opposite results. The tempting reading — "more named tests means
+  less stable" — is exactly the shape of claim that has been refuted three times today
+  from this same sample size, so it is not being made. What IS established: durability is
+  a per-spec property that has to be measured per spec, one re-run at a time, and two of
+  five now have an answer.
+
+  A caveat the new instrument now prints rather than hides: a test named in the spec only
+  RECENTLY cannot appear in older trees, so "sometimes" mixes intermittent tests with
+  newly-added ones. Checked by hand against git for taskflow's four — TestPaginateNegativeOffset
+  and TestListProjectsSorted are genuinely intermittent across runs where they were eligible;
+  TestValidateWrapsErrValidation has exactly one eligible run and proves nothing either way.

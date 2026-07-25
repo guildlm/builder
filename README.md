@@ -199,6 +199,7 @@ be measurable:
 | `_hole_closed.py` | Did a spec edit close the hole it targeted **and open no other**? |
 | `_registry_drift.py` | How many registered mutations survive a REGENERATION? Renames the artifact textually instead of regenerating it — brittleness is a property of the pattern. |
 | `_why_red.py` | Triage a RED artifact: which tests fail, and do they cluster into one shape? |
+| `_test_durability.py` | Across several trees of ONE spec: which named tests does the model write EVERY run? A closure on a test written only sometimes is not durable. |
 | `_mapsort_audit.py` | Which functions return a slice built from a MAP without sorting it? Go randomises map order per run, so one `go test` catches this only by luck. |
 
 The habit worth copying is not the tools but what they do to themselves. A checker never
