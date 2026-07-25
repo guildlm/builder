@@ -51,16 +51,22 @@ def wrap_rows():
             if f.name.endswith("_test.go"):
                 continue
             text = f.read_text(errors="ignore")
-            m = WRAP.search(text)
-            if not m:
+            # EVERY wrap, not the first. A file often wraps SEVERAL sentinels, and a suite
+            # can defend one while ignoring the rest: tasks-api asserts errors.Is four
+            # times, all for ErrNotFound, while its spec also promises ErrInvalidTask —
+            # which nothing checks. Probing one site per file would have reported CAUGHT
+            # on the defended sentinel and called the file clean.
+            sites = list(dict.fromkeys(m.group(0) for m in WRAP.finditer(text)))
+            if not sites:
                 continue
-            orig = m.group(0)
-            def mut(t, a=orig, b=orig.replace("%w", "%v", 1)):
-                return t.replace(a, b, 1) if a in t else None
-            v, _ = verdict_for(art, f.name, mut)
-            out.append((art.name, f.name, "%w -> %v (errors.Is breaks)", v))
-            print(f"{art.name:<26} {f.name:<22} {'%w -> %v (errors.Is breaks)':<26} {v}",
-                  flush=True)
+            for orig in (sites if ALL_SITES else sites[:1]):
+                def mut(t, a=orig, b=orig.replace("%w", "%v", 1)):
+                    return t.replace(a, b, 1) if a in t else None
+                sentinel = re.search(r"Err[A-Za-z]*", text[text.index(orig):][:200])
+                tag = f"%w -> %v ({sentinel.group(0) if sentinel else '?'})"
+                v, _ = verdict_for(art, f.name, mut)
+                out.append((art.name, f.name, tag, v))
+                print(f"{art.name:<26} {f.name:<22} {tag:<26} {v}", flush=True)
             if not ALL_SITES:
                 break
     return out
