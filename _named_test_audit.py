@@ -103,6 +103,15 @@ def audit(spec: str) -> dict | None:
         return {"spec": spec, "named": 0, "missing": [], "subtest_only": [],
                 "renamed": [], "funcs": 0}
     blob, funcs = artifact_test_text(art)
+    return {"spec": spec, "named": len(named), "funcs": len(funcs),
+            **classify(named, blob, funcs)}
+
+
+def classify(named: set[str], blob: str, funcs: set[str]) -> dict:
+    """Sort each spec-named test into missing / renamed / subtest_only.
+
+    Pure — the three inputs are all it needs — so --self-test can hold it to the exact
+    distinctions the METHOD notes above argue for, instead of them being prose."""
 
     def whole(name: str) -> bool:
         """Present as a complete identifier — `TestList` does not match inside
@@ -124,12 +133,50 @@ def audit(spec: str) -> dict | None:
             renamed.append(f"{n} -> {ext[0]}")
         else:
             missing.append(n)
-    return {"spec": spec, "named": len(named), "missing": missing,
-            "subtest_only": subtest_only, "renamed": renamed,
-            "funcs": len(funcs)}
+    return {"missing": missing, "subtest_only": subtest_only, "renamed": renamed}
+
+
+def self_test() -> int:
+    """Hold the classifier to the four distinctions its METHOD notes argue for.
+
+    The one that matters most is the substring trap, because this file has already been
+    wrong in that exact direction: the first version matched substrings, so TestList could
+    never be reported missing while TestListLimit existed — a false negative pointing at
+    "nothing is wrong", which is the direction an auditor must never fail in.
+    """
+    cases = [
+        ("a whole-identifier match is PRESENT, not missing",
+         {"TestAdd"}, "func TestAdd(t *testing.T) {}", {"TestAdd"},
+         {"missing": [], "renamed": [], "subtest_only": []}),
+        ("a substring match must NOT count as present",
+         {"TestList"}, "func TestListLimit(t *testing.T) {}", {"TestListLimit"},
+         {"missing": [], "renamed": ["TestList -> TestListLimit"], "subtest_only": []}),
+        ("genuinely absent is MISSING",
+         {"TestGone"}, "func TestSomethingElse(t *testing.T) {}", {"TestSomethingElse"},
+         {"missing": ["TestGone"], "renamed": [], "subtest_only": []}),
+        ("folded into a subtest is PRESENT, and reported as such",
+         {"TestNested"}, 'func TestOuter(t *testing.T) { t.Run("TestNested", nil) }',
+         {"TestOuter"},
+         {"missing": [], "renamed": [], "subtest_only": ["TestNested"]}),
+    ]
+    failures = []
+    for label, named, blob, funcs, want in cases:
+        got = classify(named, blob, funcs)
+        for k, v in want.items():
+            if got[k] != v:
+                failures.append(f"[{label}] {k}: got {got[k]}, want {v}")
+    for f in failures:
+        print(f"FAIL: {f}")
+    if failures:
+        return 1
+    print("OK — whole identifiers count, substrings do not, absent is MISSING, "
+          "and a subtest is present")
+    return 0
 
 
 def main() -> int:
+    if "--self-test" in sys.argv:
+        return self_test()
     wanted = sys.argv[1:]
     if not wanted:
         wanted = sorted(p.stem for p in SPECS.glob("*.yaml")
