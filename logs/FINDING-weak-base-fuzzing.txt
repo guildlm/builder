@@ -66,3 +66,38 @@ DECISION
 SCOPE, stated plainly: one weak model, three specs, two analysed at the time of writing
 (bitset was still running). N is small. What is NOT small is the prevalence measurement:
 zero occurrences across 578 real runs is not a sampling accident.
+
+---------------------------------------------------------------------------
+A SECOND MECHANISM THE WEAK BASE EXPOSED — measured, then LEFT ALONE
+
+  The logstats run never stopped early. The 1.5B kept regenerating a main.go that does
+  not parse, and the syntax error drifted one line per round:
+
+      main.go:158:155: syntax error: unexpected } in argument list
+      main.go:159:155: ...    main.go:160:155: ...    main.go:161:155: ...
+
+  The fix loop grants extension rounds "ONLY while each check exposes an error surface
+  never seen before", and `_error_signature` normalises heap addresses, goroutine ids and
+  durations — but NOT line:col. So the same defect at a shifted position reads as a new
+  surface every round, the guard never fires, and the budget burns on a model that cannot
+  produce parseable Go. `error surface repeats` appeared 0 times in that run.
+
+  Real hole. The question is whether it matters, so: across every archived production log,
+  split into fix rounds, comparing each surface with the next —
+
+      consecutive round pairs examined     254
+      identical under the current guard    114   (extension rounds correctly stopped)
+      differ ONLY by line:col position       1   (granted as a 'new surface')
+      logs affected                          1   (iso-completeness-CLEAN.log, an
+                                                  isolation experiment, not a normal run)
+
+  DECISION: leave it. One occurrence in 254 pairs, in an experiment log. Normalising
+  positions away would make two genuinely different errors that share a message text
+  collapse into one — stopping extension rounds when the loop had in fact moved to a new
+  site — and that is a real cost paid to fix a 0.4% case. It fired instantly under the
+  1.5B and essentially never under the models in use, which is this finding's whole point
+  arriving a second time: the weak base surfaces mechanisms that do not matter for the
+  models the project actually runs.
+
+  Recorded rather than fixed, so that a future run which DOES hit this has the measurement
+  waiting instead of starting the investigation from zero.
