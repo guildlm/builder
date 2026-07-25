@@ -11,9 +11,10 @@ answer would otherwise sit in the middle of it:
   The breadth it calls waste is the only route by which a whole class of defect reaches a
   stronger model, and narrowing it turned a green build red.
 
-    shortener, same arm, against its own recorded control:
-        widened eligible   12 escalations   1174s   3/3 GREEN
-        blamed-only         2 escalations   1080s   2/3 RED
+    both specs the routing A/B had converted to green, each re-run against its own
+    recorded control:
+        shortener   widened eligible  12 esc  1174s  3/3 GREEN | blamed-only  2 esc  1080s  2/3 RED
+        workapi     widened eligible  17 esc  4778s  3/3 GREEN | blamed-only  5 esc  4654s  2/3 RED
 
     32 archived failing artifacts — implementation files repaired with NONE blamed:
         compile failures    0/13
@@ -24,6 +25,11 @@ answer would otherwise sit in the middle of it:
   targets ONLY through widening. Cut that path and it cannot reach a stronger member at
   all, however many rounds are spent. This is a property of the Go toolchain, so it is not
   a tuning result that might come out differently next time.
+
+  On workapi the mechanism is visible rather than inferred: all five escalations were
+  `_test.go` files, while `internal/api/tasks.go` — the handler returning 200 where the
+  spec requires 201, which is what the surviving failures assert — was repaired SEVEN
+  times and escalated ZERO times.
 
   Reverted. The behaviour now has two tests, both shown failing under the rule they guard
   against — it had none before, which is exactly why removing it looked safe.
@@ -151,7 +157,28 @@ RESULTS — shortener REGRESSED. The prediction above was right and it matters.
     implementation in front of a better model. Framing breadth as waste was the error; the
     +63% bought the green.
 
-  WHAT THIS DOES NOT YET SETTLE
+  SECOND DATA POINT — workapi REGRESSED TOO, by the same mechanism, visibly
+    The clean-signal spec, same design (recorded control vs the same arm re-run):
+
+                          escalations   wall    score
+      control (recorded)       17       4778s   3/3 GREEN
+      blamed-only               5       4654s   2/3 RED
+
+    And here the mechanism is not inferred, it is in the log. All five escalations were
+    `_test.go` files — router_test, service_test, config_test — because that is what go
+    names. The file that actually fails is `internal/api/tasks.go`: the handler returns
+    200 where the spec requires 201, and the surviving errors are
+        router_test.go:32: CreateOK: status = 200, want 201
+        router_test.go:68: CreateInvalid: status = 200, want 400
+    That file was repaired SEVEN times and escalated ZERO times. The base rewrote the same
+    wrong handler seven rounds running and never got a second opinion, because nothing ever
+    blamed it.
+
+    So the refutation is N=2, on both specs the routing A/B had converted to green, with
+    the predicted mechanism observed directly on the second. This is what the archive
+    measurement (18/19) said would happen.
+
+  WHAT THE FIRST RUN DID NOT YET SETTLE (kept for the record — workapi settled it)
     shortener is the one spec the A/B itself flags as CONFOUNDED for exactly this kind of
     comparison ("shortener measures escalation TIMING, not composition; the clean signal is
     workapi"), and any change to escalation timing can flip it. N=1. workapi — recorded
