@@ -1,0 +1,31 @@
+PREDICTION — does repeating the suite actually fix the flake, or just report it?
+================================================================================
+2026-07-25 night. Live A/B of the change just committed, against the artifact that
+motivated it.
+
+THE CONTROL, ALREADY IN HAND
+  Same spec, same fleet, loop running `go test` ONCE:
+      rc=0   329s   2 rounds   0 escalations
+      ...and the artifact is FLAKY: 9 pass / 3 fail over 12 runs, because MemStore.List
+      ignores the spec's "List returns a copy sorted by ID" and Go randomises map order.
+  The loop never saw a failure, so it had nothing to fix and shipped a coin flip as green.
+
+THE VARIABLE
+  The loop now runs `go test -count=4`. Nothing else changed — same spec file, same
+  models, same round budget.
+
+PREDICTION
+  1. The loop SEES a failure this time, in a round it previously passed clean. Expected
+     ~68% of the time by the measured catch rate, so this is the prediction that can lose
+     to chance alone, and losing it once would NOT refute the change.
+  2. If it sees it, the fix it writes is `sort.Slice` on ID in List — the spec names the
+     requirement outright, so the model has everything it needs once it is told there is
+     a problem.
+  3. The resulting artifact survives re-running: 12 of 12, not 9 of 12.
+  4. Cost rises somewhat — more rounds than the 2 of the control, since a round that used
+     to pass now fails.
+
+  What would make this a FAILURE worth recording: the loop sees the flake and cannot fix
+  it, or "fixes" it by weakening the test instead of sorting the store. The second is the
+  one to watch for — a model told a list-order test fails can satisfy it by deleting the
+  order assertion, and that would ship greener and worse than the flake did.
