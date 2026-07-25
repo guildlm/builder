@@ -385,3 +385,34 @@ THE FOUR NEW CANDIDATES, SPEC-CHECKED — three genuine, and all three the same 
   choosing invariants to test picks the promise, writes one mutation for it, and moves on
   when it is caught. The mutation lands on whichever site comes to mind — usually the one
   the test already covers, because that is the one they just read.
+
+---------------------------------------------------------------------------
+A THIRD FALSE-POSITIVE CATEGORY — the mutated value is DEAD
+
+  ratelimit's two 429 sites sit on consecutive lines:
+
+      w.WriteHeader(http.StatusTooManyRequests)                       line 17  CAUGHT
+      writeJSON(w, http.StatusTooManyRequests, {"error": "..."})      line 18  SURVIVED
+
+  and `writeJSON` itself calls `w.WriteHeader(status)`. Go ignores a second WriteHeader —
+  it logs "superfluous response.WriteHeader call" and keeps the first status. So line 18's
+  status ARGUMENT cannot affect the response at all: the promise is defended by line 17,
+  the test is right, and the surviving mutation edits a value that is dead.
+
+  NOT a hole. Checked before spending a fleet run on a closure that would have "fixed"
+  nothing and produced a graded, published, wrong result.
+
+  So a SURVIVED row now has three known ways of not being a hole:
+    1. the spec never promised the behaviour        (5 cases — Content-Type)
+    2. the change is real but only reaches a log    (2 cases — statusRecorder default)
+    3. the mutated value is DEAD                    (1 case — this one)
+
+  Each was found by asking a different question — does the SPEC say it, does anything
+  OBSERVE it, and can the value reach the response at all — and none of them is visible in
+  the verdict. A sweep produces candidates; the classification is separate work and it has
+  now cost more thought than the sweep did.
+
+  AND THE DOUBLE WRITE IS ITSELF WORTH SEEING. ratelimit writes the status twice, which Go
+  warns about at runtime and which no test, gate or spec in this project notices. It is
+  not a bug — the response is correct — but it is the shape of one, and the only reason it
+  surfaced is that a mutation landed on the dead half.
