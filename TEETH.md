@@ -28,7 +28,8 @@ so it violates a promise the spec actually makes, then ask whether any test goes
 name, missing assertion) passes the audit while the hole stays open. Names are checkable
 by grep; teeth are not. That is why the mutation tools exist alongside it.
 
-`_hole_hunt.py` exists because the registry reached **29 CAUGHT / 0 SURVIVED** by testing
+`_hole_hunt.py` exists because the registry reached **29 CAUGHT / 0 SURVIVED — 29 of 30
+mutations actually applied** by testing
 invariants someone chose one at a time — which reads as "no holes left" and means "no holes
 left among the ones I thought of". Sweeping instead, across four shapes and every site:
 
@@ -235,3 +236,28 @@ a mutation that removes it (validated by hand — it changes real behaviour, it 
 file, and the correct code passes while the mutant fails *iff* a test defends it), and register
 it in `MUTATIONS`. A mutation that does not apply is reported as `NOAPPLY`, never silently
 counted as CAUGHT.
+
+## The registry has a shelf life
+
+Every mutation is a string lifted from the artifact it was registered against, so it goes
+stale the moment a regeneration renames anything. That expiry is SILENT: a patch that no
+longer applies reports NOAPPLY, and under a heading that says *must not regress*, NOAPPLY
+reads as *nothing regressed*.
+
+Measured 2026-07-25 — healthy against the archive (29 of 30 apply; the odd one out is
+ledger's deliberate `store.go`/`memory.go` either-or pair), but against FRESH trees it
+decayed unevenly: usersapi went 2 live to 0 while ratelimit stayed 1 to 1. So one closure's
+non-regression result was real and the other was nothing, and both printed the same way.
+
+Two things follow, and both are now enforced:
+
+1. **Print the denominator.** The summary states how many mutations actually ran, and a
+   selection where none ran exits nonzero. "0 UNDEFENDED" is also what a suite that ran
+   nothing prints.
+2. **Match by shape, pin where it must discriminate.** `_reverse_id_sort` and
+   `_drop_exists_guard` tolerate renamed receivers, fields and locals, which is what a
+   regeneration actually changes. But tolerance is not free: matching `_drop_exists_guard`
+   by shape alone hit BOTH of taskflow's ErrExists guards (`s.tasks` and `s.projects`),
+   the count test rejected the pair, and a CAUGHT mutation went silently NOAPPLY. One
+   guard in a file means the rename is unambiguous; several means only the registered
+   literal can say which. Re-running the FULL suite is the only reason that did not ship.

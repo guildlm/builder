@@ -64,22 +64,51 @@ def _reverse_id_sort(n: int):
     mirrored list methods share the invariant, so a regen that adds or removes a method reports
     NOAPPLY instead of a false verdict. Used once a spec has a real order-asserting test; taskapi
     is the positive control (robustly defended) that taskflow/usersapi leave open.
+
+    Matched by SHAPE, not by the slice's name. It used to hardcode `out[i]`, and a fresh
+    coder that called the slice `users` produced NOAPPLY — a check that silently did not
+    run, which under a "must not regress" heading reads as a pass. The backreference keeps
+    the two indexes bound to the SAME identifier, so this still cannot straddle two
+    different slices, and the count test below is untouched.
     """
+    _CMP = re.compile(r"return (\w+)\[i\]\.ID < \1\[j\]\.ID")
+
     def apply(text: str) -> str | None:
-        a = "return out[i].ID < out[j].ID"
-        if text.count(a) != n:
+        if len(_CMP.findall(text)) != n:
             return None
-        return text.replace(a, "return out[i].ID > out[j].ID")
+        return _CMP.sub(lambda m: f"return {m.group(1)}[i].ID > {m.group(1)}[j].ID", text)
     return apply
 
 
 def _drop_exists_guard(index_expr: str):
-    """Drop a `if _, ok := <index_expr>; ok { return ErrExists }` duplicate-ID guard (unique)."""
+    """Drop a `if _, ok := <map>[<key>]; ok { return ErrExists }` duplicate-ID guard (unique).
+
+    Tolerant WHERE IT IS SAFE, pinned WHERE IT MUST DISCRIMINATE. Matching the literal
+    `index_expr` made this NOAPPLY on a fresh usersapi tree, where the coder wrote
+    `m.items` for `s.users` and `exists` for `ok` — the same guard, renamed. But matching
+    only by shape broke taskflow, which has TWO ErrExists guards (`s.tasks[t.ID]` and
+    `s.projects[p.ID]`): the shape pattern hit both, the count test rejected the pair, and
+    a mutation that had been CAUGHT went silently NOAPPLY. I claimed tolerating names cost
+    no precision; it cost exactly the precision `index_expr` was there to supply, and the
+    full-suite re-run is the only reason that did not ship.
+
+    So: one guard in the file means the rename is unambiguous, take it. Several means the
+    file has siblings and only the registered literal can say which one, so demand it.
+    """
+    _GUARD = re.compile(
+        r"[ \t]*if _, (\w+) := [\w.]+\[[\w.]+\]; \1 \{\n\s*return ErrExists\n\s*\}\n")
+
     def apply(text: str) -> str | None:
-        blk = f"\tif _, ok := {index_expr}; ok {{\n\t\treturn ErrExists\n\t}}\n"
-        if text.count(blk) != 1:
+        found = _GUARD.findall(text)
+        if len(found) == 1:
+            return _GUARD.sub("\t// MUTANT: duplicate-ID guard removed\n", text)
+        if not found:
             return None
-        return text.replace(blk, "\t// MUTANT: duplicate-ID guard removed\n")
+        pinned = re.compile(
+            r"[ \t]*if _, (\w+) := " + re.escape(index_expr) + r"; \1 \{\n\s*return ErrExists\n\s*\}\n")
+        if len(pinned.findall(text)) != 1:
+            return None
+        return pinned.sub("\t// MUTANT: duplicate-ID guard removed\n", text)
     return apply
 
 
