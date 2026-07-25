@@ -1,0 +1,41 @@
+FINDING — the seven undefended status promises, audited one by one
+===================================================================
+2026-07-26. The systematic version of an audit I had been doing by accident.
+
+The corpus baseline holds seven SURVIVED status rows. A SURVIVED row is a CANDIDATE, and
+the question is always whether the SPEC promises the behaviour that was broken. Asked of
+each:
+
+  jsonapi     main.go  400          ALREADY CLOSED. The row is from the archive, which
+                                    predates today's TestInvalidJSON. On the fresh tree it
+                                    is CAUGHT.
+  shortener   router.go 200         ALREADY CLOSED today (TestHealthOK).
+  ratelimit   middleware 429        NOT A HOLE. Determined earlier today to be a dead
+                                    double-write — the status is set twice and the second
+                                    never reaches the response.
+  kvservice   main.go  400          NOT A HOLE. The spec never mentions 400 at all; the
+                                    branch is the model's own guard on io.ReadAll failing,
+                                    which does not happen for an httptest request body.
+                                    No promise, and effectively unreachable.
+  taskflow    tasks_handler 200     open, on the spec whose closures do not hold
+  taskflow    projects_handler 400  PROMISED and NAMED — spec says "validate -> 400" and
+                                    names TestProjectCreateInvalid. Open in the archive;
+                                    needs re-checking on a fresh tree.
+  taskflow    projects_handler 409  GENUINE, UNNAMED HOLE. The spec promises Create
+                                    returns 409 on a duplicate project, and the named
+                                    project tests are CreateGet, CreateInvalid, Delete,
+                                    DeleteMissing, GetMissing, List — there is no duplicate
+                                    test. Tasks have TestCreateDuplicate; projects do not.
+                                    The asymmetry is in the spec, not the code.
+
+SO: SEVEN CANDIDATES, ONE NEW GENUINE HOLE
+  Two were already closed by today's work, two are not holes at all (one dead value, one
+  unpromised guard), two are on taskflow's already-known open list, and one is new.
+
+  The dead-value and no-promise checks cost a grep each and between them ruled out two runs
+  of roughly twenty minutes. That ratio is the argument for doing this before every closure
+  rather than after an accident.
+
+  The new hole is on taskflow, where a closure is a sample of one draw — measured today as
+  intermittent per test AND per site. So it is recorded as a hole rather than queued as a
+  closure: worth fixing when taskflow's instability is understood, not before.
