@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""How much of the fix loop's target set is BLAMED, and how much is a hypothesis?
+"""How much of the fix loop's target set did the toolchain NAME, and how much did we infer?
 
 The fix loop repairs a wider set of files than the toolchain names. `_offending_files`
 returns the files the error mentions; three wideners then add root-cause candidates (the
@@ -7,17 +7,30 @@ package impl behind a persistent test failure, the package that owes a missing s
 file whose purpose promises an undefined constructor), and when the error names nothing we
 recognise the loop falls back to EVERY file.
 
-Widening is right for repair — the failing test may be the file that is correct. It is
-wrong for ESCALATION: moving a file to a bigger fleet member costs that model's generation
-on every later round, and the live A/B found escalation is not even monotone (an escalated
-member sat on a bug the base had already fixed). So the two decisions need different sets.
+WHY THIS EXISTS, AND WHAT IT SETTLED. It was written to support narrowing escalation to
+blamed files only — moving a file to a bigger fleet member costs that model on every later
+round, and escalation is not even monotone (a live A/B saw an escalated member sit on a bug
+the base had already fixed), so spending it on files nobody blamed looked like waste. The
+measurement REFUTED that, and the refutation is the reason to keep the tool rather than a
+footnote on it:
 
-This measures the gap on real data: every archived failure in generated/ is run through the
-CURRENT deterministic gate chain to a fixpoint (what the loop does before choosing targets),
-and the residual error is fed through the loop's own target computation. It reports, per
-artifact, how many files a fix round would repair and how many of those the toolchain
-actually blamed. The difference is the escalation surface the old rule struck and the new
-rule does not.
+    artifacts where implementation files are being repaired and NOT ONE is blamed
+        compile failures ...  0/13
+        test failures ..... 18/19
+
+A compiler error names an implementation file; a failing assertion names the TEST. So an
+implementation defect that only a test can reveal reaches a stronger model ONLY through
+widening — the inferred targets are not slack in the system, they are the sole route to a
+whole class of defect. shortener confirmed it live: 3/3 GREEN with widening eligible, 2/3
+RED without. See logs/FINDING-escalation-granularity.txt.
+
+So read the numbers below as "how much of a fix round rests on inference rather than
+attribution" — which is a real property of the loop worth watching — and NOT as a budget
+waiting to be cut.
+
+Method: every archived failure in generated/ is run through the CURRENT deterministic gate
+chain to a fixpoint (what the loop does before choosing targets), and the residual error is
+fed through the loop's own `_fix_targets`.
 
 Read-only with respect to generated/ (every artifact is copied first). Needs the Go
 toolchain; no model server, so it is free.
@@ -31,8 +44,8 @@ whose generated tests deadlock, so each of those checks burns the full `go test 
 the progress rows sit in the pipe buffer and it looks like nothing is happening at all.
 
 CAVEATS, because this is a surface measurement and not a fleet A/B:
-  - The archives come from UNROUTED runs, so these are the strikes the old rule WOULD have
-    dealt, not escalations that were observed. The observed number is in guild-code
+  - The archives come from UNROUTED runs, so these are target sets a fix round WOULD have
+    produced, not escalations that were observed. The observed numbers are in guild-code
     RESULT-fleet-ab.txt (12 escalations on a 7-file project).
   - Specs are not archived with the artifacts, so `_widen_promised_symbol_targets` (which
     needs file purposes) contributes nothing here. Every number below is therefore a LOWER
@@ -256,8 +269,11 @@ def main() -> int:
     print(f"  files the toolchain BLAMES: {bl}")
     print(f"  escalation surface removed: {tgt - bl} ({(tgt - bl) / tgt:.0%} of repaired files)")
     print(f"  artifacts where the sets differ: {len(wider)}/{len(live)}")
-    print(f"  artifacts with an UNATTRIBUTED error (old rule struck every file, "
-          f"new rule strikes none): {len(unattr)}/{len(live)}")
+    # Zero in this corpus once go.mod-only shells are excluded. Kept because it is the
+    # one case where escalating every target really would be baseless — worth noticing if
+    # a future run ever produces one, rather than assumed impossible.
+    print(f"  artifacts with an UNATTRIBUTED error (nothing named, so every file is a "
+          f"target on no evidence): {len(unattr)}/{len(live)}")
 
     # The structural question, not the cost question: where blame can never reach.
     unreachable = [r for r in live if r["impl_repaired"] and not r["impl_blamed"]]
