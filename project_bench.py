@@ -62,12 +62,21 @@ def bench_maintain(proj, dev_coder, toolchain, candidates, max_fix_rounds) -> bo
         return False
     with tempfile.TemporaryDirectory() as d:
         _copy_project(proj["dir"], Path(d))
-        before = {p.name: p.read_text() for p in Path(d).rglob("*.go")}
+        # Key by RELATIVE PATH, not basename. Two packages holding a `handler.go` is
+        # ordinary Go, and under basename keys one silently overwrites the other — so a
+        # maintain edit to the shadowed file reads as "nothing changed" and scores as a
+        # failure. Latent today (no bench project currently repeats a basename, checked)
+        # and free to close, unlike the comparison bugs found in _gate_audit this session,
+        # which were live.
+        root = Path(d)
+        snapshot = lambda: {                      # noqa: E731 — local, reads better inline
+            str(p.relative_to(root)): p.read_text() for p in root.rglob("*.go")
+        }
+        before = snapshot()
         ok, _ = maintain(d, req, dev_coder, max_fix_rounds=max_fix_rounds, candidates=candidates)
         if not ok:
             return False
-        after = {p.name: p.read_text() for p in Path(d).rglob("*.go")}
-        changed = after != before
+        changed = snapshot() != before
         green, _ = toolchain.check(d)
         return bool(green and changed)
 
