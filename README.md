@@ -192,7 +192,7 @@ be measurable:
 | `_gate_audit.py` | Which gates fire on real artifacts, and what is left once they run to a fixpoint? (`--regress` re-drives the whole archive; `--mechanisms` finds machinery that never runs at all) |
 | `_escalation_surface.py` | How much of a fix round rests on inference rather than on what the toolchain named? |
 | `_unrouted_compat.py` | Did a fix-loop change alter builds that do not use `--fleet`? Diff two trees instead of arguing. |
-| `_named_test_audit.py` | Did the model write every test the spec NAMES? |
+| `_named_test_audit.py` | Did the model write every test the spec NAMES — and does the spec name a mirrored route's tests at all? |
 | `_teeth_suite.py`, `_mutant_check.sh` | Does a green suite actually defend its contract? (see [TEETH.md](TEETH.md)) |
 | `_deadlock_detector.py` | Does a method re-acquire a mutex it already deferred-unlocked? |
 | `_hole_hunt.py` | Sweep for undefended promises nobody thought to check — four mutation shapes, every site |
