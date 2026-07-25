@@ -172,6 +172,14 @@ _EXPECTED_SILENT = (
     "restored go.mod",              # a guard: go.mod is deterministic-by-construction and
                                     # never handed to the model, so it is never malformed and
                                     # never needs restoring — silent is the healthy state
+    # The SUCCESS line of the final deterministic pass. The pass itself is demonstrably
+    # alive — "final deterministic fix in ..." appears in 17 archived runs — but it has
+    # never flipped a whole build green, in any run, ever. That is the expected shape
+    # rather than a defect: a build that has burned its entire fix budget is failing for
+    # model-shaped reasons (assertions, semantics), and repairing one mechanical straggler
+    # afterwards does not turn that around. Measured, then silenced — an alarm that is
+    # explained but keeps ringing teaches the reader to skip the list.
+    "converged to green on the final",
 )
 
 
