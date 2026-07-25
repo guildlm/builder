@@ -76,3 +76,31 @@ choosing this spec was a misreading of my own data.
        the bare base — the same three members the routing A/B needed. A hole-closing
        experiment run on a spec the coder cannot green is ungradeable by construction, and
        I have now spent two runs learning that twice.
+
+===========================================================================
+ATTEMPT 2 — recorded before the run, per the "next steps" above.
+
+  BOTH corrections applied:
+    a. the spec sentence now says PLAIN TEXT, names rec.Body.String(), and says not to
+       decode it — the defect the first attempt actually had;
+    b. the coder is the three-member FLEET (base 7B :8080, go-dev-final :8081,
+       go-dev-14b :8082, serving control passed), because a bare 7B cannot green this
+       spec — RESULT-fleet-ab.txt has base-only at 2/3 RED and the fleet at 3/3 GREEN.
+       Grading a hole on a spec the coder cannot green is ungradeable by construction.
+
+  PREDICTION
+    1. TestHealthOK is written again. Already demonstrated once; naming works.
+    2. This time it PASSES, because the sentence now says what it needs to say. This is
+       the claim the spec fix stands or falls on.
+    3. The build greens (3/3). Same fleet, same spec family, same budget as the recorded
+       A/B run that reached 3/3.
+    4. THE ACTUAL QUESTION: the /health mutation (StatusOK -> StatusAccepted) flips
+       SURVIVED -> CAUGHT. Everything above is setup; this is the hole closing.
+    5. shortener's registered mutation (redirect 301) stays CAUGHT. If it does not, the
+       spec edit bought one hole and opened another, and I revert.
+
+  If 4 holds, this is the first complete demonstration of the method end to end: sweep
+  finds an undefended promise -> spec names a test -> regeneration writes it -> the
+  mutation that used to survive is caught. Two failed attempts got here, and both failures
+  were mine rather than the method's — an edit that did not match its own plan, and a
+  sentence that was clear only to someone who knew the answer.
