@@ -1,11 +1,29 @@
-"""Grade PREDICTION-taskflow-contenttype-hole.txt against the regenerated artifact.
+#!/usr/bin/env python3
+"""Did a spec edit close the hole it was meant to, and open no other?
 
-Two claims, and the second is the one that would make me revert:
-  (1) the Content-Type mutation flips SURVIVED -> CAUGHT;
-  (2) no previously-CAUGHT taskflow mutation regresses to SURVIVED — a spec edit that
-      buys one hole and opens another is not a fix.
+A hole found by _hole_hunt.py is closed by NAMING a test in the spec — no compiler error
+exists for "a promise nothing checks", so it is the spec-writer's job, not a gate's. Then
+the project is regenerated and the claim has to be graded, which is two questions:
+
+  (1) does the mutation that used to SURVIVE now get CAUGHT?
+  (2) does every mutation that already passed still pass?
+
+(2) is the one that matters and the one it is tempting to skip. A spec edit reaches EVERY
+file's prompt — _file_list puts every purpose into every one — so an edit that buys one
+hole and opens another looks like a success from (1) alone. This project has needed three
+attempts on a single spec edit before.
+
+    python _hole_closed.py <regenerated-artifact-dir> [spec-name]
+
+The spec name defaults to the directory's leading segment; it selects which registered
+mutations in _teeth_suite must not regress. Question (1) currently probes the
+Content-Type shape, which is the one this was built for — a second shape means a second
+probe here, not a flag.
+
+Uses _teeth_suite.verdict_for, so an artifact whose baseline is already red reports
+BASELINE-RED rather than a fake CAUGHT.
 """
-import re, sys, pathlib, shutil, tempfile
+import re, sys, pathlib
 sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
 from _teeth_suite import verdict_for, MUTATIONS, GEN
 
