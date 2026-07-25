@@ -248,6 +248,46 @@ rows += sort_rows()
 print("\n=== shape 4: unwrap an error (%w -> %v) ===")
 rows += wrap_rows()
 surv = [r for r in rows if r[3] == "SURVIVED"]
+# COVERAGE, counted independently of the sweep. Under-sampling was this tool's most
+# repeated defect — three times in one day it probed one site and printed a clean table,
+# and the missing rows were the answer (logs/FINDING-instruments-are-unmeasured.txt).
+# The check deliberately does NOT reuse the sweep's own site selection: it re-scans the
+# corpus for each pattern and compares the totals, so a selector that silently narrows
+# shows up as a gap rather than as a smaller, tidier report.
+def matching_sites(pattern, per_line=False):
+    """Count sites the pattern matches. `per_line` for the LINE-ANCHORED patterns (CODE,
+    HEADER): they start with ^ and are compiled without MULTILINE because the sweep feeds
+    them one line at a time, so scanning whole-file text with them finds nothing. The
+    first version of this counter did exactly that and reported `matched 0, probed 14` —
+    a coverage check that under-counted, in the tool built to catch under-counting."""
+    n = 0
+    for art in GEN.glob("*-v4"):
+        for f in art.glob("*.go"):
+            if f.name.endswith("_test.go"):
+                continue
+            text = f.read_text(errors="ignore")
+            if per_line:
+                n += sum(1 for ln in text.splitlines() if pattern.match(ln))
+            else:
+                n += len(pattern.findall(text))
+    return n
+
+
+print("\ncoverage — sites the patterns match in the corpus vs rows probed above:")
+for label, pat, per_line, probed in (
+    ("status code", CODE, True,
+     len([r for r in rows if "->" in r[2] and "Status" in r[2]])),
+    ("response header", HEADER, True,
+     len([r for r in rows if r[2].startswith("drop ")])),
+    ("sort order", COMPARATOR, False,
+     len([r for r in rows if r[2].startswith("reverse")])),
+    ("error wrapping", WRAP, False,
+     len([r for r in rows if r[2].startswith("%w")])),
+):
+    total = matching_sites(pat, per_line)
+    flag = "" if probed >= total else f"   <- {total - probed} NOT PROBED"
+    print(f"  {label:<16} matched {total:>3}   probed {probed:>3}{flag}")
+
 star = [r for r in rows if r[3] == "SURVIVED*"]
 print(f"\n{len(rows)} probes · {len(surv)} SURVIVED (green build, real behaviour change)"
       + (f" · {len(star)} SURVIVED* (known-benign: a statusRecorder default, log-only)"
