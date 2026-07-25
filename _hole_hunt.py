@@ -70,6 +70,65 @@ def header_rows():
 # absence of a hole.
 ALL_SITES = "--all-sites" in sys.argv
 
+def self_test() -> int:
+    """Prove the hunt can tell a defended status from an undefended one.
+
+    A hole hunter that reports SURVIVED for everything finds "holes" everywhere, and one
+    that reports CAUGHT for everything reports a campaign that is finished. Both read as
+    a result. So: two planted projects whose answer is known before the run, plus the
+    label rule, which is the part most likely to rot silently — it is a string match, and
+    a string match that stops matching just goes quiet.
+    """
+    import tempfile
+    MOD = "module example.com/h\n\ngo 1.23\n"
+    IMPL = ('package main\n\nimport "net/http"\n\n'
+            'func H(w http.ResponseWriter, r *http.Request) {\n'
+            '\tw.WriteHeader(http.StatusNotFound)\n}\n\nfunc main() {}\n')
+    DEFENDED = ('package main\n\nimport (\n\t"net/http"\n\t"net/http/httptest"\n'
+                '\t"testing"\n)\n\nfunc TestH(t *testing.T) {\n'
+                '\trec := httptest.NewRecorder()\n'
+                '\tH(rec, httptest.NewRequest("GET", "/", nil))\n'
+                '\tif rec.Code != http.StatusNotFound {\n\t\tt.Fatalf("got %d", rec.Code)\n\t}\n}\n')
+    BLIND = ('package main\n\nimport (\n\t"net/http/httptest"\n\t"testing"\n)\n\n'
+             'func TestH(t *testing.T) {\n\trec := httptest.NewRecorder()\n'
+             '\tH(rec, httptest.NewRequest("GET", "/", nil))\n\t_ = rec\n}\n')
+
+    def swap(text):
+        return text.replace("http.StatusNotFound", "http.StatusBadRequest", 1)
+
+    failures = []
+    for want, test_src in (("CAUGHT", DEFENDED), ("SURVIVED", BLIND)):
+        with tempfile.TemporaryDirectory() as td:
+            art = pathlib.Path(td) / "art"
+            art.mkdir()
+            (art / "go.mod").write_text(MOD)
+            (art / "h.go").write_text(IMPL)
+            (art / "h_test.go").write_text(test_src)
+            got, note = verdict_for(art, "h.go", swap)
+        if got != want:
+            failures.append(f"a test that {'asserts' if want == 'CAUGHT' else 'ignores'} "
+                            f"the status should be {want}, got {got} ({note})")
+
+    # the label rule, checked directly: it is a string match and string matches rot quietly
+    benign = "\t\trec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}"
+    if "statusRecorder" not in benign:
+        failures.append("the known-benign label would no longer match its own example")
+    if "statusRecorder" in "\t\twriteJSON(w, http.StatusBadRequest, nil)":
+        failures.append("the known-benign label matches an ordinary status write")
+
+    for f in failures:
+        print(f"FAIL: {f}")
+    if failures:
+        return 1
+    print("OK — a defended status is CAUGHT, an unasserted one SURVIVES, "
+          "and the benign label matches only the recorder default")
+    return 0
+
+
+if "--self-test" in sys.argv:
+    raise SystemExit(self_test())
+
+
 rows = []
 for art in sorted(GEN.glob("*-v4")):
     for f in sorted(art.glob("*.go")):
