@@ -83,10 +83,30 @@ target = PINNED or next(
      if not f.name.endswith("_test.go") and PATTERN.search(f.read_text())), None)
 if PINNED and not (NEW / PINNED).exists():
     raise SystemExit(f"--file={PINNED} is not in {NEW}")
-print(f"{LABEL} applies in: {target}")
+# COUNT THE SITES. Grading the pinned file answers "is THIS site defended", and a promise
+# with several sites needs "are they ALL defended" — flipping one probe is a sample of the
+# closure, not the closure. Measured on taskflow: its %w promise has THREE sites and a
+# named test that reaches only the first, so a run graded on one probe read as closed while
+# two sites stayed open. Across its four trees no artifact ever defended more than 4 of the
+# 6 sites its three closed promises span.
+sites = sorted(f.name for f in NEW.rglob("*.go")
+               if not f.name.endswith("_test.go") and PATTERN.search(f.read_text(errors="ignore")))
+print(f"{LABEL} applies in: {target}" + (f"   ({len(sites)} site(s): {', '.join(sites)})"
+                                         if len(sites) > 1 else ""))
 if target:
     v, note = verdict_for(NEW, target, break_it)
     print(f"  (1) {LABEL} -> {v}   [was SURVIVED before the spec edit]")
+    if len(sites) > 1:
+        # Grade every site, not just the pinned one.
+        verdicts = {f: verdict_for(NEW, f, break_it)[0] for f in sites}
+        held = sum(1 for x in verdicts.values() if x == "CAUGHT")
+        print(f"      ALL SITES: {held} of {len(sites)} defended")
+        for f, x in sorted(verdicts.items()):
+            if x != "CAUGHT":
+                print(f"        {f:<22} {x}   <- still open")
+        if held < len(sites):
+            print(f"      NOT CLOSED — a promise is closed when every site is defended,"
+                  f" and {len(sites) - held} of {len(sites)} are not.")
 else:
     print(f"  (1) SKIPPED — nothing for {LABEL} in this artifact")
 
