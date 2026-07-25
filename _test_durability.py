@@ -30,6 +30,35 @@ def written_in_tree(tree: pathlib.Path) -> set[str]:
     return out
 
 
+def entered_spec(spec_path: pathlib.Path, test: str) -> int | None:
+    """Unix time of the commit that first put `test` in the spec, or None if unknown.
+
+    Turns a printed caveat into an actual filter. A test the spec gained recently CANNOT
+    appear in trees generated before it existed, and counting those trees against it
+    reports a brand-new test as intermittent.
+    """
+    import subprocess
+    try:
+        out = subprocess.run(
+            ["git", "log", "-S", test, "--format=%ct", "--", str(spec_path)],
+            capture_output=True, text=True, timeout=30).stdout.split()
+    except Exception:
+        return None
+    return int(out[-1]) if out else None
+
+
+def tree_time(tree: pathlib.Path) -> int:
+    """When the tree was generated, by its newest file.
+
+    mtime is forgeable — a checkout or a copy resets it, as `touch` was shown to do
+    earlier in this repo — so this is a best effort, not a proof. It is only used to
+    EXCLUDE trees that predate a test, which is the direction that can only make the
+    'sometimes' set smaller and more honest.
+    """
+    times = [f.stat().st_mtime for f in tree.rglob("*.go")]
+    return int(max(times)) if times else 0
+
+
 def report(named, per_tree):
     """(always, sometimes, never) — sometimes is the interesting set."""
     always, sometimes, never = set(), {}, set()
@@ -79,22 +108,36 @@ if len(trees) < 2:
 
 named = named_in_spec(spec_path.read_text())
 always, sometimes, never = report(named, trees)
+
+# Drop from `sometimes` any test whose spec entry is NEWER than the trees that lack it.
+tree_times = {name: tree_time(pathlib.Path(a)) for name, a in zip([t[0] for t in trees], args[1:])}
+too_new = {}
+for t in list(sometimes):
+    added = entered_spec(spec_path, t)
+    if added is None:
+        continue
+    eligible = [n for n, tt in tree_times.items() if tt >= added]
+    if len(eligible) < 2:
+        too_new[t] = len(eligible)
+        del sometimes[t]
 print(f"{args[0]}: {len(named)} named in spec, {len(trees)} tree(s)\n")
 print(f"  written EVERY run : {len(always)}")
 print(f"  written SOMETIMES : {len(sometimes)}   <- a closure on one of these is not durable")
 print(f"  written NEVER     : {len(never)}")
 for t, hits in sorted(sometimes.items()):
     print(f"      {t:<34} only in: {', '.join(hits)}")
+for t, n in sorted(too_new.items()):
+    print(f"      {t:<34} TOO NEW to judge — {n} eligible run(s), needs 2")
 if sometimes:
     # A test the spec gained RECENTLY could not appear in trees generated before it
     # existed, and this tool cannot see when a spec entry was added — so "sometimes"
     # mixes genuinely intermittent tests with newly-named ones. Same shape as the
     # live-spec-vs-frozen-artifact problem in _named_test_audit, in a new guise, and
     # worth saying out loud rather than letting the count overstate.
-    print("\n  NOTE: a test named in the spec only recently CANNOT appear in older trees.\n"
-          "  This tool does not know when an entry was added, so 'sometimes' mixes\n"
-          "  intermittent tests with newly-named ones. Check `git log -S<TestName>\n"
-          "  specs/<spec>.yaml` against each tree's date before calling one unstable.")
+    print("\n  NOTE: rows above are judged only against trees generated AFTER the spec named\n"
+          "  them — `git log -S` gives the entry date, tree mtime the generation date. mtime\n"
+          "  is forgeable (a checkout or copy resets it), so this filter is best-effort; it\n"
+          "  only ever EXCLUDES trees, which can shrink 'sometimes' but never inflate it.")
 for t in sorted(never):
     print(f"      {t:<34} in NO run")
 raise SystemExit(1 if (sometimes or never) else 0)
