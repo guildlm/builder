@@ -100,21 +100,24 @@ def sort_rows():
         for f in sorted(art.glob("*.go")):
             if f.name.endswith("_test.go"):
                 continue
-            hit = None
+            hits = []
             for ln in f.read_text(errors="ignore").splitlines():
                 m = COMPARATOR.search(ln)
                 if m:
-                    hit = (f.name, m.group(0), f"{m.group(1)} > {m.group(2)}",
-                           m.group(1).split(".")[-1]); break
-            if not hit:
-                continue
-            rel, line, flipped, field = hit
-            def mut(text, a=line, b=flipped):
-                return text.replace(a, b, 1) if a in text else None
-            v, _ = verdict_for(art, rel, mut)
-            out.append((art.name, rel, f"reverse sort by {field}", v))
-            print(f"{art.name:<26} {rel:<22} {('reverse sort by ' + field):<26} {v}", flush=True)
-            if not ALL_SITES:
+                    hits.append((f.name, m.group(0), f"{m.group(1)} > {m.group(2)}",
+                                 m.group(1).split(".")[-1]))
+                    if not ALL_SITES:
+                        break
+            for rel, line, flipped, field in hits:
+                def mut(text, a=line, b=flipped):
+                    if text.count(a) != 1:
+                        return None      # ambiguous comparator — refuse rather than guess
+                    return text.replace(a, b, 1)
+                v, _ = verdict_for(art, rel, mut)
+                out.append((art.name, rel, f"reverse sort by {field}", v))
+                print(f"{art.name:<26} {rel:<22} {('reverse sort by ' + field):<26} {v}",
+                      flush=True)
+            if hits and not ALL_SITES:
                 break
     return out
 
@@ -133,20 +136,23 @@ def header_rows():
         for f in sorted(art.glob("*.go")):
             if f.name.endswith("_test.go"):
                 continue
-            hit = None
+            hits = []
             for ln in f.read_text(errors="ignore").splitlines():
                 m = HEADER.match(ln)
                 if m:
-                    hit = (f.name, m.group(1), ln.strip()); break
-            if not hit:
-                continue
-            rel, header, line = hit
-            def mut(text, ln=line):
-                return text.replace(ln, "// MUTANT: header dropped", 1) if ln in text else None
-            v, _ = verdict_for(art, rel, mut)
-            out.append((art.name, rel, f"drop {header}", v))
-            print(f"{art.name:<26} {rel:<22} {('drop ' + header):<26} {v}", flush=True)
-            break
+                    hits.append((f.name, m.group(1), ln.strip()))
+                    if not ALL_SITES:
+                        break
+            for rel, header, line in hits:
+                def mut(text, ln=line):
+                    if text.count(ln) != 1:
+                        return None      # ambiguous line — refuse rather than guess
+                    return text.replace(ln, "// MUTANT: header dropped", 1)
+                v, _ = verdict_for(art, rel, mut)
+                out.append((art.name, rel, f"drop {header}", v))
+                print(f"{art.name:<26} {rel:<22} {('drop ' + header):<26} {v}", flush=True)
+            if hits and not ALL_SITES:
+                break
     return out
 
 

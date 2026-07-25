@@ -334,8 +334,24 @@ WHAT THE SWEEP ACTUALLY DOES NOW — three corrections, each found by the previo
     taskflow (StatusConflict, and a second StatusOK). Every one needs the spec check before
     it counts; on past form roughly half will turn out to be behaviour no spec asked for.
 
-  The 1 header and 1 sort site still unprobed are the same per-file-first limit, left in
-  place for now and named here so the number is not mistaken for completeness.
+  COMPLETED — all four shapes now probe every site, and the coverage line proves it:
+
+      status code      123 / 123        response header   10 / 10
+      sort order         7 /   7        error wrapping    10 / 10
+
+      150 probes · 14 SURVIVED · 2 SURVIVED* (known-benign)
+
+  The 14th survivor, surfaced by the last two sites opening up, is ratelimit dropping
+  Content-Type — and its spec never mentions Content-Type, so it joins the spec-gap pile
+  rather than the hole pile. FINAL TALLY: 9 genuine undefended promises, 5 spec gaps
+  (Content-Type in five services, none of which asks for it), 2 known-benign.
+
+  Worth noting what full coverage bought, since it is the end of a long correction
+  sequence: it went 39 probes -> 150 and 9 survivors -> 14, of which THREE were genuine
+  holes and ONE was a false positive that a comment mutation had invented. The false
+  positive is the important one — it was caught by the teeth registry disagreeing, not by
+  the sweep, which is the argument for keeping two instruments that can contradict each
+  other rather than one that everyone trusts.
 
 ---------------------------------------------------------------------------
 THE FOUR NEW CANDIDATES, SPEC-CHECKED — three genuine, and all three the same shape
