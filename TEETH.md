@@ -124,6 +124,14 @@ or VOID entry (CI-ready).
 Two broken-baseline specs (tasks-api-min, tasks-api-noshadownudge) are deliberately excluded:
 they send RED baselines, which make every verdict void.
 
+That headline was **re-verified end to end on 2026-07-25**, after the judgement was
+extracted out of `_run` into `verdict_for(art, rel, mutate)` so `--self-test` could reach
+it. Extracting a function that decides 30 recorded verdicts is exactly the kind of change
+that passes review and quietly moves a number, so the whole suite was re-run rather than
+argued about: **29 CAUGHT / 0 SURVIVED / 1 n·a, unchanged**. A refactor of an instrument is
+not verified by the instrument's own tests — those were written against the new shape — but
+by the numbers it produced before still coming out the same.
+
 The blow-by-blow of each hole found and closed (with the fix-arc predictions and audits) is
 in `logs/FINDING-taskflow-teeth.txt`.
 
