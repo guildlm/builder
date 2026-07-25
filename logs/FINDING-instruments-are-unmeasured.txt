@@ -47,25 +47,32 @@ THE ASYMMETRY IS THE FINDING
   Failure mode in one line: an instrument that is wrong does not error. It prints a
   plausible table.
 
-WHERE THE NEXT ONE IS — the instruments that still cannot be caught being wrong
+WHERE THE NEXT ONE IS — the instruments that could not be caught being wrong
+  Ranked by damage if silently wrong. Same day, the top three were closed; what each
+  self-test is worth is stated by what it catches when the historical defect is put back.
 
-    tool                     self-test    covered by pytest
-    _gate_audit.py           yes          no
-    _escalation_surface.py   yes          no
-    _unrouted_compat.py      NO           no
-    _named_test_audit.py     NO           no
-    _teeth_suite.py          NO*          no
-    _deadlock_detector.py    NO           no    (its logic, mutex_self_deadlock, IS tested)
-    project_bench.py         NO           no
-    score_backend.py         NO           no
+    tool                     self-test   what a planted defect proves
+    score_backend.py         ADDED       a suite that passes while asserting nothing is
+                                         not credited (removing the demotion scores it 3)
+    _teeth_suite.py          ADDED       a red baseline voids the verdict instead of
+                                         reporting a fake CAUGHT (the mistake that cost
+                                         four by-hand runs)
+    _named_test_audit.py     ADDED       a substring is not a match — restoring the
+                                         original `name in blob` fails the check
+    _gate_audit.py           ADDED       an untouched tree reports untouched; one check
+                                         is taken, not two; one corpus selector, one
+                                         gate driver
+    _escalation_surface.py   ADDED       the widening is still visible; kill-debris is
+                                         excluded
+    _deadlock_detector.py    none        its logic (mutex_self_deadlock) IS in the pytest
+                                         suite, so it is the one already covered
+    project_bench.py         none        needs a coder to run; its latent basename defect
+                                         is fixed, the harness remains unchecked
+    _unrouted_compat.py      none        it IS a differ — its output is two dumps compared
+                                         by hand, with little room to be quietly wrong
 
-    * _teeth_suite carries the equivalent discipline in a different form: it refuses to
-      score a mutant whose UNMUTATED baseline is already red (BASELINE-RED, verdict void),
-      after a red baseline produced four fake CAUGHTs by hand. That is the same instinct.
-
-  Ranked by damage if silently wrong: score_backend (every A/B number in the project is
-  its output), _teeth_suite (decides whether an invariant is defended), project_bench
-  (already carries a latent defect), then the rest.
+  So the gap is closed where it was worth closing, and the two that remain are named with
+  the reason rather than left on a list.
 
 WHAT NOT TO CONCLUDE
   Not "add self-tests everywhere". Two of today's six would not have been caught by a
