@@ -84,3 +84,37 @@ WHAT NOT TO CONCLUDE
   The rule that generalises: when an instrument's PROSE and its CODE disagree, the prose is
   usually the intent and the code is usually the bug. Read them against each other before
   trusting a number, and never trust a number that arrived in the direction you wanted.
+
+---------------------------------------------------------------------------
+ADDENDUM, same day — the pattern is not about old code or other people
+
+  The six above were found in instruments written weeks earlier. Later the same day it
+  happened twice more, in tools I wrote MYSELF, hours after writing this finding, while
+  actively looking for exactly this:
+
+    _hole_closed.py    Generalised from a taskflow one-off. The patch changed the code and
+                       silently failed to replace the docstring, so the committed file
+                       described itself as grading one specific prediction while the code
+                       already took a spec argument. My COMMIT MESSAGE went further and
+                       quoted a usage line with a `--drop-header` flag that exists nowhere.
+    _hole_hunt.py      Gained a second mutation shape, an --all-sites mode and a
+                       --self-test in three commits. Its header still announced one shape,
+                       one invocation, and a conclusion from "the first run" that two later
+                       runs had superseded.
+
+  Neither failed. Neither errored. Both would have been read as documentation.
+
+  WHAT THAT CHANGES ABOUT THE CONCLUSION
+    The original framing — instruments are unmeasured, add self-tests — is right and
+    insufficient. A self-test cannot catch a docstring, and both of these tools HAVE
+    self-tests that passed the whole time. The mechanism is simpler and more stubborn: a
+    docstring is written once, at the moment of most understanding, and then the code moves
+    and nothing pulls the prose along. Every edit is individually too small to justify
+    re-reading the header.
+
+    The cheap discipline that actually worked, four times today: after changing a tool,
+    read its own header back against what it now does. It found two of my own defects
+    inside an hour and cost about a minute each. It is the same instinct as the gate
+    campaign's "prove it fires", applied to prose instead of behaviour — with the
+    difference that nothing can automate it, because the thing being checked is whether two
+    descriptions of the same thing still agree.
