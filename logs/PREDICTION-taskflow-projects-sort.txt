@@ -35,3 +35,27 @@ PREDICTION
      that greening it once was not the same as greening it reliably.
   4. TestListSorted (tasks) stays CAUGHT — the two sorts must not collapse into one
      assertion.
+
+GRADED — 2026-07-26
+===================
+      rc=0   1606s   5 fix rounds   4 escalations   GREEN
+
+  1. TestListProjectsSorted written and passes    HIT
+  2. reverse sort by ID SURVIVED -> CAUGHT        HIT — and at BOTH sort sites, not one
+  3. taskflow stays green                         HIT — the risk did not materialise
+  4. TestListSorted (tasks) stays standing        HIT — both comparators now defended
+
+  Prediction 3 was the one that could have cost the hour, and it held: 1606s against the
+  first green run's 1246s, same 5 rounds, same 4 escalations. Asking a fourteen-entry spec
+  for one more named test cost about six minutes and did not destabilise it. Greening it
+  once was not a fluke.
+
+WHAT NOT TO READ INTO THE TOTALS
+  This tree reports 30 of 34 probes could answer · 17 SURVIVED, and the previous green
+  taskflow tree reported 17 SURVIVED too. That is NOT evidence the closure changed nothing.
+  They are different generated trees: different code, different sites, different numbers of
+  applicable probes. The only comparison that means anything here is the one the closure
+  targeted, on the site it targeted, and that one flipped.
+
+  Left explicit because a same-looking total across two runs is exactly the kind of
+  coincidence that gets read as a result.

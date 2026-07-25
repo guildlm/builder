@@ -1,0 +1,36 @@
+FINDING — the two artifacts that look like corpus rot are the only negative control
+====================================================================================
+2026-07-26. Started as cleanup, ended as the opposite.
+
+WHAT LOOKED LIKE ROT
+  tasks-api-min-v4 and tasks-api-noshadownudge-v4 do not compile — handlers.go references
+  ErrNotFound and no file defines it. They are archives of runs the builder gave up on,
+  sitting in generated/ beside successful ones, and every instrument sweeps generated/*-v4
+  indiscriminately. They accounted for 13 of the 150 probes in a headline that had been
+  quoted all day as if all 150 were measurements.
+
+  The obvious move was to delete or regenerate them.
+
+WHAT THE CORPUS ACTUALLY SAYS
+      all 13 BASELINE-RED rows            come from exactly these two artifacts
+      what these two artifacts produce    13 BASELINE-RED, 32 NOAPPLY, and nothing else
+                                          — never a CAUGHT, never a SURVIVED
+
+  So they contribute zero evidence about holes, and they are the ONLY inputs that exercise
+  the BASELINE-RED path at all. That path implements the rule TEETH.md calls central: a
+  mutation whose UNMUTATED baseline is already red is not a CAUGHT, it is a void verdict.
+  Delete these two and the rule still exists, still passes review, and is never executed by
+  anything.
+
+  A green suite would not notice. That is the same shape as everything else found today —
+  a check that stops running looks exactly like a check that finds nothing — except here
+  the trigger would have been TIDYING, which is the version nobody suspects.
+
+ENFORCED, NOT JUST WRITTEN DOWN
+  A test now asserts the corpus contains at least one artifact whose baseline is red, and
+  says why in its failure message. Cleaning them up turns it red instead of quietly
+  disarming the rule. The test does not care WHICH artifacts they are — regenerating these
+  two is fine as long as something still exercises the path.
+
+  Written as a test rather than a comment because a comment is exactly what a person
+  tidying a directory of build artifacts does not read.
