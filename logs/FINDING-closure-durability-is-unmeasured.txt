@@ -94,3 +94,30 @@ A SEPARATE OBSERVATION, WORTH KEEPING APART FROM THE DURABILITY RESULT
   not reach the OUTCOME. That is a different claim from "small specs are stable" and only
   the first half is measured: two specs, two re-runs. It is recorded here mainly so the
   next surprising build time is not read as a signal about correctness.
+
+FOURTH SPEC MEASURED — tasks-api, and it costs nothing
+=======================================================
+Three independent tasks-api trees were already on disk from today's work — the RED one,
+the ID-origin fix, and the -count=4 A/B. Measuring them needed no GPU at all, and I had
+been queuing expensive re-runs without noticing the data was sitting there.
+
+      tasks-api   17 named in spec · 3 trees · ALL 17 written in ALL THREE · 0 intermittent
+                  the %w wrap and its errors.Is assertions present in all three
+      SCOREBOARD
+      ratelimit    3 named   2 trees   0 intermittent   HOLDS
+      jsonapi      2 named   2 trees   0 intermittent   HOLDS
+      tasks-api   17 named   3 trees   0 intermittent   HOLDS
+      taskflow    20 named   3 trees   3 intermittent   2 closures LOST
+      shortener, usersapi                               UNMEASURED
+
+THIS KILLS THE SIZE EXPLANATION PROPERLY
+  I declined earlier to claim "more named tests means less stable", on the grounds that it
+  was the shape of claim refuted three times today. It is now actively refuted rather than
+  merely unsupported: tasks-api names SEVENTEEN tests, three runs apart, and drops none.
+  taskflow names twenty and drops three. Three tests of difference does not separate a
+  perfect record from an unstable one.
+
+  So taskflow remains the only unstable spec in the corpus, and the four hypotheses tried
+  today — per-spec budget, per-file test count, per-file prose length, and now total named
+  tests — are all refuted. The honest position is unchanged and now better evidenced: I do
+  not know why taskflow drops tests, and I know four things it is not.
