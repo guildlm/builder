@@ -62,7 +62,11 @@ def wrap_rows():
             for orig in (sites if ALL_SITES else sites[:1]):
                 def mut(t, a=orig, b=orig.replace("%w", "%v", 1)):
                     return t.replace(a, b, 1) if a in t else None
-                sentinel = re.search(r"Err[A-Za-z]*", text[text.index(orig):][:200])
+                # The sentinel is an ARGUMENT of the call, so look past the format
+                # string — and exclude Errorf itself, which the first version of this
+                # matched every time and printed as the sentinel name.
+                after = text[text.index(orig) + len(orig):][:120]
+                sentinel = re.search(r"\bErr(?!orf\b)[A-Za-z]+", after)
                 tag = f"%w -> %v ({sentinel.group(0) if sentinel else '?'})"
                 v, _ = verdict_for(art, f.name, mut)
                 out.append((art.name, f.name, tag, v))
