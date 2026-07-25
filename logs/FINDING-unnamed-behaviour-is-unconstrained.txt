@@ -1,0 +1,40 @@
+FINDING — "0 intermittent" was measured on what the spec NAMES
+==============================================================
+2026-07-26. A refinement to a claim I made four times today.
+
+THE CLAIM
+  tasks-api, shortener, ratelimit and jsonapi each measured 0 intermittent tests across
+  their trees, against taskflow's 3 of 20. I have been reporting that as "stable".
+
+WHAT "STABLE" ACTUALLY COVERED
+  _test_durability compares the tests the SPEC NAMES against the tests the model WRITES.
+  It says nothing about behaviour the spec never mentions. Asked about one such behaviour —
+  Content-Type on tasks-api's JSON responses, which the spec mentions ZERO times:
+
+      generated/tasks-api-v4   1 site
+      tasksapi-errinvalid      1 site
+      tasksapi-idfix           0 sites
+      tasksapi-count4          0 sites
+
+  The handlers set it in two trees of four and not in the other two. So tasks-api is
+  perfectly stable in what the spec names — 17 of 17 named tests in all three fresh trees
+  — and free-running in what it does not.
+
+  That is not a contradiction, it is the definition. An unnamed behaviour is unconstrained
+  by construction: nothing asks for it, nothing tests it, and the model is equally correct
+  either way. But "0 intermittent" reads as "this spec produces the same artifact every
+  time", and it does not.
+
+WHY IT MATTERS FOR THE TRIAGE TOOL
+  _candidate_triage read tasks-api's Content-Type as a SPEC GAP with a live site, because
+  it looked at the ARCHIVE, where the site exists. On the newest tree the site is not
+  there at all. Both readings are right about the tree they saw; neither is right about
+  "tasks-api". A one-tree answer to a question about a spec is a sample, which is the same
+  lesson the closure audit produced this morning, arriving now from the opposite direction.
+
+THE PRACTICAL CONSEQUENCE
+  The gap is real and worth closing — naming Content-Type in the spec would make the
+  behaviour deterministic instead of a coin flip across runs. And it is worth closing on
+  tasks-api specifically, because its NAMED tests are stable, so a named test is likely to
+  stick. That is the closure to run next, and it is now motivated by a measurement rather
+  than by a survivor row.
