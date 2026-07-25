@@ -231,9 +231,17 @@ for art in sorted(GEN.glob("*-v4")):
         for hit in hits:
             rel, old, line = hit
             new = SWAP[old]
-            def mut(text, o=old, n=new):
-                out, k = re.subn(rf"http\.{o}\b", f"http.{n}", text, count=1)
-                return out if k else None
+            # Mutate the LINE that was found, not the first textual occurrence in the
+            # file. `re.subn(..., count=1)` over whole-file text hits whichever comes
+            # first — and shortener's handlers.go names StatusMovedPermanently in a
+            # DOC COMMENT six lines above the code. The sweep dutifully reported
+            # SURVIVED for a mutation that only ever edited a comment: a hole announced
+            # where none exists, which is the one direction a hole hunter must not fail
+            # in. The site detector already skips comment lines; the mutator did not.
+            def mut(text, ln=line, o=old, n=new):
+                if text.count(ln) != 1:
+                    return None          # ambiguous line — refuse rather than guess
+                return text.replace(ln, ln.replace(f"http.{o}", f"http.{n}", 1), 1)
             v, note = verdict_for(art, rel, mut)
             # LABEL a known-benign shape, do not suppress it. `statusRecorder{..., status:
             # http.StatusOK}` is the DEFAULT a logging middleware records before the
