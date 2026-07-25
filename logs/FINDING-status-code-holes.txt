@@ -92,3 +92,38 @@ SHAPE 2 — drop a response header. 4 more survivors, ONE more real hole.
   the fix for those three is a line in the spec — after which a test can be named for it,
   and only then can teeth defend it. The sweep found them by breaking them, which is the
   only way an unstated promise ever surfaces.
+
+---------------------------------------------------------------------------
+EXHAUSTIVE PASS (--all-sites) — the first-site limit was hiding holes
+
+  Both sweeps above stopped at the FIRST mutable site per artifact, which was a cost
+  decision presented as a method. Probing every site: 23 probes, 9 SURVIVED, three of them
+  new. Applying the spec test to the three:
+
+  1. shortener router.go, StatusOK -> StatusAccepted on /health. REAL, and the cleanest
+     hole found so far. The spec states it outright — `"GET /health" -> 200 "ok"` — and NO
+     test in the artifact touches /health at all. A named behaviour with zero coverage;
+     the endpoint could return anything.
+
+  2. taskflow projects_handler.go, StatusBadRequest -> StatusNotFound on a MALFORMED body.
+     REAL, with a caveat worth stating: the spec names TestMalformedJSON for the TASKS
+     route ("POST truncated bytes -> 400") and names nothing equivalent for PROJECTS,
+     whose named test covers only the empty-name validation branch. So it is not an
+     unstated promise — it is a promise stated for one route and not for its twin. The
+     model wrote the handler correctly both times; only one of them is defended.
+
+  3. usersapi middleware.go, StatusOK -> StatusAccepted. The statusRecorder default again,
+     exactly like taskflow's: log-only output, not worth calling a hole. Second time this
+     exact shape has surfaced, which is itself informative — it is a recurring FALSE
+     positive of this probe and should be recognised rather than re-litigated.
+
+  ==> The cheap pass found 2 genuine holes; the exhaustive pass found 2 more. That is the
+  argument against under-sampling stated as a number, and it lands on the same lesson the
+  teeth campaign is built on: an absence of findings is not an absence of holes. The
+  campaign's 29 CAUGHT / 0 SURVIVED was true of the mutations someone thought to write.
+
+  RUNNING TALLY across both shapes, all sites: 23 probes, 9 survivors, 4 genuine
+  undefended promises (shortener malformed-JSON 400, shortener /health, taskflow response
+  Content-Type, taskflow projects malformed-body 400), 2 recurring log-only false
+  positives, 3 behaviour changes the spec never asked for (which are SPEC gaps, not test
+  gaps).
