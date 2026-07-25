@@ -1,0 +1,41 @@
+PREDICTION — closing shortener's malformed-JSON 400, with the method now proven
+================================================================================
+2026-07-25, written BEFORE the edit. Third hole, first attempt using a recipe that has
+been graded successful end to end (PREDICTION-shortener-health-hole.txt).
+
+THE HOLE
+  handlers.go:26 — `Shorten` returns 400 when json.Decode fails. The spec promises THREE
+  ways to earn a 400: "400 on malformed JSON or when the url field is empty or fails
+  url.ParseRequestURI", and NAMES one test for them:
+      TestShortenBadRequest: POST /shorten with `{"url":""}` -> 400.
+  That covers the empty-field branch. Change the malformed-JSON branch to 404 and the
+  suite stays green.
+
+  This is the shape the sweep is best at and _named_test_audit is blind to: the named test
+  EXISTS, so the audit is satisfied; it is the promise BEHIND the name that is short.
+
+THE EDIT — both lessons from the previous two attempts applied
+  NAME a test (attempt 1's failure was appending a clause to another test's description),
+  and say what the model needs to know rather than what reads well to someone who already
+  knows (attempt 2's failure was "the body is exactly ok" in a JSON-everywhere spec):
+
+      TestShortenMalformedJSON: POST /shorten with a body that is NOT valid JSON —
+      send the raw bytes `{"url":` (truncated on purpose, do not send `{}`) -> 400.
+
+  "Truncated, not `{}`" matters: `{}` is valid JSON and would take the EMPTY-FIELD branch,
+  which is the one already covered. Without that clause the model would very plausibly
+  write a test that passes through the wrong branch and defends nothing — the same class
+  of miss as decoding a plain-text body as JSON.
+
+PREDICTION
+  1. TestShortenMalformedJSON is written and passes. Confidence higher than last time:
+     the recipe is graded, and this spec's other named tests all exist.
+  2. The build greens (3/3) with the fleet. It did 891s ago on the same spec.
+  3. The mutation — StatusBadRequest -> StatusNotFound at handlers.go's FIRST 400 — flips
+     SURVIVED -> CAUGHT.
+  4. TestHealthOK, closed one run ago, stays present and passing; and the registered
+     redirect-301 mutation stays CAUGHT. A method that closes holes one at a time while
+     reopening the last one is not a method.
+
+  (4) is the new question this run adds. The previous grading proved a hole can be closed;
+  this asks whether closures COMPOSE, which is what makes the remaining four worth doing.

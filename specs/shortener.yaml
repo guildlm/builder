@@ -90,7 +90,8 @@ files:
       character outside the alphabet are invalid input).
       WRITE THESE TEST FUNCTIONS, one focused function each, named exactly:
       TestEncodeDecodeRoundTrip, TestEncodeZero, TestDecodeBadCode,
-      TestShortenCreated, TestShortenBadRequest, TestRedirectFound, TestHealthOK,
+      TestShortenCreated, TestShortenBadRequest, TestShortenMalformedJSON,
+      TestRedirectFound, TestHealthOK,
       TestRedirectMissing, TestStatsCountsOneHit.
       NEVER GUESS A SHORT CODE, AND NEVER REACH PAST THE API TO PLANT ONE. The
       code is whatever Save assigned; a test that calls the store directly and
@@ -110,6 +111,10 @@ files:
         h.ServeHTTP(rec2, httptest.NewRequest(http.MethodGet, "/r/"+created.Code, nil))
       TestShortenCreated: the POST above -> 201 and created.Code is non-empty.
       TestShortenBadRequest: POST /shorten with `{"url":""}` -> 400.
+      TestShortenMalformedJSON: POST /shorten with a body that is NOT valid JSON —
+      send the raw bytes `{"url":` (truncated ON PURPOSE; do NOT send `{}`, which
+      is valid JSON and would take the empty-field branch that is already covered)
+      -> 400.
       TestRedirectFound: POST as above, then GET /r/+created.Code -> 301 and the
       Location header EQUALS "http://example.com".
       TestRedirectMissing: on a fresh router, GET /r/missing -> 404.
