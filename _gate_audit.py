@@ -459,11 +459,33 @@ def self_test() -> int:
         if not green_ok or green_touched:
             failures.append("a green tree must report green and untouched")
 
+    # SINGLE SOURCE. Every defect found in this file today lived in a duplicated helper
+    # and was present in only one copy: the gate-fixpoint loop was written twice and both
+    # copies compared toolchain output instead of the tree, and the corpus selector was
+    # written twice with the fixture and kill-debris filters in only one of them. Each had
+    # to be found and fixed separately. A source-level count is a crude guard and it is
+    # exactly proportionate to how the mistake actually happens — someone adding a fourth
+    # mode and copying the loop rather than calling it.
+    # The tokens are assembled rather than written out, or this check would count its own
+    # literals and report a baseline of two. A self-referential guard that miscounts by
+    # exactly the number of times it mentions the thing is its own small lesson.
+    src = pathlib.Path(__file__).read_text()
+    for token, owner in ((("GENERATED" ".iter" "dir("), "archived_failures()"),
+                         (("_run_deterministic" "_gates("), "drive_gates()")):
+        n = src.count(token)
+        if n > 1:
+            failures.append(
+                f"{token} appears {n} times — it belongs to {owner} alone. Every bug found "
+                f"in this file has been a second copy of a helper, fixed in one place and "
+                f"not the other."
+            )
+
     for f in failures:
         print(f"FAIL: {f}")
     if failures:
         return 1
-    print("OK — unchanged trees report unchanged, and one check is taken, not two")
+    print("OK — unchanged trees report unchanged, one check is taken not two, "
+          "and the corpus and gate driver have one implementation each")
     return 0
 
 
