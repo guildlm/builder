@@ -697,6 +697,30 @@ def test_fix_prompt_assertion_failure_steers_toward_fixing_the_test():
     assert "correct the test's expected value" in prompt
 
 
+def test_fix_prompt_blames_the_project_not_the_target_file():
+    """The fix prompt must not tell the model this file is at fault.
+
+    Most repaired files were never named by the toolchain: measured across 32 archived
+    failures, 59% of the files a fix round repairs are ones the error does not mention —
+    they arrive through root-cause widening, and for runtime failures that is the ONLY way
+    an implementation file arrives at all (logs/FINDING-escalation-granularity.txt). A
+    prompt that says "fix the error in this file" would therefore be telling the model
+    something false most of the time, and inviting it to damage a correct file to satisfy
+    a failure that lives elsewhere.
+
+    The current wording scopes the errors to the PROJECT and asks for the file to be made
+    consistent with it, which is the honest framing. This pins that, because it currently
+    holds by careful phrasing alone and reads like an easy thing to 'tighten'."""
+    err = "--- FAIL: TestAdd (0.00s)\n    mathx_test.go:7: Add(1,2) = -1, want 3"
+    prompt = _fix_prompt(_impl_task(), "package stringkit\n", err, None)
+    assert "reported errors for the project" in prompt.lower(), (
+        "the prompt must attribute the failure to the project, not to the target file"
+    )
+    # And for an assertion failure it must say out loud that this file may be the correct
+    # side — the one instruction standing between a widened-in file and a damaging 'fix'.
+    assert "do not change a spec-correct implementation" in prompt
+
+
 def test_fix_prompt_compile_error_has_no_assertion_rule():
     err = "./stringkit_test.go:10: Reverse redeclared in this block"
     prompt = _fix_prompt(_impl_task(), "package stringkit\n", err, None)
