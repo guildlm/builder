@@ -94,6 +94,15 @@ def measure(d: pathlib.Path, tc: GoToolchain, budget: float) -> dict | None:
     module = module_of(d)
     if module is None:
         return None
+    # An archive with no .go files carries no evidence: a run killed during generation
+    # leaves a go.mod and nothing else. Such a shell has nothing to blame and nothing to
+    # repair, so it scores as an UNATTRIBUTED error and inflates precisely the statistic
+    # this tool exists to report — the operator's own kill-debris read back as a finding.
+    # _gate_audit.py already carries this guard, and for the SAME four directories: they
+    # once turned "0 stuck" into "4 stuck" without a gate firing. A directory with no Go
+    # in it is not a failure; it is an absence.
+    if not any(d.rglob("*.go")):
+        return None
     with tempfile.TemporaryDirectory() as tmp:
         work = pathlib.Path(tmp) / d.name
         shutil.copytree(d, work)
