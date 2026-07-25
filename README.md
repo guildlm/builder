@@ -50,14 +50,21 @@ narrow 7–14B Go specialist punch above a big general model:
 - **Non-regressing review pass** (`--review-model`) — after green, the Go *review*
   specialist hunts for semantic bugs a green build hides (off-by-one, wrong status
   code, ignored error). An edit is kept only if the project stays green.
-  Status, stated precisely because the two halves are not equally established:
-  **"never hurt" is verified** — the pass reverts an edit that breaks the build, and
-  tests pin both directions. **"can help" is UNMEASURED at project scale**: this pass
-  has never run in any of the 578 archived runs (no A/B has passed
-  `--review-model`), so its value against real semantic residue is an expectation,
-  not a result. That residue is where the project's remaining failures live — 36 of
-  44 archived failures now compile and fail a TEST — so measuring this is the open
-  question, not a formality.
+  FIRST FIELD MEASUREMENT, 2026-07-25 (logs/FINDING-review-pass-returns-fragments.txt),
+  after this pass had never run in any of the 578 archived runs:
+  - Against a planted, spec-relevant bug that no test covers, the specialist localised
+    it from the SPEC alone — right file, right function, right constant — with no
+    toolchain signal. That is the capability the residue needs: 36 of 44 archived
+    failures now compile and fail a TEST, where no gate can reach.
+  - It was being lost to a reply-format mismatch. Asked for the complete file, the
+    specialist answers like a human reviewer: prose, then the function it fixed. The
+    harness wrote that over the file and reverted the wreckage in silence. Fixed —
+    fragments are now spliced back when every function they declare already exists,
+    and refused otherwise.
+  - On CORRECT code the same pass changed one file, behaviour-neutrally (three method
+    registrations rewritten as equivalent closures). Never-hurt held; help was zero.
+  So: real capability, small churn, N=1 each way. Worth turning on for a spec you are
+  going to read; not yet worth quoting a number for.
 - **Fleet routing / escalation** (`--fleet model@url,model@url`) — the base model
   writes every file; a file that keeps failing the gate is escalated to the next
   member, per file. This exists because no single model wins: on the 48-task dev
@@ -70,9 +77,15 @@ narrow 7–14B Go specialist punch above a big general model:
   with `go test`). Two honest caveats: it costs wall clock (+63% there, and up to
   3.1× on a spec it never greens — cost scales with *unresolved* escalations, so
   the expensive case is the one where routing is not working), and escalation is
-  **not monotone** — a member can sit on a bug the base had already fixed. Which is
-  why only a file the toolchain *blames* is escalated; files pulled into a repair
-  by root-cause widening are fixed but never escalated.
+  **not monotone** — a member can sit on a bug the base had already fixed.
+  Both caveats argued for escalating only files the toolchain *blames*. That was
+  built, measured and REVERTED the same day: shortener went 3/3 GREEN to 2/3 RED and
+  workapi 3/3 to 2/3, on 2 and 5 escalations instead of 12 and 17. A compiler error
+  names an implementation file; a failing assertion names the TEST — so across 32
+  archived failures, 18 of the 19 that fail at runtime are repairing implementation
+  files with NOT ONE of them blamed. Cut the widened files out of escalation and a
+  defect only a test can reveal can never reach a stronger model
+  (logs/FINDING-escalation-granularity.txt).
 
 Measure it at the level that matters with [`score_backend.py`](score_backend.py):
 a whole generated backend scored `build + vet + test + server-runs` (0..4) by the
