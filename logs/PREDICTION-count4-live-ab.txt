@@ -29,3 +29,38 @@ PREDICTION
   it, or "fixes" it by weakening the test instead of sorting the store. The second is the
   one to watch for — a model told a list-order test fails can satisfy it by deleting the
   order assertion, and that would ship greener and worse than the flake did.
+
+GRADED — 2026-07-26
+===================
+                          control (-count=1)      variable (-count=4)
+      rc                        0                       0
+      seconds                 329                     339      (+3%)
+      fix rounds                2                       3
+      escalations               0                       0
+      List() sorts?            NO                      YES     sort.Slice on ID
+      12 full-suite re-runs   9 PASS / 3 FAIL      12 PASS / 0 FAIL
+      order assertions in tests  5                       5     unchanged
+
+  1. the loop SEES a failure                    HIT — TestList200, fix round 1
+  2. the fix is sort.Slice on ID                HIT
+  3. the artifact survives re-running 12/12     HIT
+  4. cost rises somewhat                        HIT — one extra round, +10 seconds
+
+  And the failure mode named in advance did NOT occur. A model told a list-order test
+  fails can satisfy it by deleting the order assertion; this one sorted the store and left
+  all five assertions standing. That was the outcome worth checking for, because it would
+  have shipped greener and worse than the flake.
+
+WHAT IT COST AND WHAT IT BOUGHT
+  Ten seconds and one round, on a run that spends most of its time waiting for a model.
+  In exchange, a defect against an explicit spec requirement — "List returns a copy sorted
+  by ID" — stopped shipping as green.
+
+  The control is the honest comparison and is worth stating bluntly: the same spec, the
+  same fleet, the same models, and an artifact that passed its own build and would have
+  been recorded as a success. The only difference is that the loop was SHOWN the failure.
+  It fixed it in one round once it could see it.
+
+  Caveat that does not go away: -count=4 catches ~68% of a 50/50 flake. This run could
+  have missed, and one miss would not have refuted anything — which is why that was
+  written down before the run rather than after it.
