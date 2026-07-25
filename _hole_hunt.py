@@ -63,6 +63,13 @@ def header_rows():
     return out
 
 
+# Probe every site, not just the first. The first pass stopped at one status write per
+# artifact because it was the cheap sweep; shortener alone has two 400 sites and only one
+# was ever probed, and the one that was probed turned out to be the real hole. Under-
+# sampling in a hole hunt is the same error as a green suite: absence of a finding read as
+# absence of a hole.
+ALL_SITES = "--all-sites" in sys.argv
+
 rows = []
 for art in sorted(GEN.glob("*-v4")):
     for f in sorted(art.glob("*.go")):
@@ -82,7 +89,8 @@ for art in sorted(GEN.glob("*-v4")):
             v, note = verdict_for(art, rel, mut)
             rows.append((art.name, rel, f"{old}->{new}", v))
             print(f"{art.name:<26} {rel:<22} {old}->{new:<26} {v}", flush=True)
-            break
+            if not ALL_SITES:
+                break
 print("\n=== shape 2: drop a response header ===")
 rows += header_rows()
 surv = [r for r in rows if r[3] == "SURVIVED"]
