@@ -51,3 +51,44 @@ comparison has a control rather than a memory.
   GRADING RULE, fixed in advance: the edit succeeds iff (1) becomes CAUGHT and all four
   rows of (2) stay CAUGHT. Any of (2) turning SURVIVED means the edit bought one hole and
   opened another, and I revert rather than argue that the trade was worth it.
+
+===========================================================================
+GRADED — the edit FAILED, and the reason is that I did not make the edit I planned.
+
+  RESULT of the regeneration (7B base, 5 fix rounds, 2817s):
+      score 2/3 — build ok, vet ok, TEST FAIL (TestListLimit)
+      Content-Type assertion: ABSENT from every generated test file
+      _hole_closed: (1) BASELINE-RED, (2) NOAPPLY/BASELINE-RED — every verdict VOID
+
+  (1) "The model writes it." WRONG. It wrote no such assertion anywhere.
+  (2) "The mutation flips SURVIVED -> CAUGHT." Not reached. Nothing to flip.
+  (3) "Blast radius small but not zero." UNRESOLVED, and I will not claim it either way.
+      The failure is TestListLimit — pagination, unrelated to headers — so the topic of
+      the edit is not the topic of the failure. But the archived taskflow-v4 was built by
+      a different model under different settings, so it is not a control for this run. To
+      attribute the red baseline to the edit I would have to regenerate the UNEDITED spec
+      under identical conditions, and until then "the edit broke it" and "the 7B base does
+      not green taskflow at 5 rounds" are equally consistent with what I have.
+
+  WHY IT FAILED — I deviated from my own written plan, and the deviation is the mechanism.
+    This file says, above: "the edit is one named test in taskflow_test.go's purpose:
+        TestWriteJSONSetsContentType: assert a JSON response carries Content-Type ..."
+    What I actually committed appended a clause to an EXISTING test's description:
+        "TestCreateOK: POST a valid task -> 201 and the body echoes it, AND assert the
+         RESPONSE carries Content-Type ..."
+    Those are not the same intervention. This project's law is that the spec NAMES tests —
+    `_named_test_audit` exists to check exactly that, and the whole hole-closing method
+    rests on it. A named test is a thing the model produces and an auditor can find. A
+    subordinate clause inside another test's prose is neither: nothing names it, nothing
+    audits it, and the model dropped it.
+
+  WHAT THIS IS EVIDENCE FOR
+    Weakly, for "naming works and appending does not" — N=1, and confounded by the red
+    baseline. Strongly, for something duller and more useful: writing the plan down did
+    its job. Without this file I would have compared the result against a memory of what I
+    meant to do, found the assertion missing, and concluded the model ignores the spec.
+    The record says otherwise, and it took one grep to see it.
+
+  NEXT: redo the edit as the plan actually specified — a separately NAMED test — and
+  regenerate. Keep this graded entry rather than overwriting it; the failed form is the
+  control for the named form.
