@@ -197,6 +197,8 @@ be measurable:
 | `_deadlock_detector.py` | Does a method re-acquire a mutex it already deferred-unlocked? |
 | `_hole_hunt.py` | Sweep for undefended promises nobody thought to check — four mutation shapes, every site |
 | `_hole_closed.py` | Did a spec edit close the hole it targeted **and open no other**? |
+| `_registry_drift.py` | How many registered mutations survive a REGENERATION? Renames the artifact textually instead of regenerating it — brittleness is a property of the pattern. |
+| `_why_red.py` | Triage a RED artifact: which tests fail, and do they cluster into one shape? |
 
 The habit worth copying is not the tools but what they do to themselves. A checker never
 seen catching anything is indistinguishable from one that does nothing, so
@@ -207,6 +209,18 @@ CAUGHT. That is not paranoia: this session found `_gate_audit` scoring untouched
 as "advanced" because it compared toolchain output that changes between runs of identical
 code, and `_escalation_surface` counting empty archives as evidence for the very hypothesis
 it was measuring. Instruments need instruments.
+
+A later session sharpened the rule. Probing all nine with a target that does not exist
+found **four** that answered about nothing with status 0 — an unmatched spec name printing
+an empty table, a typo'd selector reporting a clean teeth run, an unreadable file exiting
+green. Empty input, unmatched selector and unreadable file all collapse into the output of
+a clean result, because *no findings* is what clean looks like. So every per-item check
+here now prints its **denominator** beside its numerator: how many mutations actually ran,
+how many packages ran tests, how many probes applied. `score_backend.py` prints how many
+tests failed rather than the first one — the line that read `✗ test — --- FAIL: TestX`
+looked identical for an artifact with one failure and one with six, and that ambiguity
+carried two specs as *blocked on coder capability* through two full regenerations. Both
+turned out to be one edit from green.
 
 ## Honest limitations
 
