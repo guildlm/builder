@@ -336,3 +336,36 @@ WHAT THE SWEEP ACTUALLY DOES NOW — three corrections, each found by the previo
 
   The 1 header and 1 sort site still unprobed are the same per-file-first limit, left in
   place for now and named here so the number is not mistaken for completeness.
+
+---------------------------------------------------------------------------
+THE FOUR NEW CANDIDATES, SPEC-CHECKED — three genuine, and all three the same shape
+
+  jsonapi    main.go  two 400 sites: one CAUGHT, one SURVIVED.
+             Spec promises both — "400 for invalid Content-Type" AND "POST an empty
+             message returns 400". GENUINE, half-defended.
+  ratelimit  middleware.go  two 429 sites: one CAUGHT, one SURVIVED.
+             Spec: "when denied it responds 429 with a JSON body". The handler writes the
+             status twice (WriteHeader then writeJSON); one write is pinned, the other is
+             not. GENUINE, half-defended.
+  taskflow   projects_handler.go  409 SURVIVED.
+             Spec: "store it returning 201, 409 on ErrExists". GENUINE.
+  kvservice  main.go  400 SURVIVED, and the spec never mentions 400 at all.
+             NOT a hole — a spec gap, like the three Content-Type cases.
+
+  RUNNING TALLY: 9 genuine undefended promises (was 6), 2 closed, 7 open.
+
+  THE SHAPE IS NOW THE MAJORITY FINDING, not an oddity. Four of the nine — taskflow's
+  ErrValidation (1 undefended wrap of 3), tasks-api's ErrInvalidTask (4 errors.Is asserts,
+  all on the OTHER sentinel), jsonapi's second 400, ratelimit's second 429 — are the same
+  thing: ONE promise, SEVERAL sites in the code, and a suite that pins some of them.
+
+  Every audit that works at the level of a file, an API or a promise reports these as
+  covered, because at that level they ARE covered. "Does the suite check 400?" — yes.
+  "Does it use errors.Is?" — yes, four times. The undefended half is only visible if you
+  ask the question once per SITE, which is what a sweep does and what reading for coverage
+  structurally cannot.
+
+  It also explains why the hand campaign reached 29 CAUGHT / 0 SURVIVED honestly: a person
+  choosing invariants to test picks the promise, writes one mutation for it, and moves on
+  when it is caught. The mutation lands on whichever site comes to mind — usually the one
+  the test already covers, because that is the one they just read.
