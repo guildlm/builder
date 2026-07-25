@@ -51,3 +51,38 @@ PREDICTION
   If tests drop anyway, the per-file story is wrong too and the honest position becomes
   "taskflow drops tests and I do not know why" — which I would rather hold than a third
   explanation fitted to the same handful of runs.
+
+THE PER-FILE STORY DID NOT SURVIVE THE FULL CORPUS EITHER — 2026-07-26
+=======================================================================
+Measured all 24 specs instead of the 6 I had looked at, and the mechanism claim fails:
+
+      spec         max named / test entry     tests dropped
+      workapi              11                       0
+      taskapi              10                       0
+      taskapipro            9                       1
+      tasks-api             8                       1
+      taskflow             13                       3
+
+  workapi carries ELEVEN named tests in one entry and drops nothing. taskapi carries ten
+  and drops nothing. So "an entry above ~9 loses tests" is refuted by the two specs
+  immediately below taskflow.
+
+  The obvious next candidate was prose LENGTH rather than test count — a generation-length
+  limit would be a plausible mechanism. It fails harder:
+
+      ratelimit_test.go   5983 chars,  3 named   dropped 0   <- the LONGEST entry in the repo
+      taskflow_test.go    5141 chars, 13 named   dropped 3
+      service_test.go     4657 chars, 11 named   dropped 0
+
+  The longest entry in the corpus drops nothing.
+
+SO: I DO NOT KNOW WHY TASKFLOW DROPS TESTS
+  Three hypotheses, three refutations, all from the same handful of runs: a per-spec
+  budget, a per-file test count, a per-file prose length. This prediction said in advance
+  that if the per-file story failed I would rather hold "taskflow drops tests and I do not
+  know why" than fit a third explanation. That is now the position.
+
+  The split still runs, and still stands on its own: TestListProjectsSorted belongs in
+  projects_test.go because it tests projects, and the paginate tests share nothing with
+  the handler tests. If the drop stops, that is an EMPIRICAL result about this spec, not
+  a confirmed mechanism — and one spec improving is not evidence for a rule.
