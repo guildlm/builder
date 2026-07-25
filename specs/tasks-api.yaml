@@ -116,6 +116,13 @@ files:
       (Calling Update on the value you passed to Create sends ID 0 and returns
       ErrNotFound.) Then assert Get id 1 has Title "b"; Delete id 1; then Get id 1
       returns ErrNotFound (errors.Is).
+      TestContentTypeJSON: on a fresh router, GET /tasks (or any endpoint that
+      returns JSON) and assert the RESPONSE header Content-Type is exactly
+      "application/json", read off the recorder (rec.Header().Get("Content-Type")).
+      writeJSON MUST set it on every JSON response. Without this the header is written
+      on some runs and not others — measured across four generated trees, present in two
+      — because nothing in this spec asks for it and the model is equally correct either
+      way.
       TestValidateWrapsErrInvalidTask: call Validate() on a Task whose Title is
       empty (or only spaces) and assert errors.Is(err, ErrInvalidTask). Assert
       with errors.Is, NOT by comparing the error MESSAGE — the message is

@@ -1,0 +1,40 @@
+PREDICTION — tasks-api's Content-Type, the first closure motivated by a measurement
+====================================================================================
+2026-07-26. Tenth closure attempt, and the first not found by a survivor row.
+
+WHY THIS ONE
+  Every closure today started from a SURVIVED mutation. This one started from measuring
+  what the spec does NOT say:
+
+      spec mentions Content-Type          0 times
+      handlers set it in                  2 of 4 trees (archive + errinvalid: yes;
+                                          idfix + count4: no)
+
+  So the behaviour is a coin flip across runs, and correctly so — nothing asks for it, so
+  the model is equally right either way. That is a different kind of defect from an
+  undefended promise: there is no promise to defend, and the fix is to make one.
+
+THE PRE-FLIGHT, PER THE RULES NOW ENFORCED
+  sites          1 (writeJSON) where present — a single-site promise, so a one-probe grade
+                 is the right grade
+  reachable      yes: Header().Set precedes w.WriteHeader, so the header reaches the
+                 response. Checked because two candidates today were dead sites.
+  spec promise   none — this is a SPEC GAP, not an undefended promise
+  entry load     handlers_test.go carries 8 named tests, the corpus's second-highest.
+                 taskflow's 13 dropped tests; taskapi's 10 and workapi's 11 did not, so
+                 load is not established as a cause — but it is the one number here that
+                 could argue against adding a ninth.
+
+WHY tasks-api RATHER THAN kvservice, WHICH HAS THE SAME GAP
+  tasks-api's named tests are measured stable: 17 of 17 in all three fresh trees. A named
+  test should therefore stick, which makes this the one spec where a closure can be
+  expected to be durable rather than a single draw. kvservice's equivalent gap sits on an
+  UNREACHABLE branch, so naming it would buy nothing.
+
+PREDICTION
+  1. TestContentTypeJSON is written and passes.
+  2. writeJSON sets Content-Type in the generated tree — the point is to stop it varying.
+  3. drop Content-Type reads CAUGHT.
+  4. All 18 named tests are written — no displacement. This is the one to watch: adding a
+     ninth test to handlers_test.go is exactly the move that preceded taskflow's drops,
+     and tasks-api is the control that says load alone does not cause them.
