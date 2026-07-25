@@ -131,6 +131,34 @@ def drive_gates(work: pathlib.Path, module: str | None, tc: GoToolchain,
     return after_ok, after, written != tree_before
 
 
+def archived_failures() -> list[pathlib.Path]:
+    """The corpus this tool claims to audit: artifacts of runs the builder GAVE UP ON.
+
+    Two exclusions, both learned the hard way.
+
+    Not every directory under generated/ is a failed run. `_bitset-BEFORE`,
+    `_eventbus-AFTER`, `_cachefix-*`, `_iso-*` and friends are hand-built fixtures for
+    other experiments — 193 of them — and several are green ON PURPOSE. Auditing them
+    alongside real failures inflates "already-green" with projects that were never broken,
+    and feeds the residual-gate ranking diagnostics from code no model ever failed on. The
+    ranking is the whole point of question 2, so polluting it is not cosmetic.
+
+    And an archive with no .go files carries no evidence: a run killed during generation
+    leaves a go.mod and nothing else. The gates cannot move a project that has no code, so
+    every such shell counts as STUCK and the scoreboard reports the operator's own
+    kill-debris as a machinery regression. Four of them turned "0 stuck" into "4 stuck"
+    without a single gate changing. A directory with no Go in it is not a failure; it is
+    an absence.
+    """
+    return sorted(
+        p for p in GENERATED.iterdir()
+        if p.is_dir()
+        and (p / "go.mod").exists()
+        and p.name.startswith(("_fail", "_proof"))
+        and any(p.rglob("*.go"))
+    )
+
+
 def audit(d: pathlib.Path, tc: GoToolchain) -> dict | None:
     module = module_of(d)
     if module is None:
@@ -312,13 +340,7 @@ def audit_regression() -> int:
     # then reports the operator's own kill-debris as a machinery regression. Four
     # of them turned "0 stuck" into "4 stuck" without a single gate changing.
     # A directory with no Go in it is not a failure; it is an absence.
-    reds = sorted(
-        p for p in GENERATED.iterdir()
-        if p.is_dir()
-        and (p / "go.mod").exists()
-        and p.name.startswith(("_fail", "_proof"))
-        and any(p.rglob("*.go"))
-    )
+    reds = archived_failures()
     if not reds:
         print("no archived failures yet — nothing to lock")
         return 0
@@ -487,7 +509,7 @@ def main() -> None:
         raise SystemExit(1 if audit_regression() else 0)
 
     tc = GoToolchain()
-    dirs = sorted(p for p in GENERATED.iterdir() if p.is_dir() and (p / "go.mod").exists())
+    dirs = archived_failures()
     if args.current:
         dirs = [
             p for p in dirs
