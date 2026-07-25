@@ -276,3 +276,40 @@ THE THREE "SPEC GAPS", CHECKED RATHER THAN ASSERTED — and they are the fragile
   because the alternative is depending on a model's taste and calling it a contract. Left
   unedited for now — three specs, three regenerations to verify, and an unverified spec
   edit is the thing this session has twice been burned by.
+
+---------------------------------------------------------------------------
+WHAT THE SWEEP ACTUALLY DOES NOW — three corrections, each found by the previous one
+
+  The numbers above were produced by a tool that has since been corrected three times, so
+  they are a floor rather than a measurement. Recorded as method, with counts deliberately
+  left to the re-run rather than written twice:
+
+  1. COVERAGE IS REPORTED. The sweep re-scans the corpus for each pattern, independently
+     of its own site selection, and prints matched-vs-probed. Not a self-report: reusing
+     the selector would let a silently narrowing selector agree with itself.
+
+  2. --all-sites NOW MEANS EVERY SITE. The counter's first output was
+     `status code: matched 123, probed 14` — the flag had been probing one write per FILE
+     while its name, this file's header and two findings all said otherwise. Fixed; the
+     probe count went 39 -> 121.
+
+  3. THE MUTATION TARGETS THE LINE THAT WAS FOUND. It had been doing
+     `re.subn(..., count=1)` over whole-file text, so it edited whichever occurrence came
+     first — and shortener's handlers.go names `http.StatusMovedPermanently` in a DOC
+     COMMENT six lines above the code. The sweep reported SURVIVED for a mutation that only
+     ever edited a comment. A hole announced where none exists, which is the one direction
+     a hole hunter must never fail in.
+
+     It surfaced because the registry disagreed: that redirect has a registered teeth
+     mutation and it has always been CAUGHT. Two independent instruments, neither looking
+     for this, and the contradiction was the signal.
+
+  4. And two more, found by trying to ANALYSE the tool rather than run it: importing it
+     executed a full sweep (module body now under main()), and 27 status sites were skipped
+     silently because StatusInternalServerError had no swap defined — which is the coverage
+     line doing its job, turning an unexplained gap into a specific answer.
+
+  THE PATTERN ACROSS ALL OF THEM: every defect made the sweep report FEWER holes or a
+  cleaner corpus, except the one that invented a hole. Under-sampling and false-positives
+  are not symmetrical risks — the first is invisible and flattering, the second is loud and
+  gets caught by the next instrument that disagrees.
