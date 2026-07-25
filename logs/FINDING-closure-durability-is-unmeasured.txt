@@ -157,3 +157,32 @@ AND THE mtime CAVEAT MATERIALISED, ON MY OWN EDITS
   PRINTS each tree's inferred time. The limitation was documented in the tool's own comment
   before it bit; documenting a limitation does not stop it, and the fix is to make its
   symptom visible rather than to trust the note.
+
+TWO DIFFERENT RESPONSES TO A HARDER SPEC — 2026-07-26
+======================================================
+shortener's Stats-200 edit made one sentence more demanding without adding a test, and the
+run cost 1438s / 9 rounds / 9 escalations against its usual 891-1351s / 0-5 rounds. The
+question that matters is what it did to the OTHER tests:
+
+      shortener, 3 trees, 11 named   10 written every run · TestContentTypeJSON stable in
+                                     both eligible runs · ZERO displaced
+
+  So shortener absorbed the harder sentence entirely in COST. taskflow, given more to do,
+  pays in DROPPED TESTS instead — 3 of 20 intermittent, and TestListProjectsSorted missing
+  from three of the four trees where it was eligible.
+
+  Same pressure, two different responses: one spec gets slower, the other gets smaller.
+  That is a sharper way to state what makes taskflow the outlier than any of the four
+  size-and-load hypotheses that were refuted today, and it is measured on five specs rather
+  than inferred from one run.
+
+  It is a DESCRIPTION, not a mechanism. Why one spec trades time and the other trades
+  coverage is still unknown, and naming the pattern is not the same as explaining it.
+
+FULL SCOREBOARD, all extractors now shared and corrected
+      ratelimit    4 named   3 trees   0 intermittent
+      jsonapi      2 named   2 trees   0 intermittent
+      usersapi     3 named   2 trees   0 intermittent
+      tasks-api   17 named   3 trees   0 intermittent
+      shortener   11 named   5 trees   0 intermittent
+      taskflow    20 named   4 trees   3 intermittent
