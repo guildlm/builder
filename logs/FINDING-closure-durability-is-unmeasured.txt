@@ -73,3 +73,24 @@ THE SCOREBOARD, WITH NOTHING GENERALISED FROM IT
   newly-added ones. Checked by hand against git for taskflow's four — TestPaginateNegativeOffset
   and TestListProjectsSorted are genuinely intermittent across runs where they were eligible;
   TestValidateWrapsErrValidation has exactly one eligible run and proves nothing either way.
+
+THIRD SPEC MEASURED — jsonapi, 2026-07-26
+==========================================
+      jsonapi re-run   rc=0  293s  3 fix rounds
+      2 named in spec · both trees wrote both · 0 intermittent
+      drop Content-Type on the INDEPENDENT tree:  CAUGHT
+
+      ratelimit   MEASURED, 2 trees   0 of 3 intermittent    closure HOLDS
+      jsonapi     MEASURED, 2 trees   0 of 2 intermittent    closure HOLDS
+      taskflow    MEASURED, 3 trees   3 of 20 intermittent   2 closures LOST
+      shortener, usersapi             UNMEASURED
+
+A SEPARATE OBSERVATION, WORTH KEEPING APART FROM THE DURABILITY RESULT
+  jsonapi's first run took 94s with ZERO fix rounds. Its re-run, same spec and same model,
+  took 293s with THREE. Cost varied by 3x while the outcome — green, both tests written,
+  closure intact — was identical.
+
+  So run-to-run variance is real and large in COST, and on these two small specs it did
+  not reach the OUTCOME. That is a different claim from "small specs are stable" and only
+  the first half is measured: two specs, two re-runs. It is recorded here mainly so the
+  next surprising build time is not read as a signal about correctness.
