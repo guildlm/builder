@@ -38,6 +38,27 @@ WHY IT SURVIVES EVERY EXISTING CHECK
   Only a per-SITE sweep sees it, and only because the mirrored code gives the mutation two
   places to land where the spec-writer thought about one.
 
+THE CONTROL THAT SHARPENS IT — taskapi mirrors too, and has none of these holes
+
+  Four of 25 specs use mirror language; only ONE other uses the same phrasing, and it is
+  the decisive case. `taskapi` also says "the same four for Project" — and names its
+  mirror's tests:
+
+                        named tests, tasks side   projects side   holes of this shape
+      taskflow                    13                   6                  3
+      taskapi                     19                  17                  0
+
+  Same idiom, same family of spec, opposite outcome. So "the same, for X" is NOT the
+  cause: mirroring the implementation by reference is fine and taskapi proves it. The hole
+  appears only when the spec mirrors the CODE by reference and then does NOT mirror the
+  TESTS by name.
+
+  That is a much better finding than the one above, because it has a negative control. The
+  variable is isolated: not the idiom, but whether the spec-writer carried the idiom
+  through to the test list. taskflow stopped halfway and the model — correctly, both times
+  — implemented everything it was told to implement and tested everything it was told to
+  test.
+
 WHAT TO DO WITH IT
   When a spec says "the same, for X", it has to say the same about the TESTS — either by
   naming the mirror's tests explicitly, or by naming a single test that covers both routes
