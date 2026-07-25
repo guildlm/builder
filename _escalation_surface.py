@@ -128,10 +128,64 @@ def measure(d: pathlib.Path, tc: GoToolchain) -> dict | None:
         }
 
 
+GO_MOD_FIXTURE = "module example.com/demo\n\ngo 1.23\n"
+
+
+def self_test() -> int:
+    """Prove the measurement can still SEE a widened target set — no toolchain needed.
+
+    The dangerous failure here is silent and looks like good news. `targets_of` seeds the
+    runtime widener's per-directory counter so a persistent test failure widens; if that
+    seeding breaks, no widening fires, every artifact reports blamed == repaired, and the
+    tool concludes there was never a surface to remove. A checker whose null result is
+    indistinguishable from "all clear" has to be shown firing on a planted case — the same
+    reason verify_bench and check_contamination carry self-tests in guild-code.
+    """
+    written = {
+        "go.mod": GO_MOD_FIXTURE,
+        "store.go": "package store\n\nfunc Add(a, b int) int { return a + b }\n",
+        "store_test.go": "package store\n\nimport \"testing\"\n\nfunc TestAdd(t *testing.T) {}\n",
+    }
+    failures = []
+
+    # 1. A persistent runtime failure must widen to the impl, and the impl must NOT be blamed.
+    out = "--- FAIL: TestAdd (0.00s)\n    store_test.go:4: got 3 want 4\nFAIL\n"
+    targets, blamed = targets_of(written, out, "example.com/demo")
+    if blamed != ["store_test.go"]:
+        failures.append(f"runtime failure: expected only the test blamed, got {blamed}")
+    if "store.go" not in targets:
+        failures.append("runtime failure: the impl was NOT widened in — seeding is broken, "
+                        "so every artifact would report zero surface")
+
+    # 2. An error naming nothing known blames nothing but still repairs everything.
+    targets, blamed = targets_of(written, "go: some toolchain complaint\n", "example.com/demo")
+    if blamed:
+        failures.append(f"unattributed error: expected no blame, got {blamed}")
+    if set(targets) != {"store.go", "store_test.go"}:
+        failures.append(f"unattributed error: expected all non-go.mod files, got {targets}")
+
+    # 3. go.mod is restored deterministically and must never be counted as repairable.
+    targets, _ = targets_of(written, "./go.mod:1:1: bad module line\n", "example.com/demo")
+    if "go.mod" in targets:
+        failures.append("go.mod leaked into the repaired set")
+
+    for f in failures:
+        print(f"FAIL: {f}")
+    if failures:
+        return 1
+    print("OK — the widening is visible, unattributed errors blame nothing, go.mod is excluded")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--self-test", action="store_true",
+                    help="prove the measurement fires, without go or generated/")
     args = ap.parse_args()
+
+    if args.self_test:
+        return self_test()
 
     dirs = sorted(p for p in GENERATED.glob("_fail-*") if p.is_dir())
     if args.limit:
