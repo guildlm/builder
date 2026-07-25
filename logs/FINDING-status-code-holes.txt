@@ -236,3 +236,30 @@ EVERY WRAP, NOT ONE PER FILE — "defended" turns out to be a property of a SITE
   and the promise behind the name was broader than the test. Here a suite USES the right
   API and the promise behind the API is broader than the assertions. Both are invisible to
   anything that checks for presence rather than for reach.
+
+---------------------------------------------------------------------------
+THE THREE "SPEC GAPS", CHECKED RATHER THAN ASSERTED — and they are the fragile kind
+
+  Earlier this file called shortener's, tasks-api's and usersapi's Content-Type survivors
+  spec gaps rather than test gaps. Verified:
+
+      spec mentions Content-Type   code sets Content-Type
+      shortener        0                    yes
+      tasks-api        0                    yes
+      usersapi         0                    yes
+
+  So the model writes `Content-Type: application/json` because that is what a JSON handler
+  looks like, not because anything asked. Nothing in the spec requires it, no test reads
+  it, and the deterministic gates have no opinion about it.
+
+  That combination is worth naming: it is behaviour held up by NOTHING but the model's
+  habit of being conventional. It is not a bug today and it is not defended tomorrow —
+  a different sampling temperature, a different adapter, a re-roll, and it can simply stop,
+  with every signal the project has staying green. The teeth campaign's whole premise is
+  that a green suite does not prove a promise holds; this is the case where there is no
+  promise to hold and the behaviour is still expected by whoever consumes the API.
+
+  So the fix really is a spec line, and NOT because a rule says implicit is broken: it is
+  because the alternative is depending on a model's taste and calling it a contract. Left
+  unedited for now — three specs, three regenerations to verify, and an unverified spec
+  edit is the thing this session has twice been burned by.
