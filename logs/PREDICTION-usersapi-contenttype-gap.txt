@@ -36,3 +36,38 @@ PREDICTION
   2. drop Content-Type flips SURVIVED -> CAUGHT at handlers.go.
   3. usersapi's registered mutation (list sort order) stays CAUGHT.
   4. Green or red: NO PREDICTION. Recorded as unknown, deliberately.
+
+GRADED — 2026-07-25
+===================
+      rc=0   482s   4 fix rounds   2 escalations   GREEN with the fleet
+
+  1. TestContentTypeJSON written and passes       HIT  (users_test.go)
+  2. drop Content-Type SURVIVED -> CAUGHT         HIT  (handlers.go)
+  3. registered mutations stay CAUGHT             CANNOT GRADE — see below
+  4. green or red                                 no prediction was made; GREEN
+
+(3) IS VACUOUS AND I AM NOT COUNTING IT AS A PASS
+      store.go   duplicate User ID -> ErrExists (409)      NOAPPLY
+      store.go   List returns users sorted by ID           NOAPPLY
+
+  Both registered mutations are exact strings lifted from the ARCHIVED artifact, and the
+  fresh coder wrote that code differently, so neither patch applied. NOAPPLY means the
+  check DID NOT RUN. Reading it as "no regression" is precisely the failure I documented
+  in four instruments an hour ago — no work done rendering as no problem found — and it
+  showed up in my own result the first time I looked away. The honest statement is that
+  usersapi's non-regression is UNMEASURED, not clean.
+
+THE SECOND MATCHED PAIR, WHICH IS WHY THIS RUN WAS WORTH ITS COST
+      tasks-api   8 entries   RED    (3100s, 9 escalations)
+      usersapi    8 entries   GREEN  (482s, 4 rounds, 2 escalations)
+
+  Same size, opposite outcome — pre-registered before the run as the test of this
+  morning's boundary "from the other side". The refutation no longer rests on ratelimit
+  alone:
+
+      at 7 entries: shortener HARD, ratelimit EASY
+      at 8 entries: tasks-api RED,  usersapi GREEN
+
+  Both sizes now contain both outcomes. Entry count does not order these runs at either
+  end, and "8 is too big" was as much a description of tasks-api as "7 greens" was of
+  shortener.
