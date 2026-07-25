@@ -34,3 +34,34 @@ PREDICTION
 
   The honest risk: taskflow is 14 spec entries and I have no pre-flight signal for
   difficulty — both text predictors died today. This may simply fail somewhere new.
+
+DIAGNOSIS PROVEN BY EXPERIMENT — before the regeneration finished
+==================================================================
+The claim "the implementation is fine, only the test is confused" was an inference from
+reading the failure. Inference is not proof, and the regeneration that would confirm it
+costs the better part of an hour, so it was checked directly instead:
+
+  1. Copy the RED artifact.
+  2. Rewrite TestListLimit BY HAND against the GET recorders. Touch nothing else.
+  3. Run the suite.
+
+      diff -rq  ->  exactly one file differs: taskflow_test.go
+      go test   ->  ok  guildlm.dev/taskflow  0.982s
+
+  From FAIL to green by editing ONE TEST FUNCTION, with every implementation file
+  byte-identical. taskflow's implementation was correct the entire time it was recorded as
+  a coder-capability wall.
+
+WHAT THIS SETTLES, AND WHAT IT DOES NOT
+  Settled: the wall was never in the code the builder writes. It was in the test the
+  builder writes, which is the same model doing a harder job — keeping four recorders
+  straight — and the spec's careful prose did not pin it.
+
+  Not settled: whether SHOWING THE CODE fixes it. That is what the running build tests, and
+  it is a separate question — the hand-written proof shows the target is reachable, not that
+  the model will reach it. Both my hand and the model are writing the same function; only
+  one of them has already read the failure.
+
+  Worth stating plainly: two specs were carrying a "capability wall" label that neither
+  earned. The label came from reading a red score instead of a red SUITE, and it survived
+  two full regenerations because nobody paid the four seconds `go test` costs.
