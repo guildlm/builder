@@ -534,8 +534,10 @@ def main() -> int:
     print(f"{'spec':<12} {'verdict':<9} invariant")
     print("-" * 74)
     undef = void = 0
+    verdicts = []
     for spec, rel, desc, mut in rows:
         verdict, note = _run(spec, rel, desc, mut)
+        verdicts.append(verdict)
         if verdict == "SURVIVED":
             undef += 1
         elif verdict == "BASELINE-RED":
@@ -546,11 +548,17 @@ def main() -> int:
         if verdict in ("NOAPPLY", "SKIP", "BASELINE-RED"):
             print(f"{'':<12} {'':<9} ({note})")
     print("-" * 74)
-    print(f"{undef} invariant(s) UNDEFENDED (suite green on broken code).")
+    # Count what DID NOT RUN alongside what failed. Every row already prints its own
+    # NOAPPLY note, but the summary line is what gets quoted, and "0 invariant(s)
+    # UNDEFENDED" is what a suite where NOTHING APPLIED prints too.
+    noapply = sum(1 for r in verdicts if r in ("NOAPPLY", "SKIP"))
+    print(f"{undef} invariant(s) UNDEFENDED (suite green on broken code); "
+          f"{len(verdicts) - noapply}/{len(verdicts)} mutation(s) actually ran.")
     if void:
         print(f"{void} entr(y/ies) VOID — unmutated baseline already red (verdict untrustworthy).")
     print("SURVIVED = coverage cannot see it; a test never written lowers no number.")
-    return 1 if (undef or void) else 0
+    # A selection where NOTHING ran is a failed run, not a clean one.
+    return 1 if (undef or void or (verdicts and noapply == len(verdicts))) else 0
 
 
 if __name__ == "__main__":

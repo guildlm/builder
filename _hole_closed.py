@@ -92,10 +92,29 @@ else:
 
 # 2. the registered mutations must not regress
 print(f"  (2) previously-registered {SPEC} mutations (must not regress):")
+# NOAPPLY IS NOT A PASS. The registry pins EXACT strings lifted from the ARCHIVED
+# artifact, and a fresh coder writes the same behaviour differently — so against a newly
+# generated tree the patches stop applying and every row reads "· NOAPPLY", which in a
+# list headed "must not regress" looks like nothing regressed. Measured, not assumed:
+# against fresh trees usersapi went 2 live -> 0 (the check was entirely vacuous and I
+# nearly reported it as clean), while ratelimit stayed 1 -> 1 and its CAUGHT was real.
+# So: say how many actually RAN, and refuse to exit 0 when none did.
+ran = noapply = 0
 for spec, rel, desc, mut in MUTATIONS:
     if spec != SPEC:
         continue
     if mut is None:
         print(f"      {rel:<16} {desc[:44]:<44} (no mutator)"); continue
     v, _ = verdict_for(NEW, rel, mut)
+    if v == "NOAPPLY":
+        noapply += 1
+    else:
+        ran += 1
     print(f"      {rel:<16} {desc[:44]:<44} {v}")
+if noapply:
+    print(f"      -> {ran} mutation(s) actually ran, {noapply} did NOT APPLY to this tree.")
+if noapply and not ran:
+    raise SystemExit("      REGRESSION UNMEASURED — every registered mutation failed to "
+                     "apply.\n      This is not 'no regression'; it is no check. Re-pin the "
+                     "mutations against\n      this artifact before claiming the closure "
+                     "composes.")

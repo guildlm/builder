@@ -1,0 +1,54 @@
+FINDING — the mutation registry is pinned to the ARCHIVE and decays silently
+============================================================================
+2026-07-25. Found in my own result, one hour after documenting the same shape elsewhere.
+
+HOW IT SURFACED
+  Grading the usersapi closure, the "must not regress" section printed
+
+        store.go   duplicate User ID -> ErrExists (409)      NOAPPLY
+        store.go   List returns users sorted by ID           NOAPPLY
+
+  Under a heading that says must not regress, two NOAPPLY rows read as nothing regressed.
+  They mean the check DID NOT RUN.
+
+MEASURED, TEXT ONLY, NO GO AND NO MODEL
+  Against the ARCHIVE the registry is healthy:
+        30 registered · 29 apply · 1 dead by design (ledger keeps a store.go/memory.go
+        either-or pair for the same invariant, only one of which exists in a given run)
+        · 1 special-cased
+
+  Against FRESHLY GENERATED trees it decays, and unevenly:
+        usersapi    2 live on the archive  ->  0 live on the fresh tree
+        ratelimit   1 live on the archive  ->  1 live on the fresh tree
+
+  So ratelimit's CAUGHT was a real non-regression result and usersapi's was nothing at
+  all — and the two printed in the same format, which is why I published the usersapi
+  closure with the caveat but only found the magnitude afterwards.
+
+WHY IT DECAYS
+  Every mutation is an EXACT string lifted from the artifact it was registered against.
+  A fresh coder writes the same behaviour differently — a renamed receiver, a reordered
+  guard, one line instead of three — and the patch stops applying. Nothing is wrong with
+  the code and nothing is wrong with the registry; they have simply drifted apart, and
+  drift is invisible because its output is the absence of findings.
+
+FIXED IN BOTH TOOLS, EACH PROVEN BOTH WAYS
+  _hole_closed  now reports "N ran, M did not apply" and EXITS NONZERO when none ran,
+                with the message that this is not "no regression", it is no check.
+                Fires: usersapi's fresh tree, rc=1. Does not over-fire: ratelimit's fresh
+                tree still rc=0.
+  _teeth_suite  the summary line now states how many mutations ACTUALLY RAN, and a
+                selection where none ran exits nonzero. Its headline was "0 invariant(s)
+                UNDEFENDED", which is also what a suite that ran nothing prints.
+                Fires: reformatting the guarded block onto ONE LINE — still compiling, so
+                the baseline stays green and NOAPPLY is isolated from BASELINE-RED, which
+                exits 1 too and would have let the proof pass for the wrong reason —
+                gives "0/1 actually ran", rc=1. Restored: "1/1", rc=0.
+
+THE RESIDUE
+  A verdict registry is a measurement instrument with a shelf life, and its expiry is
+  silent by construction. Any check that reports per-item verdicts needs a denominator —
+  how many items were examined — beside the numerator, or "0 problems" and "0 examined"
+  compress to the same sentence. That is the third form of this failure found today, after
+  four instruments answering about nothing and an audit comparing a live spec to a frozen
+  artifact.
