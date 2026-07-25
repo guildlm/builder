@@ -1,0 +1,68 @@
+FINDING — weak-base fuzzing produces failures the production models never make
+==============================================================================
+2026-07-25, local MLX ($0). Testing the strategy the save point recommended as the
+gate campaign's natural continuation: run a much weaker base over specs, collect NEW
+failure modes, mine them for new deterministic gates.
+
+THE PREMISE, which is sound
+  New gate shapes come from NEW failing runs, not from re-mining a backlog the chain has
+  already grown to cover (FINDING-gate-mining, confirmed again today: the corpus's only
+  cross-spec residual is the arity gap that was refused on purpose). So generate new
+  failures. A weak base fails faster and more often, so it looks like the cheap way.
+
+SETUP: base = Qwen2.5-Coder-1.5B-Instruct-4bit on :8083 (serving control passed, the port
+does not echo the 7B), `guildlm-build main` at --max-fix-rounds 5, specs kvservice,
+logstats, bitset. Production for comparison = the 578 archived run logs, which are 7B and
+14B.
+
+WHAT IT PRODUCED, AND HOW OFTEN PRODUCTION PRODUCES IT
+  kvservice, terminal failure — the model called a CONSTANT as a function:
+      http.StatusInternalServerError(w, err)
+      ./main.go:25:4: invalid operation: cannot call http.StatusInternalServerError
+      (untyped int constant 500): untyped int is not a function
+  It obviously meant `http.Error(w, err.Error(), http.StatusInternalServerError)`. A
+  tempting gate: the callee is unambiguously not callable, and the status the model wanted
+  is named right there.
+
+  logstats, terminal failure — raw syntax breakage plus cross-file redeclaration:
+      ./main.go:160:155: syntax error: unexpected } in argument list
+      ./parse.go:29:6: ParseLine redeclared in this block
+
+  Prevalence of each shape across the 578 production logs:
+
+      untyped int is not a function .....    0 hits in   0 logs
+      syntax error: unexpected ..........    0 hits in   0 logs
+      redeclared in this block ..........    2 hits in   2 logs
+      not enough arguments in call ......   39 hits in   7 logs   <- for scale
+
+  So both shapes this campaign surfaced occur ZERO times in every run the project has ever
+  made with the models it actually uses. Meanwhile the most common real shape — the arity
+  gap — was already known and already refused on purpose, because filling it means guessing
+  a value, and a wrong guess compiles, fails an assertion and misleads the fix loop.
+
+WHY THIS HAPPENS (the part that generalises)
+  A gate is worth building when a shape RECURS in the runs you care about. Failure modes
+  are not a single ordered list that a weaker model simply gets further down — they are
+  different populations. A 1.5B breaks Go's grammar and misuses the standard library's
+  identifiers; a 7B writes syntactically valid, idiomatic-looking Go and gets the SEMANTICS
+  wrong. Gates can only reach the first population, which is exactly the one the production
+  models have already left behind.
+
+  That is the same wall the gate campaign hit from the other side: 36 of 44 archived
+  failures now compile and fail a TEST. The chain has cleared the mechanical stratum for
+  these models. Fuzzing a weaker model does not find new mechanical shapes for the 7B; it
+  finds mechanical shapes for the 1.5B.
+
+DECISION
+  Do NOT gate `http.Status*(...)` called as a function. 0/578 in production; it would be a
+  gate that never fires, and this project measured a prompt-leak gate, found the corpus
+  clean and skipped it for exactly that reason. Recorded here so the next person who
+  meets this error does not rediscover it and build the gate.
+
+  Do NOT continue weak-base fuzzing as a gate-mining strategy at this ratio. If the
+  campaign is resumed, fuzz with the PRODUCTION base on HARDER specs — same population,
+  new samples — rather than with a weaker model on easy ones.
+
+SCOPE, stated plainly: one weak model, three specs, two analysed at the time of writing
+(bitset was still running). N is small. What is NOT small is the prevalence measurement:
+zero occurrences across 578 real runs is not a sampling accident.
