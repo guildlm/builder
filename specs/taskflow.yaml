@@ -141,7 +141,9 @@ files:
       Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. A fresh
       router is EMPTY, so any case with a precondition must CREATE it FIRST, by
       POSTing, in its own body:
-      TestCreateOK: POST a valid task -> 201 and the body echoes it.
+      TestCreateOK: POST a valid task -> 201 and the body echoes it, and assert the
+      RESPONSE carries Content-Type: application/json (rec.Header().Get(
+      "Content-Type")) — writeJSON promises that header and nothing else checks it.
       TestCreateInvalid: POST a task with a NON-EMPTY title but an INVALID status —
       exactly this body: {"id":"1","title":"x","status":"nope"} -> 400. The title is
       non-empty ON PURPOSE: Validate rejects BOTH an empty title AND a status outside

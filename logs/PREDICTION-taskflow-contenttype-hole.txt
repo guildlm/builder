@@ -1,0 +1,34 @@
+PREDICTION — closing taskflow's Content-Type hole by naming a test
+==================================================================
+2026-07-25, written BEFORE the spec edit and the regeneration.
+
+THE HOLE (logs/FINDING-status-code-holes.txt, shape 2)
+  taskflow's spec promises "writeJSON(w, status int, v any) that sets Content-Type
+  application/json and encodes v". Deleting that header line entirely leaves the suite
+  GREEN — the tests only ever set Content-Type on REQUESTS, never read it off a response.
+  A promise defended by nothing.
+
+THE FIX, and why it belongs to the SPEC
+  Not a gate: no compiler error exists for "a header the spec wanted is missing". Not a
+  prompt default either — the spec already SAYS it, and the model already DID it. What is
+  missing is a test that would notice if it stopped. By this project's law, naming the
+  test is the spec-writer's job, so the edit is one named test in taskflow_test.go's
+  purpose:
+
+      TestWriteJSONSetsContentType: assert a JSON response carries
+      Content-Type: application/json.
+
+PREDICTION
+  1. The model writes it. This is the easy shape — one assertion on a recorder's header —
+     and the spec's other named tests of the same difficulty all exist in the artifact.
+  2. The mutation flips SURVIVED -> CAUGHT. That is the whole point and is the only claim
+     I would call a failure if it does not happen.
+  3. BLAST RADIUS: small but NOT zero, and this is where I have been wrong before. The
+     recorded lesson is that a spec edit's blast radius is spec-specific and bidirectional
+     — `_file_list` puts every purpose into every prompt, so adding a sentence to
+     taskflow_test.go's purpose changes the prompt for EVERY file in taskflow. I expect the
+     other files to come back equivalent, and I expect to have to check rather than assume,
+     because the last four times this project edited a spec it needed three attempts on one
+     of them.
+  4. What would make me revert: any OTHER previously-CAUGHT mutation in taskflow going
+     SURVIVED, which would mean the edit bought one hole and opened another.
