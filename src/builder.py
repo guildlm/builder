@@ -511,7 +511,25 @@ class GoToolchain:
         #
         # sync.RWMutex is not reentrant, and that trace says so in two lines. We were
         # killing the only witness and then asking the model to solve the murder.
-        return self._run(["test", "-timeout", "60s", "./..."], cwd)
+        #
+        # -count=4 — REPEAT THE SUITE, because one run is a sample. Go randomises map
+        # iteration per run, so a store that ignores its spec's "sorted by ID" passes
+        # about as often as it fails, and the fix loop never sees a failure to fix. That
+        # is not hypothetical: a tasks-api build returned rc=0 with a List() that does not
+        # sort, and re-running its suite gave 9 pass / 3 fail over 12.
+        #
+        # The number is measured, not chosen. On that artifact:
+        #     -count=1  25% caught     -count=2  43%     -count=4  68%
+        # which is exactly 1-(1-p)^n, so the repeats behave as independent trials.
+        #
+        # Both objections were measured before this landed rather than argued:
+        #   * "a test with state leakage between runs will newly fail and the model will
+        #     "fix" a defect that is not there" — all 25 archived artifacts under -count=1
+        #     and -count=4: ZERO new failures.
+        #   * "four runs will not fit the 60s timeout" — worst suite in the archive goes
+        #     2.4s to 10.6s. The budget is not close.
+        # It still misses 32%: this lowers the odds of shipping a coin flip, not to zero.
+        return self._run(["test", "-timeout", "60s", "-count=4", "./..."], cwd)
 
     def check(self, cwd: str | Path) -> tuple[bool, str]:
         """Run build, then vet, then test; stop at the first failure.

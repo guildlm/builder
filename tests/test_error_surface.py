@@ -195,3 +195,29 @@ def test_a_deadlock_reaches_the_model_as_a_stack_trace_not_just_timed_out(tmp_pa
     # the whole point: the failure names WHERE, so a later round has something to fix
     assert "Add" in out and "Get" in out
     assert "RWMutex" in out or "sync." in out
+
+
+def test_test_stage_repeats_the_suite():
+    """`go test` must run the suite MORE THAN ONCE.
+
+    One run is a sample, not a verdict: Go randomises map iteration per run, so a store
+    that ignores its spec's "sorted by ID" passes about as often as it fails and the fix
+    loop never sees a failure to fix. A tasks-api build shipped rc=0 exactly that way —
+    re-running its suite afterwards gave 9 pass / 3 fail over 12.
+
+    Pinned as a test because the flag is invisible in behaviour until the day it matters:
+    a suite that passes looks identical whether it ran once or four times, so nothing else
+    here would notice if the flag were dropped.
+    """
+    calls = []
+
+    class Recorder(GoToolchain):
+        def _run(self, args, cwd):
+            calls.append(args)
+            return True, ""
+
+    Recorder().test("/tmp")
+    assert calls, "test() did not invoke the toolchain at all"
+    assert "-count=4" in calls[0], f"the suite is run only once: {calls[0]}"
+    # Four runs share ONE budget, so the timeout must survive alongside the repeat.
+    assert "-timeout" in calls[0], f"timeout dropped: {calls[0]}"
