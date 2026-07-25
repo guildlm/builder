@@ -129,12 +129,15 @@ def _drop_content_type(mime: str):
 
 def _tf_drop_status(text: str) -> str | None:
     """taskflow: remove the bad-status branch of Task.Validate (title check stays)."""
-    blk = ('\tif t.Status != "todo" && t.Status != "doing" && t.Status != "done" {\n'
-           '\t\treturn fmt.Errorf("%w: bad status %q", ErrValidation, t.Status)\n'
-           '\t}\n')
-    if text.count(blk) != 1:
+    # Pinned to the guard's SHAPE, not to its error message. The literal version carried
+    # `fmt.Errorf("%w: bad status %q", ErrValidation, t.Status)`, and a regeneration that
+    # wrote "invalid status" instead — same behaviour, different words — silently turned
+    # this into NOAPPLY. The condition is the invariant; the message is prose.
+    rx = re.compile(r'[ \t]*if t\.Status != "todo" && t\.Status != "doing" && '
+                    r't\.Status != "done" \{\n.*?\n[ \t]*\}\n', re.S)
+    if len(rx.findall(text)) != 1:
         return None
-    return text.replace(blk, "\t// MUTANT: bad-status validation removed\n")
+    return rx.sub("\t// MUTANT: bad-status validation removed\n", text)
 
 
 def _tf_drop_paginate_clamp(text: str) -> str | None:
@@ -330,12 +333,22 @@ def _pq_reverse_less(text: str) -> str | None:
 
 def _ja_drop_405(text: str) -> str | None:
     """jsonapi: drop the non-POST -> 405 method guard so any method falls through."""
-    blk = ("\t\tif r.Method != http.MethodPost {\n"
-           '\t\t\thttp.Error(w, "method not allowed", http.StatusMethodNotAllowed)\n'
-           "\t\t\treturn\n\t\t}\n")
-    if text.count(blk) != 1:
+    # Tolerant of INDENTATION and of HOW the 405 is written. The literal was pinned to two
+    # tabs and to http.Error; I widened the indentation first and it still did not apply,
+    # because the real difference was the API: the archive writes
+    #     http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+    # and a regeneration writes
+    #     w.WriteHeader(http.StatusMethodNotAllowed)
+    # Both are correct and both return 405. The invariant is "a non-POST gets 405", not
+    # which helper delivers it — a distinction I got wrong once before fixing it, and the
+    # first comment here confidently named the wrong cause.
+    rx = re.compile(r"[ \t]*if r\.Method != http\.MethodPost \{\n"
+                    r"[ \t]*(?:http\.Error\([^)]*|w\.WriteHeader\()"
+                    r"(?:http\.)?StatusMethodNotAllowed\)\n"
+                    r"[ \t]*return\n[ \t]*\}\n")
+    if len(rx.findall(text)) != 1:
         return None
-    return text.replace(blk, "\t\t// MUTANT: non-POST 405 guard removed\n")
+    return rx.sub("\t\t// MUTANT: non-POST 405 guard removed\n", text)
 
 
 # (spec, relative file, description, mutation). One promise per entry.
