@@ -13,7 +13,7 @@ file's prompt — _file_list puts every purpose into every one — so an edit th
 hole and opens another looks like a success from (1) alone. This project has needed three
 attempts on a single spec edit before.
 
-    python _hole_closed.py <regenerated-artifact-dir> [spec-name] [--probe=content-type|status] [--file=router.go]
+    python _hole_closed.py <regenerated-artifact-dir> [spec-name] [--probe=content-type|status|badrequest] [--file=router.go]
 
 The spec name defaults to the directory's leading segment; it selects which registered
 mutations in _teeth_suite must not regress. Question (1) probes whichever shape _hole_hunt used to FIND the hole, chosen with
@@ -41,6 +41,10 @@ PROBES = {
         re.compile(r'\bhttp\.StatusOK\b'),
         "http.StatusAccepted",
         "StatusOK -> StatusAccepted"),
+    "badrequest": (
+        re.compile(r'\bhttp\.StatusBadRequest\b'),
+        "http.StatusNotFound",
+        "StatusBadRequest -> StatusNotFound"),
 }
 PROBE = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--probe=")),
              "content-type")

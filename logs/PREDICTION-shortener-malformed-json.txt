@@ -39,3 +39,39 @@ PREDICTION
 
   (4) is the new question this run adds. The previous grading proved a hole can be closed;
   this asks whether closures COMPOSE, which is what makes the remaining four worth doing.
+
+===========================================================================
+GRADED — ALL FOUR HELD. Second closure, and closures COMPOSE.
+
+  RUN: 3-member fleet, 1351s, 7 fix rounds, 12 escalations, rc=0.
+
+    1. TestShortenMalformedJSON written and passing              YES
+    2. Build greens                                        3/3 GREEN
+    3. malformed-JSON mutation (StatusBadRequest -> StatusNotFound, handlers.go)
+           unedited artifact  SURVIVED   <- control, the hole as found
+           regenerated        CAUGHT     <- closed
+    4. Previous closure holds: TestHealthOK still present, /health mutation still
+       CAUGHT, and the registered redirect-301 mutation still CAUGHT.
+
+  (4) is what this run was for. The first closure proved a hole CAN be closed; this one
+  shows the second closure does not cost the first. Both named tests are in the artifact,
+  both mutations are caught, and the registered mutation is untouched — so the spec
+  accumulates defended promises instead of trading them.
+
+  That matters more than one more closed hole, because the remaining backlog is four holes
+  in two specs. If closures did not compose, each one would need the others re-verified
+  after every edit and the method would not scale past a demonstration. They do, and the
+  cost is one fleet run per hole.
+
+  THE CONTROL IS THE PART I ALMOST SKIPPED. Grading only the regenerated artifact shows
+  CAUGHT and proves nothing — CAUGHT is also what a mutation that never applied looks like,
+  and what a wrongly-pinned file looks like (that exact false positive was caught in
+  _hole_closed two hours ago). Running the same probe against the UNEDITED artifact first
+  gives SURVIVED, which is the only thing that makes the CAUGHT mean anything.
+
+  METHOD SCORECARD after three attempts and two closures:
+    - naming a test works; appending a requirement to another test's description does not
+    - the spec sentence must be unambiguous to a reader who does not know the answer
+    - a hole cannot be graded on a spec the coder cannot green (shortener needs the fleet)
+    - grade against a before-table, not against the expectation
+    - closures compose
