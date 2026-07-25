@@ -112,6 +112,7 @@ always, sometimes, never = report(named, trees)
 # Drop from `sometimes` any test whose spec entry is NEWER than the trees that lack it.
 tree_times = {name: tree_time(pathlib.Path(a)) for name, a in zip([t[0] for t in trees], args[1:])}
 too_new = {}
+stable_among_eligible = {}
 for t in list(sometimes):
     added = entered_spec(spec_path, t)
     if added is None:
@@ -120,12 +121,24 @@ for t in list(sometimes):
     if len(eligible) < 2:
         too_new[t] = len(eligible)
         del sometimes[t]
+        continue
+    # RE-EVALUATE, do not just count. The first version filtered only on how MANY trees
+    # were eligible and left the verdict from the all-trees pass untouched, so a test
+    # present in every ELIGIBLE tree but missing from older ones was still reported
+    # intermittent. shortener's TestShortenMalformedJSON is exactly that: it appears in
+    # both trees generated after the spec named it, and was being called unstable.
+    hits = set(sometimes[t])
+    if set(eligible) <= hits:
+        stable_among_eligible[t] = eligible
+        del sometimes[t]
 print(f"{args[0]}: {len(named)} named in spec, {len(trees)} tree(s)\n")
 print(f"  written EVERY run : {len(always)}")
 print(f"  written SOMETIMES : {len(sometimes)}   <- a closure on one of these is not durable")
 print(f"  written NEVER     : {len(never)}")
 for t, hits in sorted(sometimes.items()):
     print(f"      {t:<34} only in: {', '.join(hits)}")
+for t, el in sorted(stable_among_eligible.items()):
+    print(f"      {t:<34} stable — in ALL {len(el)} run(s) since the spec named it")
 for t, n in sorted(too_new.items()):
     print(f"      {t:<34} TOO NEW to judge — {n} eligible run(s), needs 2")
 if sometimes:

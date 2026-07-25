@@ -86,3 +86,38 @@ SO: I DO NOT KNOW WHY TASKFLOW DROPS TESTS
   projects_test.go because it tests projects, and the paginate tests share nothing with
   the handler tests. If the drop stops, that is an EMPIRICAL result about this spec, not
   a confirmed mechanism — and one spec improving is not evidence for a rule.
+
+GRADED — 2026-07-26
+===================
+      rc=0   1683s   5 rounds   4 escalations   GREEN
+
+  1. all 20 named tests written        MISS — 19 of 20
+  2. reverse sort CAUGHT at BOTH sites MISS — CAUGHT at one, SURVIVED at the other
+  3. %w -> %v stays CAUGHT             PARTIAL — CAUGHT at one site, SURVIVED at TWO
+  4. taskflow stays green              HIT
+
+  The split HELPED but did not do what it was predicted to. Across projsort / errwrap /
+  split:
+      TestPaginateNegativeOffset  restored   (missing in errwrap, back in split)
+      TestPaginateOffsetPastEnd   restored
+      TestListProjectsSorted      still missing
+
+  So moving the two paginate tests into their own entry brought them back; moving
+  TestListProjectsSorted into projects_test.go did NOT. Written 1 time in the 3 runs where
+  it was eligible. It is dropped from BOTH files it has lived in, which means the problem
+  travels with the TEST, not with the file — killing the last version of the load story
+  from the other direction.
+
+  The redundancy explanation does not hold either: TestProjectList, which the model does
+  write, asserts only len(all) == 1 and says nothing about order, so it does not subsume
+  the sort test. Checked before asserting, unlike the four hypotheses before it.
+
+A CLOSURE CAN BE PARTIAL, WHICH I HAD NOT MEASURED
+  TestValidateWrapsErrValidation WAS written this run, and %w -> %v still SURVIVED at two
+  of three sites. The test asserts Task.Validate on an EMPTY TITLE, which reaches only the
+  first wrap; the invalid-status wrap and the project-name wrap are untouched by it. In the
+  errwrap run all three came back CAUGHT, so how much of a promise one named test defends
+  varies with whatever else the model happened to write.
+
+  Every closure graded today was graded by flipping ONE probe. Where a promise has several
+  sites, that is a sample of the closure, not the closure.
