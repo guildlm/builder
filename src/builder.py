@@ -5052,7 +5052,12 @@ def _fix_loop(
                     if callable(escalate) and escalate(path):
                         _log(f"  escalating {path} to the next fleet member")
                         fleet_stuck[path] = 0
-            _log(f"  fixing {path}")
+            # Say WHY this file is being fixed. The wideners announce themselves as a
+            # group ("widening fix targets to package impl in ."), but the per-file line
+            # did not, so reading a log later meant re-deriving which files the toolchain
+            # had actually named — which is exactly the step that decided the escalation
+            # post-mortem. Provenance is one word and it makes the log self-diagnosing.
+            _log(f"  fixing {path}" + ("" if path in blamed else " (widened in)"))
             fix_shots = (
                 retriever.top_k(
                     f"{task.spec.path} {task.spec.purpose}", shots,
