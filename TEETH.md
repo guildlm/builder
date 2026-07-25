@@ -64,6 +64,34 @@ Two rules keep it honest:
   prompt and one that buys a hole while opening another still looks like a win from the
   headline number.
 
+### The loop, demonstrated end to end (2026-07-25)
+
+`shortener`'s `GET /health -> 200 "ok"` — promised by the spec, touched by no test — was
+closed and graded against a rule fixed in advance:
+
+    sweep finds it -> spec NAMES TestHealthOK -> regenerate -> grade
+    TestHealthOK written and passing · build 3/3 GREEN
+    /health mutation SURVIVED -> CAUGHT      <- the hole
+    registered redirect-301 mutation CAUGHT  <- nothing regressed
+
+It took three attempts and **every failure was in the edit, not the method**:
+
+1. **Appending is not naming.** The first attempt added a requirement to an existing
+   test's description instead of naming a test. The model dropped it entirely. Naming is
+   what the model produces and what `_named_test_audit` can see; a clause inside another
+   test's prose is neither.
+2. **Write for a reader who does not already know the answer.** The second attempt named
+   the test and the model wrote it — then it failed, because it `json.Decode`d a body that
+   is the plain text `ok`. The spec said "the body is exactly `ok`" in a service where
+   every other response is JSON. The model followed the house style, correctly. *Implicit
+   means broken* applies to the spec sentence itself.
+3. **A hole cannot be graded on a spec the coder cannot green.** Both failed attempts also
+   came back RED, which voids every verdict under the baseline-green rule. The bare 7B is
+   recorded at 2/3 on `shortener`; the successful run used the three-member fleet.
+
+The predictions were written before each run, which is the only reason attempt 1 reads as
+"I shipped a weaker edit than I designed" rather than "the model ignores specs".
+
 ## The baseline-green rule (why a red baseline is not a CAUGHT)
 
 A CAUGHT/SURVIVED verdict is only meaningful if the **unmutated** artifact is green. If the
