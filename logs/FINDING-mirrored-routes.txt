@@ -1,0 +1,50 @@
+FINDING — "the same, for X" duplicates the CODE and not the TESTS
+==================================================================
+2026-07-25, model-free. Three of the corpus's nine undefended promises are the same spec
+pattern, all in one spec, and the mechanism is visible in the spec's own wording.
+
+THE THREE HOLES
+  taskflow's projects route is undefended in three separate ways, each with its tasks-route
+  twin fully covered:
+
+      projects malformed-body 400   tasks has TestMalformedJSON; projects has nothing
+      projects response Content-Type  promised by writeJSON's purpose; no test reads it
+      ListProjects sort order        TestListSorted is named for TASKS only
+
+  Each was found by a different mutation shape (status, header, comparator), which is what
+  makes the pattern worth naming rather than filing as three coincidences.
+
+THE MECHANISM, quoted from the spec
+  The implementation is specified BY REFERENCE:
+      line 38  "DeleteTask(id) error and the same four for Project"
+      line 97  "http.HandlerFunc methods mirroring the task handler"
+  and that works — the model writes both routes correctly, every time, in every artifact.
+
+  The tests are specified BY NAME, one at a time, and nobody names the mirror's:
+      13 distinct named tests on the tasks side
+       6 on the projects side
+
+  So "the same, for X" is a perfectly good way to specify CODE and a silent way to lose
+  COVERAGE. The model does exactly what it is told in both cases. The asymmetry is in the
+  spec, not in the model: implementation inherits by reference, tests do not inherit at all.
+
+WHY IT SURVIVES EVERY EXISTING CHECK
+  - `_named_test_audit` is satisfied: every test the spec NAMES exists. It cannot notice
+    the tests the spec failed to name.
+  - Coverage is satisfied: ListProjects runs, the handler runs, the lines execute.
+  - The gate chain is satisfied: it compiles, vets and passes.
+  - The teeth registry is satisfied: its taskflow mutations target the tasks route, which
+    is genuinely defended.
+  Only a per-SITE sweep sees it, and only because the mirrored code gives the mutation two
+  places to land where the spec-writer thought about one.
+
+WHAT TO DO WITH IT
+  When a spec says "the same, for X", it has to say the same about the TESTS — either by
+  naming the mirror's tests explicitly, or by naming a single test that covers both routes
+  by table. Left as-is, mirroring a route is a way to double the implementation surface
+  while holding test coverage constant, and nothing in this project's toolchain reports it.
+
+  Not fixable here: taskflow is 14 files and cannot be greened by this coder (three
+  attempts, two of them today), so the closure route is blocked. Recorded rather than
+  closed — the pattern generalises to any spec written this way, and the next spec written
+  with "the same, for X" should name the mirror's tests before it is ever generated.
