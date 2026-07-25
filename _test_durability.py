@@ -134,6 +134,24 @@ for a in args[1:]:
         raise SystemExit(f"{a} is not a directory")
     trees.append((d.name, written_in_tree(d)))
 
+def assertions_in(tree: pathlib.Path) -> dict:
+    """How many assertions each named test carries, per tree.
+
+    Presence is not content. Promoting ratelimit's verified-green trees kept all five test
+    functions and dropped every Retry-After and 200 assertion inside them, and this tool
+    reported "0 intermittent" throughout because it only ever asked whether a NAME existed.
+    A test that persists while what it checks changes is invisible to a presence check and
+    is exactly what took the corpus from 15 SURVIVED to 18.
+    """
+    out = {}
+    for f in tree.rglob("*_test.go"):
+        text = f.read_text(errors="ignore")
+        blocks = re.split(r"^func (Test[A-Za-z0-9_]+)", text, flags=re.M)
+        for name, body in zip(blocks[1::2], blocks[2::2]):
+            out[name] = len(re.findall(r"\bt\.(?:Error|Errorf|Fatal|Fatalf)\b", body))
+    return out
+
+
 if len(trees) < 2:
     raise SystemExit("give at least TWO trees — durability cannot be measured from one, "
                      "and reading one tree twice is the mistake this exists to prevent")
@@ -181,6 +199,20 @@ print(f"  written SOMETIMES : {len(sometimes)}   <- a closure on one of these is
 print(f"  written NEVER     : {len(never)}")
 for t, hits in sorted(sometimes.items()):
     print(f"      {t:<34} only in: {', '.join(hits)}")
+# CONTENT, beside presence.
+per_tree_asserts = {n: assertions_in(pathlib.Path(a)) for n, a in zip([t[0] for t in trees], args[1:])}
+shifted = {}
+for t in sorted(always):
+    counts = {n: d.get(t, 0) for n, d in per_tree_asserts.items()}
+    if len(set(counts.values())) > 1:
+        shifted[t] = counts
+if shifted:
+    print(f"\n  PRESENT EVERY RUN but with a CHANGING number of assertions ({len(shifted)}):")
+    for t, counts in sorted(shifted.items()):
+        detail = ", ".join(f"{n}:{c}" for n, c in counts.items())
+        print(f"      {t:<34} {detail}")
+    print("      A name persisting is not the same as a promise staying defended.")
+
 for t, el in sorted(stable_among_eligible.items()):
     print(f"      {t:<34} stable — in ALL {len(el)} run(s) since the spec named it")
 for t, n in sorted(too_new.items()):

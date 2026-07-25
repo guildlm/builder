@@ -200,7 +200,7 @@ be measurable:
 | `_registry_drift.py` | How many registered mutations survive a REGENERATION? Renames the artifact textually instead of regenerating it — brittleness is a property of the pattern. |
 | `_why_red.py` | Triage a RED artifact: which tests fail, and do they cluster into one shape? |
 | `_candidate_triage.py` | Before spending a run on a SURVIVED row: does the spec promise it, and can the site even take effect? Two greps that have ruled out two 20-minute runs. |
-| `_test_durability.py` | Across several trees of ONE spec: which named tests does the model write EVERY run? A closure on a test written only sometimes is not durable. |
+| `_test_durability.py` | Across several trees of ONE spec: which named tests does the model write EVERY run, **and does each one keep the same number of assertions**? A name persisting is not a promise staying defended. |
 | `_mapsort_audit.py` | Which functions return a slice built from a MAP without sorting it? Go randomises map order per run, so one `go test` catches this only by luck. |
 
 The habit worth copying is not the tools but what they do to themselves. A checker never
