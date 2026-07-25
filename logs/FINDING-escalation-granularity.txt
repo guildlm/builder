@@ -1,0 +1,137 @@
+FINDING — escalation granularity: strike only the file the toolchain blames
+===========================================================================
+2026-07-25. builder 26bbbad (behaviour) + 9567a23 (extraction). Model-free except the
+live re-run, which is local MLX on Apple silicon ($0).
+
+THE GAP (recorded, not guessed)
+  guild-code RESULT-fleet-ab.txt, in the COSTS AND LIMITS section of the shortener A/B:
+    "Escalation granularity: when the fix loop WIDENS to package-wide repair, every file
+     in the widened set accumulates its own stuck-counter, so escalation goes fleet-wide
+     (12 escalations here) rather than staying targeted. Cheaper, more surgical escalation
+     is an open improvement, not a validated one."
+  This closes it, and — the point of the exercise — validates it rather than asserting it.
+
+WHY THE TWO SETS MUST DIFFER
+  A fix round repairs a WIDER set than the error names. Three wideners add root-cause
+  candidates: the package implementation behind a persistent runtime failure, the package
+  that owes a missing symbol, and the file whose purpose promises an undefined constructor.
+  When the error names nothing recognisable, the loop falls back to every file.
+
+  Widening is right for REPAIR. A failing assertion accuses the test file, but the defect
+  may be in the implementation the test is correctly rejecting; offering both to the model
+  is how the loop escapes that. Each widener exists because a real build stalled without it.
+
+  Widening was wrong for ESCALATION, which is a different decision with a different cost:
+    - PRICE. Escalating moves a file to a bigger member for every later round. The 14B
+      member's generations dominate wall clock (shortener fleet 1174s vs base 719s), and
+      the cost analysis found it scales with UNRESOLVED escalations — the expensive case is
+      precisely the one where routing is not working.
+    - RISK. Escalation is not monotone. In the same A/B both arms hit a codec bug
+      (Encode(62)=="01"); the BASE fixed it on its own, while in the fleet arm that file had
+      been escalated and the bug survived two more rounds. Moving a file nobody blamed off a
+      member that may already be right is a gamble, not a free upgrade.
+    - BASIS. An unattributed error is the worst possible ground for escalating: the old rule
+      struck EVERY file, so the case where the loop knows least spent the most.
+
+THE CHANGE
+  `_fix_targets` returns (targets, blamed). Repair still gets `targets`; only a file in
+  `blamed` accumulates a stuck-counter. `_FLEET_ESCALATE_AFTER` is untouched, single-model
+  builds are untouched (no `escalate` attribute -> the path was always inert).
+
+  HONEST TRADE, STATED UP FRONT: this gives up an accidental rescue. Under the old rule a
+  widened implementation file would eventually escalate too, and could in principle be the
+  file a bigger model fixes. Both documented rescues went the other way — shortener's was
+  the blamed test file, taskapipro's was the blamed call site — but two cases are not a
+  proof, which is why the live re-run below is the evidence that matters, not the reasoning.
+
+TESTS (the discipline: prove it fires, and prove it does not over-fire)
+  End-to-end, real go (test_builder.py):
+    test_escalation_counts_only_the_blamed_file_not_the_widened_package — a test asserting a
+    wrong value is blamed and escalates; the correct impl file is widened in, repaired, and
+    must NOT escalate. Non-vacuous by construction: it asserts the widening actually
+    happened (the impl was handed back for repair) before asserting it did not escalate, so
+    it cannot pass by the widening silently not firing. On the parent commit it fails with
+    member_for('mathx.go') == 1.
+    test_fleet_escalates_to_a_member_that_can_fix_it (pre-existing) still passes — the
+    mechanism is narrowed, not disabled.
+  Pure, no toolchain (test_fix_targets.py, 5 cases): widened impl stays out of blame; the
+  first runtime round does not widen at all; an unattributed error blames nothing while
+  still repairing everything; a purpose-promised symbol widens its owner without blaming it;
+  blame preserves the deterministic file order the routing A/B depends on.
+  Suite 355 -> 361.
+
+MEASUREMENT 1 — how much of a fix round was hypothesis? (_escalation_surface.py)
+  Every archived failure in generated/ is run through the CURRENT deterministic gate chain
+  to a fixpoint (what the loop does before choosing targets), and the residual error is fed
+  through the loop's OWN `_fix_targets` — not a copy of it, which is why the extraction
+  commit exists: a tool that re-implements the selection drifts and measures a set the
+  builder never uses.
+
+  RESULTS: see the RESULTS section below.
+
+  Caveats, because this is a surface measurement and not a fleet A/B:
+    - The archives come from UNROUTED runs, so these are strikes the old rule WOULD have
+      dealt, not escalations observed.
+    - Specs are not archived with the artifacts, so the purpose-promised widener contributes
+      nothing here: every number is a LOWER bound on the widening.
+    - Runtime widening needs a package to have failed twice, so those directories are
+      pre-seeded with one round — escalation needs two strikes anyway, so the only regime
+      where it can happen is one where the loop is already stuck.
+
+MEASUREMENT 2 — does the spec still go green? (live, 3 real MLX servers)
+  The recorded shortener fleet arm is the control: 3/3 GREEN, 12 escalations, 1174s, base
+  7B :8080 + go-dev-final :8081 + go-dev-14b :8082, 8 fix rounds, greedy. The base arm is
+  not re-run: it uses a single-model coder with no `escalate`, so this change cannot reach
+  it (the target selection is semantically identical), and its recorded result — 2/3 RED,
+  719s — stands.
+  Serving control run first and PASSED (all three ports returned distinct text), because a
+  base-serving "specialist" would make this comparison meaningless — see
+  guild-code FINDING-serving-adapter-noop.txt.
+
+  RESULTS: see the RESULTS section below.
+
+RESULTS — shortener REGRESSED. The prediction above was right and it matters.
+  Recorded control (old rule) vs the same arm re-run with the blamed-only rule:
+
+                        escalations   wall    score
+    old rule (recorded)      12       1174s   3/3 GREEN
+    blamed-only (re-run)      2       1080s   2/3 RED
+
+  Cheaper on both axes and WORSE where it counts. Independently scored with
+  score_backend.py: build ok, vet ok, test FAIL —
+      --- FAIL: TestStatsCountsOneHit
+          shortener_test.go:132: stats: Hits = 0, want 1
+
+  THE MECHANISM, AND WHY THIS IS NOT BAD LUCK
+    The blamed file DID escalate, twice, base -> go-dev-final -> go-dev-14b, and it worked:
+    the failure MOVED. The recorded run's blocker was the test JSON-decoding the empty body
+    of a 301 redirect (EOF); here the test is structurally right and asks /stats/ correctly.
+    What fails now is the IMPLEMENTATION — the hit counter never increments.
+
+    And go never blames an implementation file for a runtime failure. `--- FAIL` names the
+    test and its line, so the impl can only ever enter the fix targets through widening.
+    Under a blamed-only rule it is therefore UNREACHABLE by escalation, permanently, no
+    matter how many rounds are spent. That is not a lost coin-flip; it is a structural hole:
+    a defect that a test reveals but the compiler cannot attribute can never reach a
+    stronger model.
+
+    So the cost the A/B recorded as a leak — "the widened set accumulates its own
+    stuck-counter" — was load-bearing. The extra escalations were how the loop got the
+    implementation in front of a better model. Framing breadth as waste was the error; the
+    +63% bought the green.
+
+  WHAT THIS DOES NOT YET SETTLE
+    shortener is the one spec the A/B itself flags as CONFOUNDED for exactly this kind of
+    comparison ("shortener measures escalation TIMING, not composition; the clean signal is
+    workapi"), and any change to escalation timing can flip it. N=1. workapi — recorded
+    base 1/3 RED -> fleet 3/3 GREEN, 17 escalations, 4778s — is running now under the new
+    rule and is the deciding data point:
+      - workapi stays 3/3 with fewer escalations -> the rule is cheaper on the clean spec
+        and the shortener loss is a timing artefact of a known-confounded spec;
+      - workapi also regresses -> the rule is wrong, the "open improvement" recorded in
+        RESULT-fleet-ab.txt is REFUTED rather than closed, and the behaviour reverts.
+    Either way the surrounding work stands on its own: _fix_targets (one source for repair
+    and blame), the unrouted byte-identity proof, and the surface measurement are
+    independent of which escalation policy wins.
+
+  MEASUREMENT 1 RESULTS: pending the bounded re-run.
