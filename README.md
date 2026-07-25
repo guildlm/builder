@@ -195,6 +195,8 @@ be measurable:
 | `_named_test_audit.py` | Did the model write every test the spec NAMES? |
 | `_teeth_suite.py`, `_mutant_check.sh` | Does a green suite actually defend its contract? (see [TEETH.md](TEETH.md)) |
 | `_deadlock_detector.py` | Does a method re-acquire a mutex it already deferred-unlocked? |
+| `_hole_hunt.py` | Sweep for undefended promises nobody thought to check — four mutation shapes, every site |
+| `_hole_closed.py` | Did a spec edit close the hole it targeted **and open no other**? |
 
 The habit worth copying is not the tools but what they do to themselves. A checker never
 seen catching anything is indistinguishable from one that does nothing, so
