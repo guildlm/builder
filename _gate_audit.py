@@ -191,7 +191,15 @@ def audit_mechanisms() -> None:
         m.strip() for m in re.findall(r'_log\(\s*f?"(?:\s*)([^"{]{8,44})', src)
         if m.strip()
     })
-    logs = sorted((pathlib.Path(__file__).parent / "logs").glob("ab-*.log"))
+    # EVERY log, not just `ab-*`. The docstring above says "across every run we have ever
+    # done" and the glob said `ab-*.log`, which is one naming convention out of several —
+    # so a mechanism exercised by any run filed under another name read as NEVER FIRED.
+    # That is the worst possible direction for this sweep to be wrong in: it manufactures
+    # exactly the alarm it exists to raise, and the reader's next move is to go hunting for
+    # a guard that shut something that was in fact working. Demonstrated: the fleet
+    # escalation logged `escalating ... to the next fleet member` in a live 3-model run,
+    # and this audit called it dead because the log was not named ab-*.
+    logs = sorted((pathlib.Path(__file__).parent / "logs").glob("*.log"))
     blob = "\n".join(p.read_text(errors="ignore") for p in logs)
 
     print(f"=== {len(msgs)} mechanisms, checked against {len(logs)} real runs ===\n")
