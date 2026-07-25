@@ -1,0 +1,57 @@
+FINDING — how much of the mutation registry survives a regeneration
+====================================================================
+2026-07-25. Measured without regenerating, because brittleness is a property of the
+PATTERN, not of the artifact.
+
+THE QUESTION
+  Two mutations were found expired against fresh usersapi/ratelimit trees and repaired by
+  matching on shape. That leaves the obvious question — how brittle are the other 28? —
+  and only two fresh trees to ask with.
+
+THE METHOD
+  Ask the matcher, not the artifact. The drift a regeneration produces is overwhelmingly
+  RENAMING: a different receiver, a different field for the same map, a different local for
+  the same slice. Apply those renames textually and see which patterns let go. Nothing has
+  to compile; the only question is whether the matcher still matches.
+
+THE FIRST NUMBER WAS WRONG BY THREE TIMES, AND THE REASON MATTERS
+  First pass: 15 of 28 BRITTLE — over half the registry rotten. That number came from a
+  rename list that mixed drift I had WATCHED HAPPEN with drift I invented, including
+  `w` -> `rw` and `b` -> `bkt`. But `w` for an http.ResponseWriter is near-universal Go
+  convention; a coder renaming it is not the drift this models. Splitting the list by
+  evidence:
+
+        survives observed    23/28   renames taken identifier-for-identifier from the real
+                                     fresh usersapi tree (s->m, users->items, ok->exists,
+                                     out->result)
+        survives plausible   23/28   same class, invented words (tasks->entries) — adds
+                                     nothing, which is itself informative
+        survives all         13/28   includes the convention-pinned renames — inflated
+
+  So the defensible figure is FIVE brittle, not fifteen. Acting on the first number would
+  have meant rewriting two thirds of the registry to fix a fifth of it.
+
+  This is the decompose-before-acting rule again, and it is the third time this week it has
+  changed a conclusion rather than confirmed one. A brittleness score is only as honest as
+  the drift fed into it, and the drift is the part nobody audits because it looks like
+  setup rather than data.
+
+THE FIVE, AND ONE OF THEM IS DELIBERATE
+  BRITTLE  ledger      internal/store/memory.go   every credit lands
+  BRITTLE  taskflow    store.go                   duplicate Task ID -> ErrExists (409)
+  BRITTLE  taskapipro  internal/store/memory.go   ListTasks sorted by ID
+  BRITTLE  walkv       store.go                   Delete removes the key
+  BRITTLE  genericset  set.go                     Len returns the exact element count
+
+  taskflow's is BY DESIGN and must stay: that file has TWO ErrExists guards (s.tasks and
+  s.projects), so the matcher deliberately falls back to the registered literal to say
+  which one it means. Renaming the receiver breaks it, and the alternative — matching by
+  shape — hit both guards and silently voided the verdict. Brittle-and-precise beats
+  robust-and-ambiguous when a file has siblings; the cost is real and is now recorded
+  rather than discovered again later.
+
+  The other four are ordinary name-pinning and are candidates for the same shape treatment.
+
+TIERS ARE KEPT IN THE TOOL, NOT COLLAPSED
+  All three rename tiers stay in _registry_drift.py with the unlikely one labelled "do not
+  quote", so the inflated number cannot be produced again by accident and then cited.
