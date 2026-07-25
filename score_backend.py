@@ -142,7 +142,29 @@ def score(project: str, smoke: str | None) -> dict:
     vets, v_out = _go(["vet", "./..."], project) if builds else (False, "skipped (build failed)")
     res["stages"]["vet"] = {"ok": vets, "detail": "" if vets else v_out[:300]}
 
-    tests, t_out = _go(["test", "./..."], project) if builds else (False, "skipped (build failed)")
+    # RUN THE SUITE MORE THAN ONCE. A single `go test` is a SAMPLE, not a proof, wherever
+    # the code has order-nondeterminism: Go randomises map iteration per run, so a store
+    # that forgets to sort passes about as often as it fails. Measured on the tasks-api
+    # artifact whose builder run returned rc=0 — its List() ignores the spec's "sorted by
+    # ID" and the suite is genuinely flaky:
+    #
+    #     -count=1   over 16 runs   FAIL=4    25% caught
+    #     -count=2   over 16 runs   FAIL=7    43%
+    #     -count=4   over 16 runs   FAIL=11   68%
+    #
+    # Exactly 1-(1-p)^n, so the repeats behave as independent trials. -count=4 is chosen
+    # because it roughly triples detection for a cost that is nothing beside model time,
+    # and it is applied HERE rather than in the fix loop on purpose: the loop needs a fast
+    # signal to fix against, while a SCORE is a verdict and must not call a coin flip green.
+    tests, t_out = _go(["test", "-count=4", "./..."], project) if builds else (False, "skipped (build failed)")
+    if builds and not tests:
+        # Distinguish "always fails" from "flaky" — they need different fixes, and a flake
+        # reported as a plain failure sends you looking for a bug that is present only
+        # sometimes.
+        once_ok, _ = _go(["test", "-count=1", "./..."], project)
+        if once_ok:
+            t_out = ("FLAKY — passes on a single run, fails when repeated (-count=4). "
+                     "Order-dependent: likely an unsorted map iteration.\n" + t_out)
     # A green test run that asserts nothing is not real coverage — don't credit it.
     trivial = _trivial_test_files(project) if tests else []
     if trivial:
@@ -271,7 +293,12 @@ def main() -> int:
                 # regenerations. Both were one edit from green.
                 if st.get("failed_count"):
                     n = st["failed_count"]
-                    line += f"  — {n} failing: {', '.join(st['failed'][:4])}"
+                    # FLAKY first: it is a different diagnosis from "n tests fail", and I
+                    # computed it and then printed a line that never showed it — the same
+                    # "known but invisible" defect fixed in this file an hour ago for the
+                    # failure count itself.
+                    flaky = "FLAKY" if st["detail"].startswith("FLAKY") else ""
+                    line += f"  — {flaky + ' ' if flaky else ''}{n} failing: {', '.join(st['failed'][:4])}"
                     if n > 4:
                         line += f", +{n - 4} more"
                 else:
