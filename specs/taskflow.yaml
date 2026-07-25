@@ -188,6 +188,13 @@ files:
       this order deterministic — a store that returns them unsorted, or sorted the
       wrong way, ships green unless a test pins the exact order. Assert each index by
       id, not just that the slice is non-empty.
+      TestValidateWrapsErrValidation: call Task.Validate() DIRECTLY (a unit test, no
+      HTTP) on an invalid task — {Title: "", Status: "todo"} — and assert
+      errors.Is(err, ErrValidation) is TRUE. Assert with errors.Is, NEVER on the message
+      text: a check like strings.Contains(err.Error(), "validation") passes whether
+      Validate used %w or %v, so it pins nothing. The handler returns 400 for ANY error
+      from Validate, so no HTTP test can tell a wrapped sentinel from an unwrapped one —
+      only this direct assertion defends the errors.Is contract the spec promises.
       TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
       then "1", then "2" (each valid, its own fresh request body) — then GET /projects
       and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come

@@ -1,0 +1,49 @@
+PREDICTION — taskflow's errors.Is promise, undefended in three places at once
+=============================================================================
+2026-07-26. Second closure on the now-green taskflow.
+
+THE CONTROL, ON THE GREEN TREE
+      models.go   %w -> %v (ErrValidation)   SURVIVED  (x3 sites)
+      tests asserting errors.Is: 0
+
+WHY IT SURVIVES — DIAGNOSED, NOT ASSUMED
+  Breaking the wrap should break the handler's 400. It does not, and the reason is that
+  NOTHING UNWRAPS IT:
+
+      models.go        return fmt.Errorf("%w: title is required", ErrValidation)
+      tasks_handler.go if err := task.Validate(); err != nil {
+                           writeError(w, http.StatusBadRequest, err.Error())
+
+  The handler returns 400 for ANY error from Validate. It never calls errors.Is. So the
+  wrap is decorative: `%w` and `%v` produce identical observable behaviour, and the suite
+  is right not to notice.
+
+  The spec promises this THREE times, which makes the gap worth stating precisely:
+      "all matchable with errors.Is: ErrNotFound, ErrExists, ErrValidation"
+      "returns a wrapped ErrValidation (use fmt.Errorf with %w)"
+      "Task.Validate returning 400 with writeError on ErrValidation via errors.Is"
+
+  Two different things are undefended here. The behaviour the handler produces (400) is
+  correct by accident of "any error means 400". The CONTRACT the spec names — that the
+  sentinel is recoverable with errors.Is — is not exercised anywhere, so a future handler
+  that does branch on errors.Is would be built on an unpinned promise.
+
+THE EDIT — pin the contract where it lives, not where it is consumed
+  TestValidateWrapsErrValidation: call Task.Validate() DIRECTLY on an invalid task and
+  assert errors.Is(err, ErrValidation). Assert on errors.Is, NOT on the message text — a
+  message assertion passes with %v and pins nothing.
+
+  Same recipe that closed the identical shape in tasks-api this morning
+  (TestValidateWrapsErrInvalidTask), so this is a second data point for it rather than a
+  new idea.
+
+PREDICTION
+  1. TestValidateWrapsErrValidation is written and passes.
+  2. %w -> %v flips SURVIVED -> CAUGHT at models.go.
+  3. taskflow stays green — it has now greened three times, so the risk is lower than last
+     round, but a fifteenth named test is still more work for a spec that needs 5 rounds.
+  4. The projects-sort closure from the previous round stays CAUGHT — closures compose.
+
+  The failure worth watching: the model asserts on err.Error() containing "validation"
+  instead of errors.Is. That passes, looks like a closure, and pins nothing — the exact
+  reason the spec sentence has to forbid it.
