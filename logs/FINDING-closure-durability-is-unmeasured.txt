@@ -1,0 +1,47 @@
+FINDING — closure durability is unmeasured for four specs and fails for the fifth
+==================================================================================
+2026-07-26. Set out to audit which of the session's closures are still live. The audit's
+first answer was reassuring and wrong.
+
+THE TABLE THAT LOOKED GOOD
+      ratelimit   drop Content-Type   CAUGHT
+      usersapi    drop Content-Type   CAUGHT
+      shortener   drop Content-Type   CAUGHT
+      jsonapi     drop Content-Type   CAUGHT
+      taskflow    drop Content-Type   SURVIVED   <- regressed
+
+  Read straight, that says four closures held and one broke, and invites the conclusion
+  that taskflow is the unstable one.
+
+WHY THAT READING IS WRONG
+  ratelimit, usersapi, shortener and jsonapi have exactly ONE green tree each. So
+  re-checking "the latest tree" re-checks THE SAME ARTIFACT the closure was graded on. It
+  is not independent evidence of anything — it confirms that a measurement taken once is
+  still the same measurement.
+
+  taskflow is the only spec with three trees, and it is the only spec where a regression
+  could be observed at all. Its Content-Type assertion was written in the first run and in
+  neither of the next two:
+
+      taskflow-code       2 Content-Type assertions
+      taskflow-projsort   0
+      taskflow-errwrap    0
+
+  So the finding is not "taskflow is unstable and the others are stable". It is:
+
+      durability MEASURED for 1 spec of 5 — and there it fails 2 runs out of 3
+      durability UNMEASURED for the other 4 — one tree each, nothing to compare
+
+  The four "CAUTGHT" rows carry no information about durability, and I nearly published
+  them as if they did. The asymmetry that produced the reassuring table is that taskflow
+  got re-run three times because it was the difficult one — so the only spec with enough
+  data to show a problem is the one that showed it.
+
+WHAT THIS COSTS THE SESSION'S HEADLINE
+  Eight closures were claimed today, each verified on the artifact that closed it. On the
+  only spec where durability was actually tested, two of its closures did not survive the
+  next run. Whether the other four specs behave like taskflow or not is simply not known,
+  and the cheapest way to find out is to re-run one of them unchanged and re-grade — which
+  costs one build and would replace an assumption with a number.
+
+  Recorded rather than run now, because a taskflow build is already occupying the fleet.
