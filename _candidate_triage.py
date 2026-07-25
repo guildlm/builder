@@ -85,6 +85,8 @@ def self_test():
                 '\tw.WriteHeader(http.StatusOK)\n}\n')
     assert dead_double_write(two_live, "StatusOK") is None, \
         "flagged two writes on separate branches"
+    # the three-way split must hold: dead beats unpromised, unpromised-but-live is a gap
+    assert spec_mentions("no codes here", "StatusOK") == []
     print("OK — spec mentions detected, dead double-write flagged, live and branched writes not")
 
 
@@ -111,12 +113,28 @@ dead = dead_double_write(code, needle)
 print(f"candidate: {spec_name} · {rel} · {needle}\n")
 print(f"  1. does the SPEC promise it?  {'yes: ' + ', '.join(mentions) if mentions else 'NO'}")
 print(f"  2. dead double-write?         {dead or 'no'}")
-verdict = ("NOISE — the spec never asks for this" if not mentions else
-           "NOISE — the site cannot take effect" if dead else
+# "Unpromised" is not one verdict but two, and collapsing them mislabels the most
+# actionable case. kvservice's 400 is unpromised AND unreachable — noise. tasks-api's
+# Content-Type is unpromised but LIVE: the API really does set it and the spec really
+# does not say so, which is a SPEC GAP and is exactly what the five Content-Type
+# closures today were. Calling that "noise" would have told me to skip the very work
+# that produced them.
+verdict = ("NOISE — the site cannot take effect" if dead else
+           "SPEC GAP — the behaviour is real and live, and the spec never asks for it. "
+           "Same shape as today's Content-Type closures: name it in the spec."
+           if not mentions else
            "CANDIDATE STANDS — spec promises it and the site is live")
 print(f"\n  {verdict}")
-if mentions and not dead:
+if not dead:
+    # The reachability question applies to BOTH remaining verdicts, not just to promises.
+    # kvservice's 400 now reads SPEC GAP, and by hand it is unpromised AND unreachable —
+    # its branch guards io.ReadAll failing, which an httptest body never does. Writing a
+    # spec sentence for a branch that cannot execute buys nothing, so the gap verdict
+    # needs the same caveat the promise verdict needed.
     print("  Still to check by hand: is the branch REACHABLE? An else-branch whose if\n"
-          "  already handles the only error the callee returns is dead too, and no grep\n"
-          "  sees that — it is how taskflow's six 500s were ruled out.")
-raise SystemExit(0 if (mentions and not dead) else 1)
+          "  already handles the only error the callee returns is dead, and so is a guard\n"
+          "  on an error that cannot occur — no grep sees either. It is how taskflow's six\n"
+          "  500s and kvservice's 400 were both ruled out.")
+# 0 only when there is work to do on a PROMISE. A spec gap is real work too, so it
+# gets its own code rather than being lumped with dead sites.
+raise SystemExit(0 if (mentions and not dead) else (2 if not dead else 1))
