@@ -206,3 +206,33 @@ SHAPE 4 — unwrap an error (%w -> %v). The sharpest probe here, and the best yi
   suite passes unless someone deliberately wrote errors.Is. It is the shape most likely to
   be undefended and the least likely to be noticed, which is the definition of where a
   mutation sweep earns its keep.
+
+---------------------------------------------------------------------------
+EVERY WRAP, NOT ONE PER FILE — "defended" turns out to be a property of a SITE
+
+  Shape 4 originally probed the first `%w` in each file. Probing every one changes what
+  the table says:
+
+      logstats   parse.go   ErrBadLine      CAUGHT ×4            fully defended
+      taskflow   models.go  ErrValidation   SURVIVED, CAUGHT, CAUGHT   HALF defended
+      tasks-api  task.go    ErrInvalidTask  SURVIVED             (ErrNotFound: 4 asserts)
+
+  taskflow's models.go wraps ErrValidation three times and the suite defends two of them.
+  One-site probing would have reported whichever it hit and called the file settled — and
+  which one it hits is alphabetical accident, not evidence.
+
+  tasks-api is the sharper case because it looks BETTER than it is. Its tests call
+  errors.Is four times, which reads as a suite that takes sentinel errors seriously. All
+  four check ErrNotFound. The spec promises two sentinels; the second, ErrInvalidTask, has
+  no errors.Is assertion anywhere. A reviewer scanning for "does this suite use errors.Is"
+  gets yes, and the answer is only half true.
+
+  ==> The unit of defence is a SITE, not a file and not an API. "The suite tests errors.Is"
+  is not a fact about a suite; it is a fact about one sentinel in one place. Any audit that
+  aggregates above that level — including a human reading for coverage — will report the
+  defended half and stop.
+
+  This is the same shape as the shortener hole one level down: there, a spec NAMED a test
+  and the promise behind the name was broader than the test. Here a suite USES the right
+  API and the promise behind the API is broader than the assertions. Both are invisible to
+  anything that checks for presence rather than for reach.
