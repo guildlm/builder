@@ -13,12 +13,12 @@ file's prompt — _file_list puts every purpose into every one — so an edit th
 hole and opens another looks like a success from (1) alone. This project has needed three
 attempts on a single spec edit before.
 
-    python _hole_closed.py <regenerated-artifact-dir> [spec-name]
+    python _hole_closed.py <regenerated-artifact-dir> [spec-name] [--probe=content-type|status] [--file=router.go]
 
 The spec name defaults to the directory's leading segment; it selects which registered
-mutations in _teeth_suite must not regress. Question (1) currently probes the
-Content-Type shape, which is the one this was built for — a second shape means a second
-probe here, not a flag.
+mutations in _teeth_suite must not regress. Question (1) probes whichever shape _hole_hunt used to FIND the hole, chosen with
+--probe; a mismatch there grades the wrong thing and would report a hole closed that was
+never touched.
 
 Uses _teeth_suite.verdict_for, so an artifact whose baseline is already red reports
 BASELINE-RED rather than a fake CAUGHT.
@@ -29,21 +29,51 @@ from _teeth_suite import verdict_for, MUTATIONS, GEN
 
 NEW = pathlib.Path(sys.argv[1])
 SPEC = sys.argv[2] if len(sys.argv) > 2 else NEW.name.split("-")[0]
-HEADER = re.compile(r'^\s*w\.Header\(\)\.Set\("Content-Type", *"[^"]*"\)', re.M)
+# Which hole is being graded. Question (1) has to probe the SAME shape _hole_hunt used to
+# find it, so the probe is chosen rather than assumed — the first version hardcoded
+# Content-Type and could not have graded the /health hole it was about to be pointed at.
+PROBES = {
+    "content-type": (
+        re.compile(r'^\s*w\.Header\(\)\.Set\("Content-Type", *"[^"]*"\)', re.M),
+        "\t// MUTANT: header dropped",
+        "drop Content-Type"),
+    "status": (
+        re.compile(r'\bhttp\.StatusOK\b'),
+        "http.StatusAccepted",
+        "StatusOK -> StatusAccepted"),
+}
+PROBE = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--probe=")),
+             "content-type")
+if PROBE not in PROBES:
+    raise SystemExit(f"unknown --probe={PROBE}; choose from {', '.join(PROBES)}")
+PATTERN, REPLACEMENT, LABEL = PROBES[PROBE]
 
-def drop_ct(text):
-    m = HEADER.search(text)
-    return text.replace(m.group(0), "\t// MUTANT: header dropped", 1) if m else None
 
-# 1. the hole itself
-target = next((f.name for f in NEW.glob("*.go")
-               if not f.name.endswith("_test.go") and HEADER.search(f.read_text())), None)
-print(f"Content-Type is set in: {target}")
+def break_it(text):
+    m = PATTERN.search(text)
+    return text.replace(m.group(0), REPLACEMENT, 1) if m else None
+
+
+# 1. the hole itself.
+#
+# PIN THE FILE. Taking "the first file the pattern matches" grades whichever site comes
+# first alphabetically, which is not the site the hole was found in: probing shortener for
+# StatusOK picks handlers.go and reports CAUGHT, while the /health hole lives in router.go
+# and is SURVIVED. That is a false "hole closed" on a site nobody touched — caught by
+# running this against the artifact whose answer was already known, which is the only
+# reason it did not become a result.
+PINNED = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--file=")), None)
+target = PINNED or next(
+    (f.name for f in sorted(NEW.glob("*.go"))
+     if not f.name.endswith("_test.go") and PATTERN.search(f.read_text())), None)
+if PINNED and not (NEW / PINNED).exists():
+    raise SystemExit(f"--file={PINNED} is not in {NEW}")
+print(f"{LABEL} applies in: {target}")
 if target:
-    v, note = verdict_for(NEW, target, drop_ct)
-    print(f"  (1) drop Content-Type -> {v}   [was SURVIVED before the spec edit]")
+    v, note = verdict_for(NEW, target, break_it)
+    print(f"  (1) {LABEL} -> {v}   [was SURVIVED before the spec edit]")
 else:
-    print("  (1) SKIPPED — no Content-Type set in this artifact")
+    print(f"  (1) SKIPPED — nothing for {LABEL} in this artifact")
 
 # 2. the registered mutations must not regress
 print(f"  (2) previously-registered {SPEC} mutations (must not regress):")
