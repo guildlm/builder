@@ -19,8 +19,13 @@ import subprocess
 
 import pytest
 
+import os
+
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-GEN = ROOT / "generated"
+# The corpus directory is overridable so this test can be PROVEN to fire. It was committed
+# without that proof, against the standard applied to every other check today — and a test
+# nobody has watched fail is the exact thing it exists to prevent.
+GEN = pathlib.Path(os.environ.get("GUILDLM_CORPUS", ROOT / "generated"))
 
 
 def test_at_least_one_artifact_has_a_red_baseline():
