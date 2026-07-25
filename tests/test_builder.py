@@ -241,11 +241,21 @@ def test_fleet_of_one_is_identical_to_the_bare_coder(tmp_path):
 
 
 # Escalation granularity: a persistent test failure WIDENS the fix targets to the whole
-# package (_widen_runtime_targets) so the model can repair whichever side is wrong. The
-# widened files are a HYPOTHESIS about the root cause, not files the toolchain blamed —
-# escalating them buys nothing and costs a bigger model's generation on every later round.
+# package (_widen_runtime_targets) so the model can repair whichever side is wrong — and
+# since go blames the TEST for a runtime failure, widening is the only way an
+# implementation file ever reaches the fix loop, or a stronger fleet member.
 _WIDEN_IMPL_GO = (
     "package main\n\nfunc Add(a, b int) int {\n\treturn a + b\n}\n\nfunc main() {}\n"
+)
+# The shortener regression in miniature: a CORRECT test and a WRONG implementation. go
+# reports `--- FAIL` against the test file and never names mathx.go, so the defect is
+# reachable only through widening.
+_BUGGY_IMPL_GO = (
+    "package main\n\nfunc Add(a, b int) int {\n\treturn a - b\n}\n\nfunc main() {}\n"
+)
+_CORRECT_TEST_GO = (
+    "package main\n\nimport \"testing\"\n\n"
+    "func TestAdd(t *testing.T) {\n\tif Add(1, 2) != 3 {\n\t\tt.Fatalf(\"Add(1,2) wrong\")\n\t}\n}\n"
 )
 # Compiles and runs; the assertion is simply wrong (1+2 != 4). go blames ONLY the test
 # file, and no deterministic gate guesses assertion values, so the loop never converges.
@@ -301,6 +311,50 @@ def test_a_widened_file_escalates_too_or_impl_bugs_are_unreachable(tmp_path):
         "a widened file must escalate too — otherwise an implementation defect that only "
         "a failing test can reveal can never reach a stronger model"
     )
+
+
+@requires_go
+def test_escalating_a_widened_impl_converges_the_build(tmp_path):
+    """The PAYOFF, not just the mechanism: a defect only a test can reveal goes GREEN.
+
+    The test above pins that a widened file escalates. This pins that the escalation is
+    worth something — which is the claim the shortener A/B actually settled, and the one
+    a `member_for == 1` assertion cannot make.
+
+    The setup is that regression in miniature. The test file is CORRECT and the
+    implementation is wrong (`a - b`), so go reports `--- FAIL` against the test and never
+    names mathx.go. The base rewrites the same wrong implementation forever; the
+    specialist writes the right one. The only path from red to green runs
+    widening -> escalation -> specialist, and cutting any link leaves the build red
+    however many rounds it is given.
+
+    Under the blamed-only rule this test does not merely assert something different — it
+    cannot pass at all."""
+    spec = Spec(
+        name="demo", description="a demo", go_module="example.com/demo",
+        files=(
+            FileSpec(path="go.mod", purpose="module file"),
+            FileSpec(path="mathx.go", purpose="Add returns a+b; main is empty"),
+            FileSpec(path="mathx_test.go", purpose="tests Add"),
+        ),
+    )
+    common = {"go.mod": [f"```mod\n{GO_MOD}```"],
+              "mathx_test.go": [f"```go\n{_CORRECT_TEST_GO}```"]}
+    base = FakeCoder({**common, "mathx.go": [f"```go\n{_BUGGY_IMPL_GO}```"]})
+    specialist = FakeCoder({**common, "mathx.go": [f"```go\n{_WIDEN_IMPL_GO}```"]})
+    fleet = FleetCoder([base, specialist])
+
+    ok, _ = build(spec, fleet, tmp_path, max_fix_rounds=6)
+
+    assert ok, (
+        "escalating the widened implementation should converge the build — this is the "
+        "shortener rescue, reproduced offline with real go"
+    )
+    assert "a + b" in (tmp_path / "mathx.go").read_text(), "the specialist's impl won"
+    assert fleet.member_for("mathx.go") == 1, "the impl reached the specialist"
+    # The test file was correct all along: it must not have been escalated away as if it
+    # were the culprit, and the fleet must not have rewritten it into agreement with the bug.
+    assert "!= 3" in (tmp_path / "mathx_test.go").read_text(), "the correct test survived"
 
 
 # --------------------------------------------------------------------------- #
