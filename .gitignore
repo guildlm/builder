@@ -26,6 +26,17 @@ logs/*
 # read off a clock, drifting an hour into the future, and the ordering was only
 # recoverable because GIT held the real times. The timekeeper should hold the
 # record too. Raw logs stay ignored — they are regenerable; a prediction is not.
+# ...and the corpus verdict baseline. This one looks like a raw log and is not: the
+# sweep can be re-run, but it cannot be re-run AS OF YESTERDAY, and comparing today's
+# verdicts against a previous day is the entire purpose. Untracked, it would have been
+# regenerable in exactly the sense that lost me a row list this morning and cost a
+# published claim I then had to withdraw. 150 lines.
+#
+# Caught because the commit that added the file said "tracked in git on purpose" and the
+# file was silently ignored — the claim and the behaviour disagreed, and only running
+# `git ls-files` on it said so.
+!logs/hole-hunt-rows.tsv
+
 !logs/PREDICTION-*.txt
 # ...and the findings. A FINDING is a prediction's sibling: a measured, model-free
 # result (a mutation that survives, a BEFORE artifact that proves a hole ships) —
