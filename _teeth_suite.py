@@ -153,15 +153,18 @@ def _tap_reverse_tasks_sort(text: str) -> str | None:
     ListProjects boundary so only the tasks-half sort flips. Caught by the api-layer TestListLimit
     once it asserts all[0].ID == "1" (defending tasks order without touching the crowded store test).
     """
-    marker = "func (s *MemStore) ListProjects"
-    idx = text.find(marker)
-    if idx < 0:
+    marker = re.search(r"func \(\w+ \*MemStore\) ListProjects", text)
+    if not marker:
         return None
+    idx = marker.start()
     head, tail = text[:idx], text[idx:]
-    a = "return out[i].ID < out[j].ID"
-    if head.count(a) != 1:
+    # Same backreference trick as _reverse_id_sort: the slice's NAME drifts between runs,
+    # the shape does not, and binding both indexes to one identifier keeps the mutation
+    # from straddling two different slices.
+    cmp_rx = re.compile(r"return (\w+)\[i\]\.ID < \1\[j\]\.ID")
+    if len(cmp_rx.findall(head)) != 1:
         return None
-    head = head.replace(a, "return out[i].ID > out[j].ID")
+    head = cmp_rx.sub(lambda m: f"return {m.group(1)}[i].ID > {m.group(1)}[j].ID", head)
     return head + tail
 
 
@@ -226,13 +229,14 @@ def _wv_drop_delete(text: str) -> str | None:
     still returns the key (validated with a probe). Anchor on the DEL WriteString,
     unique to Delete (replay's delete is triple-tab-indented).
     """
-    anchor = ('+ key + "\\n"); err != nil {\n\t\treturn err\n\t}\n'
-              '\tdelete(s.m, key)\n\treturn nil\n}')
-    if text.count(anchor) != 1:
+    rx = re.compile(r'\+ key \+ "\\n"\); err != nil \{\n\t\treturn err\n\t\}\n'
+                    r'\tdelete\(\w+\.\w+, key\)\n\treturn nil\n\}')
+    hits = rx.findall(text)
+    if len(hits) != 1:
         return None
     repl = ('+ key + "\\n"); err != nil {\n\t\treturn err\n\t}\n'
             '\t// MUTANT: in-session map delete removed\n\treturn nil\n}')
-    return text.replace(anchor, repl)
+    return rx.sub(lambda _: repl, text)
 
 
 def _ls_flip_primary(text: str) -> str | None:
@@ -305,10 +309,10 @@ def _nk_break_clamp(text: str) -> str | None:
 
 def _gs_break_len(text: str) -> str | None:
     """genericset: make Len off-by-one (CAUGHT control: TestLen asserts an exact count)."""
-    a = "\treturn len(s.m)\n"
-    if text.count(a) != 1:
+    rx = re.compile(r"\treturn len\((\w+)\.m\)\n")
+    if len(rx.findall(text)) != 1:
         return None
-    return text.replace(a, "\treturn len(s.m) + 1\n")
+    return rx.sub(lambda m: f"\treturn len({m.group(1)}.m) + 1\n", text)
 
 
 def _pq_reverse_less(text: str) -> str | None:
@@ -341,7 +345,8 @@ MUTATIONS = [
      _drop_line(r"s\.balances\[p\.AccountID\] \+= p\.Amount")),
     ("ledger", "internal/store/memory.go",
      "every credit lands (impl in memory.go variant)",
-     _drop_line(r"s\.balances\[p\.AccountID\] \+= p\.Amount")),
+     # receiver and posting local widened: a regeneration renames `s`/`p`, not `balances`
+     _drop_line(r"\w+\.balances\[\w+\.AccountID\] \+= \w+\.Amount")),
     ("ratelimit", "bucket.go",
      "burst capped at capacity after a long idle",
      _drop_block(r"\n\s*if b\.tokens > float64\(b\.capacity\) \{\s*\n\s*b\.tokens = float64\(b\.capacity\)\s*\n\s*\}")),

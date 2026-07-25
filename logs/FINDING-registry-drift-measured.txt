@@ -55,3 +55,27 @@ THE FIVE, AND ONE OF THEM IS DELIBERATE
 TIERS ARE KEPT IN THE TOOL, NOT COLLAPSED
   All three rename tiers stay in _registry_drift.py with the unlikely one labelled "do not
   quote", so the inflated number cannot be produced again by accident and then cited.
+
+REPAIRED — same session
+=======================
+      survives observed   23/28  ->  27/28
+
+  The four ordinary name-pinnings were widened to match by shape:
+      ledger      the += posting line, receiver and posting local widened (`balances` kept —
+                  a regeneration renames `s`/`p`, not the field that names the invariant)
+      genericset  `return len(<recv>.m)` — receiver widened, FIELD kept. Widening both would
+                  have let it match some other method's `return len(...)`, and the count
+                  test would then say NOAPPLY: one silent failure traded for another.
+      walkv       the delete call inside the DEL-log anchor, `delete(<recv>.<field>, key)`
+      taskapipro  the ListProjects boundary marker and the comparator, via the same
+                  backreference that binds both indexes to one identifier
+
+  The single remaining BRITTLE row is taskflow's, deliberately, for the sibling-guard reason
+  above. Full suite re-run after the change: 29 CAUGHT / 0 SURVIVED, 29 of 30 applied,
+  identical to before — which is the check that matters, because the last time I widened a
+  matcher it silently voided a verdict and only the full re-run caught it.
+
+  Note what did NOT change: the "survives all" tier went 13 -> 17, still far below 27. Those
+  four extra failures are the convention-pinned renames (`w`, `b`) that I am deliberately
+  not fixing, because tolerating them would cost the precision that keeps a mutation aimed
+  at one site. The gap between the tiers is the honest cost of that choice, left visible.
