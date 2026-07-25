@@ -1,0 +1,53 @@
+PREDICTION — the constraint is per FILE, not a per-spec budget
+==============================================================
+2026-07-26. Correcting a finding published one commit ago from a single observation.
+
+WHAT I PUBLISHED, AND WHY IT WAS WRONG
+  taskflow-errwrap wrote 17 of the spec's 20 named tests, dropping three including one I
+  had closed the round before. I concluded "named tests compete for a budget" and recorded
+  it as a general constraint. The corpus says otherwise:
+
+      taskapipro   49 named   48 written
+      taskapi      35 named   35 written
+      ledger       32 named   32 written
+      workapi      31 named   31 written
+
+  Specs asking for 30-49 named tests get essentially all of them. There is no ceiling near
+  20, so taskflow's loss is not a budget effect. Generalised from one run again, and again
+  it fit the day's theme — trade-offs and limits — which is the kind of finding that gets
+  waved through.
+
+WHAT THE NUMBERS ACTUALLY SUPPORT — per TEST-FILE ENTRY
+      taskflow      taskflow_test.go             13 named    <- dropped 3
+                    projects_test.go              6
+                    middleware_recover_test.go    1
+      taskapipro    largest entry                 9 named    <- dropped 1
+      tasks-api     largest entry                 8 named    <- dropped 1
+      taskapi/ledger/workapi  largest entries   5-9 named    <- dropped 0
+
+  13 in one entry is far outside anything else in the corpus, and all three dropped tests
+  belong to that entry. The two specs with the largest entries elsewhere (9 and 8) each
+  dropped exactly one. Nothing at 7 or below dropped anything.
+
+  n is 6 specs and the pattern is suggestive, not established. What makes it worth acting
+  on is that it is CHEAP TO ACT ON and the action is independently correct.
+
+THE EDIT — split by subject, which is where these tests belonged anyway
+  TestListProjectsSorted moves to projects_test.go: it POSTs projects and asserts the
+  projects order, and it was in the tasks file only because that is where I anchored the
+  insertion. The two paginate tests get their own pagination_test.go entry: they call
+  paginate DIRECTLY with no HTTP and share nothing with the handler tests.
+
+      taskflow_test.go   13 -> 10       projects_test.go   6 -> 7
+      pagination_test.go  0 ->  2       middleware          1
+
+PREDICTION
+  1. All 20 named tests are written this run — no drops.
+  2. reverse sort by ID is CAUGHT at BOTH sites again, since TestListProjectsSorted comes
+     back.
+  3. %w -> %v stays CAUGHT — the errors.Is closure survives the reorganisation.
+  4. taskflow stays green.
+
+  If tests drop anyway, the per-file story is wrong too and the honest position becomes
+  "taskflow drops tests and I do not know why" — which I would rather hold than a third
+  explanation fitted to the same handful of runs.

@@ -195,18 +195,6 @@ files:
       Validate used %w or %v, so it pins nothing. The handler returns 400 for ANY error
       from Validate, so no HTTP test can tell a wrapped sentinel from an unwrapped one —
       only this direct assertion defends the errors.Is contract the spec promises.
-      TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
-      then "1", then "2" (each valid, its own fresh request body) — then GET /projects
-      and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
-      back ASCENDING by INDEX: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3".
-      ListProjects sorts its own copy, and TestListSorted only pins the TASKS sort — the
-      projects sort can be reversed or dropped entirely and every other test still passes.
-      TestPaginateNegativeOffset: call paginate DIRECTLY (a unit test, no HTTP) on
-      a 3-item slice with limit=0, offset=-1 -> no panic and EXACTLY 3 items. This
-      is not hypothetical: a paginate without the `offset < 0` clamp slices
-      items[:-1] and panics at runtime, and every other test passes anyway.
-      TestPaginateOffsetPastEnd: call paginate DIRECTLY on a 1-item slice with
-      limit=10, offset=5 -> no panic and EXACTLY 0 items.
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
       TestMalformedJSON: POST truncated bytes (NOT an empty `{}`) -> 400.
       Do NOT write the project endpoints here — they live in
@@ -214,6 +202,12 @@ files:
       Standard library only.
   - path: projects_test.go
     purpose: >-
+      TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
+      then "1", then "2" (each valid, its own fresh request body) — then GET /projects
+      and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
+      back ASCENDING by INDEX: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3".
+      ListProjects sorts its own copy, and TestListSorted only pins the TASKS sort — the
+      projects sort can be reversed or dropped entirely and every other test still passes.
       package main. The project endpoints, in their OWN file so neither test file
       has to be long. They are a MIRROR of the task endpoints: registered on the
       same router, shipped in projects_handler.go — and until this file existed,
@@ -237,3 +231,15 @@ files:
       TestProjectDeleteMissing: DELETE a project id nobody created -> 404.
       Imports bytes, encoding/json, net/http, net/http/httptest, testing.
       Never name a local variable `t`.
+  - path: pagination_test.go
+    purpose: >-
+      package main. Unit tests for paginate ONLY — no HTTP, no router, no
+      store. These share nothing with the handler tests and are split out so
+      no single test file carries the whole suite.
+      TestPaginateNegativeOffset: call paginate DIRECTLY (a unit test, no HTTP) on
+      a 3-item slice with limit=0, offset=-1 -> no panic and EXACTLY 3 items. This
+      is not hypothetical: a paginate without the `offset < 0` clamp slices
+      items[:-1] and panics at runtime, and every other test passes anyway.
+      TestPaginateOffsetPastEnd: call paginate DIRECTLY on a 1-item slice with
+      limit=10, offset=5 -> no panic and EXACTLY 0 items.
+      Standard library only.
