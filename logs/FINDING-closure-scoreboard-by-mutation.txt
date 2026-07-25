@@ -1,0 +1,42 @@
+FINDING — the closure scoreboard, measured soundly
+===================================================
+2026-07-26. Replacing five presence-based durability claims with one mutation-based table.
+
+WHICH CLAIMS WERE UNSOUND, PRECISELY
+  Two different things were being reported today and only one of them was measured well:
+
+    "closure X reads CAUGHT on tree Y"     SOUND — a mutation is applied and the suite is
+                                           run; it measures DEFENCE directly.
+    "spec Z has 0 intermittent tests, so   UNSOUND — _test_durability only asked whether a
+     its closures are durable"             NAME existed. ratelimit kept all five test
+                                           functions while dropping every Retry-After and
+                                           200 assertion inside them.
+
+  The grades were fine. The durability inference from them was not, and it was published
+  five times.
+
+THE SOUND TABLE, against the promoted corpus
+      closure                    sites   verdict
+      jsonapi   Content-Type       1     CAUGHT
+      ratelimit Content-Type       1     CAUGHT
+      shortener Content-Type       1     CAUGHT
+      shortener /health 200        1     CAUGHT
+      shortener Stats 200          1     CAUGHT
+      taskflow  Content-Type       1     CAUGHT
+      usersapi  Content-Type       1     CAUGHT
+
+      7 of 7 fully CAUGHT
+
+  Every single-site closure made today is live on the corpus as it now stands, verified by
+  mutation on artifacts generated AFTER the spec edits — not by re-reading the tree each
+  was graded on.
+
+  The multi-site ones are separate and already recorded as partial: taskflow's %w promise
+  is CAUGHT at one site and SURVIVED at another, and its sort promise likewise. Those were
+  never single-probe closures and are not counted here.
+
+WHAT STILL IS NOT MEASURED
+  Nothing here says these seven survive the NEXT regeneration. Every row is one artifact.
+  The presence-based durability programme was an attempt to answer that and it measured the
+  wrong thing; the sound version is to re-run a spec and re-mutate, which costs a build per
+  spec and has been done for exactly two (ratelimit, jsonapi) — both held.
