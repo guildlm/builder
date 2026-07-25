@@ -77,3 +77,44 @@ ADDENDUM 2026-07-25 — the tool that produced this had a measurement bug.
   chain" as a statement about compile/vet, never as "these projects now pass".
   (--regress now prints the stratum each artifact reaches, so the two cannot be confused
   again: builder bbe8052.)
+
+---------------------------------------------------------------------------
+ADDENDUM 2 (2026-07-25) — re-derived with the corrected, filtered tool.
+  The conclusion holds, and now rests on a cleaner instrument than the one that
+  produced it.
+
+  The audit's default mode had been walking every directory under generated/, which
+  includes ~190 hand-built fixtures for other experiments (_bitset-BEFORE,
+  _eventbus-AFTER, _iso-*, _cachefix-*), several of them green ON PURPOSE. That
+  polluted the very ranking this finding is about: question 2 buckets residual
+  diagnostics to choose the next gate, and it was being fed code no model ever failed
+  on. Both modes now share one corpus selector (builder 4d2f0a5), and the "advanced"
+  verdict no longer compares run-varying toolchain output (5ba77de, 0cbea6b).
+
+  RE-RUN over the 44 real archived failures:
+      8  still do not COMPILE          -> a gate could still help
+     36  compile, but a TEST fails     -> only the spec or the model can
+
+  RESIDUAL COMPILE CLASSES, by distinct specs affected:
+      2  not enough arguments in call to X
+      1  cannot use X(X(X())) (*X) as service.X — does not implement
+      1  missing ',' in argument list
+      1  cannot use X(store) (http.X) as *http.X in return: need type assertion
+      1  undefined: X
+
+  READ IT: the only shape recurring across more than one spec is the arity gap this
+  finding already refused on purpose, because filling it means GUESSING a value and a
+  wrong guess compiles, fails an assertion, and misleads the fix loop. Everything else
+  is a single-spec one-off. And 36 of 44 residual failures are not compile errors at
+  all — they are behaviour, where no gate can reach.
+
+  So "the gate-mining vein is exhausted" was right, and it is now the reading of an
+  instrument that is not quietly inflating its own progress. Two independent tools
+  also agree on how much the chain clears: this audit and _escalation_surface.py both
+  report 11 artifacts reaching build+vet+test green, which is the criterion this
+  finding's headline (~35/47) does NOT use — that one counts the vet stratum, as its
+  METHOD line says. Both numbers are right about different questions.
+
+  (Artifact counts differ by one between the tools by design: this audit includes
+  _proof-* archives, _escalation_surface.py globs _fail-* only. Both exclude the
+  go.mod-only shells.)
