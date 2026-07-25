@@ -86,19 +86,34 @@ def audit(d: pathlib.Path, tc: GoToolchain) -> dict | None:
         if ok:
             return {"name": d.name, "status": "already-green"}
 
+        # The check result is CARRIED, not re-taken. A check is build+vet+test and the
+        # archive holds projects whose generated tests deadlock, so each one can cost the
+        # full `go test -timeout 60s`. This loop used to re-check the same tree twice over:
+        # the first iteration repeated `before`, and the trailing check repeated the last
+        # iteration's. Same numbers either way — the tree is unchanged between them — for
+        # roughly half the wall clock, which is the difference between auditing the whole
+        # archive and giving up partway.
+        after_ok, after = ok, before
+        tree_before = {str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")}
+        written = dict(tree_before)
         for _ in range(8):
-            written = {
-                str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")
-            }
-            _, surface = tc.check(work)
-            changed = _run_deterministic_gates(written, surface, module)
+            changed = _run_deterministic_gates(written, after, module)
             if not changed:
                 break
             for path, content in changed.items():
                 (work / path).write_text(content)
+            after_ok, after = tc.check(work)
+            written = {str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")}
         # Status is derived by DIFFING (did the tree change, did it reach green),
         # not by parsing gate logs — so it stays independent of log formatting.
-        after_ok, after = tc.check(work)
+        #
+        # DIFF THE TREE, which is what the line above always claimed and the code did not
+        # do: it compared the toolchain's OUTPUT across two runs. That output is not a
+        # function of the code. Checking one unchanged artifact twice yields different
+        # goroutine ids, different heap addresses and different durations, so any artifact
+        # whose tests panic compared unequal to itself and was scored "advanced" — the
+        # gates had touched nothing. A tool whose job is to pick the next gate WITH DATA
+        # was inflating its own progress count.
         residual = [s for s in (signature(l) for l in after.splitlines()) if s]
         # A compile diagnostic carries a COLUMN; a failing assertion does not.
         # They are different backlogs: the first is what a gate could still fix,
@@ -106,7 +121,8 @@ def audit(d: pathlib.Path, tc: GoToolchain) -> dict | None:
         compiles = bool(re.search(r"\.go:\d+:\d+:", after))
         return {
             "name": d.name,
-            "status": "green-by-gates" if after_ok else ("advanced" if before != after else "stuck"),
+            "status": "green-by-gates" if after_ok else (
+                "advanced" if written != tree_before else "stuck"),
             "residual": residual if compiles else [],
             "assertions": [] if compiles else assertion_shapes(after),
             "kind": "compile" if compiles else "test",
