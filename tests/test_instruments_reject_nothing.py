@@ -27,7 +27,7 @@ INSTRUMENTS = [
     "_hole_hunt.py", "_hole_closed.py", "_why_red.py", "score_backend.py",
     "_deadlock_detector.py", "_named_test_audit.py", "_teeth_suite.py",
     "_gate_audit.py", "_escalation_surface.py", "_registry_drift.py",
-    "_mapsort_audit.py", "_test_durability.py",
+    "_mapsort_audit.py", "_test_durability.py", "_candidate_triage.py",
 ]
 
 
