@@ -127,3 +127,36 @@ EXHAUSTIVE PASS (--all-sites) — the first-site limit was hiding holes
   Content-Type, taskflow projects malformed-body 400), 2 recurring log-only false
   positives, 3 behaviour changes the spec never asked for (which are SPEC gaps, not test
   gaps).
+
+---------------------------------------------------------------------------
+SHAPE 3 — reverse a sort comparator. SIX sites, ZERO holes.
+
+  TEETH.md already fixes the form: deleting a `sort.Slice` catches only probabilistically
+  (the unsorted order depends on Go's map-iteration randomness), so an order invariant is
+  probed by REVERSING the comparator, which fails every run or never.
+
+      logstats     stats.go   reverse sort by Path       CAUGHT
+      priorityqueue pq.go     reverse sort by Priority   CAUGHT
+      taskflow     store.go   reverse sort by ID         CAUGHT
+      tasks-api    store.go   reverse sort by ID         CAUGHT
+      usersapi     store.go   reverse sort by ID         CAUGHT
+      tasks-api-noshadownudge                            BASELINE-RED (void)
+
+  Every one defended. A shape that yields nothing is a result, not a wasted pass: sort
+  order is exactly the invariant the campaign hardened by hand (three of these are
+  registered teeth mutations), and an independent sweep agreeing with the registry is the
+  cross-check that registry was missing.
+
+  THE PATTERN NEEDED FIXING FIRST, and the fix is the third instance of the same mistake
+  in one day. The comparator regex was anchored to the whole line — `^\\s*return X[i].F <
+  Y[j].F$` — and five of the six comparators in the corpus are written INLINE:
+      sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })
+  So the first run of this shape probed ONE site of six and reported a clean sweep. In a
+  shape added specifically to fix under-sampling. Widened to a substring match (only the
+  matched text is rewritten, so the flip stays unambiguous), and the count went 1 -> 6.
+
+  ==> Across three shapes, all sites: 29 probes, 9 survivors, 4 genuine undefended
+  promises, and one shape with no holes at all. The sweep is now cheap to extend and
+  bounded by which shapes someone thinks to write — the same limit the hand campaign had,
+  moved up one level, and worth saying plainly rather than letting the tool imply
+  completeness.

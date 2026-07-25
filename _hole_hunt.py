@@ -36,6 +36,45 @@ SWAP = {"StatusNotFound": "StatusBadRequest", "StatusCreated": "StatusOK",
         "StatusUnprocessableEntity": "StatusBadRequest", "StatusOK": "StatusAccepted"}
 CODE = re.compile(r"^\s*(?!//)(?!\s*\*).*http\.(Status[A-Za-z]+)")
 
+# SHAPE 3: sort order. TEETH.md already fixes the FORM this must take — deleting a
+# sort.Slice catches only probabilistically, because the unsorted result depends on Go's
+# map-iteration randomness, so an ascending assertion may pass by luck. REVERSING the
+# comparator (`<` -> `>`) catches every run or never. A mutation that cannot be relied on
+# to fail is not a test, and a hole hunter built on one reports noise.
+# NOT anchored to the whole line. Five of the six comparators in the corpus are written
+# inline — `sort.Slice(out, func(i, j int) bool { return out[i].ID < out[j].ID })` — and
+# the first version of this pattern required `return` at the start and the comparison at
+# the end, so it saw one site in six. Under-sampling again, in a shape added to fix
+# under-sampling; the flip stays unambiguous because only the matched substring is
+# rewritten.
+COMPARATOR = re.compile(r'(\w+\[i\]\.\w+) < (\w+\[j\]\.\w+)')
+
+
+def sort_rows():
+    out = []
+    for art in sorted(GEN.glob("*-v4")):
+        for f in sorted(art.glob("*.go")):
+            if f.name.endswith("_test.go"):
+                continue
+            hit = None
+            for ln in f.read_text(errors="ignore").splitlines():
+                m = COMPARATOR.search(ln)
+                if m:
+                    hit = (f.name, m.group(0), f"{m.group(1)} > {m.group(2)}",
+                           m.group(1).split(".")[-1]); break
+            if not hit:
+                continue
+            rel, line, flipped, field = hit
+            def mut(text, a=line, b=flipped):
+                return text.replace(a, b, 1) if a in text else None
+            v, _ = verdict_for(art, rel, mut)
+            out.append((art.name, rel, f"reverse sort by {field}", v))
+            print(f"{art.name:<26} {rel:<22} {('reverse sort by ' + field):<26} {v}", flush=True)
+            if not ALL_SITES:
+                break
+    return out
+
+
 # SHAPE 2: response headers. A wrong Content-Type is invisible to a test that only reads
 # the body, and the campaign's own taxonomy names headers as a hole shape — kvservice and
 # jsonapi both had one closed by hand. Dropping the header entirely is the sharper probe:
@@ -164,6 +203,8 @@ for art in sorted(GEN.glob("*-v4")):
                 break
 print("\n=== shape 2: drop a response header ===")
 rows += header_rows()
+print("\n=== shape 3: reverse a sort comparator ===")
+rows += sort_rows()
 surv = [r for r in rows if r[3] == "SURVIVED"]
 star = [r for r in rows if r[3] == "SURVIVED*"]
 print(f"\n{len(rows)} probes · {len(surv)} SURVIVED (green build, real behaviour change)"
