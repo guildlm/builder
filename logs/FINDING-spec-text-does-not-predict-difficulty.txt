@@ -1,0 +1,39 @@
+FINDING — run difficulty is not a property of the spec text
+===========================================================
+2026-07-25. Two pre-registered predictors, both refuted on one matched pair.
+
+THE PAIR
+                     entries   corrective markers   outcome
+      shortener         7            22             fleet, 891-1351s, escalations
+      ratelimit         7            22             base alone, 114s, 0 fix rounds
+
+  Matched on both text metrics I have proposed, to the digit. Opposite outcomes.
+
+WHAT DIED
+  1. SIZE (spec entries). Published in the morning as "the boundary sits between 7 and 8",
+     fitted to four points. ratelimit was run AS the fifth point precisely because it sits
+     at 7, and it greened instantly. Entry count does not order these runs; neither does
+     implementation-file count, which was discarded earlier the same way (tasks-api and
+     shortener both have five .go files and opposite outcomes).
+  2. CORRECTIVE-CLAUSE DENSITY. MUST / NEVER / do-NOT / "on purpose" / "wrongly" per entry —
+     the fossil record of invariants that once bit. Identical for the pair. taskflow, RED
+     twice, scores BELOW both and barely above jsonapi, which greens in 94s.
+
+WHY BOTH FAILED THE SAME WAY
+  Both count the prose. The pair is matched in the prose. What differs is the problem behind
+  it: shortener asks for a base62 round-trip that must invert exactly, a guard whose POSITION
+  relative to a loop decides whether it runs at all, and a hit count that only a real redirect
+  increments. ratelimit asks for a token bucket, a map of them, and a middleware. Both take
+  seven entries to state. Only one of them is hard to get right, and the spec text does not
+  know that.
+
+THE RESIDUE — USE THE PAIR, NOT A THIRD METRIC
+  shortener vs ratelimit is now a standing two-point test with a known answer: same size,
+  same corrective density, opposite difficulty. Any future proposal that run difficulty can
+  be predicted from a spec has to separate them before it is worth measuring on anything
+  else. Two have died there in one day, which is cheap for what it rules out.
+
+  Practical consequence for the builder: there is no pre-flight signal for "this spec will
+  need the fleet". The fleet has to be judged on what it does when escalation actually
+  fires, which is what the routing measurements already do, and not on a cheap guess made
+  from the spec before the run.

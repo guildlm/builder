@@ -1,0 +1,75 @@
+PREDICTION — can "what the spec asks you to get RIGHT" be counted?
+==================================================================
+2026-07-25, written BEFORE the tool exists. Registering this because I published an
+unfalsifiable sentence an hour ago and that is not a place to stop.
+
+THE CLAIM TO OPERATIONALISE
+  Escalation load tracks what the spec asks the model to get RIGHT, not how much it asks
+  for. Size was refuted this morning: ratelimit and shortener are both SEVEN spec entries
+  and sit at opposite ends of the range (114s/0 rounds/base vs 891-1351s/fleet).
+
+THE PROXY
+  Corrective clauses — the sentences a spec contains ONLY because a model already got it
+  wrong. They are visible in the prose: MUST, NEVER, do NOT, "ON PURPOSE", "wrongly",
+  "error-prone", "never enters the loop". shortener is full of them ("you MUST emit them
+  MOST-significant first", "NEVER GUESS A SHORT CODE", "do NOT send {}"). They are the
+  fossil record of invariants that bit at runtime.
+
+THE FALSIFIER, NAMED IN ADVANCE
+  Five outcomes is far too few to fit a metric to, and any metric can be made to fit five
+  points. So this is graded on ONE discriminating pair, not on the fit:
+
+      shortener  7 entries   HARD (fleet, 891-1351s)
+      ratelimit  7 entries   EASY (base, 114s, 0 rounds)
+
+  Same size, opposite outcome. If corrective-clause density does not separate THESE TWO,
+  the proxy is dead on arrival and I delete it — no rescoring, no second metric fished out
+  of the same specs. Ordering the other three is not evidence; they already differ in size.
+
+PREDICTION
+  1. shortener's corrective density is at least 3x ratelimit's.
+  2. taskflow and tasks-api (both RED) score high; jsonapi (94s, base) scores near zero.
+  3. The metric will NOT be clean — I expect at least one spec that is dense with
+     corrective clauses and still easy, because a corrective clause records a PAST
+     failure that the clause itself may have since fixed. That is the proxy's built-in
+     weakness and I want it on the record before I see the numbers.
+
+GRADED — 2026-07-25, minutes later
+==================================
+  1. shortener >= 3x ratelimit                    REFUTED
+  2. taskflow/tasks-api high, jsonapi near zero   REFUTED for taskflow
+  3. the metric will not be clean                 HIT, and then some
+
+THE DISCRIMINATING PAIR, WHICH IS THE WHOLE GRADE
+
+      shortener   3.1 per entry   22 total   7 entries    HARD  (fleet, 891-1351s)
+      ratelimit   3.1 per entry   22 total   7 entries    EASY  (base, 114s, 0 rounds)
+
+  Not "fails to separate by enough" — IDENTICAL. Same total, same entry count, same
+  density, to the digit. Two specs that are textually equally corrective and sit at
+  opposite ends of the difficulty range.
+
+  taskflow, which has gone RED twice, scores 1.1 — BELOW both of them, and barely above
+  jsonapi's 1.0, which greens on the base in 94s. The metric is not weakly ordered. It is
+  not ordered.
+
+DELETED, as promised in advance. _spec_load.py is removed rather than kept "for reference",
+because keeping it is how the rescoring I forbade myself actually happens — the file sits
+there, and next week a weighting suggests itself. The self-test passed and the counter
+worked correctly; it counted exactly what I asked it to. The number just has nothing to do
+with the outcome.
+
+WHAT TWO REFUTATIONS ON THE SAME PAIR ACTUALLY SAY
+  Size failed on shortener-vs-ratelimit this morning. Corrective density failed on the same
+  pair this afternoon. Both are properties of the spec TEXT, and the pair is textually
+  matched on both — 7 entries, 22 markers each — while behaving oppositely.
+
+  So the difference is not in how the spec is written. It is in the difficulty of the task
+  the spec describes: base62 round-tripping and a guard whose ORDER matters versus a bucket,
+  a map and a JSON writer. That is a property of the problem, not of the prose, and no count
+  over the prose can reach it.
+
+  I am not proposing a third metric. The useful residue is the TEST, not another candidate:
+  any future claim that run difficulty is predictable from a spec must separate shortener
+  from ratelimit, and two proposals have now died there. That pair is worth more than the
+  metrics were.
