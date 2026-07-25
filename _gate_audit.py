@@ -361,9 +361,78 @@ def audit_regression() -> int:
     return len(stuck)
 
 
+class _VaryingToolchain:
+    """A toolchain whose output differs on every call for an unchanged tree.
+
+    Not a caricature. Real `go test` output carries heap addresses, goroutine ids and
+    durations, so checking one untouched artifact twice genuinely returns different text —
+    that is what made this tool score untouched archives as "advanced" for as long as it
+    existed. The fixture reproduces the property, not a specific message.
+    """
+
+    def __init__(self, green: bool = False) -> None:
+        self.green, self.calls = green, 0
+
+    def check(self, cwd):                                    # noqa: ANN001 — duck-typed
+        self.calls += 1
+        return self.green, (
+            f"panic({{0x{self.calls:08x}}})\n"
+            f"goroutine {self.calls * 7} [running]:\n"
+            f"\tservice_test.go:48 +0x{self.calls:x}\n"
+            f"FAIL\texample.com/x\t0.{self.calls}s\n"
+        )
+
+
+def self_test() -> int:
+    """Prove the audit still reports the things it once got wrong. No model, no git.
+
+    The failure this guards was invisible in every way that matters: the tool ran, printed
+    a plausible table, and inflated its own progress count in the direction that made the
+    gate chain look more effective. Nothing failed. So the check has to be a planted case,
+    the same discipline the gates themselves are held to.
+    """
+    failures = []
+    with tempfile.TemporaryDirectory() as tmp:
+        work = pathlib.Path(tmp)
+        # Go no gate rewrites, so the chain must make no change at all.
+        (work / "main.go").write_text("package main\n\nfunc main() {}\n")
+
+        tc = _VaryingToolchain()
+        ok, _out, touched = drive_gates(work, "example.com/x", tc, 8)
+        if touched:
+            failures.append(
+                "an untouched tree reported as CHANGED — the status is being decided by "
+                "comparing toolchain output again, so every panicking archive will score "
+                "'advanced' with no gate having fired"
+            )
+        if ok:
+            failures.append("a red toolchain reported as green")
+        if tc.calls != 1:
+            failures.append(
+                f"took {tc.calls} checks on a tree the gates never touched (want 1) — the "
+                f"duplicate build+vet+test is back, and it costs a full `go test` timeout "
+                f"on every deadlocking archive"
+            )
+
+        green_ok, _o, green_touched = drive_gates(work, "example.com/x",
+                                                  _VaryingToolchain(green=True), 8)
+        if not green_ok or green_touched:
+            failures.append("a green tree must report green and untouched")
+
+    for f in failures:
+        print(f"FAIL: {f}")
+    if failures:
+        return 1
+    print("OK — unchanged trees report unchanged, and one check is taken, not two")
+    return 0
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--self-test", action="store_true",
+                    help="prove the audit reports the things it once got wrong, "
+                         "without go, git or generated/")
     ap.add_argument(
         "--regress",
         action="store_true",
@@ -388,6 +457,9 @@ def main() -> None:
         "defects a retired model used to make is worse than not ranking it.",
     )
     args = ap.parse_args()
+
+    if args.self_test:
+        raise SystemExit(self_test())
 
     if args.mechanisms:
         audit_mechanisms()
