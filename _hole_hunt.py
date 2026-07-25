@@ -101,18 +101,15 @@ def sort_rows():
             if f.name.endswith("_test.go"):
                 continue
             hits = []
-            for ln in f.read_text(errors="ignore").splitlines():
+            for i, ln in enumerate(f.read_text(errors="ignore").splitlines()):
                 m = COMPARATOR.search(ln)
                 if m:
                     hits.append((f.name, m.group(0), f"{m.group(1)} > {m.group(2)}",
-                                 m.group(1).split(".")[-1]))
+                                 m.group(1).split(".")[-1], i))
                     if not ALL_SITES:
                         break
-            for rel, line, flipped, field in hits:
-                def mut(text, a=line, b=flipped):
-                    if text.count(a) != 1:
-                        return None      # ambiguous comparator — refuse rather than guess
-                    return text.replace(a, b, 1)
+            for rel, line, flipped, field, idx in hits:
+                mut = replace_at(idx, line, flipped)
                 v, _ = verdict_for(art, rel, mut)
                 out.append((art.name, rel, f"reverse sort by {field}", v))
                 print(f"{art.name:<26} {rel:<22} {('reverse sort by ' + field):<26} {v}",
@@ -137,17 +134,14 @@ def header_rows():
             if f.name.endswith("_test.go"):
                 continue
             hits = []
-            for ln in f.read_text(errors="ignore").splitlines():
+            for i, ln in enumerate(f.read_text(errors="ignore").splitlines()):
                 m = HEADER.match(ln)
                 if m:
-                    hits.append((f.name, m.group(1), ln.strip()))
+                    hits.append((f.name, m.group(1), i, ln.strip()))
                     if not ALL_SITES:
                         break
-            for rel, header, line in hits:
-                def mut(text, ln=line):
-                    if text.count(ln) != 1:
-                        return None      # ambiguous line — refuse rather than guess
-                    return text.replace(ln, "// MUTANT: header dropped", 1)
+            for rel, header, idx, line in hits:
+                mut = replace_at(idx, line, "// MUTANT: header dropped")
                 v, _ = verdict_for(art, rel, mut)
                 out.append((art.name, rel, f"drop {header}", v))
                 print(f"{art.name:<26} {rel:<22} {('drop ' + header):<26} {v}", flush=True)
@@ -220,6 +214,25 @@ def self_test() -> int:
 
 if "--self-test" in sys.argv:
     raise SystemExit(self_test())
+
+
+
+def replace_at(index: int, old: str, new: str):
+    """A mutator that edits ONE LINE BY INDEX, not by matching its text.
+
+    Text matching cannot address a site that appears twice: jsonapi's regenerated main.go
+    writes `w.WriteHeader(http.StatusBadRequest)` on two lines, byte-identical, and the
+    uniqueness guard this replaced refused both — a grading blocked outright rather than a
+    wrong answer, but blocked all the same. The detector already knows which line it chose;
+    carrying the index is simply telling the mutator what the detector knew.
+    """
+    def mut(text):
+        lines = text.splitlines()
+        if index >= len(lines) or old not in lines[index]:
+            return None
+        lines[index] = lines[index].replace(old, new, 1)
+        return "\n".join(lines) + "\n"
+    return mut
 
 
 def main() -> int:
