@@ -45,3 +45,42 @@ PREDICTION (recorded now, to be graded later)
   help taskapipro's cross-file contract mismatch because the loop reasons one file at a
   time. It did help. The mechanism bounded the mechanism, not the outcome. So this
   prediction is a prediction, not a reason to skip the run.
+
+===========================================================================
+GRADED 2026-07-25, same day. The prediction was WRONG, and wrong in a way worth
+keeping rather than editing out.
+
+WHAT I PREDICTED
+  "Low yield, for a structural reason rather than a hunch about model quality. The review
+  pass sees a green project and is asked to find what is wrong with it, with no failing
+  signal to localise the fault... It is searching, not repairing." And specifically: "it
+  finds the planted bug in a minority of cases."
+
+WHAT HAPPENED (FINDING-review-pass-returns-fragments.txt)
+  The specialist localised the fault on the FIRST try, from the spec alone, with no
+  toolchain signal — naming the file, the function and the constant:
+      "Bug: the error path in `Shorten` returns `http.StatusNotFound` instead of
+       `http.StatusBadRequest`."
+  The lever was not blocked by the model's ability to find semantic bugs. It was blocked
+  by a REPLY-FORMAT contract: asked for the complete file, the specialist answers like a
+  human reviewer — prose, then the function it fixed — and the harness wrote 20 lines over
+  a 79-line file, failed the build, and reverted in silence.
+
+WHY THE REASONING FAILED
+  "No failing signal to localise the fault" treated the toolchain as the only source of
+  localisation. The SPEC is another, and it is the one this pass is actually given. The
+  prompt hands over the spec and the sibling files and asks for a judgement against them —
+  which is a different task from the fix loop's, not a harder version of it.
+
+  Same shape as the miss recorded in RESULT-fleet-ab.txt, which this file cited in advance
+  and then repeated anyway: reasoning correctly about a MECHANISM ("the loop reasons one
+  file at a time", "the reviewer has no failing signal") and then treating that as a bound
+  on the OUTCOME. Twice in one session. The mechanism argument is worth making — it is how
+  the experiment gets designed — but it is not evidence, and writing it down before the run
+  is the only thing that makes the difference visible afterwards.
+
+STILL UNMEASURED, and now measurable
+  Whether review HELPS across specs, and what it does to CORRECT code, which matters more
+  than it looks: the never-hurt guarantee is build+vet+test, and today's hole hunt showed
+  green does not mean defended. An edit that changes an undefended, spec-promised
+  behaviour passes that guard.
