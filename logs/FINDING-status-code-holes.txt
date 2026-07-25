@@ -465,3 +465,23 @@ CORRECTION — "sort order is fully defended" was wrong, and wrongly for the usu
   reported as a clean sweep, which is the exact failure this file has now documented four
   times in its own instrument. Under-sampling does not announce itself; it produces a
   smaller, tidier, entirely plausible table.
+
+CORRECTED DENOMINATOR — 2026-07-26
+===================================
+The headline in this file and quoted all session was "150 probes · 14 SURVIVED". The
+summary counted every ATTEMPT as a probe, including ones that could not answer:
+
+      64 of 150 probes could answer · 15 SURVIVED
+      86 could NOT: 13 BASELINE-RED (tasks-api-min-v4, tasks-api-noshadownudge-v4 do not
+                    compile at all), 73 did not apply to their site
+
+So the real denominator is 64, not 150 — less than half — and the survival rate is 23%,
+not 9%. The coverage claim was inflated 2.3x, and in the direction that flatters it.
+
+ONE MORE THING WORTH FLAGGING RATHER THAN GLOSSING
+  The survivor count moved 14 -> 15 between two runs of the SAME unchanged corpus. Nothing
+  in generated/ changed between them. That means at least one verdict here is not
+  deterministic — most likely a mutation whose CAUGHT depends on Go's map iteration order,
+  which is the same nondeterminism found in the fix loop today. A hole-hunt verdict that
+  varies run to run is a coin flip wearing a verdict's clothes, and it is not fixed by this
+  commit. Recorded as open.

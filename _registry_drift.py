@@ -84,6 +84,15 @@ def self_test():
 if "--self-test" in sys.argv:
     self_test(); raise SystemExit
 
+# This tool sweeps the registry against the archive and takes NO target, so an argument
+# means the caller expected something this cannot do. Rejecting it beats answering a
+# question that was not asked — nine of the other ten instruments already do, and this one
+# is mine, written today, in the middle of fixing exactly this in four others.
+_unexpected = [a for a in sys.argv[1:] if not a.startswith("-")]
+if _unexpected:
+    raise SystemExit(f"{__file__} takes no target — it sweeps the whole registry against "
+                     f"generated/. Got: {', '.join(_unexpected)}")
+
 GEN = pathlib.Path("generated")
 rows, brittle, robust, inapplicable = [], 0, 0, 0
 for spec_name, rel, desc, mut in _load_registry():
