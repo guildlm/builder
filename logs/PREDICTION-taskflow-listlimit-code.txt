@@ -65,3 +65,33 @@ WHAT THIS SETTLES, AND WHAT IT DOES NOT
   Worth stating plainly: two specs were carrying a "capability wall" label that neither
   earned. The label came from reading a red score instead of a red SUITE, and it survived
   two full regenerations because nobody paid the four seconds `go test` costs.
+
+GRADED — 2026-07-25 night
+=========================
+      rc=0   1246s   5 fix rounds   4 escalations   GREEN — taskflow's first ever
+
+  1. TestListLimit written against the GET recorders and passes   HIT
+     The generated test declares recAll and recLimited, drives GET /tasks and
+     GET /tasks?limit=1 into them, and decodes THOSE. No POST recorder is decoded as an
+     array anywhere in the file.
+  2. taskflow greens                                              HIT
+  3. (falsifier, unused — it did not stay red)
+
+  So SHOWING THE CODE worked where careful prose had failed twice. The prose already named
+  the variables, said FRESH recorder, said EXACTLY one and never "at most one", and warned
+  against re-asserting. That was not enough; the literal function body was. This is the
+  second time the lever has been recorded as decisive, and the first time it was aimed at a
+  spec that had been written off rather than merely slow.
+
+A HOLE CLOSED AS A SIDE EFFECT, WHICH IS THE POINT OF UNBLOCKING IT
+      httpjson.go   drop Content-Type   SURVIVED -> CAUGHT
+
+  That hole was found this morning and graded BASELINE-RED — verdict void, because a spec
+  that cannot go green cannot be graded at all. Greening taskflow converted an ungradeable
+  finding into a closed one without any further spec work. Six holes and two gaps were
+  parked behind exactly this.
+
+  Non-regression, honestly: 3 of taskflow's 4 registered mutations ran and all three came
+  back CAUGHT. The fourth (models.go status validation) is NOAPPLY against this fresh tree
+  — a registry-decay case of the kind measured today, not a regression, and NOT counted as
+  a pass.

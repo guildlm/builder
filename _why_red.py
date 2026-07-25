@@ -85,10 +85,24 @@ proc = subprocess.run(["go", "test", "./..."], cwd=art, capture_output=True, tex
                       timeout=300)
 fails = parse(proc.stdout + proc.stderr)
 if not fails:
-    # Distinguish "nothing failed" from "nothing ran" — the whole point of today.
-    ran = "no test files" not in proc.stdout
-    print(f"no failing tests ({'suite is green' if ran else 'NO TEST FILES — nothing ran'})")
-    raise SystemExit(0 if ran else 1)
+    # Distinguish "nothing failed" from "nothing ran" — but PER PACKAGE, because the
+    # first version of this check asked whether the phrase "no test files" appeared
+    # ANYWHERE and then declared that nothing ran. Swept across the archive it called
+    # four healthy multi-package projects untested: ledger, taskapi, taskapipro and
+    # workapi all have 6-8 test files, and only their cmd/server package has none, which
+    # is correct for a main. I shipped the same conflation I spent today hunting — "some
+    # of it did not run" reported as "none of it ran" — and the corpus sweep is what
+    # caught it, not the two artifacts it was built against.
+    tested = len(re.findall(r"^ok\s+\S+", proc.stdout, re.M))
+    untested = len(re.findall(r"^\?\s+\S+\s+\[no test files\]", proc.stdout, re.M))
+    if tested:
+        note = f"suite is green — {tested} package(s) ran tests"
+        if untested:
+            note += f", {untested} had none"
+    else:
+        note = f"NO PACKAGE RAN A TEST ({untested} with no test files)"
+    print(f"no failing tests ({note})")
+    raise SystemExit(0 if tested else 1)
 
 groups: dict[str, list[str]] = {}
 for name, msgs in fails:
