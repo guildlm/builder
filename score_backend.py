@@ -162,12 +162,88 @@ def score(project: str, smoke: str | None) -> dict:
     return res
 
 
+_FIXTURES = {
+    # name: (files, expected stage verdicts, expected score)
+    "green": (
+        {"go.mod": "module example.com/x\n\ngo 1.23\n",
+         "lib.go": "package x\n\nfunc Add(a, b int) int { return a + b }\n",
+         "lib_test.go": "package x\n\nimport \"testing\"\n\n"
+                        "func TestAdd(t *testing.T) {\n\tif Add(1, 2) != 3 {\n"
+                        "\t\tt.Fatalf(\"boom\")\n\t}\n}\n"},
+        {"build": True, "vet": True, "test": True}, 3),
+    "does not build": (
+        {"go.mod": "module example.com/x\n\ngo 1.23\n",
+         "lib.go": "package x\n\nfunc Add(a, b int) int { return a + }\n"},
+        {"build": False, "vet": False, "test": False}, 0),
+    "test asserts nothing": (
+        {"go.mod": "module example.com/x\n\ngo 1.23\n",
+         "lib.go": "package x\n\nfunc Add(a, b int) int { return a + b }\n",
+         "lib_test.go": "package x\n\nimport \"testing\"\n\n"
+                        "func TestAdd(t *testing.T) {\n\t_ = Add(1, 2)\n}\n"},
+        {"build": True, "vet": True, "test": False}, 2),
+    "test genuinely fails": (
+        {"go.mod": "module example.com/x\n\ngo 1.23\n",
+         "lib.go": "package x\n\nfunc Add(a, b int) int { return a - b }\n",
+         "lib_test.go": "package x\n\nimport \"testing\"\n\n"
+                        "func TestAdd(t *testing.T) {\n\tif Add(1, 2) != 3 {\n"
+                        "\t\tt.Fatalf(\"boom\")\n\t}\n}\n"},
+        {"build": True, "vet": True, "test": False}, 2),
+}
+
+
+def self_test() -> int:
+    """Prove the scorer separates the four outcomes it exists to separate.
+
+    This tool produces every A/B number in the project — routing wins, recipe
+    comparisons, regression sweeps all quote it — and until now nothing checked that it
+    can tell them apart. A scorer that quietly credits a build that does not build, or a
+    test suite that asserts nothing, does not fail loudly; it publishes a number, and the
+    number goes into a finding.
+
+    Four planted projects, real `go`, no model. The third is the one worth having: a suite
+    that passes while asserting nothing is the exact way a green score can be a lie, and
+    it is why the demotion exists.
+    """
+    import tempfile
+
+    failures = []
+    for name, (files, want_stages, want_score) in _FIXTURES.items():
+        with tempfile.TemporaryDirectory() as tmp:
+            for fname, content in files.items():
+                with open(os.path.join(tmp, fname), "w", encoding="utf-8") as fh:
+                    fh.write(content)
+            got = score(tmp, None)
+        for stage, want in want_stages.items():
+            actual = got["stages"].get(stage, {}).get("ok")
+            if actual != want:
+                failures.append(f"[{name}] stage {stage}: got {actual}, want {want}")
+        if got["score"] != want_score:
+            failures.append(f"[{name}] score: got {got['score']}, want {want_score}")
+
+    for f in failures:
+        print(f"FAIL: {f}")
+    if failures:
+        return 1
+    print("OK — green scores 3, a broken build scores 0, and a suite that asserts "
+          "nothing is not credited")
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("project", help="path to a generated Go project directory")
+    ap.add_argument("project", nargs="?",
+                    help="path to a generated Go project directory")
+    ap.add_argument("--self-test", action="store_true",
+                    help="prove the scorer separates green / no-build / vacuous-tests / "
+                         "failing-tests, using real go and no model")
     ap.add_argument("--smoke", help='HTTP probe, e.g. "GET /tasks=200" or "POST /tasks {\\"title\\":\\"x\\"}=201"')
     ap.add_argument("--json", action="store_true", help="emit raw JSON only")
     args = ap.parse_args()
+
+    if args.self_test:
+        return self_test()
+    if not args.project:
+        ap.error("need a project directory (or --self-test)")
 
     res = score(args.project, args.smoke)
     if args.json:
