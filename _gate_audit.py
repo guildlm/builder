@@ -25,9 +25,11 @@ from __future__ import annotations
 
 import argparse
 import collections
+import datetime
 import pathlib
 import re
 import shutil
+import subprocess
 import sys
 import tempfile
 
@@ -191,6 +193,29 @@ _EXPECTED_SILENT = (
 )
 
 
+def _introduced(message: str) -> "datetime.date | None":
+    """When did this log message first enter src/builder.py? `git log -S` finds the
+    commit that added the string; its date bounds how many runs could ever have shown
+    it. Returns None if git cannot answer (shallow clone, message edited since, ...) —
+    an unknown age is reported as unknown, never guessed as old."""
+    try:
+        out = subprocess.run(
+            ["git", "log", "-S", message, "--format=%ad", "--date=short",
+             "--", "src/builder.py"],
+            cwd=pathlib.Path(__file__).parent,
+            capture_output=True, text=True, timeout=20,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    dates = [ln.strip() for ln in out.stdout.splitlines() if ln.strip()]
+    if not dates:
+        return None
+    try:
+        return datetime.date.fromisoformat(dates[-1])   # oldest = introduced
+    except ValueError:
+        return None
+
+
 def audit_mechanisms() -> None:
     """Which mechanisms never fire?
 
@@ -221,13 +246,34 @@ def audit_mechanisms() -> None:
     print(f"=== {len(msgs)} mechanisms, checked against {len(logs)} real runs ===\n")
     silent = [m for m in msgs if blob.count(m) == 0]
     flagged = [m for m in silent if not any(e in m.lower() for e in _EXPECTED_SILENT)]
+    log_dates = sorted(
+        datetime.date.fromtimestamp(p.stat().st_mtime) for p in logs
+    )
     for m in flagged:
-        print(f"  ✗ NEVER FIRED  {m}")
+        # ANSWER the sweep's own question instead of only asking it. "Is it new, or is it
+        # guarded shut?" is decidable: find when the message entered src/builder.py and
+        # count the runs that postdate it. A mechanism younger than every log CANNOT have
+        # appeared in one, and reporting that as NEVER FIRED sends the reader hunting for
+        # a guard that does not exist — this sweep flagged the fleet escalation exactly
+        # that way the day it shipped. Zero opportunities is a different verdict from
+        # hundreds of refusals, and only the second is worth investigating.
+        born = _introduced(m)
+        if born is None:
+            print(f"  ✗ NEVER FIRED  {m}   (age unknown — could not date it in git)")
+            continue
+        after = sum(1 for d in log_dates if d >= born)
+        if after == 0:
+            print(f"  ~ TOO NEW TO TELL  {m}   (added {born}; no run postdates it)")
+        else:
+            print(f"  ✗ NEVER FIRED  {m}   (added {born}; {after} runs postdate it)")
     print(f"\n  {len(flagged)} unexplained · {len(silent) - len(flagged)} expected-silent "
           f"(maintain/review/error paths) · {len(msgs) - len(silent)} healthy")
     if flagged:
         print("\n  A mechanism that cannot be observed working cannot be trusted to\n"
-              "  work. Check each: is it new, or is it guarded shut?")
+              "  work. A high postdating-run count is the strong case: it saw its\n"
+              "  chance that many times and declined. Then ask WHY it declined —\n"
+              "  logs/FINDING-wraparg-gate-dead.txt is a worked example, and the\n"
+              "  answer there was 'correctly narrow', not 'broken'.")
 
 
 def audit_regression() -> int:
