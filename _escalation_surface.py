@@ -51,6 +51,7 @@ import pathlib
 import shutil
 import sys
 import tempfile
+import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
@@ -89,7 +90,7 @@ def targets_of(written: dict[str, str], output: str, module: str | None) -> tupl
     return targets, blamed
 
 
-def measure(d: pathlib.Path, tc: GoToolchain) -> dict | None:
+def measure(d: pathlib.Path, tc: GoToolchain, budget: float) -> dict | None:
     module = module_of(d)
     if module is None:
         return None
@@ -102,19 +103,29 @@ def measure(d: pathlib.Path, tc: GoToolchain) -> dict | None:
 
         # Run the gate chain to a fixpoint exactly as the fix loop does, so what we
         # measure is the residual the MODEL is asked about, not what gates already fix.
+        #
+        # The check is carried across iterations rather than repeated: a full check is
+        # build+vet+test, and the archive contains projects whose generated tests deadlock,
+        # so each one costs the whole `go test -timeout 60s`. Re-checking a tree the gates
+        # did not touch buys nothing and was the single largest cost here.
+        started = time.monotonic()
+        ok, output = tc.check(work)
+        partial = False
         for _ in range(8):
+            if time.monotonic() - started > budget:
+                partial = True   # reported, never silently dropped
+                break
             written = {str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")}
-            _, surface = tc.check(work)
             with contextlib.redirect_stderr(io.StringIO()):
-                changed = _run_deterministic_gates(written, surface, module)
+                changed = _run_deterministic_gates(written, output, module)
             if not changed:
                 break
             for path, content in changed.items():
                 (work / path).write_text(content)
+            ok, output = tc.check(work)
 
-        ok, output = tc.check(work)
         if ok:
-            return {"name": d.name, "status": "green-by-gates"}
+            return {"name": d.name, "status": "green-by-gates", "partial": partial}
         written = {str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")}
         written["go.mod"] = (work / "go.mod").read_text()
         targets, blamed = targets_of(written, output, module)
@@ -125,6 +136,11 @@ def measure(d: pathlib.Path, tc: GoToolchain) -> dict | None:
             "targets": len(targets),
             "blamed": len(blamed),
             "unattributed": not blamed,
+            # The gate chain had not gone quiet when the budget ran out, so this row's
+            # error surface is less gate-repaired than the fix loop's would be. Kept in
+            # the table (it is still a real target split) but counted separately.
+            "partial": partial,
+            "secs": round(time.monotonic() - started),
         }
 
 
@@ -180,6 +196,9 @@ def self_test() -> int:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--limit", type=int, default=0)
+    ap.add_argument("--budget-secs", type=float, default=150.0,
+                    help="per-artifact cap on the gate fixpoint; rows that hit it are "
+                         "marked PARTIAL and counted separately, never dropped silently")
     ap.add_argument("--self-test", action="store_true",
                     help="prove the measurement fires, without go or generated/")
     args = ap.parse_args()
@@ -194,16 +213,17 @@ def main() -> int:
 
     rows = []
     for d in dirs:
-        r = measure(d, tc)
+        r = measure(d, tc, args.budget_secs)
         if r is None:
             continue
         rows.append(r)
+        mark = " PARTIAL" if r.get("partial") else ""
         if r["status"] == "green-by-gates":
-            print(f"{r['name']:<40} green-by-gates")
+            print(f"{r['name']:<40} green-by-gates{mark}")
         else:
             print(f"{r['name']:<40} {r['status']:<8} files={r['files']:<3} "
                   f"repaired={r['targets']:<3} blamed={r['blamed']:<3} "
-                  f"{'UNATTRIBUTED' if r['unattributed'] else ''}")
+                  f"{r['secs']:>4}s {'UNATTRIBUTED' if r['unattributed'] else ''}{mark}")
 
     live = [r for r in rows if r["status"] != "green-by-gates"]
     if not live:
@@ -220,6 +240,14 @@ def main() -> int:
     print(f"  artifacts where the sets differ: {len(wider)}/{len(live)}")
     print(f"  artifacts with an UNATTRIBUTED error (old rule struck every file, "
           f"new rule strikes none): {len(unattr)}/{len(live)}")
+    partial = [r for r in rows if r.get("partial")]
+    if partial:
+        # No silent caps: a bounded run that does not say what it bounded reads as
+        # full coverage.
+        print(f"  PARTIAL rows (gate fixpoint hit the {args.budget_secs:.0f}s budget, so "
+              f"their surface is less gate-repaired than the loop's): {len(partial)}")
+        for r in partial:
+            print(f"      {r['name']}")
     return 0
 
 
