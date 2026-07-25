@@ -35,3 +35,44 @@ PREDICTION
 
   If (1) holds and taskflow's did not, that is one clean data point for "name the test,
   do not append to one" — still N=1 each way, and worth exactly that much.
+
+===========================================================================
+GRADED — the mechanism worked, the spec sentence did not, and my reason for
+choosing this spec was a misreading of my own data.
+
+  RESULT (7B base, 5 fix rounds, 515s): score 2/3, build ok, vet ok, TEST FAIL.
+
+  (1) "The model writes TestHealthOK." CORRECT — `func TestHealthOK(t *testing.T)` is in
+      the artifact. Against taskflow's appended clause, which the model dropped entirely,
+      this is the contrast the last grading asked for: NAMING produces the test, appending
+      a requirement to another test's description does not. Still one run each way.
+
+  (2) "The mutation flips SURVIVED -> CAUGHT." NOT REACHED — no green baseline to grade
+      against, and this time the reason is specific rather than mysterious: the test the
+      model wrote FAILS. shortener_test.go:107 — "invalid character 'o' looking for
+      beginning of value". It JSON-decodes a body that is the plain text `ok`.
+
+      My spec sentence was "GET /health -> 200 and the body is exactly \"ok\"". Every
+      other response in this spec is JSON, every other test decodes JSON, and nothing in
+      that sentence says this one is not. The model followed the house style. The sentence
+      reads unambiguously to someone who already knows the answer, which is the failure
+      mode this project's spec-writing law exists to prevent — implicit means broken, and
+      "the body is exactly ok" implicitly means plain text only if you already know it.
+
+  (3) "The build still greens." WRONG, and the premise was wrong too. I moved here from
+      taskflow because "shortener greens reliably for this base", citing the routing A/B's
+      719s base-only run. That run is recorded in RESULT-fleet-ab.txt as **2/3 RED** — it
+      took the three-member FLEET to reach 3/3. I read my own result table as support for
+      the opposite of what it says. Both specs are red under a plain 7B base, so the spec
+      swap bought nothing.
+
+      (A second failure, TestDecodeBadCode, is unrelated and pre-existing in this base's
+      output — Decode does not reject bad codes.)
+
+  WHAT TO DO NEXT, in order:
+    a. Fix the spec sentence: say the body is PLAIN TEXT, not JSON. That is a one-line
+       change and it is the actual defect.
+    b. Grade the hole against a GREEN baseline, which on this spec means the fleet, not
+       the bare base — the same three members the routing A/B needed. A hole-closing
+       experiment run on a spec the coder cannot green is ungradeable by construction, and
+       I have now spent two runs learning that twice.
