@@ -1,0 +1,77 @@
+FINDING — the review pass finds the bug and then throws the fix away
+====================================================================
+2026-07-25, local MLX ($0). First field measurement of a technique the README has
+listed in the stack since it shipped and which has never run in any of the 578
+archived runs.
+
+THE SETUP — ground truth, because the break is ours
+  _hole_hunt.py found an undefended promise in shortener: the spec says 400 on malformed
+  JSON, no test covers that branch, so changing it to 404 leaves the suite GREEN
+  (FINDING-status-code-holes.txt). That is exactly the artifact this experiment needs — a
+  green build with a known, spec-relevant semantic bug — so the planted defect is
+  `writeJSON(w, http.StatusNotFound, nil)` where the spec promises StatusBadRequest.
+  Served: base 7B + .mlx-adapters/go-review on :8084, serving control passed.
+
+RESULT 1 — the pass reports nothing
+      review pass 1: no further changes
+      planted bug NOT fixed · handlers.go unmodified · project still green
+  Which reads as "the review specialist could not find it".
+
+RESULT 2 — that reading is WRONG, and this is the finding
+  Calling the reviewer directly on the same file returns, verbatim:
+      "**Bug: the error path in `Shorten` returns `http.StatusNotFound` instead of
+       `http.StatusBadRequest`.** A malformed JSON body or a missing `url` field should
+       return `http.StatusBadRequest`..."
+  It found the planted bug exactly, named the right file, the right function and the right
+  constant, and its candidate restores the 400.
+
+  It was discarded because of the SHAPE of the reply. The prompt asks for "the corrected
+  COMPLETE file as one fenced ```go block". The specialist answers the way a human reviewer
+  answers — prose, then just the function it fixed: 20 lines of a 79-line file, no package
+  clause.
+
+WHAT THE HARNESS THEN DOES, and why the second case is the dangerous one
+  NAMED PACKAGE (shortener): the fragment is written over handlers.go, the build fails, the
+  non-regressing guard reverts it, and the loop reports "no further changes". Cost: a
+  correct diagnosis lost in silence, plus a wasted toolchain check.
+
+  PACKAGE MAIN: _write_file runs every candidate through goimports, and goimports
+  SYNTHESISES a `package main` clause for a package-less fragment. Verified:
+      gofmt_code('func main() {...}')  ->  'package main\\n\\nfunc main() {...}'
+  So the fragment becomes a valid file with everything else in it DELETED. If nothing
+  referenced the deleted code, the project still builds, vets and tests green — the
+  non-regressing guard is satisfied, and the review pass has silently removed working
+  code. Demonstrated: with the guard removed, the pass logs "review fixed main.go" and the
+  file is replaced by the fragment.
+
+  So "review can help, never hurt" held only because review never ran. Its never-hurt
+  guarantee is build+vet+test, and deleting unreferenced code passes all three.
+
+THE FIX SHIPPED — reject the fragment before it is written
+  A candidate that does not begin with `package ` is not a file. Skipping it costs one
+  check less and, more importantly, turns silence into a sentence:
+      review returned a FRAGMENT for handlers.go, not a whole file — discarded
+  Pinned by a test that fails without it (the main-package case, where the old behaviour
+  reports a "fix" and eats the file).
+
+WHAT IS NOT FIXED, and why it is left open
+  The specialist's DIAGNOSIS is still thrown away — it was right, and the loop keeps no
+  record of it beyond a log line. Splicing the fragment back is the obvious next step and
+  is not a one-liner: restore_dropped_decls, the existing machinery for a related shape,
+  does NOT cover it (the reply is a METHOD, and top_level_decls returns nothing for it, so
+  the helper returns the candidate unchanged — measured). A method-level splice is
+  single-meaning when the candidate's receiver+name exists exactly once in the original,
+  which is the design worth writing next.
+
+CORRECTED PREDICTION — I called this one wrong in the right direction
+  PREDICTION-review-pass-value.txt expected low yield "structurally": a reviewer handed a
+  green project has no failing signal to localise a fault, so it would search rather than
+  repair. The mechanism reasoning was wrong. The specialist localised the fault precisely
+  from the SPEC, on the first try, with no toolchain signal at all. What blocked the lever
+  was not the model's ability to find semantic bugs — it was a reply-format contract.
+  That is the second time this session that a prediction about a mechanism bounded the
+  MECHANISM and not the OUTCOME (the first: routing on taskapipro's cross-file mismatch).
+
+  N=1 spec, one planted bug, one adapter. What is established is not "review works" but
+  that the recorded reason for it not working was never tested and is not what was
+  happening.

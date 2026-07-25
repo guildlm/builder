@@ -1449,3 +1449,40 @@ def test_restore_repairs_the_real_recorded_failure(tmp_path):
     (tmp_path / "demo_test.go").write_text(fixed)
     ok, out = GoToolchain().vet(tmp_path)
     assert ok, f"the repair must make the real shape compile: {out}"
+
+
+@requires_go
+def test_review_pass_discards_a_fragment_instead_of_wrecking_the_file(tmp_path):
+    """A review reply that is a FRAGMENT must not be written over the whole file.
+
+    Measured against a real go-review specialist (logs/FINDING-review-pass-returns-
+    fragments.txt): asked for the corrected COMPLETE file, it answers the way a human
+    reviewer does — prose, then just the function it fixed, 20 lines of a 79-line file.
+
+    Two outcomes, and the second is why this is a guard and not a tidy-up. In a NAMED
+    package the fragment fails to compile, the non-regressing check reverts it, and the
+    pass reports "no further changes" — a correct diagnosis thrown away in silence. In
+    package main it is worse: _write_file runs the candidate through goimports, which
+    SYNTHESISES a `package main` clause for a bare fragment, so the file becomes valid
+    with everything else in it deleted. If nothing referenced the deleted code the
+    project still builds, vets and tests green, the guard sees no regression, and the
+    review pass has silently removed working code.
+
+    This test is the main-package case: without the guard the pass logs "review fixed
+    main.go" and the file is replaced by the fragment.
+    """
+    spec = Spec(
+        name="demo", description="a demo", go_module="example.com/demo",
+        files=(FileSpec(path="go.mod", purpose="module file"),
+               FileSpec(path="main.go", purpose="entrypoint")),
+    )
+    (tmp_path / "go.mod").write_text(GO_MOD)
+    (tmp_path / "main.go").write_text(GOOD_GO)
+    written = {"go.mod": GO_MOD, "main.go": GOOD_GO}
+    # The shape the specialist actually returns: a bare function, no package clause.
+    reviewer = FakeCoder({"main.go": ["```go\nfunc main() {\n\tprintln(\"fixed\")\n}\n```"]})
+
+    _review_pass(spec, plan(spec), written, tmp_path, GoToolchain(), reviewer, rounds=1)
+
+    assert (tmp_path / "main.go").read_text() == GOOD_GO, "the file must be untouched"
+    assert written["main.go"] == GOOD_GO

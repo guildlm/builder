@@ -5515,6 +5515,21 @@ def _review_pass(
             candidate = extract_code(raw)
             if candidate.strip() == written[path].strip():
                 continue
+            # A FRAGMENT is not a file. The prompt asks for the corrected COMPLETE file
+            # and the review specialist routinely answers in the shape a human reviewer
+            # would: prose, then just the function it fixed. Writing that over the file
+            # deletes the package clause and everything else, the build fails, and the
+            # non-regressing guard reverts it — so a CORRECT diagnosis is discarded and
+            # the pass reports "no further changes". Measured on shortener with a planted
+            # bug: the specialist named the defect exactly ("returns http.StatusNotFound
+            # instead of http.StatusBadRequest") and returned 20 lines of a 79-line file
+            # (logs/FINDING-review-pass-returns-fragments.txt).
+            # Skipping it here costs one toolchain check less and, more importantly,
+            # turns silence into a sentence the operator can act on.
+            if not candidate.lstrip().startswith("package "):
+                _log(f"  review returned a FRAGMENT for {path}, not a whole file — "
+                     f"discarded (its diagnosis may still be right; see the raw reply)")
+                continue
             prev = written[path]
             candidate = _write_file(out, path, candidate)
             ok, _ = toolchain.check(out)
