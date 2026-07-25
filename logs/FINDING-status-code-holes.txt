@@ -478,10 +478,22 @@ summary counted every ATTEMPT as a probe, including ones that could not answer:
 So the real denominator is 64, not 150 — less than half — and the survival rate is 23%,
 not 9%. The coverage claim was inflated 2.3x, and in the direction that flatters it.
 
-ONE MORE THING WORTH FLAGGING RATHER THAN GLOSSING
-  The survivor count moved 14 -> 15 between two runs of the SAME unchanged corpus. Nothing
-  in generated/ changed between them. That means at least one verdict here is not
-  deterministic — most likely a mutation whose CAUGHT depends on Go's map iteration order,
-  which is the same nondeterminism found in the fix loop today. A hole-hunt verdict that
-  varies run to run is a coin flip wearing a verdict's clothes, and it is not fixed by this
-  commit. Recorded as open.
+A NONDETERMINISM CLAIM MADE HERE WAS WITHDRAWN THE SAME HOUR
+  I wrote that the survivor count moved 14 -> 15 across two runs of an unchanged corpus and
+  concluded "at least one verdict here is not deterministic". Then I checked it properly:
+
+      two full archive sweeps, row for row       IDENTICAL (15 = 15)
+
+  So there is no nondeterminism visible in the evidence I can actually inspect. The 14 came
+  from the session's FIRST full sweep, and that run's output retained only its summary — no
+  row list — so nothing about it can be compared. Worse, generated/ratelimit-v4 was
+  temporarily edited twice during the session (registry.go deleted and restored to prove a
+  detector fires; bucket.go's guard reformatted onto one line to isolate NOAPPLY from
+  BASELINE-RED). Either edit changes whether a mutation applies, and either is a mundane
+  explanation for a count that differs by one.
+
+  The claim was published as a fact on the strength of two numbers and an assumption that
+  nothing had changed — while I was the one who had changed it. The reasoning was
+  self-serving in a specific way worth naming: it fit the day's theme (nondeterminism found
+  in the fix loop), and a finding that confirms the story you are already telling gets less
+  scrutiny than one that contradicts it.
