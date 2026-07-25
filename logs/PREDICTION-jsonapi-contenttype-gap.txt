@@ -69,6 +69,11 @@ GRADED — one real result, and one error of mine that the grading caught.
          usersapi    8   untested
          tasks-api   8   RED, fleet, 3100s
          taskflow   14   RED, fleet, twice
+     ⚠️ REFUTED SAME DAY by adding a second point at 7 — see
+     PREDICTION-ratelimit-contenttype-gap.txt. ratelimit is SEVEN entries and greened on
+     the BASE alone in 114s with zero fix rounds, while shortener at seven needed the
+     fleet and 891-1351s. Entry count does not order these runs, so the boundary below
+     was a description of shortener rather than of size, exactly as file count had been.
      The boundary sits between 7 and 8 spec entries. Implementation-file count does NOT
      separate them — tasks-api and shortener both have five — so the variable is how much
      the spec asks for, not how much code results.

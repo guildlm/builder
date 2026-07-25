@@ -28,6 +28,17 @@ sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
 from _teeth_suite import verdict_for, MUTATIONS, GEN
 
 NEW = pathlib.Path(sys.argv[1])
+# A directory that does not exist must be an ERROR, not a quiet "nothing found".
+# Called as `--dir X --probe=...` (no positional) this took "--dir" as the artifact
+# path, globbed an absent directory, matched no sites and printed
+#   drop Content-Type applies in: None / (1) SKIPPED
+# which reads exactly like a real answer about a real artifact. A grader whose
+# failure mode is a plausible-looking SKIP is worse than no grader.
+if not NEW.is_dir():
+    raise SystemExit(f"{NEW} is not a directory — pass the artifact dir POSITIONALLY:\n"
+                     f"  python _hole_closed.py <artifact-dir> [spec] [--probe=...] [--file=...]")
+if not any(f for f in NEW.glob("*.go") if not f.name.endswith("_test.go")):
+    raise SystemExit(f"{NEW} has no non-test .go files — nothing to grade")
 SPEC = sys.argv[2] if len(sys.argv) > 2 else NEW.name.split("-")[0]
 # Which hole is being graded. Question (1) has to probe the SAME shape _hole_hunt used to
 # find it, so the probe is chosen rather than assumed — the first version hardcoded

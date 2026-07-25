@@ -31,3 +31,38 @@ PREDICTION
   (2) is the one being tested. Everything else is the recipe, which has now landed four
   times out of five attempts — the one failure being a target I picked from memory rather
   than from the sweep output.
+
+GRADED — 2026-07-25
+===================
+  (1) TestContentTypeJSON written and passes          HIT   (ratelimit_test.go:88)
+  (2) greens with the fleet, 900-1400s                MISS  — see below
+  (3) drop Content-Type SURVIVED -> CAUGHT            HIT   (middleware.go)
+  (4) registered mutation stays CAUGHT                HIT   (bucket.go idle-burst)
+
+Fifth closure, and the recipe is now 5 for 6. But (2) is the prediction that mattered
+and it is REFUTED, which is the whole reason for having run it here.
+
+      rc=0   114s   0 fix rounds   0 escalations
+
+ratelimit is SEVEN spec entries and greened ON THE BASE ALONE, first pass, in about the
+time jsonapi's three entries took (94s). shortener is also seven and needed the fleet and
+891-1351s. So the boundary I published this morning —
+
+      "the boundary sits between 7 and 8 spec entries"
+
+— was a description of SHORTENER, not of size. Two specs of identical size sit at opposite
+ends of the difficulty range, so entry count does not order these runs any better than the
+file count I had already discarded for the same reason.
+
+WHAT ACTUALLY SEPARATES THEM, on the evidence in hand: shortener's spec carries invariants
+that only bite at runtime — base62 round-trip, the empty-string guard that must precede the
+loop, Hits incremented by exactly one redirect, a code you must read out of the response
+rather than guess. ratelimit's seven entries are mostly mechanical (a bucket, a registry, a
+middleware, a JSON writer). Both are seven entries; one is seven HARD entries. Size was a
+proxy that happened to fit four points, and it broke on the fifth — which is what a fifth
+point is for.
+
+I am not replacing it with "hardness", because that is unfalsifiable as stated and I have
+one data point for it. The honest published claim is now: escalation load tracks what the
+spec asks the model to get RIGHT, not how much it asks for, and I cannot yet measure that
+in advance.
