@@ -75,3 +75,39 @@ CORRECTED PREDICTION — I called this one wrong in the right direction
   N=1 spec, one planted bug, one adapter. What is established is not "review works" but
   that the recorded reason for it not working was never tested and is not what was
   happening.
+
+---------------------------------------------------------------------------
+CONTROL (same day, same served specialist) — what review does to CORRECT code
+
+  The planted-bug run says the lever can fire. The question it cannot answer is what the
+  lever does when there is nothing to find, and that matters more than usual here: the
+  never-hurt guarantee is build+vet+test, and _hole_hunt showed green does not mean
+  defended. An edit that changes an undefended, spec-promised behaviour passes that guard
+  untouched.
+
+  So: the same review pass over UNMUTATED shortener-v4.
+
+  REPLY SHAPES, 5 implementation files:
+      4  fragments that cannot be spliced (they add or redefine more than functions)
+      1  fragment spliced back and applied
+      0  complete files
+  The contract mismatch is the NORM, not an unlucky sample. Note that handlers.go returned
+  a whole file in the planted run and an unspliceable fragment here — same file, same
+  prompt, same model. Reply shape is not a property of the file.
+
+  WHAT CHANGED: one file, router.go. The edit rewrites three direct method registrations
+      mux.HandleFunc("POST /shorten", NewLinkHandler(s).Shorten)
+  into equivalent closures that construct a handler per request
+      mux.HandleFunc("POST /shorten", func(w, r) { h := NewLinkHandler(s); h.Shorten(w, r) })
+  Behaviour is the same; it allocates a handler on every request instead of once at
+  registration. Not a bug, not a fix — noise, and mildly worse.
+
+  NEVER-HURT: held. Still green, and the undefended malformed-JSON 400 branch — the one
+  thing in this project known to be changeable without a test noticing — came back intact.
+  HELP: zero. There was nothing to find and nothing was found.
+
+  ==> The honest scoreboard after one planted bug and one control: review CAN localise a
+  real semantic defect from the spec alone, and on correct code it produces a small amount
+  of neutral churn that the green guard cannot distinguish from an improvement. Both
+  numbers are N=1. What is no longer true is the previous state of the record, where the
+  technique was listed in the stack with no field evidence at all in either direction.
