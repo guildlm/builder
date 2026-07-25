@@ -35,7 +35,7 @@ left among the ones I thought of". Sweeping instead, across four shapes and ever
 | shape | probe | genuine holes / probes |
 |-------|-------|:---------------------:|
 | status code | swap for a plausible neighbour | 3 / 9 |
-| response header | delete the `Header().Set` line | 1 / 8 (+3 spec gaps) |
+| response header | delete the `Header().Set` line, every site | 1 / 10 (+4 spec gaps) |
 | sort order | REVERSE the comparator (never delete the sort) | 1 / 7 |
 | error wrapping | `%w` → `%v`, every wrap in the file | **2 / 10** |
 
@@ -67,11 +67,15 @@ defended half and stops.
 
 Two rules keep it honest:
 
-- **A SURVIVED row is a candidate, not a verdict.** The next question is always whether the
-  SPEC promises the behaviour that was broken. Of 9 survivors, 4 were real, 2 were a
-  recurring log-only false positive (marked `SURVIVED*` rather than filtered out — removing
-  a class is how a hunter goes quiet), and 3 were behaviour the spec never asked for. Those
-  last three are SPEC gaps, not test gaps: by this project's own law, implicit means broken.
+- **A SURVIVED row is a candidate, not a verdict**, and there are now three measured ways
+  it is not a hole. Of 15 survivors: 9 are real undefended promises; 4 are behaviour the
+  spec never asked for (SPEC gaps — the model sets `Content-Type` because that is what a
+  JSON handler looks like, and nothing requires it); 2 are a log-only false positive
+  (marked `SURVIVED*` rather than filtered, since removing a class is how a hunter goes
+  quiet); and 1 mutates a value that is DEAD (`ratelimit` writes the status twice and Go
+  ignores the second, so the argument cannot reach the response). Each needed a different
+  question — does the spec say it, does anything observe it, can the value reach the
+  response — and none is visible in the verdict.
 - **Closing a hole means naming a test in the spec**, then regenerating and grading with
   `_hole_closed.py` — which asks both questions, because a spec edit reaches every file's
   prompt and one that buys a hole while opening another still looks like a win from the
