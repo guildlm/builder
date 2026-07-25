@@ -32,3 +32,22 @@ PREDICTION
      of them.
   4. What would make me revert: any OTHER previously-CAUGHT mutation in taskflow going
      SURVIVED, which would mean the edit bought one hole and opened another.
+
+---------------------------------------------------------------------------
+THE BEFORE TABLE — recorded before the regenerated artifact was graded, so the
+comparison has a control rather than a memory.
+
+  _hole_closed.py over the UNEDITED artifact (generated/taskflow-v4):
+
+      (1) drop Content-Type                                  SURVIVED   <- the hole
+      (2) store.go     duplicate Task ID -> ErrExists (409)   CAUGHT
+          pagination.go paginate clamps a negative offset     CAUGHT
+          store.go     List methods return items sorted by ID CAUGHT
+          models.go    Task.Validate rejects a bad status     CAUGHT
+
+  This doubles as the tool's non-vacuity check: a grader that cannot reproduce the
+  known SURVIVED on the artifact the hole was found in is not measuring anything.
+
+  GRADING RULE, fixed in advance: the edit succeeds iff (1) becomes CAUGHT and all four
+  rows of (2) stay CAUGHT. Any of (2) turning SURVIVED means the edit bought one hole and
+  opened another, and I revert rather than argue that the trade was worth it.
