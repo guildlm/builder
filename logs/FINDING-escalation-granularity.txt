@@ -135,19 +135,20 @@ RESULTS — shortener REGRESSED. The prediction above was right and it matters.
     independent of which escalation policy wins.
 
 MEASUREMENT 1 RESULTS — the shortener mechanism is a LAW, not an anecdote
-  47 archived artifacts; 36 still failing after the current gate chain.
+  47 archived artifacts; 32 still failing after the current gate chain (four more are
+  go.mod-only shells left by runs killed during generation — see the correction below).
 
     files a fix round REPAIRS ........................ 135
     files the toolchain BLAMES ....................... 55
     never blamed (the old rule's escalation surface) .. 80  (59% of repaired files)
-    artifacts where the two sets differ .............. 19/36
-    artifacts with an UNATTRIBUTED error ............. 4/36
+    artifacts where the two sets differ .............. 19/32
+    artifacts with an UNATTRIBUTED error .............. 0/32
 
   And the decisive one — artifacts where implementation files are being repaired and NOT
   ONE of them is blamed, i.e. where a blamed-only rule can never put an implementation
   defect in front of a stronger model:
 
-    compile failures ..... 0/17
+    compile failures ..... 0/13
     test failures ....... 18/19
 
   That is close to a clean law and it explains the shortener regression exactly: a compiler
@@ -156,16 +157,32 @@ MEASUREMENT 1 RESULTS — the shortener mechanism is a LAW, not an anecdote
   restricting escalation to blame removes it precisely in the regime where the loop most
   needs a second opinion. shortener was not unlucky; it was the ordinary case.
 
-  WHAT THE 4/36 UNATTRIBUTED CASES SHOW
-    They are the one part of the original argument that survives intact. There the error
-    names no file the builder knows, `targets` falls back to EVERY file, and the old rule
-    dealt a strike to all of them — spending the most escalation exactly where it knows
-    least. That is 11% of failing artifacts, small but real, and it is narrowing with a
-    basis rather than narrowing on principle.
+  CORRECTION TO MY OWN FIRST READING OF THIS TABLE — the last surviving argument was noise
+    The first pass reported 4/36 artifacts with an UNATTRIBUTED error and I called it "small
+    but real": the one case where the old rule clearly overspent, striking every file on no
+    evidence, and therefore the last piece of the narrowing argument left standing.
+    It was not real. All four rows read `files=1 repaired=0 blamed=0` — a go.mod and no Go
+    at all, the debris a run killed during generation leaves behind. Nothing to blame and
+    nothing to repair scores as "no attribution", so the operator's own kill-debris was
+    reading back as evidence for the operator's own hypothesis.
+    _gate_audit.py already guards exactly this, and for exactly these four directories,
+    where they once turned "0 stuck" into "4 stuck" with no gate firing. The guard existed
+    in the repo; this tool had not carried it. With the shells excluded the corpus holds
+    ZERO unattributed errors (the totals above are unchanged — the shells contributed
+    nothing to them — only the denominators move).
 
-  ==> WHERE THIS LANDS. The defensible policy is not "blamed only" and not "everything in
-      the target set" — it is BLAMED + ATTRIBUTED WIDENING, excluding only the no-attribution
-      fallback. Runtime widening and symbol-owner widening are attributions, just indirect
-      ones (the toolchain named a test, or named a symbol whose owner we located); the
-      fallback is the absence of one. workapi decides whether blamed-only survives on the
-      clean spec, but this measurement already says it cannot be right in general.
+  ==> WHERE THIS LANDS. Every narrowing this work proposed is now either refuted or has no
+      measured incidence:
+        - escalating only blamed files: REFUTED (shortener regressed; 18/19 runtime-failing
+          builds cannot reach an implementation defect at all under it);
+        - additionally sparing the no-attribution fallback: defensible in principle, ZERO
+          occurrences in 32 real failing artifacts.
+      An unattributed error remains theoretically possible (a link error, a module-level
+      complaint, a vet message with no file), and striking every file on one would still be
+      baseless — but this project does not ship mechanisms that never fire; it measured a
+      prompt-leak gate, found the corpus clean and SKIPPED it. The same rule applies here.
+      So the honest disposition is to REVERT to the previous escalation behaviour and let
+      the record carry the reasoning, with the fallback written down as a known, unobserved
+      case rather than defended by code no run has ever exercised.
+      workapi is still the promised second data point and is recorded below either way;
+      the revert does not depend on it, because it is the outcome under BOTH readings.
