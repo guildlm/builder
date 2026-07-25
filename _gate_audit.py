@@ -237,6 +237,7 @@ def audit_regression() -> int:
 
     print(f"=== driving the gate chain over {len(reds)} archived RED artifacts ===\n")
     green, advanced, stuck = [], [], []
+    stages: dict[str, int] = {}
     for d in reds:
         module = module_of(d)
         with tempfile.TemporaryDirectory() as tmp:
@@ -246,6 +247,18 @@ def audit_regression() -> int:
             # intended semantics in its own output below — "STUCK means the gates changed
             # NOTHING" — which is what drive_gates now actually measures.
             after_ok, _after, touched = drive_gates(work, module, tc, 20)
+            # WHICH GREEN? "green" is three different claims and the difference is large.
+            # FINDING-gate-mining reports ~35/47 archives cleared by the chain and states
+            # its criterion in its method line — "only go vet" — while this mode's verdict
+            # is build+vet+TEST. Both are true of different questions: the gates repair
+            # MECHANICAL breakage, and a project can compile and vet cleanly while its
+            # generated tests still fail on behaviour no gate can supply. Reporting the
+            # stratum a project reaches keeps a vet-level result from being read as a
+            # test-level one.
+            stage = ("test" if after_ok else
+                     "vet" if tc.vet(work)[0] else
+                     "build" if tc.build(work)[0] else "none")
+            stages[stage] = stages.get(stage, 0) + 1
         if after_ok:
             green.append(d.name)
         elif touched:
@@ -257,6 +270,13 @@ def audit_regression() -> int:
 
     print(f"\n  {len(green)} green by the gates alone · {len(advanced)} advanced · "
           f"{len(stuck)} stuck")
+    print("  furthest stage reached after the chain (build < vet < test — a project can "
+          "vet\n  cleanly and still fail its own tests, so these are different claims):")
+    for st in ("test", "vet", "build", "none"):
+        if stages.get(st):
+            label = {"test": "build+vet+test GREEN", "vet": "builds and vets, tests FAIL",
+                     "build": "builds, vet FAILS", "none": "does not BUILD"}[st]
+            print(f"      {stages[st]:>3}  {label}")
     if stuck:
         print("\n  STUCK means the gates changed NOTHING. That is one of three "
               "things,\n  and they are not the same:\n"
