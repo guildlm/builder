@@ -155,12 +155,31 @@ files:
       TestGetMissing: on a fresh router, GET an id nobody created -> 404.
       TestList: POST one task FIRST, then GET the collection -> 200 and a JSON
       array.
-      TestListLimit: POST TWO tasks FIRST, GET the collection and decode it into a
-      slice `all` (length 2); then make a SECOND request with ?limit=1, a FRESH
-      recorder, and decode THAT response into a SEPARATE slice `limited` before
-      asserting len(limited) == 1 — EXACTLY one, NEVER "at most one": a paginate
-      that wrongly returns ZERO items satisfies "at most 1" and the bug ships
-      green. Do NOT re-assert on `all`.
+      TestListLimit: FOUR recorders are in play here — two POSTs and two GETs — and
+      ONLY the GET recorders hold JSON ARRAYS. A POST recorder holds ONE task OBJECT,
+      so decoding it into []Task fails with "cannot unmarshal object into Go value of
+      type []main.Task". Write EXACTLY this, and decode nothing else:
+        h := newRouter()
+        for _, body := range []string{
+            `{"id":"1","title":"a","status":"todo"}`,
+            `{"id":"2","title":"b","status":"todo"}`,
+        } {
+            rec := httptest.NewRecorder()
+            h.ServeHTTP(rec, httptest.NewRequest("POST", "/tasks", strings.NewReader(body)))
+            if rec.Code != http.StatusCreated { t.Fatalf("create: got %d", rec.Code) }
+        }
+        recAll := httptest.NewRecorder()
+        h.ServeHTTP(recAll, httptest.NewRequest("GET", "/tasks", nil))
+        var all []Task
+        if err := json.NewDecoder(recAll.Body).Decode(&all); err != nil { t.Fatal(err) }
+        if len(all) != 2 { t.Fatalf("all: got %d, want 2", len(all)) }
+        recLimited := httptest.NewRecorder()
+        h.ServeHTTP(recLimited, httptest.NewRequest("GET", "/tasks?limit=1", nil))
+        var limited []Task
+        if err := json.NewDecoder(recLimited.Body).Decode(&limited); err != nil { t.Fatal(err) }
+        if len(limited) != 1 { t.Fatalf("limited: got %d, want 1", len(limited)) }
+      len(limited) == 1 is EXACTLY one, NEVER "at most one": a paginate that wrongly
+      returns ZERO items satisfies "at most 1" and the bug ships green.
       TestListSorted: POST THREE tasks with ids OUT OF ORDER — first "3", then "1",
       then "2" (each a valid task, its own fresh request body) — then GET /tasks and
       decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come

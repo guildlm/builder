@@ -1,0 +1,36 @@
+PREDICTION — taskflow's only failing test, and whether showing code beats describing it
+========================================================================================
+2026-07-25 evening. taskflow has gone RED twice and was written off as a coder-capability
+wall. It is not one.
+
+THE DIAGNOSIS, WHICH IS THE POINT
+  `go test` on the last RED artifact fails ONE test. Everything else passes.
+
+      --- FAIL: TestListLimit
+          json: cannot unmarshal object into Go value of type []main.Task
+          expected 1 and 2 items, got 0 and 0
+
+  The IMPLEMENTATION is fine. The generated TEST decodes the two POST recorders — each
+  holding a single created Task OBJECT — as if they were JSON ARRAYS, and never reads the
+  GET response at all. Four recorders are in play (two POST, two GET) and the model bound
+  the spec's names `all` and `limited` to the wrong two.
+
+  So taskflow is not blocked by an implementation the model cannot write. It is blocked by
+  a TEST the model cannot keep straight, in a spec whose prose is already careful — it
+  names the variables, says FRESH recorder, says EXACTLY one and never "at most one", and
+  warns not to re-assert. Precision in prose was not enough.
+
+THE LEVER
+  Recorded from an earlier session: showing the CODE in the spec got a test written
+  first-try that prose had failed to produce. shortener uses it for the POST-then-read-the-
+  code flow and that flow has never regressed since. This is the same shape — a
+  multi-recorder ordering the prose cannot pin — so it gets the same treatment.
+
+PREDICTION
+  1. TestListLimit is written against the GET recorders and passes.
+  2. taskflow greens for the first time.
+  3. If it does not green, the NEW failure is NOT TestListLimit — anything else means the
+     lever worked and the wall is elsewhere, which is still a result worth having.
+
+  The honest risk: taskflow is 14 spec entries and I have no pre-flight signal for
+  difficulty — both text predictors died today. This may simply fail somewhere new.
