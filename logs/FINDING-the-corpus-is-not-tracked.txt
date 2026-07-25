@@ -1,0 +1,32 @@
+FINDING — "the archive" is local state, not a durable baseline
+===============================================================
+2026-07-26. A correction to how I have been describing the corpus all session.
+
+I have referred to generated/*-v4 as "the archive" and treated it as a fixed baseline —
+the thing instruments measure against, the thing whose verdicts get quoted. It is
+gitignored:
+
+      .gitignore:2   generated/
+      tracked files under generated/:  0
+
+So it is LOCAL STATE. It survives only on this machine, it cannot be compared against
+what it was last week, and anyone cloning this repo gets none of it. Every "the corpus
+says" in today's notes means "this machine's copy says".
+
+WHAT THAT CHANGES
+  1. Promoting today's fresh trees into generated/ — which I just did for shortener,
+     ratelimit, usersapi, jsonapi and taskflow, all verified green first — is not a
+     recorded change. `git status` shows nothing. The old artifacts are simply gone.
+  2. logs/hole-hunt-rows.tsv, tracked this morning after a retraction traced back to a
+     lost row list, is therefore not merely convenient. It is the ONLY durable record of
+     what the corpus said. That decision looks better now than the reasoning that produced
+     it: I tracked it to make verdict drift visible, not knowing the corpus itself was
+     unrecoverable.
+  3. Several instruments dated artifacts by mtime. On untracked, regenerable state that is
+     the only timestamp available, which is a sharper version of the caveat already
+     recorded — there is no git history to fall back on for these files.
+
+  Not proposing to track the corpus: it is ~25 Go projects of generated code, it is
+  regenerable by definition, and the verdicts are what carry the meaning. But the
+  distinction between "the baseline" and "my machine's current copy" needs to be visible
+  in the notes, because I collapsed the two for a whole session.
