@@ -38,3 +38,44 @@ PREDICTION
   (2) is the interesting one. If the base alone greens it, then the fleet was carrying the
   larger specs and nothing else, which sharpens the size finding: the constraint is not
   "small specs need the fleet less", it is "small specs do not need it at all".
+
+===========================================================================
+GRADED — one real result, and one error of mine that the grading caught.
+
+  RUN: BASE ALONE (no fleet), 94 seconds, 3 fix rounds, rc=0, score 3/3.
+
+  1. TestContentTypeJSON written and passes.  HELD — and written correctly:
+
+         contentType := rec.Header().Get("Content-Type")
+         if contentType != "application/json" { ... }
+
+     It asserts the RESPONSE header, in the httptest-recorder idiom that matches the code
+     it wrote, rather than the `res.Header.Get` wording the spec used for a live response.
+     My first grep looked for the spec's phrasing, found nothing, and briefly suggested the
+     model had tested the request header instead. The test was right; the search was wrong.
+
+  2. The BASE ALONE greens it.  HELD — 94s, three rounds, no fleet, no escalations.
+     This is the result worth keeping. Every closure so far ran the three-member fleet, so
+     none of them could separate "the fleet helped" from "the fleet was along for the
+     ride". On a four-file spec it was along for the ride. The size finding sharpens:
+     small specs do not need the fleet AT ALL; the fleet is what carries the large ones,
+     and on those it still is not enough (tasks-api, taskflow).
+
+  3. "The mutation flips SURVIVED -> CAUGHT."  VOID — it was ALREADY CAUGHT.
+     jsonapi was never one of the five Content-Type survivors. The sweep says so plainly:
+         jsonapi CAUGHT · kvservice CAUGHT · ratelimit SURVIVED · shortener SURVIVED
+         taskflow SURVIVED · tasks-api SURVIVED · usersapi SURVIVED
+     and the unedited artifact already asserted the header at main_test.go:31. I picked
+     the target from memory instead of re-reading the sweep output, and spent a run adding
+     a second assertion for a promise that was already defended.
+
+  WHAT IT COST AND WHAT IT DIDN'T
+    94 seconds and a redundant named test in one spec. Nothing was broken: the build is
+    green, the assertion is correct, and the promise is now stated twice instead of once.
+    The cost is that the spec is slightly noisier for no defensive gain.
+
+    The lesson is small and exact: the before-table is not optional even when the target
+    "obviously" belongs to a known list. Every closure that worked today was graded against
+    a control FIRST; this is the one where I skipped that step, and it is the one that
+    turned out to be aimed at nothing. The discipline caught it — one grep of the sweep
+    output at the start would have caught it sooner.
