@@ -1,7 +1,38 @@
-FINDING — escalation granularity: strike only the file the toolchain blames
-===========================================================================
-2026-07-25. builder 26bbbad (behaviour) + 9567a23 (extraction). Model-free except the
-live re-run, which is local MLX on Apple silicon ($0).
+FINDING — escalation granularity: escalating only BLAMED files is wrong
+======================================================================
+2026-07-25. Implemented (26bbbad), measured, REVERTED (3095b7f). Model-free except the
+live re-runs, which are local MLX on Apple silicon ($0).
+
+VERDICT FIRST, because this document is written in the order the work happened and the
+answer would otherwise sit in the middle of it:
+
+  The recorded caveat this set out to close — "escalation goes fleet-wide rather than
+  staying targeted; cheaper, more surgical escalation is an open improvement" — is WRONG.
+  The breadth it calls waste is the only route by which a whole class of defect reaches a
+  stronger model, and narrowing it turned a green build red.
+
+    shortener, same arm, against its own recorded control:
+        widened eligible   12 escalations   1174s   3/3 GREEN
+        blamed-only         2 escalations   1080s   2/3 RED
+
+    32 archived failing artifacts — implementation files repaired with NONE blamed:
+        compile failures    0/13
+        test failures      18/19
+
+  BECAUSE: a compiler error names an implementation file; a failing assertion names the
+  TEST. An implementation defect that only a test can reveal therefore enters the fix
+  targets ONLY through widening. Cut that path and it cannot reach a stronger member at
+  all, however many rounds are spent. This is a property of the Go toolchain, so it is not
+  a tuning result that might come out differently next time.
+
+  Reverted. The behaviour now has two tests, both shown failing under the rule they guard
+  against — it had none before, which is exactly why removing it looked safe.
+
+  KEPT from the attempt, because each stands on its own: `_fix_targets` (one source for
+  the loop and the measurement tool), per-file provenance in the fix log,
+  _escalation_surface.py, _unrouted_compat.py, and two real bugs found on the way —
+  _gate_audit scoring untouched artifacts as "advanced", and this tool counting
+  kill-debris archives as unattributed errors.
 
 THE GAP (recorded, not guessed)
   guild-code RESULT-fleet-ab.txt, in the COSTS AND LIMITS section of the shortener A/B:
