@@ -79,14 +79,22 @@ for art in sorted(GEN.glob("*-v4")):
         for ln in f.read_text(errors="ignore").splitlines():
             m = CODE.match(ln)
             if m and m.group(1) in SWAP:
-                hit = (f.name, m.group(1)); break
+                hit = (f.name, m.group(1), ln.strip()); break
         if hit:
-            rel, old = hit
+            rel, old, line = hit
             new = SWAP[old]
             def mut(text, o=old, n=new):
                 out, k = re.subn(rf"http\.{o}\b", f"http.{n}", text, count=1)
                 return out if k else None
             v, note = verdict_for(art, rel, mut)
+            # LABEL a known-benign shape, do not suppress it. `statusRecorder{..., status:
+            # http.StatusOK}` is the DEFAULT a logging middleware records before the
+            # handler writes anything, so mutating it changes log output and nothing else.
+            # It has surfaced as a SURVIVED row twice (taskflow, usersapi) and cost a
+            # code-read both times. Suppressing the class is how a hole hunter goes quiet;
+            # naming it keeps the row visible and stops it being re-litigated.
+            if v == "SURVIVED" and "statusRecorder" in line:
+                v = "SURVIVED*"
             rows.append((art.name, rel, f"{old}->{new}", v))
             print(f"{art.name:<26} {rel:<22} {old}->{new:<26} {v}", flush=True)
             if not ALL_SITES:
@@ -94,7 +102,10 @@ for art in sorted(GEN.glob("*-v4")):
 print("\n=== shape 2: drop a response header ===")
 rows += header_rows()
 surv = [r for r in rows if r[3] == "SURVIVED"]
-print(f"\n{len(rows)} probes · {len(surv)} SURVIVED (green build, real behaviour change)")
+star = [r for r in rows if r[3] == "SURVIVED*"]
+print(f"\n{len(rows)} probes · {len(surv)} SURVIVED (green build, real behaviour change)"
+      + (f" · {len(star)} SURVIVED* (known-benign: a statusRecorder default, log-only)"
+         if star else ""))
 for r in surv:
     print("   ", r)
 print("\nA SURVIVED row is a CANDIDATE. The next question is always whether the SPEC\n"
