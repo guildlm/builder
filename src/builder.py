@@ -1739,6 +1739,85 @@ def strip_redeclarations(code: str, forbidden: set[str]) -> str:
     return "\n".join(lines[k] for k in range(n) if keep[k]).strip("\n") + "\n"
 
 
+def _func_blocks(code: str) -> dict[str, tuple[int, int]]:
+    """Every top-level func in ``code``, as name -> (first line, last line).
+
+    Name is ``Name`` for a plain func and ``Receiver.Name`` for a method, matching
+    top_level_decls/method_decls so the two can be compared directly. Brace-matched with
+    the multi-line-signature care strip_redeclarations already needed: the opening { can
+    sit several lines below the `func` keyword, and stopping early orphans the body.
+    """
+    lines, out, i, n = code.splitlines(), {}, 0, len(code.splitlines())
+    while i < n:
+        stripped = lines[i].strip()
+        if not stripped.startswith("func ") or lines[i][:1].isspace():
+            i += 1
+            continue
+        pm = re.match(r"func\s+(\w+)\s*[\(\[]", stripped)
+        if pm:
+            name = pm.group(1)
+        else:
+            mm = _METHOD_DECL_RE.match(stripped)
+            if not mm:
+                i += 1
+                continue
+            name = f"{mm.group(1)}.{mm.group(2)}"
+        brace = lines[i].count("{") - lines[i].count("}")
+        seen_open = "{" in lines[i]
+        j = i
+        while (brace > 0 or not seen_open) and j + 1 < n:
+            j += 1
+            if "{" in lines[j]:
+                seen_open = True
+            brace += lines[j].count("{") - lines[j].count("}")
+        out[name] = (i, j)
+        i = j + 1
+    return out
+
+
+def _splice_fragment(fragment: str, original: str) -> str | None:
+    """Put a review reply that is only the FIXED FUNCTIONS back into the whole file.
+
+    The review specialist answers the way a human reviewer answers — prose, then the
+    function it fixed — even though the prompt asks for the complete file. Writing that
+    over the file destroys it (logs/FINDING-review-pass-returns-fragments.txt), so the
+    fragment used to be discarded and a correct diagnosis with it.
+
+    The contract is deliberately narrow, because the alternative to narrow here is
+    guessing:
+      - the fragment must contain ONLY top-level funcs/methods — no package clause, no
+        imports, types, vars or consts. Anything else means it is not a set of
+        replacements, and merging it would require deciding where the new thing goes;
+      - EVERY func it declares must already exist in the original. A fragment that
+        introduces a name is proposing an addition, and an addition has no unambiguous
+        insertion point (nor any reason to trust the surrounding file is unchanged);
+      - replacement is positional and exact: the original's block for that name is
+        swapped for the fragment's.
+
+    Returns None whenever the contract does not hold, which the caller treats exactly as
+    it treated a fragment before. The result still faces the non-regressing green check —
+    this widens what review can PROPOSE, never what it can keep.
+    """
+    frag = _func_blocks(fragment)
+    if not frag:
+        return None
+    flines = fragment.splitlines()
+    covered = {k for _, (a, b) in frag.items() for k in range(a, b + 1)}
+    for idx, line in enumerate(flines):
+        s = line.strip()
+        if idx not in covered and s and not s.startswith("//"):
+            return None                      # imports/types/stray code — out of contract
+    orig = _func_blocks(original)
+    if any(name not in orig for name in frag):
+        return None                          # would ADD a declaration, not replace one
+    olines = original.splitlines()
+    for name in sorted(frag, key=lambda k: orig[k][0], reverse=True):
+        a, b = orig[name]
+        fa, fb = frag[name]
+        olines[a:b + 1] = flines[fa:fb + 1]
+    return "\n".join(olines) + "\n"
+
+
 def _gomod_content(module: str) -> str:
     """The go.mod for a stdlib-only project is fully determined by its module
     path — generate it deterministically rather than sampling a model (whose
@@ -5527,9 +5606,14 @@ def _review_pass(
             # Skipping it here costs one toolchain check less and, more importantly,
             # turns silence into a sentence the operator can act on.
             if not candidate.lstrip().startswith("package "):
-                _log(f"  review returned a FRAGMENT for {path}, not a whole file — "
-                     f"discarded (its diagnosis may still be right; see the raw reply)")
-                continue
+                spliced = _splice_fragment(candidate, written[path])
+                if spliced is None:
+                    _log(f"  review returned a FRAGMENT for {path} that cannot be spliced "
+                         f"back (it adds or redefines more than functions) — discarded")
+                    continue
+                _log(f"  review returned a fragment for {path}; spliced its "
+                     f"{len(_func_blocks(candidate))} function(s) into the file")
+                candidate = spliced
             prev = written[path]
             candidate = _write_file(out, path, candidate)
             ok, _ = toolchain.check(out)
