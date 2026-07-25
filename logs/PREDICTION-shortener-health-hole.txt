@@ -1,0 +1,37 @@
+PREDICTION — closing shortener's /health hole with a NAMED test
+===============================================================
+2026-07-25, written BEFORE the spec edit and the regeneration. Second attempt at this
+method; the first (taskflow) failed and this prediction exists because of how.
+
+THE HOLE (logs/FINDING-status-code-holes.txt, exhaustive pass)
+  shortener's spec states the endpoint outright — `"GET /health" -> 200 "ok"` — and NO
+  test in the artifact touches /health at all. Change the status to 202 and the suite
+  stays green. A named behaviour with zero coverage; the cleanest hole the sweep found.
+
+WHY THIS SPEC AND NOT TASKFLOW
+  The taskflow attempt came back RED on an unrelated test (TestListLimit) after 47 minutes,
+  which voided every verdict — the campaign's own baseline-green rule. shortener greens
+  reliably for this base (the routing A/B has it at 719s base-only), so a red result here
+  would be informative rather than ambiguous.
+
+THE EDIT — matching the plan this time, which is the whole lesson from the last one
+  A separately NAMED test in shortener_test.go's purpose, not a clause appended to an
+  existing test's description:
+      TestHealthOK: GET /health -> 200 and body "ok".
+  The taskflow attempt appended instead of naming, and the model dropped it. Naming is
+  what _named_test_audit can see and what this project's law asks for.
+
+PREDICTION
+  1. The model writes TestHealthOK. Higher confidence than last time, because the failure
+     mode last time was the edit's FORM, not the model's willingness — and every other
+     named test in this spec exists in the artifact.
+  2. The mutation (StatusOK -> StatusAccepted on /health) flips SURVIVED -> CAUGHT.
+  3. The build still greens. shortener is 7 files and this base greens it; adding one test
+     that hits an endpoint the router already serves should not disturb the rest.
+  4. BLAST RADIUS: I expect the other files to come back equivalent, and I expect to check
+     rather than assume — _file_list puts every purpose in every prompt. What would make
+     me revert: shortener's registered mutation (redirect 301) going SURVIVED, or the
+     build going red on something unrelated.
+
+  If (1) holds and taskflow's did not, that is one clean data point for "name the test,
+  do not append to one" — still N=1 each way, and worth exactly that much.

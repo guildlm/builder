@@ -90,7 +90,7 @@ files:
       character outside the alphabet are invalid input).
       WRITE THESE TEST FUNCTIONS, one focused function each, named exactly:
       TestEncodeDecodeRoundTrip, TestEncodeZero, TestDecodeBadCode,
-      TestShortenCreated, TestShortenBadRequest, TestRedirectFound,
+      TestShortenCreated, TestShortenBadRequest, TestRedirectFound, TestHealthOK,
       TestRedirectMissing, TestStatsCountsOneHit.
       NEVER GUESS A SHORT CODE, AND NEVER REACH PAST THE API TO PLANT ONE. The
       code is whatever Save assigned; a test that calls the store directly and
@@ -113,6 +113,7 @@ files:
       TestRedirectFound: POST as above, then GET /r/+created.Code -> 301 and the
       Location header EQUALS "http://example.com".
       TestRedirectMissing: on a fresh router, GET /r/missing -> 404.
+      TestHealthOK: GET /health -> 200 and the body is exactly "ok".
       TestStatsCountsOneHit: POST as above, then GET /r/+created.Code EXACTLY
       ONCE (this is what increments Hits), and ONLY THEN GET /stats/+created.Code
       -> 200, decode the Link, assert Hits == 1. Do NOT check stats without a
