@@ -228,25 +228,37 @@ def audit_regression() -> int:
         with tempfile.TemporaryDirectory() as tmp:
             work = pathlib.Path(tmp) / d.name
             shutil.copytree(d, work)
-            ok, before = tc.check(work)
+            # Same two corrections as audit() above, and this mode is the one that
+            # produced FINDING-gate-mining: the check is carried instead of re-taken
+            # (it was running two duplicate build+vet+test passes per artifact), and
+            # "advanced" is decided by DIFFING THE TREE. This mode states the intended
+            # semantics in its own output — "STUCK means the gates changed NOTHING" —
+            # while comparing toolchain text that changes between runs of identical
+            # code (goroutine ids, heap addresses, durations), so any artifact whose
+            # tests panic could never be reported stuck.
+            after_ok, after = tc.check(work)
+            tree_before = {
+                str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")
+            }
+            written = dict(tree_before)
             for _ in range(20):
-                written = {
-                    str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")
-                }
-                _, surface = tc.check(work)
-                changed = _run_deterministic_gates(written, surface, module)
+                changed = _run_deterministic_gates(written, after, module)
                 if not changed:
                     break
                 for path, content in changed.items():
                     (work / path).write_text(content)
-            after_ok, after = tc.check(work)
+                after_ok, after = tc.check(work)
+                written = {
+                    str(p.relative_to(work)): p.read_text() for p in work.rglob("*.go")
+                }
+        touched = written != tree_before
         if after_ok:
             green.append(d.name)
-        elif before != after:
+        elif touched:
             advanced.append(d.name)
         else:
             stuck.append(d.name)
-        mark = "GREEN-BY-GATES" if after_ok else ("advanced" if before != after else "STUCK")
+        mark = "GREEN-BY-GATES" if after_ok else ("advanced" if touched else "STUCK")
         print(f"  {mark:15s} {d.name}")
 
     print(f"\n  {len(green)} green by the gates alone · {len(advanced)} advanced · "
