@@ -1,0 +1,79 @@
+FINDING — six measurement bugs in one day, all of them in the instruments
+=========================================================================
+2026-07-25, model-free. Not a bug report; a pattern report, written because the pattern
+predicts where the next one is.
+
+WHAT HAPPENED
+  A day spent testing one hypothesis (escalate only blamed files) turned up six defects.
+  Every single one was in a tool that MEASURES the builder. None was in src/builder.py.
+
+    1. _gate_audit.audit()      "advanced" decided by comparing toolchain OUTPUT across
+                                two runs. That output is not a function of the code —
+                                heap addresses, goroutine ids, durations all move — so
+                                every artifact whose tests panic scored as progress with
+                                no gate having fired. Its own comment said it diffed the
+                                TREE.
+    2. _gate_audit --regress    The same defect, second copy, same file. Its printed
+                                explanation says "STUCK means the gates changed NOTHING".
+    3. audit_mechanisms         Claims to check "every run we have ever done"; globbed
+                                logs/ab-*.log only, so any mechanism exercised by a run
+                                under another filename read as NEVER FIRED. It reported
+                                the fleet escalation dead on the day it shipped.
+    4. _gate_audit default      Header says the corpus is failed builder runs; walked all
+                                of generated/, including ~190 hand-built fixtures, several
+                                green on purpose — polluting the ranking used to pick the
+                                next gate.
+    5. _escalation_surface      Counted go.mod-only kill-debris archives as "unattributed
+                                errors", which was the last surviving argument for the
+                                hypothesis I was testing. My own debris, read back as
+                                evidence for my own claim.
+    6. project_bench            Compares before/after by BASENAME, so two packages holding
+                                a handler.go shadow each other and an edit to the shadowed
+                                one reads as "nothing changed". Latent — no bench project
+                                repeats a basename today.
+
+THE ASYMMETRY IS THE FINDING
+  src/builder.py has 363 tests. The instruments had none, and still have almost none. Yet
+  the instruments are what every claim in logs/FINDING-*.txt rests on. The project applied
+  "prove it fires" rigorously to its GATES and never once to the tools that grade them.
+
+  Three of the six (1, 2, 4) are the same shape twice over: a helper written in two places,
+  with the fix needed separately in each. Two (1, 3) are a comment that describes the
+  intended behaviour while the code does something else — and in both the comment was
+  RIGHT, which means the defect was one careful reading away the whole time.
+  One (5) is the most dangerous kind on offer: a measurement error whose direction happened
+  to support the hypothesis under test.
+
+  Failure mode in one line: an instrument that is wrong does not error. It prints a
+  plausible table.
+
+WHERE THE NEXT ONE IS — the instruments that still cannot be caught being wrong
+
+    tool                     self-test    covered by pytest
+    _gate_audit.py           yes          no
+    _escalation_surface.py   yes          no
+    _unrouted_compat.py      NO           no
+    _named_test_audit.py     NO           no
+    _teeth_suite.py          NO*          no
+    _deadlock_detector.py    NO           no    (its logic, mutex_self_deadlock, IS tested)
+    project_bench.py         NO           no
+    score_backend.py         NO           no
+
+    * _teeth_suite carries the equivalent discipline in a different form: it refuses to
+      score a mutant whose UNMUTATED baseline is already red (BASELINE-RED, verdict void),
+      after a red baseline produced four fake CAUGHTs by hand. That is the same instinct.
+
+  Ranked by damage if silently wrong: score_backend (every A/B number in the project is
+  its output), _teeth_suite (decides whether an invariant is defended), project_bench
+  (already carries a latent defect), then the rest.
+
+WHAT NOT TO CONCLUDE
+  Not "add self-tests everywhere". Two of today's six would not have been caught by a
+  self-test at all — #3 and #4 are corpus-selection mistakes, where the tool does exactly
+  what it was told over the wrong input, and a planted-defect fixture passes happily. Those
+  were caught by reading the docstring against the code, which is cheaper than it sounds
+  and worked four times today.
+
+  The rule that generalises: when an instrument's PROSE and its CODE disagree, the prose is
+  usually the intent and the code is usually the bug. Read them against each other before
+  trusting a number, and never trust a number that arrived in the direction you wanted.
