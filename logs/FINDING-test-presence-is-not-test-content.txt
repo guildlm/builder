@@ -1,0 +1,44 @@
+FINDING — a named test can persist while what it defends changes
+=================================================================
+2026-07-26. Found by promoting today's verified-green trees into the corpus and reading
+the tracked verdict diff.
+
+WHAT PROMOTION DID
+      ratelimit   drop Content-Type            SURVIVED -> CAUGHT    (my closure, working)
+                  api.go StatusOK  x2          CAUGHT -> SURVIVED
+                  drop Retry-After             CAUGHT -> SURVIVED
+      taskflow    3 CAUGHT rows out, 6 SURVIVED rows in
+      corpus      15 SURVIVED -> 18
+
+  I promoted trees I had verified green and whose closures I had graded CAUGHT. The corpus
+  came out LESS defended than the artifacts it replaced.
+
+WHY, AND WHY THE DURABILITY MEASUREMENT MISSED IT
+  Both fresh ratelimit trees contain the same five test functions as before — _test_durability
+  reports 4 of 4 named tests written in every tree, 0 intermittent, which is how I concluded
+  the closure was durable. But:
+
+      Retry-After assertions in the fresh trees:  0
+      StatusOK/200 assertions:                    0
+
+  The tests are PRESENT and they assert LESS. _test_durability measures whether a named
+  test EXISTS, not what it checks. A test can appear in every run and defend something
+  different each time, and every "0 intermittent · closure HOLDS" published today rests on
+  presence alone.
+
+  So the displacement effect I looked for in test COUNTS — and failed to explain with four
+  refuted hypotheses — shows up here in test CONTENT instead. Both fresh trees postdate the
+  spec edit that added TestContentTypeJSON; the archive predates it. That is a correlation
+  across one spec edit, not a cause, and I am not claiming more than that.
+
+THE EVIDENCE I DESTROYED, AND THE ONE FILE THAT SAVED IT
+  Overwriting generated/ratelimit-v4 deleted the better-defended artifact. generated/ is
+  gitignored, so there is no way back to it. The only surviving record of what it defended
+  is logs/hole-hunt-rows.tsv, tracked this morning after a retraction caused by a lost row
+  list — which is now the second time that one decision has been the difference between a
+  finding and a shrug.
+
+WHAT TO DO WITH IT
+  Do not promote a tree because it is green and its own closure is CAUGHT. Diff the whole
+  verdict set first: green says the suite passes, and the row file says what the suite
+  DEFENDS. Those came apart here in the direction that looks like success.
