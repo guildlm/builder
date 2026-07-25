@@ -47,3 +47,44 @@ PREDICTION
   The failure worth watching: the model asserts on err.Error() containing "validation"
   instead of errors.Is. That passes, looks like a closure, and pins nothing — the exact
   reason the spec sentence has to forbid it.
+
+GRADED — 2026-07-26
+===================
+      rc=0   524s   0 fix rounds   0 escalations   GREEN first pass
+
+  1. TestValidateWrapsErrValidation written and passes   HIT — and it asserts errors.Is,
+     not the message, so the failure mode named in advance did not occur
+  2. %w -> %v flips SURVIVED -> CAUGHT                   HIT — all three sites
+  3. taskflow stays green                                HIT — and far cheaper than the
+     previous two runs (524s / 0 rounds, against 1246s and 1606s / 5 rounds)
+  4. the projects-sort closure stays CAUGHT              MISS
+
+THE MISS IS THE RESULT
+  reverse sort by ID came back CAUGHT at one site and SURVIVED at the other. Diagnosed
+  rather than assumed: TestListProjectsSorted WAS NOT WRITTEN in this run. The spec entry
+  is intact and well-formed — I checked, because my own edit inserted text directly above
+  it and that was the likelier explanation.
+
+  Counting named tests across the three taskflow runs, against the spec as it stands now
+  (20 named):
+
+      taskflow-code        wrote 18    missing 2, both added to the spec AFTER that run
+      taskflow-projsort    wrote 19    missing 1, added to the spec after that run
+      taskflow-errwrap     wrote 17    missing TestListProjectsSorted,
+                                       TestPaginateNegativeOffset, TestPaginateOffsetPastEnd
+
+  The two paginate tests WERE written by the previous run. So adding a twentieth named test
+  did not add one test — it displaced three.
+
+WHAT THIS MEANS FOR EVERYTHING CLOSED TODAY
+  A closure is not durable. It is a property of the RUN that wrote the test, not of the
+  spec that names it. Eight holes have been closed and verified, each on one artifact, and
+  no single artifact carries all eight.
+
+  Named tests compete for a budget. That reframes the programme from "accumulate closures"
+  to "allocate a limited number of named tests", and it is the kind of constraint that is
+  invisible while every closure is graded on its own fresh tree — which is exactly how all
+  eight were graded.
+
+  Not fixed here. Recorded, because the next closure should be planned against it rather
+  than discovering it again.
