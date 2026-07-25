@@ -175,12 +175,27 @@ one of the routes to green is through a weakened test.
 
 ## Current coverage
 
-`_teeth_suite.py` covers **every valid generated spec — 30 registered mutations across 23
-specs, verdict 29 CAUGHT / 0 SURVIVED / 1 n·a** (ledger carries two file-variant entries, one
+⚠️ **READ THE NEXT PARAGRAPH BEFORE QUOTING THIS NUMBER.** `_teeth_suite.py` covers
+**every valid generated spec — 30 registered mutations across 23 specs, verdict 29 CAUGHT
+/ 0 SURVIVED / 1 n·a** (ledger carries two file-variant entries, one
 of which does not apply to the current artifact layout). It exits non-zero on any UNDEFENDED
 or VOID entry (CI-ready).
 Two broken-baseline specs (tasks-api-min, tasks-api-noshadownudge) are deliberately excluded:
 they send RED baselines, which make every verdict void.
+
+**What 29 CAUGHT does and does not mean.** It means every registered mutation is caught. It
+does NOT mean every promise is defended, because a registered mutation targets ONE SITE and
+the sweep found that the majority failure mode is one promise with several sites: `jsonapi`
+writes 400 in two places and pins one, `ratelimit` writes 429 twice and pins one,
+`taskflow` wraps `ErrValidation` three times and pins two, `tasks-api` asserts `errors.Is`
+four times and all four check the same one of its two sentinels. Nine such holes were found
+in a corpus this suite reported clean.
+
+That is not a flaw in the registry, it is its resolution. A person picks a promise, writes
+one mutation, and stops when it is caught — and the mutation lands on whichever site comes
+to mind, which is usually the one the test they just read already covers. The registry is a
+regression suite for known invariants; `_hole_hunt` is the instrument for the ones nobody
+chose.
 
 That headline was **re-verified end to end on 2026-07-25**, after the judgement was
 extracted out of `_run` into `verdict_for(art, rel, mutate)` so `--self-test` could reach
