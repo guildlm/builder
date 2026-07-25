@@ -30,9 +30,29 @@ by grep; teeth are not. That is why the mutation tools exist alongside it.
 
 `_hole_hunt.py` exists because the registry reached **29 CAUGHT / 0 SURVIVED** by testing
 invariants someone chose one at a time — which reads as "no holes left" and means "no holes
-left among the ones I thought of". Sweeping instead found 4 genuine undefended promises in
-23 probes, including one (`shortener`'s `GET /health -> 200 "ok"`) that the spec states
-outright and **no test touches at all**. Two rules keep it honest:
+left among the ones I thought of". Sweeping instead, across four shapes and every site:
+
+| shape | probe | genuine holes / probes |
+|-------|-------|:---------------------:|
+| status code | swap for a plausible neighbour | 3 / 9 |
+| response header | delete the `Header().Set` line | 1 / 8 (+3 spec gaps) |
+| sort order | REVERSE the comparator (never delete the sort) | 0 / 6 |
+| error wrapping | `%w` → `%v` | **2 / 5** |
+
+**34 probes, 11 survivors, 6 genuine undefended promises** — including `shortener`'s
+`GET /health -> 200 "ok"`, which the spec states outright and **no test touches at all**.
+
+Error wrapping is the best yield and that is not an accident of this corpus: the other
+shapes change something a test can notice by accident — a status, a header, an order —
+while `%w` → `%v` leaves the message byte-identical and breaks only `errors.Is`. A suite
+passes unless somebody deliberately wrote `errors.Is`. Most likely to be undefended, least
+likely to be spotted by reading.
+
+Sort order yielding nothing is also a result: it is the invariant this campaign hardened by
+hand, three of those six are registered mutations, and an independent sweep agreeing with
+the registry is the cross-check the registry never had.
+
+Two rules keep it honest:
 
 - **A SURVIVED row is a candidate, not a verdict.** The next question is always whether the
   SPEC promises the behaviour that was broken. Of 9 survivors, 4 were real, 2 were a
