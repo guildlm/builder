@@ -1,0 +1,37 @@
+PREDICTION — taskflow's ListProjects sort, the first hole gradeable only because it greened
+============================================================================================
+2026-07-26. The point of unblocking taskflow was that a spec which cannot go green cannot be
+graded. This is the first closure that spends that.
+
+THE CONTROL, ON THE GREEN TREE
+      34 probes · 17 SURVIVED
+      store.go   reverse sort by ID   SURVIVED
+      spec names TestListProjectsSorted: 0 times
+
+  Yesterday this exact row could not be trusted: the artifact was red, so every verdict was
+  BASELINE-RED and void. It is now a real SURVIVED against a suite that passes.
+
+AND THE OBSTACLE THAT BLOCKED IT THIS MORNING IS GONE
+  I recorded taskflow's ListProjects sort as a hole that could not be ADDRESSED, because
+  the two comparators were byte-identical lines and no single-site mutation could say which
+  one it meant. In the regenerated tree they are not identical:
+
+      tasks[i].ID    < tasks[j].ID       (ListTasks — defended by TestListSorted)
+      projects[i].ID < projects[j].ID    (ListProjects — nothing names it)
+
+  A regeneration changed what was measurable. Worth noting because the obstacle was
+  recorded as a property of the spec and was actually a property of one artifact.
+
+THE EDIT — same recipe, sixth time
+  TestListProjectsSorted: POST three projects with ids out of order, GET the collection,
+  assert got[0].ID == "1", got[1].ID == "2", got[2].ID == "3" by index.
+
+PREDICTION
+  1. TestListProjectsSorted is written and passes.
+  2. reverse sort by ID flips SURVIVED -> CAUGHT at store.go.
+  3. taskflow stays green — this is the risk. It greened ONCE, at 1246s with 4
+     escalations, and adding a fourteenth-entry spec more work could push it back. If it
+     goes red, the closure is unmeasurable again and I will have spent an hour to learn
+     that greening it once was not the same as greening it reliably.
+  4. TestListSorted (tasks) stays CAUGHT — the two sorts must not collapse into one
+     assertion.

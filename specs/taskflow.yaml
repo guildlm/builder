@@ -188,6 +188,12 @@ files:
       this order deterministic — a store that returns them unsorted, or sorted the
       wrong way, ships green unless a test pins the exact order. Assert each index by
       id, not just that the slice is non-empty.
+      TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
+      then "1", then "2" (each valid, its own fresh request body) — then GET /projects
+      and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
+      back ASCENDING by INDEX: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3".
+      ListProjects sorts its own copy, and TestListSorted only pins the TASKS sort — the
+      projects sort can be reversed or dropped entirely and every other test still passes.
       TestPaginateNegativeOffset: call paginate DIRECTLY (a unit test, no HTTP) on
       a 3-item slice with limit=0, offset=-1 -> no panic and EXACTLY 3 items. This
       is not hypothetical: a paginate without the `offset < 0` clamp slices
