@@ -1,0 +1,37 @@
+PREDICTION — jsonapi's invalid-JSON 400, and a test of my own conclusion
+========================================================================
+2026-07-25, before the edit. Fourth closure attempt.
+
+THE HOLE
+  The spec promises "400 for invalid JSON OR an empty message" — two conditions. The suite
+  pins the empty-message one ("empty message status = %d, want 400"). Break the
+  invalid-JSON 400 and everything stays green. Identical in shape to shortener's
+  malformed-JSON hole, which this method already closed.
+
+WHY THIS SPEC — it tests the constraint I just wrote down
+  The tasks-api grading concluded: "the method's real constraint is not the edit but the
+  coder — closing a hole needs a GREEN regeneration, and green is what the coder cannot
+  reliably deliver on the bigger specs." Both successes were on shortener (7 files); both
+  failures were on 14- and 8-file specs. jsonapi is FOUR files. If size is the constraint,
+  this should close. If it fails anyway, size was the wrong variable and I should say so.
+
+THE EDIT
+  A named test, with the trap spelled out — `{}` is valid JSON and takes the OTHER branch,
+  the same distinction that mattered on shortener:
+
+      TestInvalidJSON: POST /echo with a body that is NOT valid JSON — send the raw bytes
+      `{"message":` (truncated ON PURPOSE; do NOT send `{}` or `{"message":""}`, which are
+      valid JSON and take the empty-message branch that is already covered) -> 400.
+
+PREDICTION
+  1. TestInvalidJSON is written and passes.
+  2. The build greens. This is the real claim: four files, a spec the base has greened
+     before, and the recipe has landed twice.
+  3. The mutation flips SURVIVED -> CAUGHT, graded against the unedited artifact's
+     SURVIVED as control.
+  4. jsonapi's registered mutations (echo Content-Type, 405 method guard) stay CAUGHT.
+
+  If (2) fails on a four-file spec, "the coder cannot green the bigger specs" is not the
+  right description of the constraint, and the honest correction is that regeneration is
+  simply unreliable at any size — which would make every future closure a coin flip rather
+  than a procedure.
