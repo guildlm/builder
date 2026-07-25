@@ -355,9 +355,28 @@ def main() -> int:
         print(f"  {label:<16} matched {total:>3}   probed {probed:>3}{flag}")
 
     star = [r for r in rows if r[3] == "SURVIVED*"]
-    print(f"\n{len(rows)} probes · {len(surv)} SURVIVED (green build, real behaviour change)"
+    # SAY HOW MANY PROBES COULD ACTUALLY ANSWER. The rows have always reported
+    # BASELINE-RED and NOAPPLY correctly — the SUMMARY counted them as probes anyway, so
+    # tasks-api-min-v4, which does not compile at all, printed
+    #     22 probes · 0 SURVIVED (green build, real behaviour change)
+    # where not one of the 22 could possibly have survived and "green build" is false. The
+    # corpus headline quoted all day carried both non-building artifacts inside its
+    # denominator for the same reason.
+    dead = [r for r in rows if r[3] in ("BASELINE-RED", "NOAPPLY")]
+    usable = len(rows) - len(dead)
+    print(f"\n{usable} of {len(rows)} probes could answer · {len(surv)} SURVIVED "
+          f"(green build, real behaviour change)"
           + (f" · {len(star)} SURVIVED* (known-benign: a statusRecorder default, log-only)"
              if star else ""))
+    if dead:
+        br = sum(1 for r in dead if r[3] == "BASELINE-RED")
+        na = len(dead) - br
+        arts = sorted({r[0] for r in dead if r[3] == "BASELINE-RED"})
+        print(f"  {len(dead)} could NOT: {br} BASELINE-RED (artifact already failing"
+              + (f": {', '.join(arts)}" if arts else "") + f"), {na} did not apply")
+    if usable == 0:
+        raise SystemExit("  NOTHING WAS MEASURED — every probe hit a red baseline or "
+                         "failed to apply. This is not 'no holes found'.")
     for r in surv:
         print("   ", r)
     print("\nA SURVIVED row is a CANDIDATE. The next question is always whether the SPEC\n"
