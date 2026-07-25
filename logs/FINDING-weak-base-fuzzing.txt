@@ -28,10 +28,18 @@ WHAT IT PRODUCED, AND HOW OFTEN PRODUCTION PRODUCES IT
       ./main.go:160:155: syntax error: unexpected } in argument list
       ./parse.go:29:6: ParseLine redeclared in this block
 
+  bitset, terminal failure — it cannot hold Go's integer typing straight:
+      ./bitset.go:23:29: cannot use make([]uint64, (i+1)/64) ([]uint64) as uint64 value
+                         in argument to append
+      ./bitset.go:59:3: invalid operation: sum += bits.OnesCount64(word) (mismatched
+                        types uint64 and int)
+
   Prevalence of each shape across the 578 production logs:
 
       untyped int is not a function .....    0 hits in   0 logs
       syntax error: unexpected ..........    0 hits in   0 logs
+      mismatched types ..................    0 hits in   0 logs
+      as uint64 value in argument to ....    0 hits in   0 logs
       redeclared in this block ..........    2 hits in   2 logs
       not enough arguments in call ......   39 hits in   7 logs   <- for scale
 
@@ -63,9 +71,16 @@ DECISION
   campaign is resumed, fuzz with the PRODUCTION base on HARDER specs — same population,
   new samples — rather than with a weaker model on easy ones.
 
-SCOPE, stated plainly: one weak model, three specs, two analysed at the time of writing
-(bitset was still running). N is small. What is NOT small is the prevalence measurement:
-zero occurrences across 578 real runs is not a sampling accident.
+RESULT ACROSS ALL THREE SPECS: 3 for 3. Every terminal shape the 1.5B produced —
+constants called as functions, broken grammar, integer-type confusion — occurs ZERO times
+in 578 production runs. The three failures are also three different populations from each
+other, which is the point restated: kvservice was stdlib misuse, logstats was grammar,
+bitset was Go's strict numeric typing. A 7B does none of these; it writes code that
+compiles and means the wrong thing.
+
+SCOPE, stated plainly: one weak model, three specs. N is small. What is NOT small is the
+prevalence measurement — zero occurrences across 578 real runs, for four distinct shapes,
+is not a sampling accident.
 
 ---------------------------------------------------------------------------
 A SECOND MECHANISM THE WEAK BASE EXPOSED — measured, then LEFT ALONE
