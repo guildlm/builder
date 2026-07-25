@@ -354,6 +354,21 @@ def main() -> int:
         flag = "" if probed >= total else f"   <- {total - probed} NOT PROBED"
         print(f"  {label:<16} matched {total:>3}   probed {probed:>3}{flag}")
 
+    # ALWAYS WRITE THE ROWS DOWN. A retraction today traced back to nothing worse than
+    # `tail`: the session's first full sweep printed 150 verdicts, I kept its summary, and
+    # when a later count differed by one there was no row list left to compare — so I
+    # published an inference about nondeterminism that two full sweeps then contradicted.
+    #
+    # The file is git-TRACKED on purpose. A corpus verdict that changes shows up as a diff
+    # in version control without anyone remembering to save the previous run, which is the
+    # part that failed. Only written for a whole-corpus sweep; a targeted run answers about
+    # one tree and would clobber the baseline with something not comparable to it.
+    if not [a for a in sys.argv[1:] if not a.startswith("-")]:
+        dump = pathlib.Path("logs") / "hole-hunt-rows.tsv"
+        if dump.parent.is_dir():
+            dump.write_text("".join(f"{a}\t{f}\t{tag}\t{v}\n" for a, f, tag, v in rows))
+            print(f"\n  rows written to {dump} (tracked — a changed verdict shows as a diff)")
+
     star = [r for r in rows if r[3] == "SURVIVED*"]
     # SAY HOW MANY PROBES COULD ACTUALLY ANSWER. The rows have always reported
     # BASELINE-RED and NOAPPLY correctly — the SUMMARY counted them as probes anyway, so
