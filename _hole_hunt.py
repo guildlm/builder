@@ -32,6 +32,37 @@ SWAP = {"StatusNotFound": "StatusBadRequest", "StatusCreated": "StatusOK",
         "StatusUnprocessableEntity": "StatusBadRequest", "StatusOK": "StatusAccepted"}
 CODE = re.compile(r"^\s*(?!//)(?!\s*\*).*http\.(Status[A-Za-z]+)")
 
+# SHAPE 2: response headers. A wrong Content-Type is invisible to a test that only reads
+# the body, and the campaign's own taxonomy names headers as a hole shape — kvservice and
+# jsonapi both had one closed by hand. Dropping the header entirely is the sharper probe:
+# changing the value can still be caught by a strict equality assert, but a test that never
+# looks at headers at all cannot notice either.
+HEADER = re.compile(r'^\s*w\.Header\(\)\.Set\("([^"]+)", *"[^"]*"\)')
+
+
+def header_rows():
+    out = []
+    for art in sorted(GEN.glob("*-v4")):
+        for f in sorted(art.glob("*.go")):
+            if f.name.endswith("_test.go"):
+                continue
+            hit = None
+            for ln in f.read_text(errors="ignore").splitlines():
+                m = HEADER.match(ln)
+                if m:
+                    hit = (f.name, m.group(1), ln.strip()); break
+            if not hit:
+                continue
+            rel, header, line = hit
+            def mut(text, ln=line):
+                return text.replace(ln, "// MUTANT: header dropped", 1) if ln in text else None
+            v, _ = verdict_for(art, rel, mut)
+            out.append((art.name, rel, f"drop {header}", v))
+            print(f"{art.name:<26} {rel:<22} {('drop ' + header):<26} {v}", flush=True)
+            break
+    return out
+
+
 rows = []
 for art in sorted(GEN.glob("*-v4")):
     for f in sorted(art.glob("*.go")):
@@ -52,7 +83,12 @@ for art in sorted(GEN.glob("*-v4")):
             rows.append((art.name, rel, f"{old}->{new}", v))
             print(f"{art.name:<26} {rel:<22} {old}->{new:<26} {v}", flush=True)
             break
+print("\n=== shape 2: drop a response header ===")
+rows += header_rows()
 surv = [r for r in rows if r[3] == "SURVIVED"]
-print(f"\n{len(rows)} artifacts probed · {len(surv)} SURVIVED (green build, real bug)")
+print(f"\n{len(rows)} probes · {len(surv)} SURVIVED (green build, real behaviour change)")
 for r in surv:
     print("   ", r)
+print("\nA SURVIVED row is a CANDIDATE. The next question is always whether the SPEC\n"
+      "promises the behaviour that was broken — on the first run one survivor was a\n"
+      "genuine undefended promise and the other was log-only output.")

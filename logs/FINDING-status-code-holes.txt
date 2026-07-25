@@ -55,3 +55,40 @@ SCOPE: status codes only, one swap per artifact, first code-site only. This is t
 cheapest sweep, not an exhaustive one. Other shapes — headers, sort order, error wrapping
 — would each need their own pass, and the yield here (1 genuine hole in 9 probes after a
 campaign that believed it was done) says those passes are worth writing.
+
+---------------------------------------------------------------------------
+SHAPE 2 — drop a response header. 4 more survivors, ONE more real hole.
+
+  Dropping the `w.Header().Set(...)` line entirely is a sharper probe than changing its
+  value: a strict equality assert can still catch a wrong value, but a test that never
+  reads response headers cannot notice either way.
+
+      kvservice   drop Content-Type   CAUGHT        (closed by hand in the campaign)
+      ratelimit   drop Retry-After    CAUGHT
+      shortener   drop Content-Type   SURVIVED
+      taskflow    drop Content-Type   SURVIVED
+      tasks-api   drop Content-Type   SURVIVED
+      usersapi    drop Content-Type   SURVIVED
+      (tasks-api-min, tasks-api-noshadownudge: BASELINE-RED, verdict void)
+
+  Then the question that separates a candidate from a hole — does the SPEC promise it?
+
+      taskflow   YES. "writeJSON(w, status int, v any) that sets Content-Type
+                 application/json and encodes v". And the suite only ever sets
+                 Content-Type on REQUESTS (req.Header.Set); nothing reads it off a
+                 response. A promised header, defended by nothing. REAL HOLE.
+      shortener  NO mention of Content-Type anywhere in the spec.
+      tasks-api  NO mention.
+      usersapi   NO mention.
+
+  TWO SHAPES, TOTAL: 18 probes, 6 SURVIVED, 2 genuine undefended promises —
+  shortener's malformed-JSON 400 and taskflow's response Content-Type. The raw survivor
+  count overstates real holes by 3x, and only reading the spec closes the gap. That is the
+  caveat from the first pass, now with a number on it.
+
+  AND THE THREE NON-PROMISES ARE NOT NOTHING. A JSON API that never states its response
+  Content-Type is a SPEC gap, not a test gap. This project's own law is that implicit
+  means broken and naming is the spec-writer's job (_named_test_audit's METHOD notes), so
+  the fix for those three is a line in the spec — after which a test can be named for it,
+  and only then can teeth defend it. The sweep found them by breaking them, which is the
+  only way an unstated promise ever surfaces.
