@@ -104,3 +104,41 @@ ATTEMPT 2 — recorded before the run, per the "next steps" above.
   mutation that used to survive is caught. Two failed attempts got here, and both failures
   were mine rather than the method's — an edit that did not match its own plan, and a
   sentence that was clear only to someone who knew the answer.
+
+===========================================================================
+GRADED — ALL FIVE HELD. The method works end to end.
+
+  RUN: 3-member fleet, 8-round budget, 891s, 6 fix rounds, 9 escalations, rc=0.
+
+    1. TestHealthOK written                                          YES
+    2. It PASSES (the claim the spec fix stood on)                   YES
+    3. The build greens                                     3/3 GREEN
+    4. /health mutation StatusOK -> StatusAccepted    SURVIVED -> CAUGHT   <- the hole
+    5. Registered redirect-301 mutation                          CAUGHT   <- no regression
+
+  Both conditions of the rule fixed in advance are met, so this is a closure and not an
+  argument about whether it counts.
+
+  THE FULL LOOP, first complete demonstration:
+      _hole_hunt sweeps 34 probes across 4 shapes
+        -> finds `GET /health -> 200 "ok"` promised by the spec and touched by no test
+        -> the spec NAMES TestHealthOK, in plain terms about a plain-text body
+        -> regeneration writes it and it passes
+        -> the mutation that used to survive is caught, and nothing else regressed.
+
+  WHAT THE THREE ATTEMPTS COST, and what each one bought
+    1. taskflow: appended a clause instead of naming a test. Model dropped it.
+       -> NAMING is the intervention; appending is not.
+    2. shortener, bare base: named it, model wrote it, test failed on a JSON decode of a
+       plain-text body — and the base could not green the spec anyway.
+       -> the sentence must be unambiguous to someone who does NOT already know, and a
+          hole cannot be graded on a spec the coder cannot green.
+    3. shortener, fleet, corrected sentence: all five.
+    Every failure was mine, not the method's. The method survived all three because each
+    prediction was written down before its run — otherwise attempt 1's missing assertion
+    reads as "the model ignores specs" and the work stops there.
+
+  AND A RE-CONFIRMATION IN PASSING: this needed the FLEET (9 escalations). The bare 7B is
+  recorded at 2/3 RED on shortener and was 2/3 again today. Today's escalation finding —
+  that widened files must stay escalation-eligible — is what makes that fleet work, and it
+  earned its keep here on an unrelated errand.
