@@ -1,0 +1,60 @@
+FINDING — the argument-adapter gate is DEAD, and correctly so
+=============================================================
+2026-07-25, model-free. Raised by `_gate_audit.py --mechanisms`, which is the only
+reason it was noticed at all: the gate compiles, is registered, has a helper binary
+on disk, and has never once run its rewrite.
+
+THE ALARM
+  `wrapped the argument to ...` (_fix_argument_type_adapter) appears in ZERO of 578
+  archived runs. The sweep's standing question for that is "is it new, or is it
+  guarded shut?" — and for this one both easy answers are wrong.
+
+NOT NEW: the gate landed 2026-07-11 (0f73232) and 370 logged runs postdate it.
+NOT BLIND: its regex matches 72 real diagnostics in the corpus, 65 of them AFTER the
+gate existed. So it saw its target error sixty-five times and declined every one.
+
+WHY IT DECLINES — the corpus has the ERROR but never the SHAPE
+  The gate rewrites `f(x)` into `f(adapter(x))`, and only when exactly one project
+  function converts `have` to `want`; otherwise it bails rather than guess. Bucketing
+  every (have -> want) pair it has ever seen:
+
+     24x  http.Handler   ->  Middleware
+     18x  *Store         ->  *MemStore
+     13x  *MemStore      ->  *Store
+      8x  *slog.Logger   ->  http.Handler
+      6x  string         ->  int
+      2x  *testing.T     ->  models.Task
+      1x  *TaskHandler   ->  service.TaskService
+
+  Not one is adapter-shaped. `*slog.Logger` where an `http.Handler` is wanted, and
+  `*testing.T` where a `models.Task` is wanted, are ARGUMENTS IN THE WRONG ORDER.
+  `*Store` vs `*MemStore` in both directions is an interface-versus-concrete
+  declaration mismatch — the fix is to change a type, not to wrap a value.
+  `string -> int` is a conversion or a typo. Wrapping any of these would require
+  inventing a function that does not exist.
+
+  The gate was written from a real case (`NewRouter(NewMemStore())` needing
+  `NewRouter(NewAPI(NewMemStore()))`) and that case has not recurred.
+
+VERDICT: narrow-but-correct, not guarded shut. Its uniqueness guard is doing exactly
+its job — the reason it never fires is that the guess it refuses to make is the only
+thing that would let it fire here. Leave it. Silenced in the sweep WITH this
+measurement attached, because an explained alarm that keeps ringing trains the reader
+to skip the list.
+
+WHAT THIS LEAVES AS BACKLOG — read the table again, it is a ranked one
+  The dominant real shape behind this diagnostic is not a missing adapter but a
+  SWAPPED ARGUMENT (32 of 72 if the two Store directions are counted as one
+  declaration mismatch, plus 10 clear order errors). Both are the value-guessing
+  family this project has already decided belongs to the model, not to a gate: the
+  arity gate was refused for the same reason (logs/FINDING-gate-mining.txt), because
+  a wrong guess compiles and then fails an assertion, which reads as a model logic
+  bug and misleads the fix loop. Recorded so the next person reaches the same
+  conclusion from the data instead of from a hunch.
+
+METHOD NOTE — one approach that did NOT work, so nobody repeats it
+  The first attempt diagnosed this over the archived `generated/_fail-*` trees. It
+  found zero regex matches, which looked like an answer and was an artefact: archives
+  hold the FINAL state of a failed run, while this error appears in intermediate
+  rounds and is gone (or replaced) by the end. The logs, not the archives, are where
+  a mid-round diagnostic survives.

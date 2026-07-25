@@ -180,6 +180,14 @@ _EXPECTED_SILENT = (
     # afterwards does not turn that around. Measured, then silenced — an alarm that is
     # explained but keeps ringing teaches the reader to skip the list.
     "converged to green on the final",
+    # The argument-adapter rewrite. Silent for two weeks and NOT because it is new or
+    # blind: 370 runs postdate it and its regex matched 65 real diagnostics in that
+    # window, every one of which it declined. Bucketing the (have -> want) pairs shows
+    # why — they are swapped arguments and interface-vs-concrete declaration mismatches,
+    # never a missing adapter, so firing would mean inventing a function that does not
+    # exist. Its uniqueness guard is doing its job. Full measurement, and the ranked
+    # backlog the same table exposes: logs/FINDING-wraparg-gate-dead.txt
+    "wrapped the argument to",
 )
 
 
