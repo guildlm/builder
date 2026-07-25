@@ -1,0 +1,57 @@
+FINDING — two holes a hand-run campaign missed, and only one of them counts
+===========================================================================
+2026-07-25, model-free. `_hole_hunt.py`, run over all 25 archived -v4 artifacts.
+
+WHY SWEEP AT ALL
+  The teeth campaign reached 29 CAUGHT / 0 SURVIVED by choosing invariants to test one at
+  a time. That number reads as "no holes left" and actually means "no holes left among the
+  ones I thought to check". The difference is exactly the failure this project keeps
+  naming, so: sweep. For every artifact, find a status-code write in the code, swap it for
+  a plausible neighbour, ask whether the suite goes red.
+
+RESULT: 9 artifacts had a mutable status write. 5 CAUGHT, 2 BASELINE-RED (verdict void —
+tasks-api-min and tasks-api-noshadownudge are already failing, so nothing can be concluded
+about them), and 2 SURVIVED.
+
+SURVIVOR 1 — shortener. A REAL undefended promise.
+  handlers.go:26 `writeJSON(w, http.StatusBadRequest, nil)` -> StatusNotFound. Suite green.
+
+  The spec promises THREE ways to earn a 400:
+      "400 on malformed JSON or when the url field is empty or fails url.ParseRequestURI"
+  and it names ONE test for them:
+      "TestShortenBadRequest: POST /shorten with `{\"url\":\"\"}` -> 400."
+  That test exercises the empty-field branch at line 30. The malformed-JSON branch at line
+  26 is promised in prose, has no test, and can return anything at all without a single
+  number moving.
+
+  Textbook shape for this project: an error path in a small HTTP spec, and a spec whose
+  PROSE promises more than its NAMED tests cover. That is the spec-writer's half of the
+  contract, and _named_test_audit cannot see it — the named test exists, so the audit is
+  satisfied; it is the promise BEHIND the name that is short.
+
+SURVIVOR 2 — taskflow. Real behaviour change, and NOT a hole worth the name.
+  middleware.go:38 `rec := &statusRecorder{..., status: http.StatusOK}` -> StatusAccepted.
+  The spec does mention it — "a Logging middleware (method, path, resolved status via a
+  statusRecorder ...)" — so a handler that never calls WriteHeader would now be LOGGED as
+  202 when it served 200.
+  But the deviation is confined to log output. Defending it means capturing stdout in a
+  test, which no spec here asks for and which would be a strange thing to require. Calling
+  this an undefended invariant would inflate the count with something no reasonable suite
+  defends.
+
+  Recorded because the honest half of a sweep is the part you decline to claim. Two rows
+  came back identical from the tool's point of view — SURVIVED, green build, real change —
+  and only reading the SPEC separates a genuine hole from a curiosity.
+
+WHAT TO DO WITH SURVIVOR 1
+  It is a real gap and it is also exactly what the review-pass experiment needs
+  (PREDICTION-review-pass-value.txt): a green build containing a known, spec-relevant
+  semantic bug, with ground truth because the break is ours. So it gets used before it
+  gets closed, and closing it means the spec naming a second test — the fix belongs to
+  the spec, not to a gate, because "which of three conditions returns 400" is not
+  something a compiler can name.
+
+SCOPE: status codes only, one swap per artifact, first code-site only. This is the
+cheapest sweep, not an exhaustive one. Other shapes — headers, sort order, error wrapping
+— would each need their own pass, and the yield here (1 genuine hole in 9 probes after a
+campaign that believed it was done) says those passes are worth writing.
