@@ -35,3 +35,44 @@ PREDICTION
   right description of the constraint, and the honest correction is that regeneration is
   simply unreliable at any size — which would make every future closure a coin flip rather
   than a procedure.
+
+===========================================================================
+GRADED — all four held, and the constraint I put on trial is CONFIRMED.
+
+  RUN: 3-member fleet, 57 seconds, 2 fix rounds, ZERO escalations, rc=0.
+
+    1. TestInvalidJSON written                                      YES
+    2. Build greens                                           3/3 GREEN
+    3. The invalid-JSON 400, graded per SITE against the unedited artifact:
+
+           BEFORE   line 28  SURVIVED   http.Error(w, "invalid json", 400)
+                    line 32  CAUGHT     http.Error(w, "message required", 400)
+           AFTER    line 32  CAUGHT     w.WriteHeader(400)
+                    line 37  CAUGHT     w.WriteHeader(400)
+
+       Both sites now defended. The half-defended promise is whole.
+    4. Registered mutations: Content-Type CAUGHT, 405 guard NOAPPLY (the regenerated code
+       expresses the method guard differently, so that mutation no longer applies — not a
+       regression, an artifact of regeneration).
+
+  THE CONSTRAINT: CONFIRMED, and sharply. This spec is FOUR files and greened in 57
+  seconds with ZERO escalations. tasks-api is eight and burned 3100 seconds, nine rounds
+  and nine escalations without greening. taskflow is fourteen and failed twice.
+
+      spec        files   result                       time
+      jsonapi        4    GREEN, hole closed             57s
+      shortener      7    GREEN, two holes closed    891/1351s
+      tasks-api      8    RED, ungradeable             3100s
+      taskflow      14    RED, ungradeable      2817s (+ earlier)
+
+  So "the coder cannot green the bigger specs" survives its test rather than being
+  corrected. Closing a hole is a procedure on small specs and a coin flip on large ones —
+  and the boundary in this corpus sits somewhere between seven files and eight.
+
+  A GRADING BUG FOUND ON THE WAY, worth more than the closure. The uniqueness guard added
+  to _hole_hunt this afternoon — refuse if the line text is not unique — blocked this
+  grading outright: the regenerated code writes `w.WriteHeader(http.StatusBadRequest)`
+  TWICE, byte-identical, so neither site could be addressed by text. Grading by LINE INDEX
+  fixed it. The guard was the right call for a mutator that cannot see which line the
+  detector chose; the real fix is for the mutator to carry the index, and this is the first
+  case where text alone genuinely cannot distinguish two sites.
