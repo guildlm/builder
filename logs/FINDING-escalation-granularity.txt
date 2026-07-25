@@ -166,8 +166,18 @@ RESULTS — shortener REGRESSED. The prediction above was right and it matters.
     independent of which escalation policy wins.
 
 MEASUREMENT 1 RESULTS — the shortener mechanism is a LAW, not an anecdote
-  47 archived artifacts; 32 still failing after the current gate chain (four more are
-  go.mod-only shells left by runs killed during generation — see the correction below).
+  43 archived artifacts measured (47 in generated/, minus four go.mod-only shells left by
+  runs killed during generation — see the correction below); 32 still failing after the
+  current gate chain, 11 cleared by it.
+
+  Every figure below was first DERIVED when the shells were identified (they contribute
+  nothing to the totals, only to the denominators) and then CONFIRMED by a clean re-run
+  with the guard in place. They agree exactly.
+
+  Cross-check from a different tool on the same corpus: `_gate_audit --regress` reports 11
+  green by the gates alone, the same 11. Two implementations, two code paths, one number —
+  which is worth stating because the OTHER number for this corpus, ~35/47 in
+  FINDING-gate-mining, comes from a vet-only criterion and is not in conflict with it.
 
     files a fix round REPAIRS ........................ 135
     files the toolchain BLAMES ....................... 55
