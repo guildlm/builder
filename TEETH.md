@@ -36,7 +36,7 @@ left among the ones I thought of". Sweeping instead, across four shapes and ever
 |-------|-------|:---------------------:|
 | status code | swap for a plausible neighbour | 3 / 9 |
 | response header | delete the `Header().Set` line | 1 / 8 (+3 spec gaps) |
-| sort order | REVERSE the comparator (never delete the sort) | 0 / 6 |
+| sort order | REVERSE the comparator (never delete the sort) | 1 / 7 |
 | error wrapping | `%w` → `%v`, every wrap in the file | **2 / 10** |
 
 **39 probes, 11 survivors, 6 genuine undefended promises** — including `shortener`'s
@@ -48,9 +48,12 @@ while `%w` → `%v` leaves the message byte-identical and breaks only `errors.Is
 passes unless somebody deliberately wrote `errors.Is`. Most likely to be undefended, least
 likely to be spotted by reading.
 
-Sort order yielding nothing is also a result: it is the invariant this campaign hardened by
-hand, three of those six are registered mutations, and an independent sweep agreeing with
-the registry is the cross-check the registry never had.
+Sort order was reported as 0 of 6 — "fully defended" — until the mutators were changed to
+edit by LINE INDEX. `taskflow`'s `store.go` sorts twice with byte-identical lines, one in
+`ListTasks` and one in `ListProjects`, so a text-matching mutator could only ever address
+one; the other was excluded as NOAPPLY. `ListProjects`' order is promised and pinned by
+nothing. A shape with a hole in it read as clean because of how the tool edits, not
+because of what the suite defends.
 
 **Probe every site, not one per file — "defended" is a property of a SITE.** `taskflow`'s
 `models.go` wraps `ErrValidation` three times and the suite defends two of them; probing

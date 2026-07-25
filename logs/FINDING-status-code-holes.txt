@@ -156,6 +156,10 @@ EXHAUSTIVE PASS (--all-sites) — the first-site limit was hiding holes
 
 ---------------------------------------------------------------------------
 SHAPE 3 — reverse a sort comparator. SIX sites, ZERO holes.
+  ⚠️ WRONG — SEE THE CORRECTION AT THE END OF THIS FILE. There are SEVEN sites and one of
+  them is a genuine hole; the seventh was unaddressable by the text-based mutator, so this
+  section's "fully defended" was an artefact of how the tool edits, not a fact about the
+  suite.
 
   TEETH.md already fixes the form: deleting a `sort.Slice` catches only probabilistically
   (the unsorted order depends on Go's map-iteration randomness), so an order invariant is
@@ -369,6 +373,8 @@ THE FOUR NEW CANDIDATES, SPEC-CHECKED — three genuine, and all three the same 
              NOT a hole — a spec gap, like the three Content-Type cases.
 
   RUNNING TALLY: 9 genuine undefended promises (was 6), 2 closed, 7 open.
+  ⚠️ CORRECTED BELOW: ratelimit's 429 turned out to be a dead-value false positive, so the
+  genuine count is 8, of which 3 are now closed and 5 remain open.
 
   THE SHAPE IS NOW THE MAJORITY FINDING, not an oddity. Four of the nine — taskflow's
   ErrValidation (1 undefended wrap of 3), tasks-api's ErrInvalidTask (4 errors.Is asserts,
@@ -416,3 +422,33 @@ A THIRD FALSE-POSITIVE CATEGORY — the mutated value is DEAD
   warns about at runtime and which no test, gate or spec in this project notices. It is
   not a bug — the response is correct — but it is the shape of one, and the only reason it
   surfaced is that a mutation landed on the dead half.
+
+---------------------------------------------------------------------------
+CORRECTION — "sort order is fully defended" was wrong, and wrongly for the usual reason
+
+  Switching the mutators from text-matching to LINE INDEX (needed because jsonapi writes
+  the same statement twice) turned two NOAPPLY rows into probes, and one of them survived:
+
+      taskflow  store.go:77   ListTasks     reverse sort by ID   CAUGHT
+      taskflow  store.go:122  ListProjects  reverse sort by ID   SURVIVED
+
+  The two lines are byte-identical, so the text mutator could only ever address one of
+  them. The other was reported NOAPPLY and quietly excluded from the shape's verdict —
+  which is how a shape with a hole in it came to be published as "SIX sites, ZERO holes,
+  fully defended".
+
+  SPEC CHECK: genuine. The spec names TestListSorted for TASKS and nothing for projects;
+  no test in the artifact touches ListProjects' order. Third instance of taskflow's
+  twin-route shape, alongside the projects malformed-body 400 and the projects
+  Content-Type — the tasks route is specified and tested in detail, and its twin inherits
+  the implementation without inheriting the tests.
+
+  TALLY: 9 genuine undefended promises (8 after removing ratelimit's dead-value case, +1
+  here), 3 closed, 6 open.
+
+  WHAT THIS COSTS ME TO SAY: I published "fully defended" for this shape twice — in this
+  file and in TEETH.md's yield table — and used it as the example that a shape yielding
+  nothing is still a result. The reasoning was fine. The input was an addressing limit
+  reported as a clean sweep, which is the exact failure this file has now documented four
+  times in its own instrument. Under-sampling does not announce itself; it produces a
+  smaller, tidier, entirely plausible table.
