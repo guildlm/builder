@@ -1,0 +1,48 @@
+FINDING — both "capability walls" were one edit deep
+=====================================================
+2026-07-25 evening. Two specs, taskflow and tasks-api, had been recorded as blocked on
+coder capability: 6 open holes and 2 spec gaps were parked behind them because a spec that
+cannot go green cannot be graded. Both were reclassified today, and both reclassifications
+were proven by experiment rather than argued.
+
+PROOF 1 — taskflow: ONE TEST FUNCTION
+  Copy the RED artifact, rewrite TestListLimit by hand against the GET recorders, touch
+  nothing else.
+      diff -rq  ->  one file differs: taskflow_test.go
+      go test   ->  ok   0.982s
+  Every implementation file byte-identical. The generated test had been decoding the two
+  POST recorders — each holding a single Task OBJECT — as JSON ARRAYS, and never read the
+  GET response at all.
+
+PROOF 2 — tasks-api: ONE LINE IN A CONSTRUCTOR
+  Add `nextID: 1` to NewStore's composite literal. Touch nothing else.
+      diff -rq  ->  one file differs: store.go
+      go test   ->  ok   2.876s
+  Six failing tests, gone together, which is what "one cause" is supposed to look like when
+  it is true. The store handed the first task ID 0; every lookup of id 1 returned 404.
+
+WHAT THE LABEL COST
+  Both labels came from reading a red SCORE instead of a red SUITE. score_backend returns
+  build/vet/test as 0..4 and "test: false" says nothing about whether one test failed or
+  forty. The suite was four seconds away the whole time, and the label survived two full
+  regenerations of taskflow and one 3100-second run of tasks-api.
+
+  Neither failure was even in the same category as the label. "The model cannot write this
+  project" was actually "the model mixed up four recorders in one test" and "the spec never
+  said where the ID sequence starts". One is a test-writing slip; the other is a SPEC
+  DEFECT, and the spec defect had a real bug behind it — store.go guards Update with
+  `if t.ID == 0 { return ErrNotFound }`, so a sequence starting at 0 makes the first task
+  ever created permanently unupdatable. That ships green in any suite whose cases start
+  from the second record.
+
+THE RULE
+  A red artifact is a QUESTION, not a verdict. Run its suite before naming its cause, and
+  name the cause at the granularity the evidence supports — "six failures" is not a cause,
+  and neither is "capability". The cheapest instrument in this repo turned out to be
+  `go test`, and it was the one not being run.
+
+STILL OPEN
+  These proofs show the targets are REACHABLE by hand. They do not show the builder will
+  reach them: my hand had already read the failure, the model has not. The spec edits
+  (taskflow SHOWS the test code; tasks-api STATES where nextID starts) are what test that,
+  and the taskflow regeneration is running now.
