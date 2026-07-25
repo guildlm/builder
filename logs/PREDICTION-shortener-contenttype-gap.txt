@@ -1,0 +1,35 @@
+PREDICTION — shortener's Content-Type: a real spec gap, verified before aiming
+==============================================================================
+2026-07-25, before the edit. Fourth closure attempt, and the first written after checking
+the control rather than recalling it.
+
+THE CONTROL, RUN FIRST THIS TIME
+      handlers.go:74   drop Content-Type   SURVIVED
+      spec mentions Content-Type: 0 times
+  So this is a genuine spec gap, unlike the previous attempt where I aimed at jsonapi from
+  memory and found its header already defended. One grep, thirty seconds, and it is the
+  difference between a closure and a wasted run.
+
+WHAT MAKES THIS DIFFERENT FROM THE OTHER CLOSURES
+  Every hole closed today was a PROMISE the spec made and no test defended. This one is
+  behaviour the spec never asked for: the model writes `Content-Type: application/json`
+  because that is what a JSON handler looks like. Closing it means ADDING a contract, not
+  defending an existing one — and the justification is that the alternative is depending
+  on a model's taste and calling it a guarantee.
+
+THE EDIT — state the promise in the handler's purpose AND name the test
+      writeJSON sets Content-Type: application/json on every JSON response.
+      TestContentTypeJSON: POST /shorten with a valid url and assert the RESPONSE header
+      Content-Type is exactly "application/json" (read it off the recorder).
+
+PREDICTION
+  1. TestContentTypeJSON written and passes.
+  2. The build greens — with the FLEET. shortener is 7 files and RESULT-fleet-ab.txt has
+     base-only at 2/3 RED on it, confirmed again by two runs today. Unlike jsonapi, this
+     one genuinely needs the fleet, which is what makes the pair informative.
+  3. drop Content-Type flips SURVIVED -> CAUGHT at handlers.go.
+  4. The two holes already closed in this spec stay closed: TestHealthOK present and the
+     /health mutation CAUGHT, TestShortenMalformedJSON present and its 400 CAUGHT.
+
+  (4) is now a three-closure composition test on one spec. Two closures composing was
+  evidence; three would make it a property rather than a coincidence.

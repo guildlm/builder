@@ -118,6 +118,9 @@ files:
       TestRedirectFound: POST as above, then GET /r/+created.Code -> 301 and the
       Location header EQUALS "http://example.com".
       TestRedirectMissing: on a fresh router, GET /r/missing -> 404.
+      TestContentTypeJSON: POST /shorten with a valid url and assert the RESPONSE
+      header Content-Type is exactly "application/json", read off the recorder
+      (rec.Header().Get("Content-Type")). Every JSON response sets it.
       TestHealthOK: GET /health -> 200 and the body is the PLAIN TEXT "ok" —
       read it with rec.Body.String(), do NOT json.Decode it (this is the one
       endpoint in this service that does not return JSON).
