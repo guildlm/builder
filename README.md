@@ -161,6 +161,31 @@ cd examples/tasks-api
 go vet ./... && go build ./... && go test ./... && go test -race ./...
 ```
 
+### Instruments
+
+Model-free tools that answer a question the test suite cannot. All read-only, all free
+(the Go toolchain, no model server) — and each exists because an assumption turned out to
+be measurable:
+
+| tool | question it answers |
+|------|--------------------|
+| `_gate_audit.py` | Which gates fire on real artifacts, and what is left once they run to a fixpoint? (`--regress` re-drives the whole archive; `--mechanisms` finds machinery that never runs at all) |
+| `_escalation_surface.py` | How much of a fix round rests on inference rather than on what the toolchain named? |
+| `_unrouted_compat.py` | Did a fix-loop change alter builds that do not use `--fleet`? Diff two trees instead of arguing. |
+| `_named_test_audit.py` | Did the model write every test the spec NAMES? |
+| `_teeth_suite.py`, `_mutant_check.sh` | Does a green suite actually defend its contract? (see [TEETH.md](TEETH.md)) |
+| `_deadlock_detector.py` | Does a method re-acquire a mutex it already deferred-unlocked? |
+
+The habit worth copying is not the tools but what they do to themselves. A checker never
+seen catching anything is indistinguishable from one that does nothing, so
+`_escalation_surface.py --self-test` plants defects and requires the checker to flag them,
+and `_teeth_suite.py` refuses to score a mutant whose UNMUTATED baseline is already red
+(**BASELINE-RED — verdict void**), because a red baseline turns every mutant into a fake
+CAUGHT. That is not paranoia: this session found `_gate_audit` scoring untouched artifacts
+as "advanced" because it compared toolchain output that changes between runs of identical
+code, and `_escalation_surface` counting empty archives as evidence for the very hypothesis
+it was measuring. Instruments need instruments.
+
 ## Honest limitations
 
 - **It produces a working MVP / scaffold, not a finished product.** The loop
