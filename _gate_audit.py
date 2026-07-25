@@ -18,7 +18,25 @@ all of them and asks two questions the gate work has been answering by anecdote:
 Read-only with respect to generated/: every artifact is copied to a temp dir
 first. Needs the Go toolchain; no model server, so it is free and fast.
 
-    python _gate_audit.py [--limit N]
+    python _gate_audit.py [--limit N]   # the two questions above
+    python _gate_audit.py --regress     # do the artifacts the gates can repair STILL
+                                        # go green? a gate change that breaks the chain
+                                        # passes every unit test
+    python _gate_audit.py --mechanisms  # which machinery has never announced itself in
+                                        # any run — reports how many runs POSTDATE each
+                                        # silent mechanism, since one younger than every
+                                        # log cannot have appeared in one
+    python _gate_audit.py --self-test   # prove this tool still reports what it once got
+                                        # wrong; no go, no git, no generated/
+
+A NOTE ON TRUSTING THIS TOOL. It has been silently wrong. Its "advanced" verdict was
+decided by comparing toolchain OUTPUT across two runs, and that output is not a function
+of the code — the same tree checked twice differs in heap addresses, goroutine ids and
+durations, so every artifact whose tests panic scored "advanced" with no gate having
+fired. It ran, printed a plausible table, and inflated its own progress count in the
+direction that flattered the gate chain. That is why --self-test exists, and why the
+verdict now diffs the TREE. See logs/FINDING-wraparg-gate-dead.txt for a worked example
+of taking one of its alarms all the way down.
 """
 
 from __future__ import annotations
