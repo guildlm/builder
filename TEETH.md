@@ -72,6 +72,31 @@ Not "is there a green test" but **"does one test DETERMINISTICALLY run the whole
 The same `List sorted by ID` invariant is undefended in taskflow/usersapi and robustly
 defended in taskapi — the difference is the *test*, not the code.
 
+## Why the fix loop makes this mandatory rather than nice to have
+
+A property of the Go toolchain, measured across 32 archived failures
+(`logs/FINDING-escalation-granularity.txt`): **a compiler error names an implementation
+file; a failing assertion names the TEST.** In 18 of the 19 archives whose tests fail at
+runtime, implementation files are being repaired and not one of them is blamed.
+
+So on every runtime failure the fix loop is handed the test file as the accused, and asked
+to repair it. That is deliberate — sometimes the test really is wrong, and `_fix_prompt`
+says so out loud ("if the implementation already matches the spec's stated rules, correct
+the test's expected value"). But it means the loop is *routinely one round away* from
+changing `want 3` into `want -1` and going green against a bug.
+
+The existing guard stops only the crude version: a candidate `_test.go` that asserts
+nothing at all is rejected (`has_assertions`). A test edited into agreement with the
+implementation still asserts something, still compiles, still passes — and every signal
+the builder has says success. Coverage cannot see it. The gate cannot see it. The spec
+sees it only if a human reads both.
+
+**Mutation is the only instrument that can.** A suite weakened to match a bug reports
+SURVIVED the moment the bug is planted deliberately, which is exactly the shape teeth
+measures. That is the argument for keeping this campaign running as the fix loop gets
+stronger, not for retiring it: a better fix loop is a loop that finds green faster, and
+one of the routes to green is through a weakened test.
+
 ## Current coverage
 
 `_teeth_suite.py` covers **every valid generated spec — 30 registered mutations across 23
