@@ -61,6 +61,18 @@ GRADED — one real result, and one error of mine that the grading caught.
      small specs do not need the fleet AT ALL; the fleet is what carries the large ones,
      and on those it still is not enough (tasks-api, taskflow).
 
+     ⚠️ COUNTED CONSISTENTLY AFTERWARDS, because "files" had been used loosely — sometimes
+     spec entries, sometimes implementation .go files. By SPEC ENTRIES:
+         jsonapi     3   GREEN, base alone, 94s
+         shortener   7   GREEN, fleet, 891-1351s
+         ratelimit   7   untested
+         usersapi    8   untested
+         tasks-api   8   RED, fleet, 3100s
+         taskflow   14   RED, fleet, twice
+     The boundary sits between 7 and 8 spec entries. Implementation-file count does NOT
+     separate them — tasks-api and shortener both have five — so the variable is how much
+     the spec asks for, not how much code results.
+
   3. "The mutation flips SURVIVED -> CAUGHT."  VOID — it was ALREADY CAUGHT.
      jsonapi was never one of the five Content-Type survivors. The sweep says so plainly:
          jsonapi CAUGHT · kvservice CAUGHT · ratelimit SURVIVED · shortener SURVIVED
