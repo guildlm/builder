@@ -1,0 +1,40 @@
+PREDICTION — turning a convention into a contract (jsonapi's Content-Type)
+==========================================================================
+2026-07-25, before the edit.
+
+NOT A HOLE — A SPEC GAP, which is a different thing and worth being precise about
+  Five services set `Content-Type: application/json` and none of their specs asks for it.
+  Dropping the header leaves every suite green. That is not an undefended promise: there
+  is no promise. The model writes the header because that is what a JSON handler looks
+  like, and nothing in the project requires it, tests it, or would notice if a different
+  sampling temperature stopped producing it.
+
+  The fix is a spec line, and the reason is not "implicit means broken" as a rule. It is
+  that the alternative is depending on a model's taste and calling it a contract.
+
+  jsonapi is chosen because it is the cheapest verifiable case: 4 files, greened in 57
+  seconds with ZERO escalations, so the base alone should do it and a red result would be
+  informative rather than ambiguous.
+
+THE EDIT — state the promise AND name the test, which is the whole lesson of the day
+  The spec already says "responds with JSON ... and Content-Type application/json" in the
+  main.go purpose, so the PROMISE exists — what is missing is a named test. That makes
+  this a weaker case than I first described: closer to the mirrored-route holes (promise
+  stated, test unnamed) than to a true spec gap. Recorded as a correction to my own
+  classification before the run rather than after it.
+
+      TestContentTypeJSON: POST a valid message and assert the RESPONSE header
+      Content-Type is exactly "application/json" — read it with
+      res.Header.Get("Content-Type").
+
+PREDICTION
+  1. TestContentTypeJSON is written and passes.
+  2. The build greens with the BASE alone, no fleet. jsonapi did 2 rounds / 0 escalations
+     with the fleet, so the fleet was never the reason it worked.
+  3. `drop Content-Type` flips SURVIVED -> CAUGHT, graded against the unedited artifact.
+  4. The three closures already in this artifact family stay closed — specifically
+     jsonapi's invalid-JSON 400 stays CAUGHT.
+
+  (2) is the interesting one. If the base alone greens it, then the fleet was carrying the
+  larger specs and nothing else, which sharpens the size finding: the constraint is not
+  "small specs need the fleet less", it is "small specs do not need it at all".

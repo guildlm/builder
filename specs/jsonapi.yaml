@@ -19,7 +19,10 @@ files:
       tests can drive it. Standard library only (encoding/json, net/http).
   - path: main_test.go
     purpose: >-
-      package main. TestInvalidJSON: POST /echo with a body that is NOT valid
+      package main. TestContentTypeJSON: POST a valid message and assert the
+      RESPONSE header Content-Type is exactly "application/json" — read it with
+      res.Header.Get("Content-Type").
+      TestInvalidJSON: POST /echo with a body that is NOT valid
       JSON — send the raw bytes `{"message":` (truncated ON PURPOSE; do NOT send
       `{}` or `{"message":""}`, which are valid JSON and take the empty-message
       branch that is already covered) -> 400.
