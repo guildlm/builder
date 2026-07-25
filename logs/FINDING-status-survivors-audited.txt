@@ -39,3 +39,36 @@ SO: SEVEN CANDIDATES, ONE NEW GENUINE HOLE
   The new hole is on taskflow, where a closure is a sample of one draw — measured today as
   intermittent per test AND per site. So it is recorded as a hole rather than queued as a
   closure: worth fixing when taskflow's instability is understood, not before.
+
+AUTOMATED RE-TRIAGE, corrected tool — 2026-07-26
+=================================================
+All 17 SURVIVED rows, run through _candidate_triage after its window bug was fixed:
+
+      jsonapi      main.go                StatusBadRequest           CANDIDATE STANDS
+      kvservice    main.go                StatusBadRequest           SPEC GAP
+      ratelimit    middleware.go          StatusTooManyRequests      NOISE
+      shortener    router.go              StatusOK                   CANDIDATE STANDS
+      taskflow     middleware.go          StatusOK                   CANDIDATE STANDS
+      taskflow     projects_handler.go    StatusBadRequest           CANDIDATE STANDS
+      taskflow     projects_handler.go    StatusConflict             CANDIDATE STANDS
+      taskflow     tasks_handler.go       StatusOK                   CANDIDATE STANDS
+      usersapi     middleware.go          StatusOK                   CANDIDATE STANDS
+      ratelimit    middleware.go          Content-Type               CANDIDATE STANDS
+      shortener    handlers.go            Content-Type               CANDIDATE STANDS
+      taskflow     httpjson.go            Content-Type               CANDIDATE STANDS
+      tasks-api    handlers.go            Content-Type               CANDIDATE STANDS
+      usersapi     handlers.go            Content-Type               CANDIDATE STANDS
+      taskflow     store.go               reverse sort by ID         NO NEEDLE — sort/wrap shapes, triaged by hand
+      taskflow     models.go              %w -> %v (ErrValidation)   NO NEEDLE — sort/wrap shapes, triaged by hand
+      tasks-api    task.go                %w -> %v (ErrInvalidTask)  NO NEEDLE — sort/wrap shapes, triaged by hand
+
+      CANDIDATE STANDS: 12 · NOISE: 1 · SPEC GAP: 1
+
+  The automated pass agrees with the hand audit above on every row it can judge, and adds
+  the four it could not reach by hand at the time. The three sort/wrap shapes have no
+  status/header needle, so they stay hand-triaged.
+
+  Note what the corrected tool does NOT do: several CANDIDATE STANDS rows come from the
+  ARCHIVE, and today's spec edits closed some of them on fresh trees. A row here means
+  "worth looking at", not "open" — the fresh-tree check is still a separate step, and the
+  archive is a snapshot from before this session.
