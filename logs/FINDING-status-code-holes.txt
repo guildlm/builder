@@ -2,9 +2,22 @@ FINDING — sweeping for holes a hand-run campaign could not have thought of
 =========================================================================
 2026-07-25, model-free. `_hole_hunt.py` over all 25 archived -v4 artifacts.
 
-FINAL: four shapes, every site — 34 probes, 11 survivors, 6 genuine undefended promises.
+FINAL: four shapes, every site — 39 probes, 11 survivors, 6 genuine undefended promises.
   status code      3 genuine / 9      response header  1 genuine / 8 (+3 spec gaps)
-  sort order       0 genuine / 6      error wrapping   2 genuine / 5
+  sort order       0 genuine / 6      error wrapping   2 genuine / 10
+
+CLOSED SO FAR — 2 of the 6, each graded against a before-table rather than an expectation:
+  shortener  GET /health -> 200 "ok"        SURVIVED -> CAUGHT   (PREDICTION-shortener-health-hole)
+  shortener  malformed-JSON 400             SURVIVED -> CAUGHT   (PREDICTION-shortener-malformed-json)
+  Both still caught after the second closure, so closures COMPOSE — the spec accumulates
+  defended promises instead of trading them, which is what makes the remaining four worth
+  the fleet runs they cost.
+
+OPEN — 4, all in taskflow and tasks-api:
+  taskflow   response Content-Type          (spec: "writeJSON ... sets Content-Type")
+  taskflow   projects malformed-body 400    (named for the tasks route, not its twin)
+  taskflow   ErrValidation, 1 of 3 wraps    (the other two ARE defended — site, not file)
+  tasks-api  ErrInvalidTask                 (4 errors.Is asserts, all on the OTHER sentinel)
 
 (The filename says status-code because that is the shape it started with; three more
 followed and the sections below are in the order they were run, each with its own spec
