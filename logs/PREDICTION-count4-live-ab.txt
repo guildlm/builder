@@ -64,3 +64,30 @@ WHAT IT COST AND WHAT IT BOUGHT
   Caveat that does not go away: -count=4 catches ~68% of a 50/50 flake. This run could
   have missed, and one miss would not have refuted anything — which is why that was
   written down before the run rather than after it.
+
+CALIBRATION — was the flake endemic or an exception?
+=====================================================
+One flake is not a licence to say "green means nothing". Every artifact generated today
+under the OLD single-run loop, re-tested:
+
+      ratelimit-ct     12 PASS / 0 FAIL
+      usersapi-ct      12 PASS / 0 FAIL
+      taskflow-code    12 PASS / 0 FAIL
+      tasksapi-count4  12 PASS / 0 FAIL   (the repaired one)
+
+  And the reason, which matters more than the tally, because "no flake found" and "no flake
+  possible" are different claims:
+
+      artifact         map-range sites   sort.Slice calls
+      ratelimit                0                0     no exposure at all
+      usersapi                 1                1     sorted
+      taskflow                 2                2     both sorted
+
+  Every artifact that iterates a map also sorts it. tasks-api was the one that did not, and
+  it is the one that was flaky. So the defect is real and explicable, not endemic: the
+  single-run loop was shipping a coin flip in ONE of five artifacts, where the code had
+  map-order exposure and forgot to sort.
+
+  That bounds the claim in both directions. -count=4 is not fixing a systemic rot — four of
+  five builds were genuinely green. It closes a specific hole that the loop could not see,
+  in the specific case where the code touches Go's randomised map iteration.
