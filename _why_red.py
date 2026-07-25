@@ -95,6 +95,20 @@ if not fails:
     # caught it, not the two artifacts it was built against.
     tested = len(re.findall(r"^ok\s+\S+", proc.stdout, re.M))
     untested = len(re.findall(r"^\?\s+\S+\s+\[no test files\]", proc.stdout, re.M))
+    # FOUR outcomes, not two. A package that does not COMPILE produces no "--- FAIL:"
+    # lines at all, so it arrived here looking like a suite with nothing to report — first
+    # as "suite is green" (the sweep called tasks-api-min green while it fails to build on
+    # `undefined: ErrNotFound`), then as "no test files" once the per-package count went
+    # in, which is still the wrong cause. "Cannot compile" and "has no tests" need
+    # different work and must not share a line.
+    built = "[build failed]" not in proc.stdout and "build failed" not in proc.stderr
+    if not built:
+        errs = [l.strip() for l in (proc.stdout + proc.stderr).splitlines()
+                if re.search(r"\.go:\d+:\d+:", l)]
+        print(f"BUILD FAILED — no test could run. {len(errs)} compile error(s)")
+        for e in errs[:5]:
+            print(f"      {e[:100]}")
+        raise SystemExit(1)
     if tested:
         note = f"suite is green — {tested} package(s) ran tests"
         if untested:
@@ -117,6 +131,12 @@ for sh, names in sorted(groups.items(), key=lambda kv: -len(kv[1])):
 if len(groups) == 1 and len(fails) > 1:
     print(f"\n  ALL {len(fails)} failures share one shape — look for ONE cause, not {len(fails)}.")
 
+# EXIT NONZERO WHEN TESTS FAIL. It printed the failures and returned 0, so anything
+# scripting this read a red artifact as a pass — the same defect found in
+# _deadlock_detector this morning, in the tool written to stop exactly this. Caught by the
+# over-fire half of the check for the build-failure split, not by the fix itself.
+_EXIT_RED = 1
+
 # The spec-silence heuristic that used to live here is DELETED, not disabled.
 #
 # It grepped the failure text for words the spec never used, on the theory that
@@ -133,3 +153,5 @@ if len(groups) == 1 and len(fails) > 1:
 # What survives is the part that DID earn its keep: how many tests fail, and whether they
 # cluster. That alone is what would have saved days here — taskflow's suite had exactly
 # ONE failing test the whole time it was written off as a capability wall.
+
+raise SystemExit(_EXIT_RED)

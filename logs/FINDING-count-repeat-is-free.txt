@@ -1,0 +1,46 @@
+FINDING — repeating the suite costs nothing across the archive, and two artifacts
+were never green at all
+=================================================================================
+2026-07-25 night. Two measurements, one of which I expected and one of which I did not.
+
+MEASUREMENT 1 — is -count=4 safe to adopt?
+  I had argued against putting repeats in the fix loop on the grounds that a test with
+  state leakage between runs would newly fail and the model would then "fix" a defect that
+  is not there. That was a guess, so it got measured: every archived artifact run under
+  -count=1 and -count=4.
+
+      25 artifacts · ZERO new failures under repeat
+
+  The risk is hypothetical in this corpus. Repeating is free here, which is what makes the
+  scoring change adopted this evening cheap rather than a trade.
+
+MEASUREMENT 2 — two artifacts fail to BUILD, and read as green all day
+      tasks-api-min-v4              11 compile errors (undefined: ErrNotFound)
+      tasks-api-noshadownudge-v4     7 compile errors
+
+  The corpus sweep run earlier tonight reported both as "suite is green". A package that
+  does not compile emits no `--- FAIL:` lines at all, so it arrives at a failure parser
+  looking exactly like a suite with nothing to report.
+
+  The tool got this wrong TWICE in one evening, in the same direction:
+    1. "suite is green" — the original check asked only whether tests failed.
+    2. "NO PACKAGE RAN A TEST (0 with no test files)" — better, still the wrong cause,
+       because "cannot compile" and "has no tests" need different work.
+  It now names the compile errors and exits 1.
+
+  That is four outcomes where the tool started with two: green, tests failed, no tests
+  exist, does not build. Each needs a different next action, and the first version
+  collapsed three of them into "green".
+
+AND THE OVER-FIRE CHECK FOUND A THIRD
+  Verifying the build-failure split did not break the other states showed that a RED
+  artifact — tests parsed, failures printed — was exiting 0. Anything scripting this read
+  a failing suite as a pass. That is the same defect found in _deadlock_detector this
+  morning, now in the tool written to stop exactly this, and it was found by the half of
+  the check that verifies nothing ELSE changed rather than by the fix itself.
+
+THE PATTERN, FOURTH SIGHTING TODAY
+  Every one of these is a distinct cause rendering as the output of a clean result. The
+  defence that keeps working is not more care while writing the check; it is running the
+  check against inputs whose answers are already known, INCLUDING the ones it is supposed
+  to pass.
