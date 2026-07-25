@@ -134,4 +134,38 @@ RESULTS — shortener REGRESSED. The prediction above was right and it matters.
     and blame), the unrouted byte-identity proof, and the surface measurement are
     independent of which escalation policy wins.
 
-  MEASUREMENT 1 RESULTS: pending the bounded re-run.
+MEASUREMENT 1 RESULTS — the shortener mechanism is a LAW, not an anecdote
+  47 archived artifacts; 36 still failing after the current gate chain.
+
+    files a fix round REPAIRS ........................ 135
+    files the toolchain BLAMES ....................... 55
+    never blamed (the old rule's escalation surface) .. 80  (59% of repaired files)
+    artifacts where the two sets differ .............. 19/36
+    artifacts with an UNATTRIBUTED error ............. 4/36
+
+  And the decisive one — artifacts where implementation files are being repaired and NOT
+  ONE of them is blamed, i.e. where a blamed-only rule can never put an implementation
+  defect in front of a stronger model:
+
+    compile failures ..... 0/17
+    test failures ....... 18/19
+
+  That is close to a clean law and it explains the shortener regression exactly: a compiler
+  error always names an implementation file, and a failing assertion essentially never
+  does. Blame is precise where the toolchain can attribute and blind where it cannot — so
+  restricting escalation to blame removes it precisely in the regime where the loop most
+  needs a second opinion. shortener was not unlucky; it was the ordinary case.
+
+  WHAT THE 4/36 UNATTRIBUTED CASES SHOW
+    They are the one part of the original argument that survives intact. There the error
+    names no file the builder knows, `targets` falls back to EVERY file, and the old rule
+    dealt a strike to all of them — spending the most escalation exactly where it knows
+    least. That is 11% of failing artifacts, small but real, and it is narrowing with a
+    basis rather than narrowing on principle.
+
+  ==> WHERE THIS LANDS. The defensible policy is not "blamed only" and not "everything in
+      the target set" — it is BLAMED + ATTRIBUTED WIDENING, excluding only the no-attribution
+      fallback. Runtime widening and symbol-owner widening are attributions, just indirect
+      ones (the toolchain named a test, or named a symbol whose owner we located); the
+      fallback is the absence of one. workapi decides whether blamed-only survives on the
+      clean spec, but this measurement already says it cannot be right in general.
