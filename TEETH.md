@@ -21,10 +21,28 @@ so it violates a promise the spec actually makes, then ask whether any test goes
 | `_mutant_check.sh <spec>` | Does one spec's suite catch a hand-written bug? (exploratory) | yes (build+vet+test) |
 | `_named_test_audit.py` | Did the model write every test the spec NAMES? | no (static) |
 | `_deadlock_detector.py` | Does a method re-acquire a mutex it already deferred-unlocked? | no (static) |
+| `_hole_hunt.py` | Sweep for holes nobody thought to check — mutate every status write and drop every response header, across every artifact | yes (`go test`) |
+| `_hole_closed.py` | Did a spec edit close the hole it targeted **and open no other**? | yes (`go test`) |
 
 `_named_test_audit.py` matches on names, so a test that is *present but vacuous* (right
 name, missing assertion) passes the audit while the hole stays open. Names are checkable
 by grep; teeth are not. That is why the mutation tools exist alongside it.
+
+`_hole_hunt.py` exists because the registry reached **29 CAUGHT / 0 SURVIVED** by testing
+invariants someone chose one at a time — which reads as "no holes left" and means "no holes
+left among the ones I thought of". Sweeping instead found 4 genuine undefended promises in
+23 probes, including one (`shortener`'s `GET /health -> 200 "ok"`) that the spec states
+outright and **no test touches at all**. Two rules keep it honest:
+
+- **A SURVIVED row is a candidate, not a verdict.** The next question is always whether the
+  SPEC promises the behaviour that was broken. Of 9 survivors, 4 were real, 2 were a
+  recurring log-only false positive (marked `SURVIVED*` rather than filtered out — removing
+  a class is how a hunter goes quiet), and 3 were behaviour the spec never asked for. Those
+  last three are SPEC gaps, not test gaps: by this project's own law, implicit means broken.
+- **Closing a hole means naming a test in the spec**, then regenerating and grading with
+  `_hole_closed.py` — which asks both questions, because a spec edit reaches every file's
+  prompt and one that buys a hole while opening another still looks like a win from the
+  headline number.
 
 ## The baseline-green rule (why a red baseline is not a CAUGHT)
 
