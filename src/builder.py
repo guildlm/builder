@@ -1478,13 +1478,16 @@ def _fix_targets(
 ) -> tuple[list[str], list[str]]:
     """Which files a fix round repairs, and which of them the toolchain BLAMED.
 
-    Two different questions with two different answers, which is why they are returned
-    separately. REPAIR wants breadth: the file the error names may be the one that is
-    right (a failing assertion accuses the test, but the implementation may be what
-    violates the spec), so the wideners add root-cause candidates, and an error naming
-    nothing we recognise falls back to every file. ESCALATION wants precision: handing a
-    file to a bigger fleet member costs that model on every later round and is not even
-    monotone, so it is spent only on files the toolchain actually named.
+    Repair wants breadth: the file the error names may be the one that is RIGHT (a failing
+    assertion accuses the test, but the implementation may be what violates the spec), so
+    the wideners add root-cause candidates, and an error naming nothing we recognise falls
+    back to every file.
+
+    ``blamed`` is reported separately but is NOT a narrower target set for escalation —
+    that was tried and refuted, see the fix loop's escalation block and
+    logs/FINDING-escalation-granularity.txt. It is here because it is what the toolchain
+    actually asserted, as opposed to what the wideners inferred, which makes it the honest
+    label for a log line and the unit _escalation_surface.py measures.
 
     ``blamed`` is a subset of ``targets`` except for files the caller strips afterwards
     (go.mod, which is restored deterministically and never handed to a model). Pure apart
@@ -5032,26 +5035,30 @@ def _fix_loop(
             # the files the base cannot, and passing the gate IS success here. Inert for a
             # single-model coder (no `escalate`), so an unrouted build is unaffected.
             #
-            # Only a BLAMED file earns a strike. The widened targets are offered a repair on
-            # a hypothesis (the impl may be what the failing test is right about; the missing
-            # symbol's owner may be the one to declare it) — a file nobody blamed may be
-            # perfectly correct, so escalating it buys no fix and costs a bigger model's
-            # generation on every later round. The live A/B measured that leak: 12
-            # escalations on a 7-file project because "the widened set accumulates its own
-            # stuck-counter, so escalation goes fleet-wide rather than staying targeted"
-            # (guild-code RESULT-fleet-ab.txt). It is not only cost — escalation is NOT
-            # monotone there (the base fixed a codec bug that an escalated member then sat
-            # on for two rounds), so moving an unblamed file is a real risk, not a safe
-            # upgrade. When the error names nothing we know, `blamed` is empty and NOTHING
-            # escalates: an unattributed error gives no basis for choosing a file, and
-            # picking one at random is the shot-in-the-dark this guard exists to stop.
-            if path in blamed:
-                fleet_stuck[path] = fleet_stuck.get(path, 0) + 1
-                if fleet_stuck[path] >= _FLEET_ESCALATE_AFTER:
-                    escalate = getattr(coder, "escalate", None)
-                    if callable(escalate) and escalate(path):
-                        _log(f"  escalating {path} to the next fleet member")
-                        fleet_stuck[path] = 0
+            # EVERY target earns a strike, including the ones widening pulled in. This
+            # looks like over-spending and was changed to blamed-only once; the experiment
+            # is written up in logs/FINDING-escalation-granularity.txt and it refuted the
+            # change. Two measurements, either of which is enough:
+            #
+            #   - shortener, re-run against its own recorded control: 3/3 GREEN with the
+            #     widened set eligible, 2/3 RED without. Cheaper (2 escalations vs 12) and
+            #     worse. The blamed test file escalated and the failure MOVED to the
+            #     implementation, which then had nowhere to go.
+            #   - across 32 archived failures: in 18 of the 19 whose tests fail at runtime,
+            #     implementation files are being repaired and NOT ONE of them is blamed.
+            #     For compile failures it is 0 of 13.
+            #
+            # Which is the law underneath: a compiler error names an implementation file, a
+            # failing assertion never does — it names the test. So an implementation defect
+            # that only a test can reveal reaches a stronger model ONLY through widening.
+            # Restricting escalation to blame removes it exactly where the toolchain cannot
+            # attribute, which is exactly where a second opinion is worth paying for.
+            fleet_stuck[path] = fleet_stuck.get(path, 0) + 1
+            if fleet_stuck[path] >= _FLEET_ESCALATE_AFTER:
+                escalate = getattr(coder, "escalate", None)
+                if callable(escalate) and escalate(path):
+                    _log(f"  escalating {path} to the next fleet member")
+                    fleet_stuck[path] = 0
             # Say WHY this file is being fixed. The wideners announce themselves as a
             # group ("widening fix targets to package impl in ."), but the per-file line
             # did not, so reading a log later meant re-deriving which files the toolchain

@@ -256,19 +256,23 @@ _WIDEN_TEST_GO = (
 
 
 @requires_go
-def test_escalation_counts_only_the_blamed_file_not_the_widened_package(tmp_path):
-    """Only the file the toolchain NAMES accumulates escalation strikes.
+def test_a_widened_file_escalates_too_or_impl_bugs_are_unreachable(tmp_path):
+    """A file pulled in by WIDENING must escalate like any other target.
 
-    The fix loop repairs a wider set than the error blames: after a package fails at
-    runtime twice, its implementation files join the targets so the model can fix
-    whichever side violates the spec. Escalation must NOT follow that widening —
-    a widened file is a guess at the root cause, and the live A/B measured the cost
-    of not distinguishing them (guild-code RESULT-fleet-ab.txt: 12 escalations on a
-    7-file project, "escalation goes fleet-wide rather than staying targeted").
+    This pins the behaviour a previous change removed, and it was removable precisely
+    because nothing pinned it. The reasoning for removing it was that a widened file is
+    a guess at the root cause and escalating it costs a bigger model for nothing. The
+    experiment says otherwise (logs/FINDING-escalation-granularity.txt): shortener went
+    3/3 GREEN to 2/3 RED, and across 32 archived failures, 18 of the 19 that fail at
+    runtime are repairing implementation files with NOT ONE of them blamed.
+
+    The law underneath is simple and permanent: a compiler error names an implementation
+    file, a failing assertion names the TEST. So an implementation defect that only a test
+    can reveal reaches a stronger fleet member ONLY through widening. Cut that path and it
+    is unreachable however many rounds are spent.
 
     Here `mathx_test.go` asserts a wrong value, so go blames it and only it, while
-    `mathx.go` is correct and joins the targets purely by widening. The blamed file
-    must still escalate (the mechanism is alive) and the widened file must not."""
+    `mathx.go` enters the targets purely by widening — and must still escalate."""
     spec = Spec(
         name="demo", description="a demo", go_module="example.com/demo",
         files=(
@@ -288,11 +292,15 @@ def test_escalation_counts_only_the_blamed_file_not_the_widened_package(tmp_path
     ok, _ = build(spec, fleet, tmp_path, max_fix_rounds=5)
 
     assert not ok, "a wrong assertion value is model-shaped; the loop cannot converge"
-    # Non-vacuity: mathx.go really WAS widened into the fix targets (generated once,
-    # then handed back for repair). Without this the assertion below is trivially true.
+    # Non-vacuity: mathx.go really WAS widened into the fix targets (generated once, then
+    # handed back for repair) and was never blamed. Without this the assertion below could
+    # pass for the wrong reason — e.g. if go had named the impl after all.
     assert base.calls.count("mathx.go") >= 2, "widening never happened — test proves nothing"
-    assert fleet.member_for("mathx_test.go") == 1, "the BLAMED file must still escalate"
-    assert fleet.member_for("mathx.go") == 0, "a widened file must not escalate"
+    assert fleet.member_for("mathx_test.go") == 1, "the blamed file escalates"
+    assert fleet.member_for("mathx.go") == 1, (
+        "a widened file must escalate too — otherwise an implementation defect that only "
+        "a failing test can reveal can never reach a stronger model"
+    )
 
 
 # --------------------------------------------------------------------------- #
