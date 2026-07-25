@@ -1,0 +1,33 @@
+PREDICTION — ratelimit's Content-Type gap, and the size boundary tested at 7
+============================================================================
+2026-07-25, before the edit. Fifth closure attempt.
+
+THE CONTROL, RUN FIRST
+      middleware.go:28  drop Content-Type   SURVIVED
+      spec mentions Content-Type: 0 times
+  And the site is LIVE, checked because this same file produced today's dead-value false
+  positive: the header is set BEFORE w.WriteHeader, so unlike the duplicated status write
+  it genuinely reaches the response. A gap, not an artefact.
+
+WHY THIS SPEC
+  ratelimit is SEVEN spec entries — the same as shortener, which greens with the fleet,
+  and one below tasks-api, which does not. The boundary published today sits exactly
+  between them, and it was drawn from four points with nothing at 7 except shortener. This
+  adds a second point at 7. If it greens, the boundary holds; if it does not, "7 greens, 8
+  does not" was a description of shortener rather than of size.
+
+THE EDIT — state the promise, name the test
+      writeJSON sets Content-Type: application/json on every JSON response.
+      TestContentTypeJSON: drive the middleware with an allowed request and assert the
+      RESPONSE header Content-Type is exactly "application/json", read off the recorder
+      (rec.Header().Get("Content-Type")).
+
+PREDICTION
+  1. TestContentTypeJSON written and passes.
+  2. The build greens with the fleet, in roughly shortener's range (900-1400s).
+  3. drop Content-Type flips SURVIVED -> CAUGHT at middleware.go.
+  4. ratelimit's registered mutation (Retry-After header) stays CAUGHT.
+
+  (2) is the one being tested. Everything else is the recipe, which has now landed four
+  times out of five attempts — the one failure being a target I picked from memory rather
+  than from the sweep output.

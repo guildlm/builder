@@ -133,6 +133,10 @@ files:
       both into one function produces a test that contradicts itself: it fetches
       TWO DIFFERENT clients and then asserts they got the SAME bucket, which no
       correct Registry can satisfy.
+      TestContentTypeJSON: drive the middleware with an ALLOWED request and assert
+      the RESPONSE header Content-Type is exactly "application/json", read off the
+      recorder (rec.Header().Get("Content-Type")). writeJSON sets it on every JSON
+      response.
       TestRegistrySameClient: on a fresh NewRegistry(1, 1), call Get("a") TWICE and
       assert the two *Bucket pointers are EQUAL — the SAME id must return the SAME
       bucket, or a client gets a fresh allowance on every request.
