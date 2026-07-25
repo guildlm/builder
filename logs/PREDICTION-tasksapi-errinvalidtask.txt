@@ -1,0 +1,39 @@
+PREDICTION — closing tasks-api's ErrInvalidTask hole
+====================================================
+2026-07-25, written BEFORE the edit. Third closure attempt; the recipe is graded twice and
+this is the first one where the suite already USES the right API.
+
+THE HOLE
+  task.go wraps ErrInvalidTask with `fmt.Errorf("%w: title is required", ErrInvalidTask)`.
+  Change that `%w` to `%v` and the suite stays green: the message is byte-identical and
+  only errors.Is can tell the difference.
+
+  What makes this the sharpest case in the corpus: the suite is NOT ignorant of errors.Is.
+  It calls it FOUR times — and all four check ErrNotFound. The spec promises two sentinels
+  ("Map ErrNotFound to 404 and ErrInvalidTask to 400 with errors.Is") and defends one. A
+  reviewer asking "does this suite check sentinel errors" gets an emphatic yes.
+
+THE EDIT
+  The spec names TestStoreMissing for the ErrNotFound side. Nothing names the other side,
+  so name it, with the trap spelled out — the same lesson as `{}` vs truncated JSON:
+
+      TestValidateWrapsErrInvalidTask: call Validate() on a Task whose Title is empty
+      (or only spaces) and assert errors.Is(err, ErrInvalidTask) — assert with errors.Is,
+      NOT by comparing the message text, which stays identical if the %w is lost.
+
+  That last clause exists because a test that checks the string passes against the mutant.
+  Naming a test is not enough if the named test can be written to check the wrong thing —
+  which is precisely how this hole came to exist next to four errors.Is assertions.
+
+PREDICTION
+  1. TestValidateWrapsErrInvalidTask is written and passes.
+  2. The build greens. tasks-api-v4 is green in the archive, so the spec is greenable;
+     unknown whether the bare base manages it, so this runs on the FLEET like the last two.
+  3. The %w -> %v mutation on task.go flips SURVIVED -> CAUGHT, graded against the
+     unedited artifact's SURVIVED as the control.
+  4. The registered tasks-api mutations stay CAUGHT.
+
+  Lower confidence than the last run on (1): this is the first spec sentence that has to
+  steer HOW the assertion is written, not just that it exists. If the model writes a
+  string comparison anyway, that is the interesting result, and it says the "name a test"
+  method has a ceiling exactly where the assertion's FORM matters.

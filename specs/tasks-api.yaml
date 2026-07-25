@@ -111,6 +111,11 @@ files:
       (Calling Update on the value you passed to Create sends ID 0 and returns
       ErrNotFound.) Then assert Get id 1 has Title "b"; Delete id 1; then Get id 1
       returns ErrNotFound (errors.Is).
+      TestValidateWrapsErrInvalidTask: call Validate() on a Task whose Title is
+      empty (or only spaces) and assert errors.Is(err, ErrInvalidTask). Assert
+      with errors.Is, NOT by comparing the error MESSAGE — the message is
+      identical whether or not the sentinel is wrapped, so a string comparison
+      would pass against a broken wrap and defend nothing.
       TestStoreMissing: on a FRESH store, Get/Update/Delete of id 99 each return
       ErrNotFound.
       TestStoreConcurrent: launch many goroutines that each Create a task, join
