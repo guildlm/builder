@@ -111,3 +111,42 @@ CONTROL (same day, same served specialist) — what review does to CORRECT code
   of neutral churn that the green guard cannot distinguish from an improvement. Both
   numbers are N=1. What is no longer true is the previous state of the record, where the
   technique was listed in the stack with no field evidence at all in either direction.
+
+---------------------------------------------------------------------------
+WHY 4 OF 5 REPLIES WERE REFUSED — the refusals are the harness being RIGHT
+
+  Probing each file's reply directly (same specialist, unmutated shortener):
+
+      codec.go     fragment declaring Encode                    -> spliceable
+      store.go     fragment declaring NewMemStore, MemStore.Save -> spliceable
+      handlers.go  fragment declaring Encode                    -> REFUSED
+      main.go      fragment declaring Encode                    -> REFUSED
+
+  The two refusals are not a contract that is too tight. They are the reviewer answering
+  about the WRONG FILE: asked to review handlers.go and main.go, it returned codec.go's
+  Encode. The splice refuses because the func does not exist in the target, which is
+  exactly right — splicing Encode into handlers.go would be a fabrication.
+
+  So the "adds or redefines more than functions" message was over-general and has been the
+  one thing here I could not read off the log. The real distribution is: some replies fix
+  the file they were given, some fix a sibling they were shown as context.
+
+  AND THE FIX IT KEEPS PROPOSING IS FOR CORRECT CODE. shortener's Encode prepends
+  alphabet[n%62] each iteration, which is most-significant-first — the spec's exact
+  requirement ("A correct result has Encode(62) == \"10\" ... never \"01\""). The reviewer
+  proposed changing it three times, across three different target files.
+
+  NEVER-HURT, CHECKED RATHER THAN ASSUMED: inverting Encode's digit order is CAUGHT by
+  the suite (verdict_for over the artifact). So a behaviour-changing "fix" here would be
+  reverted by the green guard for a real reason, not by luck. That is the honest form of
+  the guarantee: it holds exactly as far as the suite defends the invariant — which is why
+  the planted 400 bug was changeable in the first place, and why the guard is not a
+  substitute for teeth.
+
+  FULL SCOREBOARD after one planted bug, one control and one reply-shape probe:
+    - localises a real, undefended, spec-stated defect from the SPEC alone: yes, first try
+    - proposes changes to code that is already correct: repeatedly, including for files it
+      was not reviewing
+    - lands anything harmful: not observed, and for the one invariant tested the guard
+      holds because the suite defends it
+    - useful as: a reviewer whose output a human reads, not an autonomous fixer
