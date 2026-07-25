@@ -33,3 +33,38 @@ PREDICTION
 
   (4) is now a three-closure composition test on one spec. Two closures composing was
   evidence; three would make it a property rather than a coincidence.
+
+===========================================================================
+GRADED — all four held. Third closure on one spec, and composition is a property.
+
+  RUN: 3-member fleet, 1242s, 7 fix rounds, 12 escalations, rc=0, score 3/3.
+
+    1. TestContentTypeJSON written and passing            YES (all three named tests present)
+    2. Build greens                                       3/3 GREEN
+    3. drop Content-Type          BEFORE handlers.go:74 SURVIVED -> AFTER :68 CAUGHT
+    4. The prior closures, unmoved:
+           /health 200               router.go:13    CAUGHT
+           malformed-JSON 400        handlers.go:24  CAUGHT
+           registered redirect 301   handlers.go:50  CAUGHT
+
+  THREE closures on one spec, each graded against its own control, and none of them
+  costs another. Two composing was evidence; three makes it a property of the method
+  rather than a coincidence of two runs.
+
+  AND THIS ONE WAS A DIFFERENT KIND. The first two defended promises the spec had made and
+  no test covered. This one ADDED a promise: shortener's spec never mentioned Content-Type,
+  the model wrote the header because that is what a JSON handler looks like, and nothing
+  required or checked it. It is now stated and defended — model taste converted into
+  contract, which is the only honest way to keep behaviour that everyone was already
+  relying on.
+
+  THE COST CURVE, worth recording because it bounds how many holes one spec absorbs:
+      closure 1 (/health)          891s   6 rounds    9 escalations
+      closure 2 (malformed JSON)  1351s   7 rounds   12 escalations
+      closure 3 (Content-Type)    1242s   7 rounds   12 escalations
+  Each closure adds a named test, and every added test is more surface for the coder to
+  get wrong on the next regeneration. The first closure roughly doubled the run; the
+  second and third have levelled off rather than compounding. Defence composes for free;
+  the REGENERATION does not, and on this spec it has settled at about 7 rounds rather than
+  climbing — which is the difference between a method that scales on a spec and one that
+  eats itself.
