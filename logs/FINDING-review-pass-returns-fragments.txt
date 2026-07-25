@@ -150,3 +150,31 @@ WHY 4 OF 5 REPLIES WERE REFUSED — the refusals are the harness being RIGHT
     - lands anything harmful: not observed, and for the one invariant tested the guard
       holds because the suite defends it
     - useful as: a reviewer whose output a human reads, not an autonomous fixer
+
+---------------------------------------------------------------------------
+THE OBVIOUS PROMPT FIX WAS TESTED AND DOES NOTHING
+
+  The reviewer answering about a sibling looks like a prompt problem with an easy fix:
+  say so louder. Added before TARGET_FILE:
+
+      "Review ONLY {file}. The other files are shown so you can call their symbols
+       correctly; do NOT return their code. Every function you output must already exist
+       in {file}."
+
+  Ground truth is exact — a reply is ON-TARGET iff every function it declares exists in
+  the file under review — and reply shape varies run to run, so three files per arm:
+
+      control        on-target=1  off-target=2  no-change=0   (of 3)
+      target-pinned  on-target=1  off-target=2  no-change=0   (of 3)
+
+  Identical. Not shipped. This is the third time this project has measured a prompt lever
+  and found it unreliable, and the cheapest of the three to have run: two minutes against
+  a served model, versus shipping an instruction that reads as though it must help.
+
+  METHOD NOTE, because the first version of this probe was wrong. It counted any reply
+  with no extractable functions as OFF-TARGET, which silently includes a CLEAN verdict —
+  the reviewer saying "no bug here" would have been scored as answering about the wrong
+  file, and the arms compared on noise. Caught before reading the numbers, not after.
+  That is the same failure this session found in _escalation_surface (kill-debris counted
+  as evidence): an instrument's null case quietly landing in the bucket that supports
+  whatever you are testing.
