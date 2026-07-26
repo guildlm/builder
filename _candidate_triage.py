@@ -124,6 +124,18 @@ def dead_else_branch(pkg_text: str, code: str, needle: str) -> str | None:
     return None
 
 
+def is_tag_shape(code: str, needle: str) -> bool:
+    """Is this candidate a JSON struct tag rather than a write?
+
+    Extracted so the decision is pinnable. The reachability checks below model a WRITE —
+    a status write, an error branch — and a struct tag is neither: it has exactly one site
+    by construction, enforced by the mutation's own uniqueness guard. Running a write-shaped
+    check on it produced a NOISE verdict for jsonapi's `echo`, a genuinely undefended wire
+    key, because the word appeared twice in the file (once as the tag, once as the field
+    being assigned)."""
+    return f'json:"{needle}"' in code
+
+
 def self_test():
     spec = "Create validates the body and returns 400 on a blank title."
     assert spec_mentions(spec, "StatusBadRequest") == ["400"]
@@ -158,6 +170,14 @@ def self_test():
     wider = pkg.replace("return nil", "return ErrOther")
     assert dead_else_branch(wider, call, "StatusInternalServerError") is None, \
         "called an else dead when the callee returns an unhandled error"
+    # The shape guard, pinned: a struct tag is recognised as a tag and an ordinary status
+    # write is not, so the write-shaped reachability checks run on exactly one of them.
+    tagged = 'type resp struct {\n\tEcho string `json:"echo"`\n}\n'
+    if not is_tag_shape(tagged, "echo"):
+        print("FAIL: a struct tag is not recognised as a tag — the write-shaped checks would "
+              "run on it, which is how jsonapi's echo was called NOISE"); raise SystemExit(1)
+    if is_tag_shape('w.WriteHeader(http.StatusOK)\n', "StatusOK"):
+        print("FAIL: an ordinary status write is being treated as a tag"); raise SystemExit(1)
     print("OK — spec mentions, dead double-write, dead else-branch; live/branched/reachable not")
 
 
@@ -181,11 +201,21 @@ code = src.read_text(errors="ignore")
 mentions = spec_mentions(spec_p.read_text(), needle)
 pkg = "".join(f.read_text(errors="ignore") for f in src.parent.glob("*.go")
               if not f.name.endswith("_test.go"))
-dead = dead_double_write(code, needle) or dead_else_branch(pkg, code, needle)
+# BOTH REACHABILITY CHECKS MODEL A *WRITE* — a status write or an error branch. Handed a
+# JSON STRUCT TAG they answer about the wrong thing: asked about jsonapi's `echo`, the
+# double-write check found the word twice in the file (the tag, and the field being set) and
+# declared the site dead, which reported a genuine undefended wire key as NOISE. A struct tag
+# has exactly one site by construction — the mutation's own uniqueness guard enforces that —
+# so the honest answer is to say the check does not apply rather than to run it anyway.
+tag_shape = is_tag_shape(code, needle)
+dead = None if tag_shape else (dead_double_write(code, needle)
+                               or dead_else_branch(pkg, code, needle))
 
 print(f"candidate: {spec_name} · {rel} · {needle}\n")
 print(f"  1. does the SPEC promise it?  {'yes: ' + ', '.join(mentions) if mentions else 'NO'}")
-print(f"  2. can the site take effect?  {'NO — ' + dead if dead else 'yes'}")
+print(f"  2. can the site take effect?  "
+      + ("yes — a struct tag has ONE site; the write-shaped reachability checks do not "
+         "apply and were not run" if tag_shape else ('NO — ' + dead if dead else 'yes')))
 # "Unpromised" is not one verdict but two, and collapsing them mislabels the most
 # actionable case. kvservice's 400 is unpromised AND unreachable — noise. tasks-api's
 # Content-Type is unpromised but LIVE: the API really does set it and the spec really

@@ -1,0 +1,46 @@
+PREDICTION — jsonapi's entire wire contract is untested
+========================================================
+2026-07-26. Fifteenth closure attempt, and the first found by the new mutation shape.
+
+WHAT THE SHAPE FOUND
+  Renaming any of jsonapi's three JSON tags leaves the suite green:
+
+      main.go   json:"message"   SURVIVED
+      main.go   json:"echo"      SURVIVED
+      main.go   json:"length"    SURVIVED
+
+  That is the whole request and response contract. The spec states it in one sentence —
+  "POST /echo accepts a JSON body {"message": string} and responds with JSON
+  {"echo": <message>, "length": <len of message>}" — so every key is promised.
+
+WHY NOTHING CATCHES IT, which is the shape's whole premise
+      body, _ := json.Marshal(echoRequest{Message: "hi"})     <- request built from the struct
+      ...
+      var out echoResponse
+      json.NewDecoder(res.Body).Decode(&out)                  <- response read into the struct
+
+  Both directions go through the SAME struct, so a renamed tag is renamed on both sides and
+  the round-trip is symmetric. The test asserts out.Echo == "hi" and out.Length == 2 and
+  both hold with the field on the wire called anything at all. A real client, holding the
+  documented key names, breaks.
+
+THE EDIT
+  One named test that reads the RAW body, in the file's enumerated style:
+      TestWireFieldNames: POST {"message":"hi"} as a RAW STRING (not marshalled from the
+      struct), then assert the response body — read as a string — contains "echo" and
+      "length" as JSON keys, and decode into map[string]any to assert exactly those two keys
+      are present. Do not decode into echoResponse; that is what cannot see this.
+
+PREDICTION
+  1. TestWireFieldNames is written.
+  2. json tag "echo"    SURVIVED -> CAUGHT
+  3. json tag "length"  SURVIVED -> CAUGHT
+  4. json tag "message" SURVIVED -> CAUGHT — the raw request string is what pins it, so this
+     one depends on the test posting a literal body rather than a marshalled struct. It is
+     the prediction most likely to miss, and it is the reason the test is specified that way.
+  5. The two existing jsonapi mutations (Content-Type, 405) stay CAUGHT, and jsonapi stays
+     green.
+
+  A note on scope: this closes ONE spec. The same blindness is live in tasks-api (id, done,
+  created_at) and taskflow (project_id), and if the lever works here the same edit should be
+  made there rather than assumed to work.

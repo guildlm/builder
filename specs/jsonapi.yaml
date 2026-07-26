@@ -22,6 +22,15 @@ files:
       package main. TestContentTypeJSON: POST a valid message and assert the
       RESPONSE header Content-Type is exactly "application/json" — read it with
       res.Header.Get("Content-Type").
+      TestWireFieldNames: the JSON KEY NAMES are the contract, and a test that
+      marshals its request from echoRequest and decodes its response into
+      echoResponse cannot see them — both sides go through the same struct tags, so
+      renaming a tag renames it in the test too and everything still passes while a
+      real client breaks. So: POST the RAW STRING `{"message":"hi"}` (do NOT
+      json.Marshal a struct), read the response body as a STRING, and decode it into
+      a map[string]any. Assert the map has EXACTLY the keys "echo" and "length" —
+      len(m) == 2, both present — and that m["echo"] == "hi". Never decode this one
+      into echoResponse.
       TestInvalidJSON: POST /echo with a body that is NOT valid
       JSON — send the raw bytes `{"message":` (truncated ON PURPOSE; do NOT send
       `{}` or `{"message":""}`, which are valid JSON and take the empty-message
