@@ -1,0 +1,54 @@
+FINDING — a full corpus redraw changed five verdicts, and every one moved TOWARD defence
+=========================================================================================
+2026-07-26. The measurement the deletion forced, and the first corpus-wide answer to the
+question the durability programme had answered for two specs of five.
+
+THE SETUP
+  Every -v4 tree regenerated from the same specs, same model, same settings, a week after
+  the originals. Then the same sweep that produced the tracked baseline, and a row-by-row
+  comparison (_redraw_diff.py, keyed by artifact+file+shape+ordinal).
+
+THE RESULT
+      149 rows before · 104 after · 98 COMPARABLE
+      5 flips, all in the same direction:
+          3  SURVIVED -> CAUGHT      taskflow models.go %w sites 2 and 3
+                                     tasks-api task.go %w (ErrInvalidTask)
+          2  NOAPPLY  -> CAUGHT      became measurable and landed defended
+      0  CAUGHT -> SURVIVED
+
+  NOT ONE DEFENDED INVARIANT BECAME UNDEFENDED across a full regeneration of the corpus.
+  That is the durability claim, and it is now measured on 98 probes rather than inferred
+  from two specs re-run by hand.
+
+WHAT THE MISSING 51 ROWS ARE, because a comparison that quietly shrinks is not a comparison
+      45 of 51   the two broken tasks-api archives I deleted (noshadownudge, min) — their
+                 verdicts were 13 BASELINE-RED and the rest NOAPPLY, so they contributed no
+                 CAUGHT or SURVIVED to lose. This is the documented loss, showing up exactly
+                 where it should.
+       6 of 51   live artifacts whose sites changed shape (usersapi 3, taskflow 2,
+                 tasks-api 1). FOUR of those six were SURVIVED — undefended sites that no
+                 longer exist as sites. Not defences lost; code that moved.
+       6 fresh   new sites in shortener, taskflow, jsonapi, tasks-api.
+
+WHAT IT DOES NOT SAY
+  NOT A CONTROLLED A/B. Several specs were EDITED between the two sweeps — that is what the
+  three gains are: the %w closures written this week landing on a fresh draw. The comparison
+  is "the corpus as it was" against "the corpus as it is", not the same spec twice.
+
+  THE NEW CORPUS IS HEALTHIER. All twenty specs regenerated green, where the old corpus held
+  broken archives, so more probes can answer (63 of 104 versus 64 of 150). A higher answer
+  rate is not more defence.
+
+  ELEVEN SURVIVORS REMAIN, and they are the work queue: ratelimit's Retry-After header and
+  its 429, ratelimit api.go's two StatusOK sites, taskflow's projects_handler 400/409/200,
+  its tasks_handler StatusOK pair, and taskflow-v4's ListProjects sort — which is undefended
+  in the OLD-spec tree and CAUGHT in the tree built from the corrected spec
+  (generated/taskflow-projsort), so that one is already closed and waiting for the archive
+  to catch up.
+
+THE REGISTRY, on the rebuilt corpus
+      29 of 32 mutations applied · 1 UNDEFENDED
+  The one undefended row is taskflow's ListProjects, as above. The per-site control held:
+  taskapi reads CAUGHT at BOTH sort sites, taskflow-v4 CAUGHT at ListTasks and SURVIVED at
+  ListProjects — the split rows discriminate on freshly generated code, not just on the
+  artifacts they were written against.

@@ -1,6 +1,7 @@
 jsonapi-v4	main.go	StatusMethodNotAllowed->StatusBadRequest	CAUGHT
-jsonapi-v4	main.go	StatusBadRequest->StatusNotFound	NOAPPLY
-jsonapi-v4	main.go	StatusBadRequest->StatusNotFound	NOAPPLY
+jsonapi-v4	main.go	StatusBadRequest->StatusNotFound	CAUGHT
+jsonapi-v4	main.go	StatusBadRequest->StatusNotFound	CAUGHT
+jsonapi-v4	main.go	StatusOK->StatusAccepted	CAUGHT
 kvservice-v4	main.go	StatusNotFound->StatusBadRequest	CAUGHT
 kvservice-v4	main.go	StatusBadRequest->StatusNotFound	SURVIVED
 kvservice-v4	main.go	StatusCreated->StatusOK	CAUGHT
@@ -11,16 +12,18 @@ shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
 shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
 shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
 shortener-v4	handlers.go	StatusCreated->StatusOK	CAUGHT
+shortener-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
 shortener-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 shortener-v4	handlers.go	StatusMovedPermanently->StatusFound	CAUGHT
+shortener-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
 shortener-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 shortener-v4	handlers.go	StatusOK->StatusAccepted	CAUGHT
 shortener-v4	router.go	StatusOK->StatusAccepted	CAUGHT
-taskflow-v4	httpjson.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 taskflow-v4	middleware.go	StatusOK->StatusAccepted	SURVIVED*
 taskflow-v4	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
 taskflow-v4	projects_handler.go	StatusBadRequest->StatusNotFound	SURVIVED
 taskflow-v4	projects_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	projects_handler.go	StatusConflict->StatusBadRequest	SURVIVED
 taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	projects_handler.go	StatusCreated->StatusOK	CAUGHT
@@ -31,9 +34,9 @@ taskflow-v4	projects_handler.go	StatusOK->StatusAccepted	CAUGHT
 taskflow-v4	projects_handler.go	StatusNotFound->StatusBadRequest	NOAPPLY
 taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	projects_handler.go	StatusNoContent->StatusOK	CAUGHT
-taskflow-v4	router.go	StatusOK->StatusAccepted	SURVIVED
 taskflow-v4	tasks_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
 taskflow-v4	tasks_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	tasks_handler.go	StatusConflict->StatusBadRequest	CAUGHT
 taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	tasks_handler.go	StatusCreated->StatusOK	CAUGHT
@@ -44,46 +47,6 @@ taskflow-v4	tasks_handler.go	StatusOK->StatusAccepted	SURVIVED
 taskflow-v4	tasks_handler.go	StatusNotFound->StatusBadRequest	NOAPPLY
 taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	tasks_handler.go	StatusNoContent->StatusOK	CAUGHT
-tasks-api-min-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusConflict->StatusBadRequest	BASELINE-RED
-tasks-api-min-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusCreated->StatusOK	BASELINE-RED
-tasks-api-min-v4	handlers.go	StatusOK->StatusAccepted	BASELINE-RED
-tasks-api-min-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusOK->StatusAccepted	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusOK->StatusAccepted	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-tasks-api-min-v4	handlers.go	StatusNoContent->StatusOK	BASELINE-RED
-tasks-api-noshadownudge-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusBadRequest->StatusNotFound	BASELINE-RED
-tasks-api-noshadownudge-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusCreated->StatusOK	BASELINE-RED
-tasks-api-noshadownudge-v4	handlers.go	StatusOK->StatusAccepted	BASELINE-RED
-tasks-api-noshadownudge-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusOK->StatusAccepted	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusOK->StatusAccepted	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-tasks-api-noshadownudge-v4	handlers.go	StatusNoContent->StatusOK	BASELINE-RED
 tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
 tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
 tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
@@ -117,24 +80,18 @@ usersapi-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 usersapi-v4	handlers.go	StatusNoContent->StatusOK	CAUGHT
 usersapi-v4	middleware.go	StatusOK->StatusAccepted	SURVIVED*
 usersapi-v4	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
-usersapi-v4	router.go	StatusMethodNotAllowed->StatusBadRequest	NOAPPLY
-usersapi-v4	router.go	StatusMethodNotAllowed->StatusBadRequest	NOAPPLY
-usersapi-v4	router.go	StatusOK->StatusAccepted	SURVIVED
 jsonapi-v4	main.go	drop Content-Type	CAUGHT
 kvservice-v4	main.go	drop Content-Type	CAUGHT
 ratelimit-v4	middleware.go	drop Retry-After	SURVIVED
 ratelimit-v4	middleware.go	drop Content-Type	CAUGHT
 shortener-v4	handlers.go	drop Content-Type	CAUGHT
 taskflow-v4	httpjson.go	drop Content-Type	CAUGHT
-tasks-api-min-v4	handlers.go	drop Content-Type	BASELINE-RED
-tasks-api-noshadownudge-v4	handlers.go	drop Content-Type	BASELINE-RED
-tasks-api-v4	handlers.go	drop Content-Type	SURVIVED
+tasks-api-v4	task.go	drop Content-Type	CAUGHT
 usersapi-v4	handlers.go	drop Content-Type	CAUGHT
 logstats-v4	stats.go	reverse sort by Path	CAUGHT
 priorityqueue-v4	pq.go	reverse sort by Priority	CAUGHT
 taskflow-v4	store.go	reverse sort by ID	CAUGHT
 taskflow-v4	store.go	reverse sort by ID	SURVIVED
-tasks-api-noshadownudge-v4	store.go	reverse sort by ID	BASELINE-RED
 tasks-api-v4	store.go	reverse sort by ID	CAUGHT
 usersapi-v4	store.go	reverse sort by ID	CAUGHT
 logstats-v4	parse.go	%w -> %v (ErrBadLine)	CAUGHT
@@ -142,8 +99,6 @@ logstats-v4	parse.go	%w -> %v (ErrBadLine)	CAUGHT
 logstats-v4	parse.go	%w -> %v (ErrBadLine)	CAUGHT
 logstats-v4	parse.go	%w -> %v (ErrBadLine)	CAUGHT
 taskflow-v4	models.go	%w -> %v (ErrValidation)	CAUGHT
-taskflow-v4	models.go	%w -> %v (ErrValidation)	SURVIVED
-taskflow-v4	models.go	%w -> %v (ErrValidation)	SURVIVED
-tasks-api-min-v4	task.go	%w -> %v (ErrInvalidTask)	BASELINE-RED
-tasks-api-noshadownudge-v4	task.go	%w -> %v (ErrInvalidTask)	BASELINE-RED
-tasks-api-v4	task.go	%w -> %v (ErrInvalidTask)	SURVIVED
+taskflow-v4	models.go	%w -> %v (ErrValidation)	CAUGHT
+taskflow-v4	models.go	%w -> %v (ErrValidation)	CAUGHT
+tasks-api-v4	task.go	%w -> %v (ErrInvalidTask)	CAUGHT
