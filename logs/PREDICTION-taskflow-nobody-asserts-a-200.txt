@@ -82,3 +82,18 @@ THE RISK I NAMED DID NOT MATERIALISE, AND THAT IS LUCK AS MUCH AS ANYTHING
   up — but the correct reading is that this run bought less information per edit than the
   one-change runs did, not that batching is safe. Both halves were independently motivated
   (an assertion habit and a mirror gap), which is the only reason the result is legible.
+
+RETRACTION IN PART (same day, taskflow-wire draw)
+==================================================
+  "TEN of ten status sites now CAUGHT, zero survivors" was true of generated/taskflow-status
+  and is NOT a property of the spec. The very next regeneration — one added test, same spec
+  text — dropped the status assertions again and four of the ten went back to SURVIVED:
+  both list 200s and both single-GET 200s.
+
+  No test was lost; the assertions inside them were. The spec still says "ASSERT rec.Code ==
+  http.StatusOK as its OWN step, BEFORE decoding" and the model wrote the test without it.
+
+  What holds: the two mirror tests (projects malformed 400, projects duplicate 409) are
+  NAMED TESTS and are still CAUGHT. What does not: everything I closed by adding a line
+  inside a test that already existed. See
+  logs/FINDING-naming-secures-the-function-not-the-assertion.txt.

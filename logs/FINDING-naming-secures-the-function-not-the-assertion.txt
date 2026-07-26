@@ -1,0 +1,54 @@
+FINDING — naming secures the FUNCTION; the assertions inside it still drift
+============================================================================
+2026-07-26, late. A controlled reproduction of the day's most important limit, and a partial
+retraction of a closure I recorded four hours earlier.
+
+WHAT HAPPENED
+  taskflow's project_id closure landed — json tag project_id SURVIVED -> CAUGHT, all four
+  tags now defended. And in the same draw, FOUR status assertions that were CAUGHT this
+  afternoon went back to SURVIVED:
+
+      projects_handler L49  200 list      CAUGHT -> SURVIVED
+      projects_handler L64  200 get one   CAUGHT -> SURVIVED
+      tasks_handler    L49  200 list      CAUGHT -> SURVIVED
+      tasks_handler    L64  200 get one   CAUGHT -> SURVIVED
+
+  NOT ONE TEST WAS LOST. All 24 named functions are present, plus the new one. What changed
+  is INSIDE them:
+
+      this afternoon   recAll := ...; if recAll.Code != http.StatusOK { t.Fatalf(...) }
+                       then decode
+      this draw        recAll := ...; decode
+
+  The spec still says, verbatim, "ASSERT rec.Code == http.StatusOK as its OWN step, BEFORE
+  decoding". The model wrote the test, kept its name, and dropped the sentence's instruction.
+
+WHAT THIS COSTS THE DAY'S HEADLINE
+  "taskflow: ten of ten status sites now CAUGHT, zero survivors" was true of the artifact it
+  was measured on and is NOT a property of the spec. Six of ten hold on a redraw; the four
+  that depend on an assertion ADDED INSIDE an existing test do not. The closure is real per
+  artifact and unstable per spec, and I recorded it without that qualifier.
+
+THE DISTINCTION THAT NOW HAS EVIDENCE ON BOTH SIDES
+      NAME-level closure       "write a test called X"          durable across redraws
+                               ratelimit's three flow tests, tasks-api's TestWireFieldNames,
+                               usersapi's eight, taskflow's TestListProjectsSorted — every
+                               one written on the next draw.
+      ASSERTION-level closure  "inside test X, also check Y"    NOT durable
+                               taskflow's four 200s, and this morning's ratelimit finding
+                               (five test functions kept, every Retry-After assertion gone)
+                               are the same phenomenon measured twice.
+
+  So the lever has a ceiling. Naming buys a function; it does not buy what the function
+  looks at. An invariant that needs an assertion inside a test somebody else owns is only as
+  stable as the draw.
+
+WHAT TO DO WITH IT — the shape that survived is the shape to use
+  Every durable closure today gave the invariant ITS OWN NAMED TEST. Every unstable one
+  added a line to a test that existed for another reason. tasks-api's wire names are CAUGHT
+  in their own TestWireFieldNames; taskflow's 200s were bolted onto TestList and TestGetOK.
+
+  The repair is therefore not more emphatic prose — it is TestListReturns200 and
+  TestGetReturns200 as their own named entries. That is a prediction, not a plan: if a
+  dedicated named test also drifts, the ceiling is lower than this file claims and the whole
+  naming lever is weaker than four closures made it look.
