@@ -52,3 +52,31 @@ WHAT TO DO WITH IT — the shape that survived is the shape to use
   TestGetReturns200 as their own named entries. That is a prediction, not a plan: if a
   dedicated named test also drifts, the ceiling is lower than this file claims and the whole
   naming lever is weaker than four closures made it look.
+
+THE REPAIR, TESTED TWICE (2026-07-26 late / 2026-07-27)
+========================================================
+  Draw 1 (taskflow-own): three invariants given their OWN named test — tasks list 200,
+  projects list 200, tasks single-GET 200 — all three CAUGHT. The fourth site was left
+  inside TestProjectCreateGet on my judgement that it "had held all day": it SURVIVED.
+
+  Draw 2 (taskflow-own2), with the fourth site also given its own name:
+      tasks_handler    L49 list 200        CAUGHT
+      tasks_handler    L64 get 200         CAUGHT
+      projects_handler L49 list 200        CAUGHT
+      projects_handler L64 get 200         CAUGHT
+  All four own-named tests written, all four sites defended.
+
+      own-named test         7 site-draws, 7 CAUGHT
+      assertion inside an    2 site-draws (taskflow's four 200s in the wire draw, the
+      existing test          projects GET here), 0 CAUGHT
+
+  So the rule has two draws and both directions behind it, on the same spec, with the same
+  model and the same fleet. It is still ONE SPEC — ratelimit and jsonapi were closed with
+  named tests too and have not been re-drawn since, so their durability is asserted by
+  analogy, not measured.
+
+WHAT IT MEANS FOR THE SPEC-WRITING RULE
+  An invariant that matters gets its own named test asserting ONE thing. Not a clause in
+  another test's description, however precisely worded — "ASSERT rec.Code == http.StatusOK
+  as its OWN step, BEFORE decoding" is as explicit as prose gets, and it was dropped on the
+  next draw while the test around it survived intact.
