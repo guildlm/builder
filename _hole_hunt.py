@@ -29,6 +29,7 @@ import pathlib
 import re, sys, pathlib
 sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
 from _teeth_suite import verdict_for, GEN
+from _corpus_state import check as _corpus_check
 
 SWAP = {"StatusNotFound": "StatusBadRequest", "StatusCreated": "StatusOK",
         "StatusBadRequest": "StatusNotFound", "StatusTooManyRequests": "StatusServiceUnavailable",
@@ -401,4 +402,19 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # NEVER SWEEP A MOVING CORPUS. A whole-corpus run overwrites logs/hole-hunt-rows.tsv —
+    # the tracked baseline, and the only durable record of what the corpus said — so a
+    # sweep taken while artifacts are being regenerated would replace real verdicts with
+    # verdicts about half-written trees. Targeted runs refuse only if THEIR tree is the one
+    # in flight. Learned from a teeth run that called two usersapi invariants UNDEFENDED
+    # while usersapi held no test files yet.
+    _targets = [a for a in sys.argv[1:] if not a.startswith("-")]
+    if _targets:
+        if any(_corpus_check(t) == "refuse" for t in _targets):
+            raise SystemExit(2)
+    elif _corpus_check() != "clear":
+        print("REFUSING a whole-corpus sweep while the corpus is being written — it would "
+              "overwrite\nlogs/hole-hunt-rows.tsv with verdicts about partial trees. Wait "
+              "for the rebuild.", file=sys.stderr)
+        raise SystemExit(2)
     raise SystemExit(main())

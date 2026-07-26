@@ -26,6 +26,7 @@ BASELINE-RED rather than a fake CAUGHT.
 import re, sys, pathlib
 sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
 from _teeth_suite import verdict_for, MUTATIONS, GEN
+from _corpus_state import check as _corpus_check
 
 NEW = pathlib.Path(sys.argv[1])
 # A directory that does not exist must be an ERROR, not a quiet "nothing found".
@@ -34,6 +35,8 @@ NEW = pathlib.Path(sys.argv[1])
 #   drop Content-Type applies in: None / (1) SKIPPED
 # which reads exactly like a real answer about a real artifact. A grader whose
 # failure mode is a plausible-looking SKIP is worse than no grader.
+if NEW.is_dir() and _corpus_check(NEW) == "refuse":
+    raise SystemExit(2)
 if not NEW.is_dir():
     raise SystemExit(f"{NEW} is not a directory — pass the artifact dir POSITIONALLY:\n"
                      f"  python _hole_closed.py <artifact-dir> [spec] [--probe=...] [--file=...]")

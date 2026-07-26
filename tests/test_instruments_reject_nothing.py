@@ -32,6 +32,12 @@ INSTRUMENTS = [
 ]
 
 
+# _corpus_state.py is deliberately NOT here. Its argument is a path to COMPARE against the
+# live writers, not a target to read: "nothing is generating /nonexistent-xyz" is a correct
+# and useful answer, so demanding a refusal would be demanding the wrong behaviour. Added to
+# the list once and it failed immediately, which is the list working.
+
+
 @pytest.mark.parametrize("tool", INSTRUMENTS)
 def test_instrument_refuses_a_target_that_does_not_exist(tool):
     path = ROOT / tool

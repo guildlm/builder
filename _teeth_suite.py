@@ -634,6 +634,11 @@ def self_test() -> int:
 def main() -> int:
     if "--self-test" in sys.argv:
         return self_test()
+    # The scoreboard reads every registered artifact, so a live generation makes it
+    # unreproducible at best and wrong at worst — this is the run that reported two
+    # usersapi invariants UNDEFENDED from a tree with no test files.
+    from _corpus_state import check as _corpus_check
+    _corpus_check()
     wanted = set(sys.argv[1:])
     rows = [m for m in MUTATIONS if not wanted or m[0] in wanted]
     # ZERO SELECTED MUTATIONS IS AN ERROR, NOT A GREEN RUN. This is the teeth suite: its
