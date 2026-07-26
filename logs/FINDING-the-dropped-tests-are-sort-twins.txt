@@ -1,0 +1,74 @@
+FINDING — every named test the corpus drops is one half of a SORT PAIR
+=======================================================================
+2026-07-26. Seventh and eighth hypotheses refuted, and a pattern that survives both.
+
+THE OPEN QUESTION IT ADDRESSES
+  "Why does taskflow drop tests?" Six hypotheses were refuted before today (spec-entry
+  count, corrective-clause density, per-spec test budget, per-file test count, per-file
+  prose length, total named tests). Two more died this morning:
+
+  (7) THE MODEL DROPS TESTS FOR BEHAVIOUR IT DID NOT IMPLEMENT.  Refuted.
+      taskflow-v4 sorts projects — sort.Slice at store.go:92 — and still did not write
+      TestListProjectsSorted. taskapipro-v4 sorts both halves of its store and still did
+      not write TestListSorted. The behaviour is there; only the test is missing. That is
+      the worst arrangement of the two, because a promise with an implementation and no
+      test is exactly what a mutation SURVIVES.
+
+  (8) THE DROPPED TESTS ARE THE ONES BURIED IN THE LONGEST PROSE.  Refuted, with numbers.
+      Words of spec attached to each named test, and where the dropped ones rank:
+          taskflow    TestListProjectsSorted   57w   rank  8 of 23
+                      TestContentTypeJSON      45w   rank 10 of 23
+          taskapipro  TestListSorted            8w   rank 51 of 61   <- one of the SHORTEST
+      taskflow's longest entry by far (TestRecoverPanic, 711w) is written every time.
+
+THE PATTERN THAT SURVIVES
+  Three specs in the corpus name a PAIR of sort tests — the same assertion twice, once per
+  entity. Two of the three write only one member, and they do not agree on which:
+
+      spec         names                                     tasks half   projects half
+      taskapi      TestListSorted + TestListProjectsSorted    written      written
+      taskapipro   TestListSorted + TestListProjectsSorted    MISSING      written
+      taskflow     TestListSorted + TestListProjectsSorted    written      MISSING
+
+  Specs naming a SINGLE sort test write it every time: workapi, usersapi, tasks-api.
+
+  And these are the only named tests the corpus drops at all. Across eleven specs the
+  missing set is exactly three: two halves of sort pairs, plus taskflow's Content-Type
+  assertion — which is the one the spec APPENDS to another test's description instead of
+  naming, the case FINDING-test-presence-is-not-test-content is about.
+
+  So the shape is not "taskflow is a hard spec". It is "when a spec names two near-identical
+  tests, one of them is liable to go unwritten" — and which one is arbitrary, since the two
+  specs that drop disagree about which half survives. That also explains the fact that made
+  the per-file hypotheses fail: TestListProjectsSorted was dropped from TWO DIFFERENT files
+  across taskflow runs. The drop travels with the test's TWIN, not with its location.
+
+WHAT IT IS NOT
+  Not "the second half is described by reference". taskapipro describes its first seven
+  tests one per line and its project half in a single compact paragraph ("Then the SAME
+  seven cases for the PROJECT half") — and the model wrote the COMPACT half and dropped a
+  member of the fully-described one. The obvious remedy, "describe the mirror in full",
+  is refuted by the one spec that would have motivated it.
+
+  Not established as causal. Three specs is three data points, and taskapi writes both.
+  What is established: sort tests are where the corpus's only drops live, the behaviour is
+  implemented underneath every one of them, and single sort tests never drop.
+
+EVIDENCE, AND WHAT OF IT SURVIVES
+  taskapipro-v4, taskapi-v4, workapi-v4 are checkable now. taskflow-v4's row was measured
+  this morning and the tree was destroyed hours later by my own glob
+  (FINDING-i-deleted-the-corpus.txt) — it is regenerating, and the claim should be re-run
+  against the new tree rather than trusted from this file.
+
+  Verified by hand, not only by name: taskapipro's surviving TestList creates exactly ONE
+  task, so it cannot assert an order. The tasks-sort promise there is undefended by name
+  AND by content — a renamed test would have been a different finding.
+
+PREDICTION, recorded before the run it will be graded on
+  The taskflow regeneration in flight (taskflow-ct, the Content-Type NAMING closure) is a
+  fresh draw on the same spec. If this pattern is real:
+    1. TestContentTypeJSON appears — it now has its own named entry, which is the whole
+       point of the edit, and named tests do not drop except in sort pairs.
+    2. TestListProjectsSorted is the likeliest test to be missing again — and if it is
+       present, that is a data point AGAINST the pair story rather than for it.
+    3. TestListSorted (the tasks half) is present.
