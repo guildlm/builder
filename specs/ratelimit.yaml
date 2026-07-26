@@ -160,14 +160,18 @@ files:
       reuse it.
       Use CAPACITY 1 (NewRegistry(1, 1)) so the FIRST request for a client is
       allowed and the SECOND is denied; do not use a capacity that would still
-      allow the second request. One function does the allow-then-deny sequence for
-      a single client: rec := hit(mux, "/ping",
-      "clientA") returns 200, then a SECOND hit(mux, "/ping", "clientA") returns
-      429 with rec.Header().Get("Retry-After") == "1" and a JSON error body (read
-      the recorder header with rec.Header().Get — Header is a METHOD, call it).
-      Other test functions, each with its OWN fresh reg + mux: two clients — on a
-      FRESH registry, hit clientA once (200) and clientB once (200), proving they
-      have separate allowances, then hit clientA a second time (429) and clientB a
-      second time (429), proving A exhausting its bucket did not 429 B. GET /health
-      always returns 200 even for a client whose bucket you have just exhausted.
+      allow the second request. THREE MORE test functions — these are IN ADDITION
+      to TestBucket, TestBucketCapAfterIdle, TestRegistrySameClient,
+      TestRegistryDistinctClients and TestContentTypeJSON above, which all stay —
+      and here they are, all three:
+      TestFlowAllowThenDeny: rec := hit(mux, "/ping", "clientA") returns 200, then
+      a SECOND hit(mux, "/ping", "clientA") returns 429 with
+      rec.Header().Get("Retry-After") == "1" and a JSON error body (read the
+      recorder header with rec.Header().Get — Header is a METHOD, call it).
+      TestFlowTwoClients: on a FRESH registry, hit clientA once (200) and clientB
+      once (200), proving they have separate allowances, then hit clientA a second
+      time (429) and clientB a second time (429), proving A exhausting its bucket
+      did not 429 B.
+      TestFlowHealthAlwaysOK: GET /health returns 200 even for a client whose
+      bucket you have just exhausted.
       Standard library only.

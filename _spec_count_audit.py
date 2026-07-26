@@ -33,7 +33,10 @@ WORDS = {"one": 1, "two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven"
          "eight": 8, "nine": 9, "ten": 10, "eleven": 11, "twelve": 12, "thirteen": 13,
          "fourteen": 14, "fifteen": 15}
 # "SIX test functions", "EXACTLY these five test functions", "TEN test functions and NO more"
-COUNT_RE = re.compile(r"\b(" + "|".join(WORDS) + r")\s+test\s+functions?\b", re.I)
+# One optional adjective between the number and "test functions": the corpus writes both
+# "SIX test functions" and "THREE flow test functions", and a pattern that demanded them to
+# be adjacent read the second as no count at all — silently, on the entry I had just edited.
+COUNT_RE = re.compile(r"\b(" + "|".join(WORDS) + r")\s+(?:\w+\s+)?test\s+functions?\b", re.I)
 # "ONE TEST FUNCTION, ONE OUTCOME" is a RATE, not an inventory — it says how much each
 # function may assert, not how many the file gets. Three specs carry it verbatim and all
 # three were flagged as mismatches on the first run, which is three false alarms out of
@@ -73,7 +76,13 @@ def audit_entry(path: str, body: str) -> dict | None:
     # The list is what follows the count sentence in `TestX: ...` form; anything named only
     # before it is a mention, and a mention is what went unwritten three draws running.
     m = COUNT_RE.search(body)
-    listed = list(dict.fromkeys(re.findall(r"\b(Test[A-Z]\w*)\s*:", body[m.end():]))) if m else []
+    # ANY form after the count, not just `TestX:`. An entry can enumerate three new tests
+    # while naming the five existing ones inside the count sentence itself ("THREE MORE test
+    # functions — in ADDITION to TestBucket, ... which all stay"), and those five are plainly
+    # part of the inventory. Requiring a colon reported them as left out, on a spec I had
+    # just written to include them. What still counts as OUTSIDE is a name that appears ONLY
+    # BEFORE the count — which is exactly taskflow's shape and the reason this exists.
+    listed = list(dict.fromkeys(re.findall(r"\b(Test[A-Z]\w*)", body[m.end():]))) if m else []
     outside = [t for t in named if t not in listed]
     return {"path": path, "stated": counts, "named": named, "listed": listed,
             "outside": outside, "mismatch": all(c != len(named) for c in counts)}
@@ -100,6 +109,14 @@ def self_test() -> int:
       TestA: does a thing.
       TestB: does another.
 """
+    adjective = """
+  - path: d_test.go
+    purpose: >-
+      TestOutsideTheList: dropped.
+      TWO flow test functions, all of them:
+      TestA: does a thing.
+      TestB: does another.
+"""
     no_count = """
   - path: c_test.go
     purpose: >-
@@ -121,6 +138,9 @@ def self_test() -> int:
     got = audit_entry("a_test.go", ok_spec)
     if got and got["outside"]:
         fails.append("an entry whose every named test is enumerated has nothing outside")
+    got = audit_entry("d_test.go", adjective)
+    if not got or got["outside"] != ["TestOutsideTheList"]:
+        fails.append(f"'THREE flow test functions' must parse as a count: {got and got.get('outside')}")
     if audit_entry("c_test.go", no_count) is not None:
         fails.append("an entry with no count sentence must be silent, not clean")
     # Two entries in one document must not bleed into each other.

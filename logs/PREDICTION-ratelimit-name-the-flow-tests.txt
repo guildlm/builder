@@ -1,0 +1,54 @@
+PREDICTION — ratelimit describes four flow tests and names none of them
+========================================================================
+2026-07-26. Thirteenth closure attempt, and the same lever as taskflow's, applied to a spec
+that was never suspected.
+
+WHAT THE SWEEP FOUND, AND WHAT LOOKING FOUND
+  The post-redraw sweep left ratelimit with four survivors: drop Retry-After,
+  StatusTooManyRequests -> StatusServiceUnavailable, and two StatusOK sites in api.go.
+  Triage said the spec PROMISES Retry-After — it does, by name, with the exact assertion
+  written out — so the candidate stood.
+
+  Then the artifact: the tree has FIVE test functions and not one of them makes an HTTP
+  request.
+
+      written   TestBucket · TestBucketCapAfterIdle · TestRegistrySameClient ·
+                TestRegistryDistinctClients · TestContentTypeJSON
+      absent    every flow test — no 429 anywhere, no Retry-After anywhere, no
+                allow-then-deny through the middleware at all
+
+  The five written are exactly the five the spec NAMES. The absent ones are exactly the
+  ones it describes anonymously:
+
+      "One function does the allow-then-deny sequence for a single client: ... 429 with
+       rec.Header().Get("Retry-After") == "1" ..."
+      "Other test functions, each with its OWN fresh reg + mux: two clients ...
+       GET /health always returns 200 ..."
+
+  Four tests' worth of behaviour, written out in full, with the exact assertions — and no
+  names. This is taskflow's finding on a second spec, at four times the scale, and it
+  explains an earlier observation that had no mechanism: ratelimit "kept all five test
+  functions and dropped every Retry-After and 200 assertion". The five it kept are the
+  named ones. The assertions it dropped belonged to tests that were never named.
+
+THE EDIT
+  Name them, in an enumerated list, in the file's own inventory style — same prose, same
+  assertions, nothing added:
+      TestFlowAllowThenDeny     200, then 429 + Retry-After "1" + JSON error body
+      TestFlowTwoClients        A and B each 200, then each 429 — A's exhaustion is not B's
+      TestFlowHealthAlwaysOK    /health returns 200 even for an exhausted client
+
+PREDICTION
+  1. All three named flow tests are written.
+  2. drop Retry-After           SURVIVED -> CAUGHT
+  3. 429 -> 503                 SURVIVED -> CAUGHT
+  4. The five existing named tests all stay — 8 functions total, no displacement.
+  5. ratelimit stays green.
+
+  The api.go StatusOK survivors are NOT predicted to close: /health's 200 is covered by
+  test 3, but the second api.go site may be a different promise, and claiming both would be
+  the shape-versus-promise error this project keeps making. Graded separately, not counted
+  as part of this closure.
+
+  If the flow tests appear and the mutations still survive, the lever works and the
+  assertions are the problem — a different finding, and a more interesting one.
