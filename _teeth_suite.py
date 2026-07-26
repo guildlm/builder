@@ -80,6 +80,37 @@ def _reverse_id_sort(n: int):
     return apply
 
 
+def _reverse_id_sort_site(k: int, total: int):
+    """Reverse the k-th (1-based) of `total` mirrored comparators, and ONLY that one.
+
+    WHY THIS EXISTS. `_reverse_id_sort(2)` breaks BOTH of taskflow's list methods in one
+    patch, so the suite goes red if EITHER is defended — and taskflow defends exactly one.
+    The registry row read CAUGHT under the description "List methods return items sorted by
+    ID", plural, while reversing ListProjects on its own left the suite GREEN. A multi-site
+    mutation is caught by the strongest site and reports the strength of that site as the
+    strength of the promise.
+
+    Measured, not argued: on generated/taskflow-ct, reversing line 63 (ListTasks) is CAUGHT
+    and reversing line 104 (ListProjects) SURVIVES. The undefended half is the one whose
+    named test — TestListProjectsSorted — the model has now failed to write three draws
+    running (FINDING-the-dropped-tests-are-sort-twins.txt).
+
+    `total` is still pinned so a regeneration that adds or removes a list method reports
+    NOAPPLY rather than silently grading a different site than the one registered.
+    """
+    _CMP = re.compile(r"return (\w+)\[i\]\.ID < \1\[j\]\.ID")
+
+    def apply(text: str) -> str | None:
+        matches = list(_CMP.finditer(text))
+        if len(matches) != total or not (1 <= k <= total):
+            return None
+        m = matches[k - 1]
+        return (text[:m.start()]
+                + f"return {m.group(1)}[i].ID > {m.group(1)}[j].ID"
+                + text[m.end():])
+    return apply
+
+
 def _drop_exists_guard(index_expr: str):
     """Drop a `if _, ok := <map>[<key>]; ok { return ErrExists }` duplicate-ID guard (unique).
 
@@ -379,9 +410,15 @@ MUTATIONS = [
     ("taskflow", "pagination.go",
      "paginate clamps a negative offset (no panic, exact count)",
      _tf_drop_paginate_clamp),                       # CAUGHT (TestPaginateNegativeOffset)
+    # SPLIT BY SITE (2026-07-26). One row reversing both comparators read CAUGHT while the
+    # projects half was undefended: the patch breaks two sites, and the tasks test alone
+    # turns the suite red. Two rows, one per site, so the scoreboard says which half.
     ("taskflow", "store.go",
-     "List methods return items sorted by ID",
-     _reverse_id_sort(2)),                           # was drop (flaky); now reverse (deterministic) — CAUGHT once TestListSorted exists
+     "ListTasks returns tasks sorted by ID",
+     _reverse_id_sort_site(1, 2)),                   # CAUGHT — TestListSorted asserts the order
+    ("taskflow", "store.go",
+     "ListProjects returns projects sorted by ID",
+     _reverse_id_sort_site(2, 2)),                   # SURVIVED — TestListProjectsSorted has gone unwritten for 3 draws
     ("taskflow", "models.go",
      "Task.Validate rejects a status outside {todo,doing,done}",
      _tf_drop_status),                               # CAUGHT (fix arc #1): TestCreateInvalid posts {"title":"x","status":"nope"}
@@ -400,9 +437,15 @@ MUTATIONS = [
      "Report breaks Count ties by Path ascending (deterministic)",
      _ls_reverse_tiebreak),                          # was drop (leaves equal-Count in pdqsort order); now reverse (deterministic) — CAUGHT once a two-equal-Count test exists
     # --- taskapi (added 2026-07-18): the POSITIVE control for the sort hole ---
+    # Split by site for the same reason taskflow's was, and kept as the control that the
+    # split is not rigged: taskapi writes BOTH named sort tests and both sites read CAUGHT
+    # on their own, where taskflow's projects half SURVIVES alone.
     ("taskapi", "internal/store/memory.go",
-     "List sorted by ID — DEFENDED (contrast: taskflow/usersapi drop it)",
-     _reverse_id_sort(2)),                           # CAUGHT (TestListSorted + TestListProjectsSorted)
+     "ListTasks sorted by ID — DEFENDED",
+     _reverse_id_sort_site(1, 2)),                   # CAUGHT (TestListSorted)
+    ("taskapi", "internal/store/memory.go",
+     "ListProjects sorted by ID — DEFENDED (contrast: taskflow drops this half)",
+     _reverse_id_sort_site(2, 2)),                   # CAUGHT (TestListProjectsSorted)
     # --- taskapipro (added 2026-07-18): the blast-radius damage, made concrete ---
     ("taskapipro", "internal/store/memory.go",
      "ListTasks sorted by ID (its TestListSorted was deleted by a spec edit)",

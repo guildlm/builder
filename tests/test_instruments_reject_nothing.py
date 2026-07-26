@@ -28,7 +28,7 @@ INSTRUMENTS = [
     "_deadlock_detector.py", "_named_test_audit.py", "_teeth_suite.py",
     "_gate_audit.py", "_escalation_surface.py", "_registry_drift.py",
     "_mapsort_audit.py", "_test_durability.py", "_candidate_triage.py",
-    "_redraw_diff.py",
+    "_redraw_diff.py", "_restore_gomod.py",
 ]
 
 
