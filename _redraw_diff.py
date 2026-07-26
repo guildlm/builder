@@ -11,8 +11,10 @@ table instead of a 170-line diff nobody reads.
     python _redraw_diff.py --self-test
 
 WHAT IT REFUSES TO DO
-  A row is (artifact, file, shape, verdict). Only rows whose FIRST THREE fields appear in
-  both sweeps are comparable; everything else is a site that moved, appeared or vanished —
+  A row is (artifact, file, shape, verdict), and the same shape recurs at SEVERAL SITES in
+  one file — so rows are keyed by their ordinal too, or 45% of the tracked corpus collapses
+  into 82 keys before anything is compared. Only rows present in both sweeps are
+  comparable; everything else is a site that moved, appeared or vanished —
   which is a finding of its own and not a verdict change. Both denominators are printed,
   because "3 flips" out of 12 comparable rows and out of 150 rows are different sentences,
   and the corpus headline has already been wrong once for exactly this reason
@@ -27,8 +29,23 @@ import sys
 DEAD = ("BASELINE-RED", "NOAPPLY", "SKIP")
 
 
-def load(path: pathlib.Path) -> dict[tuple[str, str, str], str]:
-    rows: dict[tuple[str, str, str], str] = {}
+def load(path: pathlib.Path) -> dict[tuple[str, str, str, int], str]:
+    """Rows keyed by (artifact, file, shape, ORDINAL).
+
+    The ordinal is not decoration. One file routinely carries the SAME shape at several
+    sites — tasks-api-v4's handlers.go has eight `StatusBadRequest->StatusNotFound` rows,
+    one per site — and a dict keyed by the first three fields keeps only the last of them.
+    Measured on the tracked file: 149 rows collapse to 82 keys, so 45% of the corpus would
+    have been dropped before anything was compared, and eight sites that can disagree would
+    have been reported as one verdict.
+
+    Sites are matched positionally within a group, which assumes the sweep visits them in
+    the same order (it walks the file top-down, so it does). If a regeneration adds or
+    removes a site, the surplus shows up as "only in one sweep" — which is the honest
+    answer, not a verdict.
+    """
+    rows: dict[tuple[str, str, str, int], str] = {}
+    seen: dict[tuple[str, str, str], int] = {}
     for line in path.read_text().splitlines():
         if not line.strip():
             continue
@@ -36,7 +53,9 @@ def load(path: pathlib.Path) -> dict[tuple[str, str, str], str]:
         if len(parts) != 4:
             raise SystemExit(f"{path}: expected 4 tab-separated fields, got {len(parts)}:\n  {line}")
         art, f, shape, verdict = parts
-        rows[(art, f, shape)] = verdict
+        n = seen.get((art, f, shape), 0)
+        seen[(art, f, shape)] = n + 1
+        rows[(art, f, shape, n)] = verdict
     return rows
 
 
@@ -73,12 +92,12 @@ def render(res: dict, old: dict, new: dict) -> str:
     won = [(k, o, n) for k, o, n in res["live_flips"] if o == "SURVIVED" and n == "CAUGHT"]
     if lost:
         out.append("\n   DEFENCE LOST in the redraw (was CAUGHT, now SURVIVED):")
-        for (a, f, s), _, _ in lost:
-            out.append(f"      {a:<28} {f:<18} {s}")
+        for (a, f, s, i), _, _ in lost:
+            out.append(f"      {a:<28} {f:<18} {s}" + (f"  [site {i+1}]" if i else ""))
     if won:
         out.append("\n   DEFENCE GAINED in the redraw (was SURVIVED, now CAUGHT):")
-        for (a, f, s), _, _ in won:
-            out.append(f"      {a:<28} {f:<18} {s}")
+        for (a, f, s, i), _, _ in won:
+            out.append(f"      {a:<28} {f:<18} {s}" + (f"  [site {i+1}]" if i else ""))
     if not res["comparable"]:
         out.append("\n   NOTHING WAS COMPARED. Every site moved or changed shape, so this "
                    "says nothing\n   about durability — it says the two sweeps do not "
@@ -88,16 +107,16 @@ def render(res: dict, old: dict, new: dict) -> str:
 
 def self_test() -> int:
     """Plant every transition this is supposed to separate, and require it to separate them."""
-    old = {("a-v4", "h.go", "drop X"): "CAUGHT",       # -> SURVIVED  (defence lost)
-           ("b-v4", "h.go", "drop X"): "SURVIVED",     # -> CAUGHT    (defence gained)
-           ("c-v4", "h.go", "drop X"): "CAUGHT",       # unchanged
-           ("d-v4", "h.go", "drop X"): "NOAPPLY",      # -> BASELINE-RED (both dead)
-           ("e-v4", "h.go", "drop X"): "CAUGHT"}       # site vanishes
-    new = {("a-v4", "h.go", "drop X"): "SURVIVED",
-           ("b-v4", "h.go", "drop X"): "CAUGHT",
-           ("c-v4", "h.go", "drop X"): "CAUGHT",
-           ("d-v4", "h.go", "drop X"): "BASELINE-RED",
-           ("f-v4", "h.go", "drop X"): "CAUGHT"}       # a site that is new
+    old = {("a-v4", "h.go", "drop X", 0): "CAUGHT",       # -> SURVIVED  (defence lost)
+           ("b-v4", "h.go", "drop X", 0): "SURVIVED",     # -> CAUGHT    (defence gained)
+           ("c-v4", "h.go", "drop X", 0): "CAUGHT",       # unchanged
+           ("d-v4", "h.go", "drop X", 0): "NOAPPLY",      # -> BASELINE-RED (both dead)
+           ("e-v4", "h.go", "drop X", 0): "CAUGHT"}       # site vanishes
+    new = {("a-v4", "h.go", "drop X", 0): "SURVIVED",
+           ("b-v4", "h.go", "drop X", 0): "CAUGHT",
+           ("c-v4", "h.go", "drop X", 0): "CAUGHT",
+           ("d-v4", "h.go", "drop X", 0): "BASELINE-RED",
+           ("f-v4", "h.go", "drop X", 0): "CAUGHT"}       # a site that is new
     res = compare(old, new)
     fail = []
     if len(res["comparable"]) != 4:
@@ -108,12 +127,25 @@ def self_test() -> int:
         fail.append(f"the NOAPPLY->BASELINE-RED flip must not count as live, got "
                     f"{len(res['live_flips'])} live")
     if [k for k, o, n in res["live_flips"] if o == "CAUGHT" and n == "SURVIVED"] != \
-            [("a-v4", "h.go", "drop X")]:
+            [("a-v4", "h.go", "drop X", 0)]:
         fail.append("the CAUGHT->SURVIVED row is not reported as defence lost")
     if len(res["gone"]) != 1 or len(res["fresh"]) != 1:
         fail.append("a vanished site and a new site must be counted separately from flips")
+    # THE COLLAPSE. Three sites of one shape in one file must survive loading as three
+    # rows; keyed by the first three fields they became one, and the tracked file loses 67
+    # of its 149 rows that way.
+    import tempfile
+    with tempfile.NamedTemporaryFile("w", suffix=".tsv", delete=False) as fh:
+        fh.write("a-v4\th.go\tdrop X\tCAUGHT\n" * 2 + "a-v4\th.go\tdrop X\tSURVIVED\n")
+        tmp = fh.name
+    loaded = load(pathlib.Path(tmp))
+    if len(loaded) != 3:
+        fail.append(f"three sites of one shape must load as three rows, got {len(loaded)}")
+    if loaded.get(("a-v4", "h.go", "drop X", 2)) != "SURVIVED":
+        fail.append("the third site's verdict is not preserved under its own ordinal")
+    pathlib.Path(tmp).unlink()
     # And the denominator rule: two sweeps sharing NOTHING must say so rather than print 0 flips.
-    empty = compare({("x-v4", "h.go", "s"): "CAUGHT"}, {("y-v4", "h.go", "s"): "CAUGHT"})
+    empty = compare({("x-v4", "h.go", "s", 0): "CAUGHT"}, {("y-v4", "h.go", "s", 0): "CAUGHT"})
     if "NOTHING WAS COMPARED" not in render(empty, {}, {}):
         fail.append("two sweeps with no shared row must refuse, not report '0 flips'")
     for f in fail:
