@@ -57,3 +57,59 @@ THE METHOD LESSON, four times in one day
   Every wrong number today was wrong because of what went INTO it, not how it was computed:
   invented renames, a red tree among green ones, an archive I had touched, a window reading
   past the end of a function. When a score surprises you, audit the input list first.
+
+
+=============================================================================
+2026-07-26, SECOND SESSION — added below rather than merged, so the earlier
+index stays readable as what was true when it was written.
+
+STANDS
+  (closure) tasks-api Content-Type      All four predictions hit; 288s, ONE deterministic
+                                        fix round, 18/18 named tests. The same spec had
+                                        spent 3381s and eleven rounds red one gate earlier.
+                                        The "same fleet" half of that comparison was
+                                        retracted the same hour — that run's invocation was
+                                        never recorded.
+  (closure) taskflow Content-Type       Named instead of appended: written, CAUGHT at
+                                        httpjson.go, TestCreateOK unharmed, green. All four
+                                        registered taskflow mutations still applied and
+                                        were still CAUGHT on the fresh tree.
+  the-dropped-tests-are-sort-twins      Refutes two more hypotheses (implementation gap,
+                                        prose length) and restates to what holds: every
+                                        dropped test that leaves a promise UNDEFENDED is
+                                        half of a sort pair. Its own headline ("the only
+                                        dropped tests") was refuted by the next draw and
+                                        corrected in-file.
+  a two-site mutation reports the       taskflow's registered sort row broke BOTH
+  stronger site                         comparators at once and read CAUGHT while
+                                        ListProjects alone SURVIVED. Split per site;
+                                        taskapi is the control and reads CAUGHT + CAUGHT.
+  the shadow gate's ambiguity guard     It read the domain type off the COMPILER MESSAGE,
+  was vacuous on two of three shapes    which only one of the three shapes carries. With a
+                                        `Name()` method in the project the gate turned a
+                                        compile error into a GREEN, permanently vacuous
+                                        test. Now read off the source; corpus blast radius
+                                        measured at 0 of 6 typed shadows.
+
+OPERATIONAL, and the expensive one
+  i-deleted-the-corpus                  `rm -f generated/*/[a-z]*` emptied 136 of 243
+                                        artifacts and took every go.mod. 105 module files
+                                        were reconstructed from surviving self-imports
+                                        (_restore_gomod.py); the 20 flat -v4 trees are
+                                        regenerating through _rebuild_corpus.sh. The flat
+                                        _fail-* archives and both real BASELINE-RED
+                                        controls are gone for good; generated/plantedred-v4
+                                        now carries that property and is tracked in git.
+  the suite was writing into the corpus tests/test_corpus_keeps_a_red_baseline built every
+                                        artifact IN PLACE, leaving nine 8MB binaries in the
+                                        corpus. Fixed to build into a temp dir. The same
+                                        test also counted an EMPTY directory as a red
+                                        baseline, so it passed all the way through the
+                                        deletion.
+
+QUEUED BY THE ACCIDENT — the measurement it forces
+  Rebuilding all twenty -v4 trees is a full corpus REDRAW: same specs, same model, a week
+  apart. _redraw_diff.py compares the tracked hole-hunt rows against the post-rebuild sweep
+  and separates verdict flips from sites that merely moved. That answers "do the closures
+  survive the next regeneration" for every spec at once, where the programme had answered
+  it for two of five.
