@@ -87,3 +87,28 @@ THE EDIT THIS PRODUCED
   TestNonPOSTMethod), state the file's inventory as SIX and list every one of them in the
   count sentence, and split the wire assertions into three separate checks — with the
   presence of "length" asserted in comma-ok form, because len(m) == 2 cannot see a rename.
+
+SECOND RUN (generated/jsonapi-wire2, promoted to jsonapi-v4) — everything closes
+================================================================================
+    rc=0   47s   GREEN.   8 of 8 probes CAUGHT, zero survivors.
+
+  All six named tests written. json tag message/echo/length all CAUGHT, both 400 sites
+  CAUGHT, the 405 regression REPAIRED, Content-Type and 200 still CAUGHT.
+
+  So both misses had the same cause and the same fix: the model writes the entry's NAMED
+  inventory. Name every test in the entry and every one appears; leave three in prose beside
+  a named one and those three vanish. And "assert the key is present" has to be its own
+  named check, because len(m) == 2 cannot see a rename.
+
+THE AUDIT THIS PRODUCED — where the same debt still sits
+  _unnamed_tests.py compares each spec against its artifact and reports tests that EXIST and
+  are named nowhere. Twenty of them, across six specs:
+
+      usersapi     3 named · 11 in tree · 8 unnamed     <- the largest exposure by far
+      workapi     31 named · 35 in tree · 4 unnamed
+      logstats · workerpool · demo-small · numkit        2 each
+
+  The four closures before jsonapi did NOT pay this cost, and the reason is visible now:
+  ratelimit's and taskflow's other tests were already named, so there was nothing beside the
+  new name to displace. jsonapi was the one entry that MIXED named tests with anonymous
+  prose. usersapi is that shape today, at eight tests.
