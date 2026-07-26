@@ -44,3 +44,46 @@ PREDICTION
   A note on scope: this closes ONE spec. The same blindness is live in tasks-api (id, done,
   created_at) and taskflow (project_id), and if the lever works here the same edit should be
   made there rather than assumed to work.
+
+OUTCOME (2026-07-26, artifact generated/jsonapi-wire) — 3 hit, 2 MISSED, and a REGRESSION
+==========================================================================================
+    rc=0   46s   GREEN
+
+    1. TestWireFieldNames is written.                                    HIT
+    2. json tag "echo"     SURVIVED -> CAUGHT                            HIT
+    3. json tag "length"   SURVIVED -> still SURVIVED                    MISS
+    4. json tag "message"  SURVIVED -> CAUGHT                            HIT
+       (the one I called likeliest to miss — the raw-string request pinned it)
+    5. The two registered mutations stay CAUGHT                          MISS
+       Content-Type CAUGHT, but 405 went CAUGHT -> SURVIVED.
+
+WHY "length" DID NOT CLOSE
+  The spec asked for "EXACTLY the keys echo and length — len(m) == 2, both present". The
+  model wrote len(out) == 2 and out["echo"] == "hi", and dropped the "both present" half.
+  Renaming length -> length_x leaves the map at two keys, so both surviving assertions hold.
+  Half an assertion is not a weaker test; it is a test that cannot see the thing it names.
+
+THE REGRESSION IS THE REAL FINDING — NAMING IS AN INVENTORY, NOT AN ADDITION
+      archive tree  TestContentTypeJSON · TestInvalidJSON · TestValidMessage ·
+                    TestEmptyMessage · TestNonPOSTMethod          (5 functions)
+      new tree      TestContentTypeJSON · TestWireFieldNames · TestInvalidJSON  (3)
+
+  Adding ONE named test cost THREE unnamed ones. The three that vanished are exactly the
+  three the entry described in anonymous prose ("Tests using net/http/httptest: POST a valid
+  message returns 200 ...; POST an empty message returns 400; a GET /echo returns 405"), and
+  the three that survived are exactly the three it NAMES.
+
+  Every closure today read this as "name the test and it gets written". The other half was
+  invisible until an edit put a name into a passage where other tests had none: the named
+  list becomes THE INVENTORY, and anything unnamed beside it is displaced. That is why the
+  405 defence disappeared — no test asserted 405 any more.
+
+  So the lever has a cost that scales with how much of the file is anonymous, and the fix is
+  not to add names carefully but to leave NOTHING unnamed in an entry once anything in it is
+  named.
+
+THE EDIT THIS PRODUCED
+  Name all three of the dropped tests (TestValidMessage, TestEmptyMessage,
+  TestNonPOSTMethod), state the file's inventory as SIX and list every one of them in the
+  count sentence, and split the wire assertions into three separate checks — with the
+  presence of "length" asserted in comma-ok form, because len(m) == 2 cannot see a rename.

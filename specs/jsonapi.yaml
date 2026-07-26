@@ -28,16 +28,21 @@ files:
       renaming a tag renames it in the test too and everything still passes while a
       real client breaks. So: POST the RAW STRING `{"message":"hi"}` (do NOT
       json.Marshal a struct), read the response body as a STRING, and decode it into
-      a map[string]any. Assert the map has EXACTLY the keys "echo" and "length" —
-      len(m) == 2, both present — and that m["echo"] == "hi". Never decode this one
-      into echoResponse.
+      a map[string]any. Then assert THREE separate things, each on its own line —
+      len(m) == 2 is NOT enough on its own, because renaming a key leaves the count
+      unchanged: (a) m["echo"] == "hi", (b) the key "length" is PRESENT, checked with
+      the comma-ok form `if _, ok := m["length"]; !ok { t.Errorf(...) }`, and (c)
+      len(m) == 2. Never decode this one into echoResponse.
       TestInvalidJSON: POST /echo with a body that is NOT valid
       JSON — send the raw bytes `{"message":` (truncated ON PURPOSE; do NOT send
       `{}` or `{"message":""}`, which are valid JSON and take the empty-message
       branch that is already covered) -> 400.
-      Tests using net/http/httptest and encoding/json: POST a valid
-      message returns 200 with the echoed message and correct length; on that SAME
-      success response `res`, ALSO assert the RESPONSE header
-      res.Header.Get("Content-Type") == "application/json" (the response's own
-      Content-Type, not the request's). POST an empty message returns 400; a GET /echo
-      (non-POST) returns 405. Build the handler with newMux(). Standard library only.
+      SIX test functions in this file, all of them: TestContentTypeJSON,
+      TestWireFieldNames and TestInvalidJSON above, and these three —
+      TestValidMessage: POST a valid message -> 200 with the echoed message and the
+      correct length; on that SAME success response `res`, ALSO assert the RESPONSE
+      header res.Header.Get("Content-Type") == "application/json" (the response's own
+      Content-Type, not the request's).
+      TestEmptyMessage: POST an empty message -> 400.
+      TestNonPOSTMethod: a GET /echo (non-POST) -> 405.
+      Build the handler with newMux(). Standard library only.
