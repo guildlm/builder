@@ -3559,6 +3559,10 @@ def _fix_pointer_to_interface(
 # `t.Fatalf undefined (type Task has no field or method Fatalf)` — the tester was
 # shadowed. Distinguished from the plain no-method error by the receiver being
 # literally `t` and the selector being a *testing.T method.
+# `var t Task` in a tester function: a redeclaration rather than an assignment, and the
+# only one of the three shapes the compiler names without mentioning a type or a method.
+_TESTER_REDECLARED_RE = re.compile(r"\bt redeclared in this block\b")
+
 _SHADOWED_T_RE = re.compile(
     r"\bt\.(\w+) undefined \(type (\w+) has no field or method \1\)"
 )
@@ -3662,7 +3666,14 @@ def _fix_shadowed_tester(
     # missing method — see _TESTER_OVERWRITTEN_RE. Nothing about the repair
     # changes; only the message the compiler chose to print.
     overwritten = bool(_TESTER_OVERWRITTEN_RE.search(error_output))
-    if (not hits and not overwritten) or not _SHADOWFIX.exists():
+    # A THIRD way the compiler reports the same mistake. `var t Task` inside
+    # `func TestX(t *testing.T)` is a REDECLARATION, not an assignment, so Go says
+    # "t redeclared in this block" and neither pattern above matches. The gate walked
+    # past it: a tasks-api build spent 3381 seconds and eleven fix rounds red on this
+    # single line, with the spec forbidding it in two separate places, while the repair
+    # machinery that fixes the other two forms sat right here.
+    redeclared = bool(_TESTER_REDECLARED_RE.search(error_output))
+    if (not hits and not overwritten and not redeclared) or not _SHADOWFIX.exists():
         return {}
 
     # Ambiguity guard: a shadowing type that declares a testing-shaped member —

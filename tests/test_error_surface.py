@@ -221,3 +221,53 @@ def test_test_stage_repeats_the_suite():
     assert "-count=4" in calls[0], f"the suite is run only once: {calls[0]}"
     # Four runs share ONE budget, so the timeout must survive alongside the repeat.
     assert "-timeout" in calls[0], f"timeout dropped: {calls[0]}"
+
+
+def test_var_t_redeclaration_is_repaired(tmp_path):
+    """`var t Task` in a tester function must be repaired by the gate chain.
+
+    Go reports this as "t redeclared in this block" — not as the "t.Fatalf undefined"
+    that `t := ...` produces, and not as the assignment form either. The gate matched only
+    the other two, and the AST tool behind it did not recognise a DeclStmt, so a tasks-api
+    build spent 3381 seconds and eleven fix rounds red on one line while the spec forbade
+    it in two separate places and the machinery that repairs the other two shapes sat
+    unused.
+    """
+    (tmp_path / "go.mod").write_text("module guildlm.dev/x\n\ngo 1.23\n")
+    (tmp_path / "task.go").write_text(textwrap.dedent("""
+        package main
+
+        type Task struct{ Title string }
+
+        func (t Task) Valid() bool { return t.Title != "" }
+
+        func main() {}
+    """).lstrip())
+    (tmp_path / "x_test.go").write_text(textwrap.dedent("""
+        package main
+
+        import "testing"
+
+        func TestValidateOK(t *testing.T) {
+            var t Task
+            t.Title = "a"
+            if !t.Valid() {
+                t.Fatalf("want valid")
+            }
+        }
+    """).lstrip())
+
+    tc = GoToolchain()
+    ok, out = tc.check(tmp_path)
+    assert not ok and "redeclared" in out, f"fixture did not reproduce the error: {out[:200]}"
+
+    written = {f.name: f.read_text() for f in tmp_path.glob("*.go")}
+    changed = _run_deterministic_gates(written, out, "guildlm.dev/x")
+    assert "x_test.go" in changed, "the gate did not touch the shadowing test file"
+    for path, content in changed.items():
+        (tmp_path / path).write_text(content)
+
+    ok2, out2 = tc.check(tmp_path)
+    assert ok2, f"still broken after the gate: {out2[:300]}"
+    # the tester must survive: t.Fatalf still binds to *testing.T
+    assert "t.Fatalf" in (tmp_path / "x_test.go").read_text()

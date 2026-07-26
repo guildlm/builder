@@ -124,7 +124,7 @@ type shadow struct {
 	decls []*ast.Ident    // the declaring identifier(s) named "t"
 	scope ast.Node        // block the shadow is visible in
 	from  token.Pos       // uses before this position are NOT the shadow (:= case)
-	stmt  *ast.AssignStmt // set for `t := ...`; its scope needs an enclosing block
+	stmt  ast.Stmt        // set for `t := ...` and `var t T`; scope needs an enclosing block
 }
 
 // fixFunc rewrites every repairable shadow in fn and reports whether it changed
@@ -184,6 +184,34 @@ func findShadows(body *ast.BlockStmt) []shadow {
 			if len(decls) > 0 {
 				// Visible from this statement to the end of its block; the
 				// enclosing block is found by the caller's walk below.
+				out = append(out, shadow{decls: decls, scope: nil, from: s.End(), stmt: s})
+			}
+		case *ast.DeclStmt:
+			// `var t Task` inside `func TestX(t *testing.T)`. The compiler
+			// reports this as "t redeclared in this block", NOT as the
+			// "t.Fatalf undefined" that the := form produces, which is why
+			// both this tool and the gate that calls it walked past it — a
+			// tasks-api build spent 3381 seconds and eleven fix rounds failing
+			// on exactly this while the spec forbade it in two separate places.
+			gd, ok := s.Decl.(*ast.GenDecl)
+			if !ok || gd.Tok != token.VAR {
+				return true
+			}
+			var decls []*ast.Ident
+			for _, spec := range gd.Specs {
+				vs, ok := spec.(*ast.ValueSpec)
+				if !ok {
+					continue
+				}
+				for _, id := range vs.Names {
+					if id.Name == "t" {
+						decls = append(decls, id)
+					}
+				}
+			}
+			if len(decls) > 0 {
+				// Same visibility rule as `:=`: from this statement to the end
+				// of its block.
 				out = append(out, shadow{decls: decls, scope: nil, from: s.End(), stmt: s})
 			}
 		case *ast.FuncLit:
