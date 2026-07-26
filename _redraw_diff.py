@@ -90,6 +90,17 @@ def render(res: dict, old: dict, new: dict) -> str:
         for (o, n), c in sorted(res["transitions"].items(), key=lambda kv: -kv[1]):
             tag = "  (both dead — says nothing about defence)" if o in DEAD and n in DEAD else ""
             out.append(f"   {c:>3}  {o:<13} -> {n}{tag}")
+    # A DEAD -> LIVE flip is not a defence change. Every one of the twenty rebuilt specs came
+    # back GREEN on the base model, where the pre-deletion corpus was a mix of green and red
+    # archives — so rows that read BASELINE-RED or NOTESTS before will read CAUGHT or
+    # SURVIVED now simply because there is finally a suite to ask. Counted on its own line so
+    # it cannot be read as the corpus getting better at defending itself.
+    measurable = [(k, o, n) for k, o, n in res["live_flips"] if o in DEAD and n not in DEAD]
+    silenced = [(k, o, n) for k, o, n in res["live_flips"] if n in DEAD and o not in DEAD]
+    if measurable or silenced:
+        out.append(f"\n   {len(measurable)} row(s) became MEASURABLE (dead verdict -> live) and "
+                   f"{len(silenced)} went dead.\n   Those are artifacts changing state, not "
+                   f"defences changing.")
     lost = [(k, o, n) for k, o, n in res["live_flips"] if o == "CAUGHT" and n == "SURVIVED"]
     won = [(k, o, n) for k, o, n in res["live_flips"] if o == "SURVIVED" and n == "CAUGHT"]
     if lost:
