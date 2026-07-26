@@ -39,3 +39,43 @@ PREDICTION
   If the new test is missing, the answer is not "naming does not work here" on one run; it
   is that taskflow needs several runs before either claim is measurable, which is what the
   durability programme established today.
+
+OUTCOME (2026-07-26, run `_taskflow_ct_run.sh`, artifact generated/taskflow-ct)
+==============================================================================
+    rc=0   ~1200s   1 fix round   GREEN, verified independently
+                                  (build + vet + test -race -count=4)
+
+  All four predictions hit.
+    1. TestContentTypeJSON is written — its own named test, as the five stable
+       specs have.                                                           HIT
+    2. drop Content-Type -> CAUGHT at httpjson.go [was SURVIVED]             HIT
+    3. TestCreateOK keeps its 201 and its echo assertion; the split cost it
+       nothing.                                                              HIT
+    4. taskflow stays green.                                                 HIT
+
+  And the four previously-registered taskflow mutations ALL applied and were all CAUGHT
+  on this fresh tree — duplicate-ID 409, negative-offset clamp, List sorted by ID, and
+  Validate's status check. That is a registry-durability answer as well as a closure:
+  the patches did not go NOAPPLY against a redrawn artifact.
+
+  So the appended-vs-named claim now has its sixth data point in the same direction: five
+  specs whose Content-Type test is NAMED write it every time, and taskflow — the one that
+  appended it to another test's description — flickered at 2 of 4 until it was named, and
+  then wrote it.
+
+WHAT ELSE THE DRAW SHOWED, unpredicted
+  Two spec-named tests are missing from this tree, and they are missing in DIFFERENT ways:
+
+    TestListProjectsSorted   name absent AND content absent. TestProjectList posts a
+                             single project, so nothing anywhere asserts project order.
+                             A genuine hole, and the third consecutive draw without it.
+
+    TestListLimit            name absent, CONTENT PRESENT. The model copied the spec's
+                             code block verbatim into TestList — all four recorders, the
+                             ?limit=1 GET and both length assertions. Nothing is
+                             undefended; a name moved.
+
+  That distinction matters for the durability instrument, which counts NAMES: it will
+  score TestListLimit as intermittent and read it as lost defence, when the assertions
+  merely moved next door. The inverse of "a name persisting is not a promise defended" is
+  also true — a name vanishing is not a promise lost.
