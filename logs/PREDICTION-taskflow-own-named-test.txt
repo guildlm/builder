@@ -33,3 +33,33 @@ PREDICTION
   This is one draw. A hit does not make the closure durable — it makes it durable ONCE, which
   is exactly the mistake the retraction was about. The honest claim after this run, if it
   lands, is "the shape that survived one redraw was re-applied and held on the next".
+
+OUTCOME (2026-07-26, generated/taskflow-own) — the repair works, and the one site I
+excused reopened
+=====================================================================================
+    rc=0   687s   GREEN
+
+    1. All four new names written (TestListReturns200, TestProjectListReturns200,
+       TestGetOK status-only, TestGetOKBody).                          HIT
+    2. tasks_handler    200 list     SURVIVED -> CAUGHT                HIT
+    3. projects_handler 200 list     SURVIVED -> CAUGHT                HIT
+    4. tasks_handler    200 get one  SURVIVED -> CAUGHT                HIT
+    5. projects_handler 200 get one  — NOT predicted, and it SURVIVED.
+
+  Nothing else moved: all four json tags still CAUGHT, all five registered taskflow
+  mutations CAUGHT, no named test lost.
+
+  THE FIFTH ROW IS THE RESULT. I excluded it on the grounds that "TestProjectCreateGet
+  already covers it and has held all day" — which is precisely the assumption this
+  finding says is unsafe. The 200 asserted INSIDE that test drifted away on this draw
+  exactly as the other four had, while the test itself stayed. So one draw confirms the
+  rule in both directions at once: three invariants given their OWN named test all held;
+  the one left inside an existing test reopened.
+
+  Three of three is not durability, it is one draw — the same caveat the retraction was
+  about. What it does establish is that the repair SHAPE is right, and that my reason for
+  exempting the fourth site was the very error under study.
+
+  TestProjectGetReturns200 is now specified the same way. If it holds on the next draw
+  alongside the other three, "give the invariant its own named test" has four sites and
+  two draws behind it.

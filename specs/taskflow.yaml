@@ -240,15 +240,19 @@ files:
       must POST that precondition ITSELF first. Build each request inline with
       httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
       is a one-shot reader). Each function asserts ONE outcome.
-      TEN test functions, all of them:
+      ELEVEN test functions, all of them:
       TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
       then "1", then "2" (each valid, its own fresh request body) — then GET /projects
       and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
       back ASCENDING by INDEX: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3".
       ListProjects sorts its own copy, and TestListSorted only pins the TASKS sort — the
       projects sort can be reversed or dropped entirely and every other test still passes.
-      TestProjectCreateGet: POST a project -> 201, then GET it back -> 200 with the
+      TestProjectCreateGet: POST a project -> 201, then GET it back and assert the
       stored name.
+      TestProjectGetReturns200: its OWN test, for the same reason TestListReturns200
+      is one — the 200 asserted INSIDE TestProjectCreateGet reopened on a redraw while
+      the test itself stayed. POST a project FIRST, GET /projects/{id}, and assert ONE
+      thing: rec.Code == http.StatusOK. Decode nothing.
       TestProjectCreateInvalid: POST a project with an EMPTY name -> 400.
       TestProjectGetMissing: GET a project id nobody created -> 404.
       TestProjectList: POST ONE project FIRST, then GET the collection, decode the
