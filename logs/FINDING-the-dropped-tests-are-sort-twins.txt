@@ -72,3 +72,34 @@ PREDICTION, recorded before the run it will be graded on
     2. TestListProjectsSorted is the likeliest test to be missing again — and if it is
        present, that is a data point AGAINST the pair story rather than for it.
     3. TestListSorted (the tasks half) is present.
+
+GRADED, same hour — prediction hit, and the "only" in the headline is refuted
+=============================================================================
+  The fresh taskflow draw (generated/taskflow-ct) landed while this file was being
+  written. All three predictions hit:
+      1. TestContentTypeJSON appears.                                        HIT
+      2. TestListProjectsSorted missing again — third consecutive draw.       HIT
+      3. TestListSorted (the tasks half) present.                            HIT
+
+  And a fourth test is missing that the story does not cover: TestListLimit. So
+  "the corpus's only dropped tests are halves of sort pairs" is REFUTED by the very next
+  draw, and the headline of this file overstates.
+
+  But the two drops are not the same event, and separating them is what the finding is
+  actually worth:
+
+      TestListProjectsSorted   name absent, CONTENT absent. TestProjectList posts one
+                               project; no test anywhere asserts project order. A real
+                               undefended promise.
+      TestListLimit            name absent, CONTENT PRESENT — the spec's code block copied
+                               verbatim into TestList, every assertion intact.
+
+  Restated to what the evidence supports: every dropped test that leaves a PROMISE
+  UNDEFENDED is half of a sort pair. Drops that only move assertions into a neighbouring
+  test are a different phenomenon and are not holes at all.
+
+  That also sharpens the twin story rather than weakening it. A sort twin is the one shape
+  the merge escape hatch cannot take: TestList can absorb the limit assertions because they
+  are about the SAME entity it already exercises, while asserting project order inside a
+  tasks test would need a second entity the test never touches. The twin is dropped, not
+  merged, precisely because there is nowhere to merge it to.
