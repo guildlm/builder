@@ -257,6 +257,94 @@ def test_composes_in_the_deterministic_gate_chain():
     assert "t.Fatalf(" in out["store_test.go"]
 
 
+REDECLARED_ERR = (
+    "./x_test.go:6:6: t redeclared in this block\n"
+    "\t./x_test.go:5:27: other declaration of t\n"
+    "./x_test.go:7:4: t.Title undefined "
+    "(type *testing.T has no field or method Title)"
+)
+
+VAR_T_SHADOW = """package main
+
+import "testing"
+
+func TestTaskNameNotEmpty(t *testing.T) {
+	var t Task
+	t.Title = "alpha"
+	if t.Name() == "" {
+		t.Fatalf("Name() must not be empty")
+	}
+}
+"""
+
+
+def test_refuses_the_redeclaration_form_when_the_domain_type_is_ambiguous():
+    """The ambiguity guard was VACUOUS on two of the three shapes.
+
+    It reads the type off the compiler message, and only `t.Fatalf undefined (type
+    Task has no field or method Fatalf)` carries one. For `var t Task` Go names
+    *testing.T instead — the parameter wins the block — so `hits` is empty and the
+    loop over it guards nothing.
+
+    Measured on the fixture below, before this test existed: the gate rewrote it to
+    `var tk Task` / `tk.Title = "alpha"` while leaving `t.Name()` alone, because
+    Name is a *testing.T method. That TYPE-CHECKS. The suite went from a compile
+    error to GREEN with the assertion reading the TEST's own name — never empty, so
+    the check can never fail again. A gate that manufactures a permanently vacuous
+    test is worse than the compile error it removed.
+    """
+    model = MODEL + "\nfunc (x Task) Name() string { return x.Title }\n"
+    assert _fix_shadowed_tester({"model.go": model, "x_test.go": VAR_T_SHADOW},
+                                REDECLARED_ERR) == {}
+
+
+def test_refuses_the_assignment_form_when_the_domain_type_is_ambiguous():
+    # Same blind spot, the other shape: `t := models.Task{...}` reads as an
+    # assignment to the tester, so the compiler names *testing.T here too.
+    src = """package main
+
+import "testing"
+
+func TestCreateOK(t *testing.T) {
+	t := models.Task{Title: "task1"}
+	if t.Name() == "" {
+		t.Fatalf("Name")
+	}
+}
+"""
+    model = MODEL + "\nfunc (x Task) Name() string { return x.Title }\n"
+    err = (
+        "./service_test.go:6:7: cannot use models.Task{…} (value of struct type "
+        "models.Task) as *testing.T value in assignment"
+    )
+    assert _fix_shadowed_tester({"model.go": model, "service_test.go": src}, err) == {}
+
+
+def test_the_source_guard_does_not_over_refuse_an_ordinary_domain_type():
+    # The guard must cost nothing on the shape it was written around: tasks-api's
+    # Task carries ID/Title/Done and nothing testing-shaped, so `var t Task` is
+    # still repaired. Refusing here would restore the 3381-second compile deadlock
+    # that the redeclaration trigger was added to break.
+    src = """package main
+
+import "testing"
+
+func TestTitle(t *testing.T) {
+	var t Task
+	t.Title = "alpha"
+	if t.Title != "alpha" {
+		t.Fatalf("want alpha")
+	}
+}
+"""
+    body = _fix_shadowed_tester({"model.go": MODEL, "x_test.go": src},
+                                REDECLARED_ERR)["x_test.go"]
+    assert "var tk Task" in body
+    assert 'tk.Title = "alpha"' in body
+    assert 'if tk.Title != "alpha"' in body   # the domain use follows the rename
+    assert "t.Fatalf(" in body                # ...and the tester is restored
+
+
 def test_fires_when_go_reports_it_as_an_assignment_to_the_tester():
     """The SAME mistake, reported completely differently.
 

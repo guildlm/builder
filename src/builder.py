@@ -3614,6 +3614,25 @@ def _type_members(written: dict[str, str], typ: str) -> set[str]:
     return members
 
 
+# The shadow's TYPE, read off the test source rather than the compiler message.
+# Two of the three shapes this gate repairs never get their type named by the
+# compiler (see the guard in _fix_shadowed_tester), and the type is what decides
+# whether the rename is safe. Only the declaration forms that carry one are
+# listed: a `for _, t := range xs` shadow has no type at this level and is
+# covered by the error-text guard, which does fire for that shape.
+_SHADOW_DECL_RE = re.compile(
+    r"^[ \t]*var[ \t]+t[ \t]+(?:\*|\[\])*(?:\w+\.)?(\w+)\b"   # var t Task
+    r"|^[ \t]*var[ \t]+t[ \t]*=[ \t]*&?(?:\w+\.)?(\w+)\{"     # var t = Task{...}
+    r"|^[ \t]*t[ \t]*:=[ \t]*&?(?:\w+\.)?(\w+)\{",            # t := Task{...}
+    re.M,
+)
+
+
+def _shadow_types(code: str) -> set[str]:
+    """Type names bound to a local ``t`` in ``code`` — the shadow candidates."""
+    return {g for m in _SHADOW_DECL_RE.finditer(code) for g in m.groups() if g}
+
+
 def _struct_body_span(code: str, typ: str) -> tuple[int, int] | None:
     """Brace-matched span of ``type <typ> struct { ... }``, or None."""
     m = re.search(rf"\btype\s+{re.escape(typ)}\b[^{{\n]*\bstruct\s*{{", code)
@@ -3689,6 +3708,27 @@ def _fix_shadowed_tester(
     ]
     changed: dict[str, str] = {}
     for path in targets:
+        # ...and the SAME guard, read off the source instead of the error text.
+        # The loop above can only see a type the compiler NAMED, which happens in
+        # exactly one of the three shapes: `t.Fatalf undefined (type Task ...)`.
+        # For the other two the compiler names *testing.T and never mentions the
+        # domain type at all — "t redeclared in this block", "cannot use
+        # models.Task{…} as *testing.T value" — so `hits` is empty and the guard
+        # above is VACUOUS on precisely the paths that reach here without it.
+        # Measured, not reasoned: with `func (Task) Name() string` in the project,
+        # `var t Task` + `t.Name()` was rewritten to `var tk Task` + `t.Name()`,
+        # which type-checks, so the build goes GREEN with the assertion now reading
+        # the TEST's own name — a compile error turned into a permanently vacuous
+        # test. Refusing the file leaves the compile error for the model, which is
+        # the outcome this gate is allowed to have.
+        ambiguous = sorted(
+            typ for typ in _shadow_types(written[path])
+            if _type_members(written, typ) & _TESTING_METHODS
+        )
+        if ambiguous:
+            _log(f"  refusing the shadowed-tester rename in {path}: "
+                 f"{', '.join(ambiguous)} declares a testing-shaped member")
+            continue
         try:
             proc = subprocess.run(
                 ["go", "run", str(_SHADOWFIX)],
