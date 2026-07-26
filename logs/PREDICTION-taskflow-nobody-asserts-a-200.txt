@@ -53,3 +53,32 @@ PREDICTION
   where every closure today changed one thing. If it half-lands I will not know which half
   did the work. I am taking that trade deliberately — the five sites are one habit and one
   mirror gap, and grading is per site, so a partial result still reads cleanly.
+
+OUTCOME (2026-07-26, artifact generated/taskflow-status, promoted to taskflow-v4)
+=================================================================================
+    rc=0   742s   GREEN (build + vet + test -race -count=4)
+
+    1. projects_handler L22 (400 malformed)   SURVIVED -> CAUGHT    HIT
+    2. projects_handler L35 (409 duplicate)   SURVIVED -> CAUGHT    HIT
+    3. projects_handler L49 (200 list)        SURVIVED -> CAUGHT    HIT
+    4. tasks_handler    L49 (200 list)        SURVIVED -> CAUGHT    HIT
+    5. tasks_handler    L64 (200 get one)     SURVIVED -> CAUGHT    HIT
+    6. Both already-CAUGHT sites stayed CAUGHT; all five registered taskflow
+       mutations still apply and are still CAUGHT.                  HIT
+    7. taskflow green.                                              HIT
+
+    TEN of ten status sites in both handlers are now CAUGHT, and a full sweep of the tree
+    reports 22 of 34 probes answering with ZERO survivors — only the known-benign
+    statusRecorder default remains, which is log-only output.
+
+  24 named test functions, including all three new ones (TestGetOK,
+  TestProjectMalformedJSON, TestProjectCreateDuplicate). TestListLimit came back as its own
+  function this draw, after two draws merged into TestList — so the merge is a tendency, not
+  a rule, and one more reason to grade assertions rather than names.
+
+THE RISK I NAMED DID NOT MATERIALISE, AND THAT IS LUCK AS MUCH AS ANYTHING
+  I changed three assertions and added three tests in one edit and said that a partial
+  landing would leave me unable to attribute it. It landed whole, so attribution never came
+  up — but the correct reading is that this run bought less information per edit than the
+  one-change runs did, not that batching is safe. Both halves were independently motivated
+  (an assertion habit and a mirror gap), which is the only reason the result is legible.
