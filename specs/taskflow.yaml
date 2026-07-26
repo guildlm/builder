@@ -157,12 +157,17 @@ files:
       TestCreateDuplicate: POST the task ONCE (expect 201), then POST THE SAME id
       AGAIN -> 409. (Without the first POST there is nothing to duplicate.)
       TestGetMissing: on a fresh router, GET an id nobody created -> 404.
-      TestList: POST one task FIRST, then GET the collection. ASSERT rec.Code ==
-      http.StatusOK as its OWN step, BEFORE decoding — a handler answering 202 with
-      the identical body decodes exactly the same and passes a test that only
-      decodes. Then decode the JSON array and assert it holds EXACTLY 1 task.
-      TestGetOK: POST a task FIRST, then GET /tasks/1 -> assert rec.Code ==
-      http.StatusOK and the decoded task's Title matches what was posted. Nothing
+      TestList: POST one task FIRST, then GET the collection, decode the JSON array
+      and assert it holds EXACTLY 1 task.
+      TestListReturns200: its OWN test, and it exists because an assertion added
+      inside TestList did not survive regeneration — measured, twice. POST one task
+      FIRST, GET /tasks, and assert ONE thing: rec.Code == http.StatusOK. Decode
+      nothing. A handler answering 202 with an identical body passes every test that
+      only decodes, which is why this cannot be a line inside another case.
+      TestGetOK: POST a task FIRST, then GET /tasks/1 -> assert ONE thing, rec.Code ==
+      http.StatusOK. Decode nothing here; the body is TestGetOKBody's job.
+      TestGetOKBody: POST a task FIRST, GET /tasks/1, decode it and assert the Title
+      matches what was posted. Nothing
       else performs a SUCCESSFUL single-task GET: TestGetMissing checks 404 and
       TestDelete checks 404 after deleting, so the 200 on that path is written by
       the handler and read by nobody.
@@ -235,7 +240,7 @@ files:
       must POST that precondition ITSELF first. Build each request inline with
       httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
       is a one-shot reader). Each function asserts ONE outcome.
-      NINE test functions, all of them:
+      TEN test functions, all of them:
       TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
       then "1", then "2" (each valid, its own fresh request body) — then GET /projects
       and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
@@ -246,9 +251,10 @@ files:
       stored name.
       TestProjectCreateInvalid: POST a project with an EMPTY name -> 400.
       TestProjectGetMissing: GET a project id nobody created -> 404.
-      TestProjectList: POST ONE project FIRST, then GET the collection. ASSERT
-      rec.Code == http.StatusOK as its OWN step, BEFORE decoding, then decode the
+      TestProjectList: POST ONE project FIRST, then GET the collection, decode the
       JSON array and assert it holds EXACTLY 1 project.
+      TestProjectListReturns200: its OWN test. POST one project FIRST, GET /projects,
+      and assert ONE thing: rec.Code == http.StatusOK. Decode nothing.
       TestProjectMalformedJSON: POST /projects with a body that is not valid JSON
       (e.g. `{`) -> 400. The tasks half has this test; the projects half never did,
       and its 400 on the malformed-body branch is currently written by the handler

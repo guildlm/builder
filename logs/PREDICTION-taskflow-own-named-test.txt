@@ -1,0 +1,35 @@
+PREDICTION — does a DEDICATED name survive where an added assertion did not?
+=============================================================================
+2026-07-26, late. Not a new hole: a test of the repair the last finding proposed.
+
+THE SETUP
+  Four status assertions closed this afternoon reopened on the next draw. No test was lost;
+  the assertions inside them were. Every DURABLE closure today gave its invariant its own
+  named test; every unstable one added a line to a test that existed for another reason.
+
+  So the four are re-specified as their own named tests, each asserting ONE thing and
+  decoding nothing:
+      TestListReturns200 · TestProjectListReturns200 · TestGetOK (now status-only, with the
+      body assertion split into TestGetOKBody)
+
+  TestList and TestProjectList go back to what they were: decode and count.
+
+PREDICTION
+  1. All four new names are written.
+  2. tasks_handler L49 (200 list)     SURVIVED -> CAUGHT
+  3. projects_handler L49 (200 list)  SURVIVED -> CAUGHT
+  4. tasks_handler L64 (200 get one)  SURVIVED -> CAUGHT
+  5. projects_handler L64 (200 get)   — NOT predicted. No project single-GET status test was
+     added; TestProjectCreateGet already covers it and has held all day. Listed so a CAUGHT
+     there is read as the existing test, not as this edit working.
+  6. Nothing displaced: the other named tests all present, json tags still CAUGHT, the five
+     registered taskflow mutations still CAUGHT.
+
+  WHAT WOULD REFUTE THE REPAIR: any of 2-4 still SURVIVED. That would mean a dedicated name
+  is no better than an inline assertion for this invariant, the ceiling is lower than the
+  finding claims, and "name it" stops being the answer for anything an existing test could
+  have covered.
+
+  This is one draw. A hit does not make the closure durable — it makes it durable ONCE, which
+  is exactly the mistake the retraction was about. The honest claim after this run, if it
+  lands, is "the shape that survived one redraw was re-applied and held on the next".
