@@ -1,3 +1,21 @@
+SUPERSEDED IN PART — read this first
+=====================================
+Every "0 intermittent · closure HOLDS" row below was computed by _test_durability, which
+at the time asked only whether a NAMED TEST EXISTED. It does not measure what the test
+asserts, and that gap is not academic: ratelimit kept all five of its test functions while
+dropping every Retry-After and 200 assertion inside them, and this file called that spec
+stable.
+
+  what stands   the mutation-based grades — a mutation applied, the suite run
+  what does not the inference "0 intermittent, therefore the closures are durable"
+
+  See FINDING-test-presence-is-not-test-content.txt for the demonstration and
+  FINDING-closure-scoreboard-by-mutation.txt for the sound table that replaces the
+  inference. The corrected content measurement, taken with green trees only and
+  variable-renames excluded, puts tasks-api and ratelimit at ZERO drifting tests and
+  taskflow and shortener at two each — and shortener's two are RISING, which is closures
+  landing rather than defences lost.
+
 FINDING — closure durability is unmeasured for four specs and fails for the fifth
 ==================================================================================
 2026-07-26. Set out to audit which of the session's closures are still live. The audit's
