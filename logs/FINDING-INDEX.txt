@@ -113,3 +113,21 @@ QUEUED BY THE ACCIDENT — the measurement it forces
   and separates verdict flips from sites that merely moved. That answers "do the closures
   survive the next regeneration" for every spec at once, where the programme had answered
   it for two of five.
+
+LATER THE SAME AFTERNOON — three instrument defects, all found by real data
+  a tree with no tests is not         `go test` exits 0 with no _test.go, so a mutant passed
+  "undefended"                        and verdict_for printed its strongest claim about a
+                                      half-generated usersapi. New NOTESTS verdict, threaded
+                                      through every consumer that classifies verdicts.
+  the redraw comparator dropped 45%   Keyed by (artifact, file, shape), the eight same-shape
+  of the corpus                       sites in one file collapsed to one row: 149 -> 82.
+                                      Ordinal added. It had passed its own self-test; only
+                                      production data exposed it.
+  instruments must ask whether the    _corpus_state.py: REFUSE when the tree being graded is
+  corpus is moving                    in flight, WARN when anything else is generating.
+                                      _hole_hunt refuses a whole-corpus sweep outright,
+                                      because that sweep overwrites the tracked row file.
+
+  The common shape: each tool was correct on the inputs I had thought to plant, and wrong on
+  an input the day produced. A fixture suite proves what you imagined; pointing the tool at
+  live state is a different test, and it found something all three times.
