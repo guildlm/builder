@@ -42,3 +42,35 @@ WHAT TO DO WITH IT
   Do not promote a tree because it is green and its own closure is CAUGHT. Diff the whole
   verdict set first: green says the suite passes, and the row file says what the suite
   DEFENDS. Those came apart here in the direction that looks like success.
+
+CORPUS-WIDE CONTENT DRIFT, and two corrections to my own first number
+=====================================================================
+Ran the content check across every spec with several trees. The first pass said tasks-api
+drifts in NINE tests — the spec I had singled out as most stable, 17 of 17 named tests in
+all three trees. That would have been a striking headline and it was wrong twice.
+
+  1. RENAME NOISE. Collecting every `x.y` in an if-condition swept in local-variable
+     renames: createdTask.Title, got.Title and gotTask.Title are the SAME assertion written
+     by different runs. Restricting subjects to http.StatusX constants and quoted strings
+     took tasks-api from 9 to 7. Same shape as the registry-drift figure that came out 3x
+     too high this afternoon — a drift score is only as honest as what it counts as drift.
+
+  2. A RED TREE IN THE COMPARISON. tasksapi-errinvalid is the FAILING artifact from this
+     morning. Comparing a red tree's assertions against two green ones is not a measurement
+     of drift, it is a measurement of what failure looks like. Excluding it:
+
+        tasks-api, green trees only:   ZERO tests drifting in content
+
+  CORRECTED TABLE (green trees only, renames excluded)
+        tasks-api    2 trees   0 drifting
+        ratelimit    2 trees   0 drifting
+        taskflow     4 trees   2 drifting
+        shortener    3 trees   2 drifting
+
+  So tasks-api is stable in BOTH senses, and taskflow remains the outlier in both. The
+  claim I nearly published — "the spec I called most stable is the least stable" — was
+  produced entirely by my own choice of inputs.
+
+  Fourth time today a number was wrong because of what went INTO it rather than how it was
+  computed. The pattern is specific enough to state: when a score surprises me, the input
+  list is the first thing to audit, not the logic.

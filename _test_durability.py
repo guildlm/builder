@@ -158,7 +158,14 @@ def assertions_in(tree: pathlib.Path) -> dict:
             for cond in re.findall(r"if\s+([^{\n]+?)\s*\{", body):
                 if "!=" not in cond and "==" not in cond:
                     continue
-                subjects |= set(re.findall(r"http\.Status\w+|\"[A-Za-z-]+\"|\w+\.\w+", cond))
+                # STABLE SUBJECTS ONLY. Including every `x.y` swept in local-variable
+                # renames — createdTask.Title vs got.Title vs gotTask.Title is the SAME
+                # assertion written by a different run — and inflated tasks-api from a
+                # handful of real changes to nine. Same shape as the registry-drift number
+                # that came out 3x too high this afternoon: a drift score is only as
+                # honest as what it counts as drift.
+                subjects |= set(re.findall(r"http\.Status\w+", cond))
+                subjects |= set(re.findall(r"\"[A-Za-z][A-Za-z-]{2,}\"", cond))
             out[name] = (n, frozenset(subjects))
     return out
 
