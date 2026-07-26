@@ -32,7 +32,13 @@ GEN = pathlib.Path(os.environ.get("GUILDLM_CORPUS", ROOT / "generated"))
 def test_at_least_one_artifact_has_a_red_baseline():
     if not GEN.is_dir():
         pytest.skip("no generated/ corpus in this checkout")
-    artifacts = sorted(GEN.glob("*-v4"))
+    # AN EMPTY DIRECTORY IS NOT A RED BASELINE. `go build ./...` in a directory with no Go
+    # files fails too, so this check went on passing after I emptied 136 artifacts with a
+    # careless glob — 21 of the 25 -v4 trees had no code left at all, and every one of them
+    # counted as "fails to build". The rule it guards needs an artifact that COMPILES
+    # WRONG, not one with nothing to compile; absence and failure are different things, the
+    # same distinction _gate_audit.archived_failures() already draws for kill-debris.
+    artifacts = [d for d in sorted(GEN.glob("*-v4")) if any(d.rglob("*.go"))]
     if not artifacts:
         pytest.skip("corpus is empty")
     red = []
