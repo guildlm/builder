@@ -5,9 +5,9 @@ jsonapi-v4	main.go	StatusOK->StatusAccepted	CAUGHT
 kvservice-v4	main.go	StatusNotFound->StatusBadRequest	CAUGHT
 kvservice-v4	main.go	StatusBadRequest->StatusNotFound	SURVIVED
 kvservice-v4	main.go	StatusCreated->StatusOK	CAUGHT
-ratelimit-v4	api.go	StatusOK->StatusAccepted	SURVIVED
-ratelimit-v4	api.go	StatusOK->StatusAccepted	SURVIVED
-ratelimit-v4	middleware.go	StatusTooManyRequests->StatusServiceUnavailable	SURVIVED
+ratelimit-v4	api.go	StatusOK->StatusAccepted	CAUGHT
+ratelimit-v4	api.go	StatusOK->StatusAccepted	CAUGHT
+ratelimit-v4	middleware.go	StatusTooManyRequests->StatusServiceUnavailable	CAUGHT
 shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
 shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
 shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
@@ -21,13 +21,13 @@ shortener-v4	handlers.go	StatusOK->StatusAccepted	CAUGHT
 shortener-v4	router.go	StatusOK->StatusAccepted	CAUGHT
 taskflow-v4	middleware.go	StatusOK->StatusAccepted	SURVIVED*
 taskflow-v4	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
-taskflow-v4	projects_handler.go	StatusBadRequest->StatusNotFound	SURVIVED
+taskflow-v4	projects_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
 taskflow-v4	projects_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
 taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-taskflow-v4	projects_handler.go	StatusConflict->StatusBadRequest	SURVIVED
+taskflow-v4	projects_handler.go	StatusConflict->StatusBadRequest	CAUGHT
 taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	projects_handler.go	StatusCreated->StatusOK	CAUGHT
-taskflow-v4	projects_handler.go	StatusOK->StatusAccepted	SURVIVED
+taskflow-v4	projects_handler.go	StatusOK->StatusAccepted	CAUGHT
 taskflow-v4	projects_handler.go	StatusNotFound->StatusBadRequest	NOAPPLY
 taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	projects_handler.go	StatusOK->StatusAccepted	CAUGHT
@@ -40,10 +40,10 @@ taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	tasks_handler.go	StatusConflict->StatusBadRequest	CAUGHT
 taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	tasks_handler.go	StatusCreated->StatusOK	CAUGHT
-taskflow-v4	tasks_handler.go	StatusOK->StatusAccepted	SURVIVED
+taskflow-v4	tasks_handler.go	StatusOK->StatusAccepted	CAUGHT
 taskflow-v4	tasks_handler.go	StatusNotFound->StatusBadRequest	NOAPPLY
 taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
-taskflow-v4	tasks_handler.go	StatusOK->StatusAccepted	SURVIVED
+taskflow-v4	tasks_handler.go	StatusOK->StatusAccepted	CAUGHT
 taskflow-v4	tasks_handler.go	StatusNotFound->StatusBadRequest	NOAPPLY
 taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
 taskflow-v4	tasks_handler.go	StatusNoContent->StatusOK	CAUGHT
@@ -82,7 +82,7 @@ usersapi-v4	middleware.go	StatusOK->StatusAccepted	SURVIVED*
 usersapi-v4	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
 jsonapi-v4	main.go	drop Content-Type	CAUGHT
 kvservice-v4	main.go	drop Content-Type	CAUGHT
-ratelimit-v4	middleware.go	drop Retry-After	SURVIVED
+ratelimit-v4	middleware.go	drop Retry-After	CAUGHT
 ratelimit-v4	middleware.go	drop Content-Type	CAUGHT
 shortener-v4	handlers.go	drop Content-Type	CAUGHT
 taskflow-v4	httpjson.go	drop Content-Type	CAUGHT
@@ -91,7 +91,7 @@ usersapi-v4	handlers.go	drop Content-Type	CAUGHT
 logstats-v4	stats.go	reverse sort by Path	CAUGHT
 priorityqueue-v4	pq.go	reverse sort by Priority	CAUGHT
 taskflow-v4	store.go	reverse sort by ID	CAUGHT
-taskflow-v4	store.go	reverse sort by ID	SURVIVED
+taskflow-v4	store.go	reverse sort by ID	CAUGHT
 tasks-api-v4	store.go	reverse sort by ID	CAUGHT
 usersapi-v4	store.go	reverse sort by ID	CAUGHT
 logstats-v4	parse.go	%w -> %v (ErrBadLine)	CAUGHT
