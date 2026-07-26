@@ -200,6 +200,15 @@ files:
       this order deterministic — a store that returns them unsorted, or sorted the
       wrong way, ships green unless a test pins the exact order. Assert each index by
       id, not just that the slice is non-empty.
+      TestWireFieldNames: the JSON KEY NAMES are the contract, and every other test
+      here is blind to them — they marshal from Task and decode into Task, so both
+      sides go through the SAME struct tags and a rename is invisible. Measured:
+      renaming project_id leaves this suite green while a real client breaks. So: POST
+      a task carrying a project_id, GET /tasks, and decode the array into
+      []map[string]any — never into []Task. Then assert with the comma-ok form, each on
+      its OWN line, that the first element has the keys "id", "title", "status" and
+      "project_id": `if _, ok := m["project_id"]; !ok { t.Errorf(...) }`. A length
+      check is NOT a substitute — renaming a key leaves the count unchanged.
       TestValidateWrapsErrValidation: call Task.Validate() DIRECTLY (a unit test, no
       HTTP) on an invalid task — {Title: "", Status: "todo"} — and assert
       errors.Is(err, ErrValidation) is TRUE. Assert with errors.Is, NEVER on the message
