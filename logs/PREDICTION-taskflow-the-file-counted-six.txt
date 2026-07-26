@@ -1,0 +1,56 @@
+PREDICTION — taskflow's projects file said SIX, and wrote exactly six
+=====================================================================
+2026-07-26. Twelfth closure attempt, and the first where the cause was sitting in the spec
+text all along.
+
+WHAT I FOUND, AFTER THREE DRAWS OF LOOKING ELSEWHERE
+  projects_test.go's entry described TestListProjectsSorted at the TOP — four lines, with
+  the reason it matters — then gave general instructions, and then said:
+
+      SEPARATE FOCUSED TEST FUNCTIONS ... Each function asserts ONE outcome.
+      SIX test functions, all of them:
+      TestProjectCreateGet ... TestProjectDeleteMissing        <- exactly six, and
+                                                                  TestListProjectsSorted
+                                                                  is NOT among them
+
+  The model wrote those six and nothing else. Three draws running. The file's own stated
+  inventory excluded the seventh test, and the model obeyed the inventory over the prose
+  above it.
+
+  That is the same lesson as every wrong number this week: when a result surprises you,
+  audit the INPUT LIST first. I spent this morning refuting hypotheses about prose length,
+  test load and implementation gaps, and the spec had a COUNT in it that answered the
+  question.
+
+THE EDIT
+  Say SEVEN, and move TestListProjectsSorted INTO the enumerated list, keeping its wording
+  and its rationale verbatim. Nothing else in the spec changes: the same words, in the
+  list rather than above it.
+
+WHAT THIS DISCRIMINATES
+  Two live explanations for the same drop, and this run separates them:
+
+    THE COUNT       the file promised six functions and delivered six. Fixing the count
+                    should produce the test.
+    THE SORT TWIN   TestListProjectsSorted is a near-duplicate of TestListSorted, and a
+                    twin has nowhere to merge to, so it is dropped
+                    (FINDING-the-dropped-tests-are-sort-twins.txt).
+
+  If the test appears, the count was the binding constraint here and the twin story loses
+  its strongest single case — though it keeps taskapipro, whose entry has NO count sentence
+  and dropped a test from the middle of its list. If the test is STILL missing with the
+  count corrected, the count was never the constraint and the twin story is the one
+  standing.
+
+PREDICTION
+  1. TestListProjectsSorted is written.
+  2. Reversing ListProjects ALONE reads CAUGHT — the registered per-site row
+     (_reverse_id_sort_site(2, 2)) flips SURVIVED -> CAUGHT. This is the actual claim;
+     the name appearing is not the promise being defended.
+  3. The six existing project tests all stay: projects_test.go holds SEVEN functions, no
+     displacement.
+  4. taskflow stays green.
+
+  Watch also: TestListLimit, which vanished as a NAME last draw while its assertions were
+  copied verbatim into TestList. If it returns as its own function, that drop was noise
+  rather than a merge preference; if it stays merged, the merge is stable behaviour.

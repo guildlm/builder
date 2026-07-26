@@ -206,12 +206,6 @@ files:
       Standard library only.
   - path: projects_test.go
     purpose: >-
-      TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
-      then "1", then "2" (each valid, its own fresh request body) — then GET /projects
-      and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
-      back ASCENDING by INDEX: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3".
-      ListProjects sorts its own copy, and TestListSorted only pins the TASKS sort — the
-      projects sort can be reversed or dropped entirely and every other test still passes.
       package main. The project endpoints, in their OWN file so neither test file
       has to be long. They are a MIRROR of the task endpoints: registered on the
       same router, shipped in projects_handler.go — and until this file existed,
@@ -224,7 +218,13 @@ files:
       must POST that precondition ITSELF first. Build each request inline with
       httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
       is a one-shot reader). Each function asserts ONE outcome.
-      SIX test functions, all of them:
+      SEVEN test functions, all of them:
+      TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
+      then "1", then "2" (each valid, its own fresh request body) — then GET /projects
+      and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
+      back ASCENDING by INDEX: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3".
+      ListProjects sorts its own copy, and TestListSorted only pins the TASKS sort — the
+      projects sort can be reversed or dropped entirely and every other test still passes.
       TestProjectCreateGet: POST a project -> 201, then GET it back -> 200 with the
       stored name.
       TestProjectCreateInvalid: POST a project with an EMPTY name -> 400.
