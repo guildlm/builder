@@ -77,3 +77,19 @@ WHAT I DID NOT PREDICT — THE SITE MOVED FILE
   The pinned --file is a memory of the LAST tree. A regeneration is free to move the site,
   and this one did — which is one more reason the row file, not my recollection, is the
   record.
+
+CORRECTION, same hour — "same fleet" is not something I can claim
+  I wrote "same spec, same fleet, same model, one gate apart". The spec and the model are
+  checkable; the FLEET is not. The 3381-second run's log is gone (logs/ is full, that file
+  was never committed, and the artifact was replaced), so its invocation exists only in my
+  summary of it. It may have run base-only, or with a different member.
+
+  What survives the correction: the same spec, on the same base model, converged in 288s
+  with ONE deterministic fix round and zero model calls spent on the compile error, where
+  before the gate it burned eleven rounds and ended red on that error. The gate's effect on
+  THAT failure is directly verified — 120bb7c ran the chain against the failing artifact and
+  watched twelve compile errors go to zero. The 11.7x is a before/after across two runs, not
+  a controlled A/B, and the round count is the sturdier half of it.
+
+  This is exactly the hole `_tasksapi_ct_run.sh` was written to close: a run whose command
+  is not in the repo cannot be compared against later.
