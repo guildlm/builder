@@ -1,5 +1,12 @@
 .venv/
 generated/
+# ...except the planted red-baseline artifact. It is a two-file FIXTURE, not corpus data:
+# it exists so tests/test_corpus_keeps_a_red_baseline.py has an input that compiles WRONG.
+# The two real archives that used to carry that property were local-only and were deleted
+# (FINDING-i-deleted-the-corpus.txt); a control that cannot survive a fresh checkout is a
+# control that will go missing again.
+!generated/plantedred-v4/
+!generated/plantedred-v4/**
 __pycache__/
 *.pyc
 examples/**/*.test
