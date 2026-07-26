@@ -93,6 +93,16 @@ sites = sorted(f.name for f in NEW.rglob("*.go")
                if not f.name.endswith("_test.go") and PATTERN.search(f.read_text(errors="ignore")))
 print(f"{LABEL} applies in: {target}" + (f"   ({len(sites)} site(s): {', '.join(sites)})"
                                          if len(sites) > 1 else ""))
+# THE PINNED FILE IS A MEMORY OF THE LAST TREE. A regeneration is free to put the same
+# behaviour somewhere else, and it does: grading tasks-api's Content-Type closure with
+# --file=handlers.go — where writeJSON lived in every earlier tree — printed a bare
+# NOAPPLY, while the new tree had moved writeJSON into task.go and the closure was in fact
+# CAUGHT. NOAPPLY on a pinned file that holds no site reads exactly like "the mutation does
+# not apply here", which is true and useless; the useful sentence is that the site MOVED.
+if PINNED and sites and PINNED not in sites:
+    print(f"  !! --file={PINNED} holds no {LABEL} site, but {', '.join(sites)} does —"
+          f" the site MOVED between regenerations. Re-grade against that file;"
+          f" the NOAPPLY below is about the wrong file, not about the hole.")
 if target:
     v, note = verdict_for(NEW, target, break_it)
     print(f"  (1) {LABEL} -> {v}   [was SURVIVED before the spec edit]")

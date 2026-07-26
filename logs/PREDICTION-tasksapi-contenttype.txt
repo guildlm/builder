@@ -38,3 +38,42 @@ PREDICTION
   4. All 18 named tests are written — no displacement. This is the one to watch: adding a
      ninth test to handlers_test.go is exactly the move that preceded taskflow's drops,
      and tasks-api is the control that says load alone does not cause them.
+
+OUTCOME (2026-07-26, run `_tasksapi_ct_run.sh`, artifact generated/tasksapi-ct)
+==============================================================================
+    rc=0   288s   1 fix round   0 escalations   GREEN, verified independently
+                                                (build + vet + test -race -count=4)
+
+  All four predictions hit.
+    1. TestContentTypeJSON written, and passes.                          HIT
+    2. writeJSON sets Content-Type in the generated tree.                HIT
+    3. drop Content-Type -> CAUGHT   [SURVIVED before the edit]          HIT
+    4. 18 named tests, no displacement — the ninth entry cost nothing.   HIT
+       (11 in handlers_test.go, 7 in store_test.go; tasks-api holds its
+       17 + the new one.)
+    The registered "Create validates the body" mutation is unchanged: CAUGHT.
+
+THE COST, AGAINST THE RUN THAT MOTIVATED IT
+  The previous attempt at this same spec spent 3381 seconds and eleven fix rounds and
+  ended RED, on one line: `var t Task` inside a tester. With the shadow gate taught that
+  third shape (120bb7c), the same spec converged in 288 seconds and ONE round, and that
+  round was entirely deterministic — the gate fired in BOTH test files, and no model call
+  was needed to repair anything. 11.7x faster, and the model never saw the compile error.
+
+  That is the cleanest measurement yet of what a gate is worth: same spec, same fleet,
+  same model, one gate apart.
+
+WHAT I DID NOT PREDICT — THE SITE MOVED FILE
+  Every earlier tasks-api tree put writeJSON in handlers.go, so I graded with
+  --file=handlers.go and got NOAPPLY. The behaviour had not vanished; this tree put
+  writeJSON in task.go, and graded there it reads CAUGHT. The assertion moved too — the
+  named test landed in store_test.go, not handlers_test.go.
+
+  The grader was right to refuse, but a bare NOAPPLY reads like "the mutation does not
+  apply to this artifact", which would have retired a closure that had in fact landed.
+  _hole_closed now says so out loud when the pinned file holds no site and another file
+  does. Shown to fire on this artifact, and shown NOT to fire when the pin is correct.
+
+  The pinned --file is a memory of the LAST tree. A regeneration is free to move the site,
+  and this one did — which is one more reason the row file, not my recollection, is the
+  record.
