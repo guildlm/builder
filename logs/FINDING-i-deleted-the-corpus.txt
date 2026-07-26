@@ -1,0 +1,84 @@
+FINDING — I deleted 136 artifact directories with one careless glob
+====================================================================
+2026-07-26, ~14:52. Written by the person who did it, immediately, because the corpus is
+local-only state and the next session will otherwise read the instruments' silence as a
+result.
+
+WHAT HAPPENED
+  Chasing stray compiled binaries the test suite had been leaving inside the corpus, I ran:
+
+      rm -f generated/*/[a-z]*
+
+  intending "the stray binaries". `[a-z]*` matches EVERY file whose name starts with a
+  lowercase letter — which is every generated Go file this project writes: go.mod, main.go,
+  handlers.go, store.go, router.go, task.go, and every _test.go. Directories were spared
+  (no -r), so artifacts with NESTED packages survived and every FLAT artifact was emptied.
+
+THE DAMAGE, counted rather than estimated
+      artifact directories in generated/        243
+      still holding Go files                    107
+      EMPTIED                                   136
+
+      -v4 reference trees that survived           4   ledger, taskapi, taskapipro, workapi
+                                                      (all nested-package layouts)
+      -v4 reference trees emptied                21   bitset, demo-small, eventbus, expreval,
+                                                      genericset, jsonapi, jsoncodec,
+                                                      kvservice, logstats, lrucache, numkit,
+                                                      priorityqueue, ratelimit, shortener,
+                                                      taskflow, tasks-api, tasks-api-min,
+                                                      tasks-api-noshadownudge, usersapi,
+                                                      walkv, workerpool
+
+  Immediate instrument effect, measured, not guessed:
+
+      _teeth_suite.py   BEFORE   29 CAUGHT / 0 SURVIVED, 29 of 30 mutations applied
+                        AFTER     4 of 30 applied, 4 VOID — the rest report
+                                  "<file> not in artifact"
+
+  No local snapshots exist (`tmutil listlocalsnapshots /` is empty) and generated/ is
+  gitignored, so nothing is recoverable from disk or from version control.
+
+WHAT IS AND IS NOT LOST
+  RECOVERABLE by regeneration — every `<spec>-v4` tree. `_sweep.sh <spec>...` writes
+  exactly `generated/<spec>-v4`, which is what the archive was. The trees will be TODAY's
+  model output, not the historical ones, so the mutation registry's exact-string patches
+  will need re-pinning where they no longer apply — a cost already known and already paid
+  once (the registry was re-matched by shape at 27/28 this week).
+
+  NOT RECOVERABLE — the `_fail-*` archives with flat layouts. They are the residue of
+  specific historical failing runs and cannot be regenerated on demand; they were the
+  substrate for gate mining. The nested-layout ones (workapi, taskapipro) survived.
+  The last measurement taken over the full failure corpus, minutes before the deletion,
+  was: 11 green-by-gates · 4 advanced · 29 stuck (logs/gate-regress-after-ambig-guard.log).
+  That log is now the record of a corpus that no longer exists in full.
+
+  ALSO LOST — the BASELINE-RED control. tasks-api-min-v4 and tasks-api-noshadownudge-v4
+  were the only inputs exercising "a mutation on an already-red artifact is VOID", and
+  FINDING-the-broken-archives-are-the-only-control was written about exactly them. Their
+  guard test still passes, but for the wrong reason: an artifact with no Go files also
+  fails to build. Planting a deliberate red artifact is sanctioned by that test's own
+  docstring and is the honest repair.
+
+THE THING THAT MAKES THIS WORTH WRITING DOWN
+  FINDING-the-corpus-is-not-tracked.txt was written YESTERDAY. It says: generated/ is
+  gitignored, "the archive" is local state, and logs/hole-hunt-rows.tsv is the only durable
+  record of what it said. I wrote that, and then destroyed the thing it warned about
+  twenty-four hours later. The row file did its job — the corpus verdicts survive in git —
+  and it is now the ONLY surviving statement of what those 21 trees contained.
+
+  Two rules out of it, both cheap:
+    - Never pass a glob to rm. List the files first, write them to a file, and delete FROM
+      that list. I had already built exactly that list (`find ... > /tmp/stray-binaries.txt`
+      then `xargs rm`) an hour earlier and did it correctly; the second time I typed the
+      shortcut.
+    - A destructive command run while a build is in flight damages the build too. The
+      taskflow run in progress lost its files mid-generation and had to be killed and
+      restarted; its partial result would have read as a taskflow failure.
+
+WHAT THE STRAY-BINARY HUNT ACTUALLY FOUND, since it was real
+  tests/test_corpus_keeps_a_red_baseline.py ran `go build ./...` with cwd=<artifact>, and
+  in a main package that WRITES THE EXECUTABLE INTO THE CURRENT DIRECTORY — nine 8MB
+  binaries, straight into the corpus the suite is supposed to only read. Fixed to build
+  into a temp dir (`-o <tmpdir>`). The instrument that infers a tree's age reads *.go only,
+  so no published number moved; a test that writes into its own evidence is still a
+  measurement waiting to be wrong.

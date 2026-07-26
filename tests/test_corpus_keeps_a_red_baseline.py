@@ -16,6 +16,7 @@ something still fails to build.
 
 import pathlib
 import subprocess
+import tempfile
 
 import pytest
 
@@ -35,11 +36,21 @@ def test_at_least_one_artifact_has_a_red_baseline():
     if not artifacts:
         pytest.skip("corpus is empty")
     red = []
-    for art in artifacts:
-        proc = subprocess.run(["go", "build", "./..."], cwd=art,
-                              capture_output=True, text=True, timeout=120)
-        if proc.returncode != 0:
-            red.append(art.name)
+    # -o <tmpdir>: `go build ./...` in a main package WRITES THE EXECUTABLE INTO THE
+    # CURRENT DIRECTORY, so this check was leaving an 8MB binary inside every service
+    # artifact it inspected — nine of them, ~74MB, straight into the corpus it audits.
+    # Traced from the other end: the artifacts' directory mtimes were all stamped with the
+    # minute this suite last ran, which is how a corpus that nothing should be writing to
+    # started looking freshly touched. (_gate_audit already strips "stray compiled
+    # binaries" from its copies; this is where they came from.) The one instrument that
+    # infers a tree's age reads *.go only, so no published number moved — but a test that
+    # writes into the corpus is a measurement waiting to be wrong.
+    with tempfile.TemporaryDirectory() as out:
+        for art in artifacts:
+            proc = subprocess.run(["go", "build", "-o", out, "./..."], cwd=art,
+                                  capture_output=True, text=True, timeout=120)
+            if proc.returncode != 0:
+                red.append(art.name)
     assert red, (
         "Every artifact in generated/ builds, so nothing exercises the BASELINE-RED path.\n"
         "That path implements the rule that a mutation on an already-failing artifact is a\n"
