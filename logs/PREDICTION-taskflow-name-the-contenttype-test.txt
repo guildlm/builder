@@ -1,0 +1,41 @@
+PREDICTION — name taskflow's Content-Type test instead of appending it
+=======================================================================
+2026-07-26. Eleventh closure attempt, and the first aimed at a lesson already in my notes.
+
+THE MEASUREMENT THAT MOTIVATED IT
+  Content drift, oldest tree first:
+
+      taskflow  TestCreateOK   2, 3, 3, 2   oscillating
+                    subject not asserted in every run: "Content-Type"
+
+  That single flickering assertion is why taskflow's drop-Content-Type mutation reads
+  CAUGHT on some trees and SURVIVED on others. Not a different bug each time — the same
+  assertion appearing and vanishing.
+
+WHY IT FLICKERS, WITH THE COMPARISON THAT MAKES IT A CLAIM
+      ratelimit · usersapi · jsonapi · shortener · tasks-api
+          each has its OWN named TestContentTypeJSON        all stable, all CAUGHT
+      taskflow
+          the assertion is APPENDED to TestCreateOK's       present in 2 of 4 runs
+          description, with no test of its own
+
+  Five named, five stable. One appended, half-present. An earlier session recorded exactly
+  this — "appended a clause instead of naming a test, model dropped it; naming works,
+  appending does not" — and taskflow is the case that was never converted. The note was
+  qualitative; this is the same claim with a count behind it.
+
+THE EDIT
+  Give taskflow its own TestContentTypeJSON in taskflow_test.go, worded like the five that
+  hold, and leave TestCreateOK to assert the 201 and the echo.
+
+PREDICTION
+  1. TestContentTypeJSON is written.
+  2. drop Content-Type reads CAUGHT at httpjson.go.
+  3. TestCreateOK keeps its own assertions (201, echo) — the split should not cost it.
+  4. taskflow stays green.
+
+  The honest risk: taskflow is the spec that drops tests, so a NEWLY named test is exactly
+  the kind it has dropped before — TestListProjectsSorted appears in 1 of 3 eligible runs.
+  If the new test is missing, the answer is not "naming does not work here" on one run; it
+  is that taskflow needs several runs before either claim is measurable, which is what the
+  durability programme established today.

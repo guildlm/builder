@@ -141,9 +141,13 @@ files:
       Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. A fresh
       router is EMPTY, so any case with a precondition must CREATE it FIRST, by
       POSTing, in its own body:
-      TestCreateOK: POST a valid task -> 201 and the body echoes it, and assert the
-      RESPONSE carries Content-Type: application/json (rec.Header().Get(
-      "Content-Type")) — writeJSON promises that header and nothing else checks it.
+      TestCreateOK: POST a valid task -> 201 and the body echoes it.
+      TestContentTypeJSON: on a fresh router, POST a valid task and assert the RESPONSE
+      header Content-Type is exactly "application/json", read off the recorder
+      (rec.Header().Get("Content-Type")). Its OWN test, not a clause inside another one:
+      writeJSON promises that header, nothing else checks it, and when this assertion was
+      appended to TestCreateOK the model wrote it in only half of four runs — while every
+      other spec that gives it a named test of its own keeps it in every run.
       TestCreateInvalid: POST a task with a NON-EMPTY title but an INVALID status —
       exactly this body: {"id":"1","title":"x","status":"nope"} -> 400. The title is
       non-empty ON PURPOSE: Validate rejects BOTH an empty title AND a status outside
