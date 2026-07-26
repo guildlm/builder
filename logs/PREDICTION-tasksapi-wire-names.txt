@@ -1,0 +1,34 @@
+PREDICTION — tasks-api's wire names, with jsonapi's lesson already applied
+==========================================================================
+2026-07-26. Same hole, second spec, and the first closure written with the displacement rule
+in hand.
+
+THE HOLE
+    task.go   json:"id"          SURVIVED
+              json:"done"        SURVIVED
+              json:"created_at"  SURVIVED
+              json:"title"       CAUGHT
+  Three of four wire names undefended. No test in the tree decodes into map[string]any —
+  every one marshals from Task and decodes into Task, so a rename is symmetric and invisible.
+
+  `title` is CAUGHT only because a test asserts the echoed title against a literal, which
+  reaches the wire name by accident rather than by intent.
+
+WHY THIS EDIT SHOULD BE SAFE WHERE jsonapi's WAS NOT
+  jsonapi lost three tests to this same kind of edit because its entry mixed named tests with
+  anonymous prose. tasks-api does not: _unnamed_tests.py reports nothing for it, so every
+  test in its tree is already in its spec's inventory and there is nothing beside the new
+  name to displace. That is the prediction being tested as much as the closure.
+
+PREDICTION
+  1. TestWireFieldNames is written.
+  2. json tag "id"          SURVIVED -> CAUGHT
+  3. json tag "done"        SURVIVED -> CAUGHT
+  4. json tag "created_at"  SURVIVED -> CAUGHT
+  5. NOTHING IS DISPLACED: all 18 previously named tests still present, and the registered
+     "Create validates the body" mutation still CAUGHT.
+  6. tasks-api stays green.
+
+  Prediction 5 is the one that matters. If it fails on a fully-named entry, then naming is
+  not the protection jsonapi's repair suggested, and the rule needs rewriting rather than
+  applying.

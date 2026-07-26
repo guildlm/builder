@@ -123,6 +123,15 @@ files:
       on some runs and not others — measured across four generated trees, present in two
       — because nothing in this spec asks for it and the model is equally correct either
       way.
+      TestWireFieldNames: the JSON KEY NAMES are the API's contract, and every test
+      here is blind to them — they marshal from Task and decode into Task, so both
+      sides go through the SAME struct tags and renaming one renames it in the test
+      too. Measured: renaming id, done or created_at leaves this suite green while a
+      real client breaks. So: POST a task, GET /tasks/1, and decode the response into
+      a map[string]any — never into Task. Then assert, each on its OWN line with the
+      comma-ok form, that the keys "id", "title", "done" and "created_at" are ALL
+      PRESENT: `if _, ok := m["created_at"]; !ok { t.Errorf(...) }`. A length check is
+      NOT a substitute — renaming a key leaves the count unchanged.
       TestValidateWrapsErrInvalidTask: call Validate() on a Task whose Title is
       empty (or only spaces) and assert errors.Is(err, ErrInvalidTask). Assert
       with errors.Is, NOT by comparing the error MESSAGE — the message is
