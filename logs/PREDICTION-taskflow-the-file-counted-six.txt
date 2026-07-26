@@ -54,3 +54,36 @@ PREDICTION
   Watch also: TestListLimit, which vanished as a NAME last draw while its assertions were
   copied verbatim into TestList. If it returns as its own function, that drop was noise
   rather than a merge preference; if it stays merged, the merge is stable behaviour.
+
+OUTCOME (2026-07-26, artifact generated/taskflow-projsort) — all four hit
+=========================================================================
+    GREEN, verified independently (build + vet + test -race -count=4)
+
+    1. TestListProjectsSorted is written.                                     HIT
+    2. Reversing ListProjects ALONE -> CAUGHT   [SURVIVED in four prior trees] HIT
+    3. projects_test.go holds SEVEN functions — the six others all present,
+       nothing displaced.                                                     HIT
+    4. taskflow stays green.                                                  HIT
+
+  Reversing ListTasks alone is still CAUGHT, so the file now defends BOTH sites. That is
+  the first taskflow tree in this project's history to do so.
+
+THE DISCRIMINATION, which is what the run was for
+  Two explanations were live for the same three-draw drop:
+
+    THE ENUMERATION   the test was described above the list and left out of it.
+    THE SORT TWIN     a near-duplicate with nowhere to merge to gets dropped.
+
+  Moving the test INTO the list — same words, same rationale, one line moved — produced it
+  on the first draw after three consecutive draws without it. THE ENUMERATION WINS for
+  taskflow, and the twin story loses its strongest single case.
+
+  It keeps taskapipro, and that case is now the interesting one: TestListSorted sits IN its
+  entry's enumerated list, and the model drops it anyway. Whatever is happening there is not
+  this.
+
+THE WATCH ITEM, second draw running
+  TestListLimit is again absent as a NAME while its `limit=1` assertions are again inside
+  taskflow_test.go. Twice is a preference, not noise: the model merges a test into a
+  neighbour when the neighbour already exercises the same entity, and the spec's own
+  enumeration cannot stop it. A NAME is not the unit of defence — the assertion is.
