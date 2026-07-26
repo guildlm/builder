@@ -429,6 +429,17 @@ MUTATIONS = [
     ("usersapi", "store.go",
      "List returns users sorted by ID (deterministic output)",
      _reverse_id_sort(1)),                           # was drop (flaky); now reverse (deterministic) — CAUGHT once an order test exists
+    # --- ratelimit flow tests (added 2026-07-26): the deny path, defended at last ---
+    # Four survivors closed by one spec edit — the flow tests were described in full and
+    # named nowhere, so the model wrote none of them. Registered now that they are defended,
+    # because an undefended promise nobody registers is a hole that reappears silently.
+    ("ratelimit", "middleware.go",
+     "429 response carries Retry-After: 1",
+     _drop_line(r'[ \t]*w\.Header\(\)\.Set\("Retry-After", *"1"\)\n')),
+    ("ratelimit", "middleware.go",
+     "over-limit responds 429 TooManyRequests (not 503)",
+     lambda t: t.replace("http.StatusTooManyRequests", "http.StatusServiceUnavailable", 1)
+     if t.count("http.StatusTooManyRequests") == 1 else None),
     # --- logstats (added 2026-07-18): a SPLIT sort — half defended, half not ---
     ("logstats", "stats.go",
      "Report ranks paths by Count descending",

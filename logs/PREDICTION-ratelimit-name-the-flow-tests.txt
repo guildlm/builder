@@ -52,3 +52,32 @@ PREDICTION
 
   If the flow tests appear and the mutations still survive, the lever works and the
   assertions are the problem — a different finding, and a more interesting one.
+
+OUTCOME (2026-07-26, artifact generated/ratelimit-flow, promoted to ratelimit-v4)
+==================================================================================
+    rc=0   146s   0 fix rounds   GREEN (build + vet + test -race -count=4)
+
+    1. All three named flow tests written.                                     HIT
+    2. drop Retry-After              SURVIVED -> CAUGHT                        HIT
+    3. 429 -> 503                    SURVIVED -> CAUGHT                        HIT
+    4. Eight functions, nothing displaced (5 named + 3 new).                   HIT
+    5. ratelimit stays green.                                                  HIT
+
+  AND THE TWO I REFUSED TO CLAIM CLOSED TOO. Both api.go StatusOK sites read CAUGHT.
+  I withheld them because a shape's sites are not a promise's sites and claiming them would
+  have been the error this project keeps making — but TestFlowAllowThenDeny and
+  TestFlowTwoClients assert 200 on allowed requests, which reaches them. Withholding cost
+  nothing and would have caught me if they had stayed open.
+
+      ratelimit survivors: 4 -> 0.   All five probes on this tree now CAUGHT.
+
+  This is the largest single closure of the session: four undefended promises, one spec
+  edit, 146 seconds, zero fix rounds. The edit added no new requirement — the behaviour was
+  already specified in full. It gave three tests names.
+
+FOLLOW-UP DONE
+  The tree is promoted to ratelimit-v4 (the archive should reflect the current spec; the
+  pre-closure verdicts survive in logs/hole-hunt-rows.tsv, which is why promotion is safe
+  here and was not before), and both newly defended invariants are REGISTERED in
+  _teeth_suite — Retry-After and the 429. An undefended promise nobody registers is a hole
+  that comes back without anyone noticing.
