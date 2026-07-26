@@ -103,3 +103,19 @@ GRADED, same hour — prediction hit, and the "only" in the headline is refuted
   are about the SAME entity it already exercises, while asserting project order inside a
   tasks test would need a second entity the test never touches. The twin is dropped, not
   merged, precisely because there is nowhere to merge it to.
+
+SUPERSEDED FOR taskflow (2026-07-26, same day) — the enumeration was the cause
+==============================================================================
+  taskflow's TestListProjectsSorted was named ABOVE its entry's enumerated list and left
+  out of it. Moving it INTO the list — same words, one line moved — produced the test on
+  the first draw, and reversing ListProjects alone now reads CAUGHT where four prior trees
+  survived it. Three draws of absence had a one-line cause in the spec.
+
+  So the strongest case in this file is explained by something else, and the twin story does
+  not get to claim it. What it still holds is taskapipro: TestListSorted is IN that entry's
+  list and is dropped anyway, with the behaviour implemented underneath. That case is
+  unexplained and is now the one worth chasing.
+
+  Keeping the file rather than deleting it, because the two refutations it records (the
+  implementation-gap and prose-length hypotheses) cost real measurements and remain true,
+  and because the sequence — pattern, prediction, better explanation — is the useful part.
