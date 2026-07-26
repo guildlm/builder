@@ -23,8 +23,19 @@ echo "baseline preserved -> logs/hole-hunt-rows-before-redraw.tsv"
 
 echo "=== sweeping the rebuilt corpus (all sites) ==="
 .venv/bin/python _hole_hunt.py --all-sites > logs/hole-hunt-after-redraw.log 2>&1
-echo "rc=$?  (rows rewritten in logs/hole-hunt-rows.tsv)"
+HUNT_RC=$?
+echo "rc=$HUNT_RC  (rows rewritten in logs/hole-hunt-rows.tsv)"
 tail -12 logs/hole-hunt-after-redraw.log
+# ABORT IF THE SWEEP DID NOT RUN. _hole_hunt now exits 2 rather than sweeping a corpus that
+# is still being written — and if it refuses, the rows file still holds the BASELINE, so the
+# diff below would compare the baseline against itself and print "0 flips". A comparison
+# that silently answers about nothing is precisely what this whole afternoon was spent
+# closing; it does not get to happen in the script that reports the result.
+if [[ $HUNT_RC -ne 0 ]]; then
+  echo "ABORTING: the sweep did not run (rc=$HUNT_RC), so the rows file is unchanged."
+  echo "A diff now would compare the baseline with itself and report no change."
+  exit 1
+fi
 
 echo
 echo "=== REDRAW DIFF: what a full regeneration changed ==="
