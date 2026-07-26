@@ -157,8 +157,15 @@ files:
       TestCreateDuplicate: POST the task ONCE (expect 201), then POST THE SAME id
       AGAIN -> 409. (Without the first POST there is nothing to duplicate.)
       TestGetMissing: on a fresh router, GET an id nobody created -> 404.
-      TestList: POST one task FIRST, then GET the collection -> 200 and a JSON
-      array.
+      TestList: POST one task FIRST, then GET the collection. ASSERT rec.Code ==
+      http.StatusOK as its OWN step, BEFORE decoding — a handler answering 202 with
+      the identical body decodes exactly the same and passes a test that only
+      decodes. Then decode the JSON array and assert it holds EXACTLY 1 task.
+      TestGetOK: POST a task FIRST, then GET /tasks/1 -> assert rec.Code ==
+      http.StatusOK and the decoded task's Title matches what was posted. Nothing
+      else performs a SUCCESSFUL single-task GET: TestGetMissing checks 404 and
+      TestDelete checks 404 after deleting, so the 200 on that path is written by
+      the handler and read by nobody.
       TestListLimit: FOUR recorders are in play here — two POSTs and two GETs — and
       ONLY the GET recorders hold JSON ARRAYS. A POST recorder holds ONE task OBJECT,
       so decoding it into []Task fails with "cannot unmarshal object into Go value of
@@ -185,8 +192,9 @@ files:
       len(limited) == 1 is EXACTLY one, NEVER "at most one": a paginate that wrongly
       returns ZERO items satisfies "at most 1" and the bug ships green.
       TestListSorted: POST THREE tasks with ids OUT OF ORDER — first "3", then "1",
-      then "2" (each a valid task, its own fresh request body) — then GET /tasks and
-      decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
+      then "2" (each a valid task, its own fresh request body) — then GET /tasks,
+      ASSERT rec.Code == http.StatusOK before decoding, and decode the JSON array
+      into a slice `got`. Assert len(got) == 3 AND the ids come
       back ASCENDING: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3". The store
       holds tasks in a map (random iteration order), so ONLY ListTasks's sort makes
       this order deterministic — a store that returns them unsorted, or sorted the
@@ -218,7 +226,7 @@ files:
       must POST that precondition ITSELF first. Build each request inline with
       httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
       is a one-shot reader). Each function asserts ONE outcome.
-      SEVEN test functions, all of them:
+      NINE test functions, all of them:
       TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
       then "1", then "2" (each valid, its own fresh request body) — then GET /projects
       and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
@@ -229,8 +237,15 @@ files:
       stored name.
       TestProjectCreateInvalid: POST a project with an EMPTY name -> 400.
       TestProjectGetMissing: GET a project id nobody created -> 404.
-      TestProjectList: POST ONE project FIRST, then GET the collection -> 200 and a
-      JSON array holding EXACTLY 1 project.
+      TestProjectList: POST ONE project FIRST, then GET the collection. ASSERT
+      rec.Code == http.StatusOK as its OWN step, BEFORE decoding, then decode the
+      JSON array and assert it holds EXACTLY 1 project.
+      TestProjectMalformedJSON: POST /projects with a body that is not valid JSON
+      (e.g. `{`) -> 400. The tasks half has this test; the projects half never did,
+      and its 400 on the malformed-body branch is currently written by the handler
+      and checked by nothing.
+      TestProjectCreateDuplicate: POST a project ONCE (201), then POST the SAME id
+      AGAIN -> 409. Same gap as above — tasks defends its 409, projects does not.
       TestProjectDelete: POST a project FIRST, DELETE it -> 204, then GET it -> 404.
       TestProjectDeleteMissing: DELETE a project id nobody created -> 404.
       Imports bytes, encoding/json, net/http, net/http/httptest, testing.

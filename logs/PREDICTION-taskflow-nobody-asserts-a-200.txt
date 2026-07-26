@@ -1,0 +1,55 @@
+PREDICTION — five undefended status sites, and four of them are a GET's 200
+============================================================================
+2026-07-26. Fourteenth closure attempt. Site-by-site verdicts first, because "taskflow has
+five status survivors" was not specific enough to act on.
+
+THE MAP (every status site in both handlers, mutated one at a time)
+    projects_handler.go  L22  400 malformed body    SURVIVED
+                         L27  400 validation        CAUGHT     TestProjectCreateInvalid
+                         L35  409 duplicate         SURVIVED
+                         L49  200 list              SURVIVED
+                         L64  200 get one           CAUGHT     TestProjectCreateGet
+    tasks_handler.go     L22  400 malformed body    CAUGHT     TestMalformedJSON
+                         L27  400 validation        CAUGHT     TestCreateInvalid
+                         L35  409 duplicate         CAUGHT     TestCreateDuplicate
+                         L49  200 list              SURVIVED
+                         L64  200 get one           SURVIVED
+
+  The mirror is asymmetric in both directions: tasks defends malformed and duplicate where
+  projects does not; projects defends its single-GET 200 where tasks does not. Neither side
+  is simply "the neglected half".
+
+THE RULE UNDER FOUR OF THE FIVE — DECODING IS NOT ASSERTING
+  TestList, TestListSorted and TestProjectList all GET a collection and go straight to
+  json.NewDecoder(...).Decode(&got). None of them reads rec.Code. A handler that answered
+  202 Accepted with a byte-identical body would pass every one of them. The same is true of
+  the single-GET on the tasks side: no test performs a successful GET of one task at all —
+  TestGetMissing checks 404, TestDelete checks 404 after deleting.
+
+  So four of the five holes are one habit: the test that exercises the happy path decodes
+  the payload and never looks at the status line. That is a different failure from a missing
+  test, and it is invisible to any count of test functions — ratelimit's holes were tests
+  that did not exist, and these are tests that exist and do not look.
+
+THE EDIT
+  tasks entry:     TestList and TestListSorted assert rec.Code == http.StatusOK BEFORE
+                   decoding; new named TestGetOK — POST a task, GET /tasks/1 -> 200 and the
+                   stored title.
+  projects entry:  TestProjectList asserts 200 before decoding; new named
+                   TestProjectMalformedJSON (400) and TestProjectCreateDuplicate (409),
+                   both added to the entry's enumerated list, which becomes NINE.
+
+PREDICTION
+  1. projects_handler L22 (400 malformed)   SURVIVED -> CAUGHT
+  2. projects_handler L35 (409 duplicate)   SURVIVED -> CAUGHT
+  3. projects_handler L49 (200 list)        SURVIVED -> CAUGHT
+  4. tasks_handler    L49 (200 list)        SURVIVED -> CAUGHT
+  5. tasks_handler    L64 (200 get one)     SURVIVED -> CAUGHT
+  6. The two already-CAUGHT sites stay CAUGHT, and the four registered taskflow mutations
+     still apply and stay CAUGHT.
+  7. taskflow stays green.
+
+  The risk worth naming: this edit adds three test functions and three assertions at once,
+  where every closure today changed one thing. If it half-lands I will not know which half
+  did the work. I am taking that trade deliberately — the five sites are one habit and one
+  mirror gap, and grading is per site, so a partial result still reads cleanly.
