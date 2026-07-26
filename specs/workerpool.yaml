@@ -20,9 +20,10 @@ files:
       the channel before Wait. Standard library only.
   - path: pool_test.go
     purpose: >-
-      package pool. Tests for ParallelMap: squaring 1..8 with 3 workers returns
-      results in order and calls fn exactly once per item (count with
-      sync/atomic); workers=0 still processes every item.
+      package pool. THREE test functions, all of them named:
+      TestParallelMapOrderAndCount: squaring 1..8 with 3 workers returns results in
+      order and calls fn exactly once per item (count with sync/atomic).
+      TestParallelMapZeroWorkers: workers=0 still processes every item.
       TestParallelMapBoundedConcurrency: PROVE ParallelMap never runs more than
       `workers` goroutines at once — the one invariant with NO output signature (order
       and count are identical whether it runs 2 goroutines or one-per-item, so only a

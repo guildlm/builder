@@ -64,7 +64,10 @@ files:
       the first line Consume() reads panics with `assignment to entry in nil map`
       against an implementation that is perfectly correct. The constructor is what
       makes the map; skip the constructor and you skip the map.
-      ParseLine cases: a valid line round-trips every Entry field exactly. To
+      TWO of the three test functions in this file are named here and the third is
+      TestReport below; a test the spec does not name is one a later edit deletes
+      without anyone noticing.
+      TestParseLine: a valid line round-trips every Entry field exactly. To
       check the parsed timestamp, compare entry.Time.Format(time.RFC3339) against
       the RFC3339 string, or entry.Time.Equal(time.Date(2026, 1, 2, 15, 4, 5, 0,
       time.UTC)) — do NOT use entry.Time.String() (its output is
@@ -81,7 +84,7 @@ files:
         if _, err := ParseLine(bad); !errors.Is(err, ErrBadLine) {
             t.Errorf("ParseLine(%q): err = %v, want ErrBadLine", bad, err)
         }
-      Consume: use EXACTLY this fixture (do not invent
+      TestConsume: use EXACTLY this fixture (do not invent
       your own lines or recompute the expectations — transcribe them). Build the
       input by joining these five entries with "\n" (a real empty line in the
       middle, a malformed line at the end):

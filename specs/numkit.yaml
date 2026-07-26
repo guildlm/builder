@@ -19,9 +19,10 @@ files:
       [lo, hi]; if lo > hi the function returns x unchanged.
   - path: numkit_test.go
     purpose: >-
-      package numkit. Table-driven tests for GCD and Clamp covering: GCD of
-      coprime numbers (GCD(8,15)=1), a common factor (GCD(12,18)=6), a zero
-      operand (GCD(0,5)=5), and negatives (GCD(-12,18)=6); Clamp below range
+      package numkit. TWO test functions, both named:
+      TestGCD: table-driven, covering coprime numbers (GCD(8,15)=1), a common factor
+      (GCD(12,18)=6), a zero operand (GCD(0,5)=5), and negatives (GCD(-12,18)=6).
+      TestClamp: table-driven, covering below range
       (Clamp(-1,0,10)=0), inside range (Clamp(5,0,10)=5), above range
       (Clamp(99,0,10)=10), and inverted bounds returning x unchanged
       (Clamp(7,10,0)=7).
