@@ -1,0 +1,35 @@
+PREDICTION — paying jsonapi's debt before it comes due
+=======================================================
+2026-07-26. Not a hole closure. A DEBT payment, and the first edit today whose purpose is to
+change nothing observable.
+
+THE DEBT
+  _unnamed_tests.py: usersapi has 3 spec-named tests and 11 in the tree. Eight exist and are
+  named nowhere — TestCreateReturns201AndEcho, TestDuplicateReturns409,
+  TestGetExistingReturns200, TestGetMissingReturns404, TestDeleteExistingThen404,
+  TestDeleteMissingReturns404, TestListReturnsAll, TestMalformedJSONReturns400. The spec
+  describes their behaviour ("one ORDERED flow test ... plus THREE small focused tests") and
+  names none of it.
+
+  jsonapi was this exact shape and it cost three tests and a registered defence the moment I
+  added one name to the entry. usersapi has two registered mutations riding on those unnamed
+  tests — duplicate-409 and List-sorted, both currently CAUGHT.
+
+THE EDIT
+  Name all eight, using the names the model already chose, so the spec describes the tree
+  that exists rather than a tree I would prefer. State the inventory as TEN. Nothing about
+  the required behaviour changes.
+
+PREDICTION
+  1. All ten named tests are written.
+  2. Both registered mutations stay CAUGHT.
+  3. A full sweep of the new tree has no MORE survivors than the current one.
+  4. usersapi stays green.
+
+  What would make this interesting rather than routine: if the ORDERED-flow instruction
+  produced one function before and six named functions now, the six may each need their own
+  preconditions, and a model that gets that wrong writes six tests that 404. The spec now
+  says so explicitly for that reason.
+
+  If any of the ten is missing, the "name what exists" rule is weaker than jsonapi made it
+  look, and I would rather learn that on a spec whose defences are currently intact.
