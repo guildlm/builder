@@ -231,7 +231,19 @@ if shifted:
     print(f"\n  PRESENT EVERY RUN but NOT ASSERTING THE SAME THINGS ({len(shifted)}):")
     for t, (counts, lost) in sorted(shifted.items()):
         detail = ", ".join(f"{n}:{c}" for n, c in counts.items())
+        # DIRECTION MATTERS. Trees are given oldest-first, so a count that only ever rises
+        # is closures LANDING — shortener's TestStatsCountsOneHit goes 3, 4, 6 across
+        # exactly the runs where the spec asked for more. One that falls or oscillates is
+        # a defence coming and going: taskflow's TestCreateOK runs 2, 3, 3, 2 and the
+        # subject it loses is "Content-Type", which is why that mutation reads CAUGHT on
+        # some trees and SURVIVED on others. Reporting both as "drift" hides the
+        # difference between progress and instability.
+        seq = list(counts.values())
+        arrow = ("rising — assertions being ADDED" if seq == sorted(seq) and seq[0] != seq[-1]
+                 else "FALLING — assertions lost" if seq == sorted(seq, reverse=True) and seq[0] != seq[-1]
+                 else "oscillating — a defence coming and going")
         print(f"      {t:<34} {detail}")
+        print(f"          {arrow}")
         if lost:
             print(f"          not asserted in every run: {', '.join(lost)}")
     print("      A name persisting is not the same as a promise staying defended.")
