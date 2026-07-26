@@ -1,0 +1,32 @@
+FINDING — gate-mining predicted where the next gate would come from, and was right
+===================================================================================
+2026-07-26. A loop closed from an earlier session.
+
+THE PREDICTION, made when the mining campaign ended
+      "So the gate-mining vein is exhausted; the next gate will come from a new failing
+       run."                                    — FINDING-gate-mining.txt, line 48
+
+WHAT HAPPENED TODAY
+  A gate was added for `var t Task` inside `func TestX(t *testing.T)`, and it came from
+  exactly there: a tasks-api run that went red AFTER a spec edit, not from anything in the
+  archive.
+
+  Measured rather than assumed:
+      archived artifacts producing "t redeclared":     0 of 25
+      today's run logs producing it:                   9 occurrences, all in ONE run
+                                                       (tasksapi-ct.log, the failure)
+
+  So mining the archive could not have found this shape. Mining looks at failures that
+  ALREADY HAPPENED; a shape that first occurs when a spec gets harder is invisible to it by
+  construction, and the campaign that ended in "exhausted" was right about its own limit.
+
+A NEAR-MISS WORTH SEPARATING
+  FINDING-weak-base-fuzzing counted "redeclared in this block" at 2 hits in 2 logs and used
+  it as a scale reference while dismissing the shapes that campaign surfaced. Those two
+  hits were a DIFFERENT shape — its own example is `ParseLine redeclared`, a cross-file
+  FUNCTION redeclaration, which no tester-shadow gate would touch. The generic phrase
+  covers two unrelated defects, and counting by phrase rather than by shape would have made
+  today's gate look like an already-measured dead end.
+
+  That is the same lesson as the sort/status shapes earlier today: a mutation SHAPE and a
+  PROMISE are different things, and so are an error PHRASE and a defect.
