@@ -377,7 +377,7 @@ def main() -> int:
     # where not one of the 22 could possibly have survived and "green build" is false. The
     # corpus headline quoted all day carried both non-building artifacts inside its
     # denominator for the same reason.
-    dead = [r for r in rows if r[3] in ("BASELINE-RED", "NOAPPLY")]
+    dead = [r for r in rows if r[3] in ("BASELINE-RED", "NOAPPLY", "NOTESTS")]
     usable = len(rows) - len(dead)
     print(f"\n{usable} of {len(rows)} probes could answer · {len(surv)} SURVIVED "
           f"(green build, real behaviour change)"

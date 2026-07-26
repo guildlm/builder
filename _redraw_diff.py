@@ -26,7 +26,9 @@ import collections
 import pathlib
 import sys
 
-DEAD = ("BASELINE-RED", "NOAPPLY", "SKIP")
+# NOTESTS: a tree with no _test.go survives every mutation, which is not a verdict
+# about defence — see _teeth_suite.verdict_for.
+DEAD = ("BASELINE-RED", "NOAPPLY", "SKIP", "NOTESTS")
 
 
 def load(path: pathlib.Path) -> dict[tuple[str, str, str, int], str]:

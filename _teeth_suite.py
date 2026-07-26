@@ -532,6 +532,14 @@ def verdict_for(art: Path, rel: str, mutate) -> tuple[str, str]:
     src = art / rel
     if not src.exists():
         return "SKIP", f"{rel} not in artifact"
+    # A TREE WITH NO TESTS SURVIVES EVERYTHING, and that is not a finding about defence.
+    # `go test` on a package with no _test.go exits 0, so a mutated tree passes and the
+    # verdict reads SURVIVED — "GREEN on broken code — UNDEFENDED", the strongest claim this
+    # tool makes — about an artifact nothing was ever asked of. Caught live: the corpus
+    # rebuild was mid-generation on usersapi (go.mod and store.go written, no test files
+    # yet) and both usersapi invariants were reported UNDEFENDED in that window.
+    if not any(art.rglob("*_test.go")):
+        return "NOTESTS", "artifact has no _test.go — nothing could have caught anything"
     mutated = mutate(src.read_text()) if mutate else None
     if mutated is None:
         return "NOAPPLY", "mutation did not apply (code moved / already differs)"
@@ -599,12 +607,27 @@ def self_test() -> int:
         if got != want:
             failures.append(f"expected {want}, got {got} ({note})")
 
+    # FOURTH OUTCOME, added after it was observed in the wild: a tree with NO test files.
+    # `go test` exits 0 on a package with no _test.go, so the mutant passes and the verdict
+    # used to read SURVIVED — "GREEN on broken code — UNDEFENDED" — about an artifact that
+    # was never asked anything. Seen live during the corpus rebuild: usersapi-v4 held
+    # go.mod and store.go and nothing else, and both its invariants were reported
+    # undefended in that window.
+    with tempfile.TemporaryDirectory() as td:
+        art = Path(td) / "art"
+        art.mkdir()
+        (art / "go.mod").write_text(_MOD)
+        (art / "t.go").write_text(_IMPL)
+        got, note = verdict_for(art, "t.go", break_double)
+        if got != "NOTESTS":
+            failures.append(f"a tree with no _test.go must be NOTESTS, got {got} ({note})")
+
     for f in failures:
         print(f"FAIL: {f}")
     if failures:
         return 1
-    print("OK — a defended invariant is CAUGHT, a vacuous one SURVIVES, "
-          "and a red baseline voids the verdict instead of faking a CAUGHT")
+    print("OK — a defended invariant is CAUGHT, a vacuous one SURVIVES, a red baseline "
+          "voids the verdict, and a tree with no tests is NOTESTS rather than undefended")
     return 0
 
 
@@ -633,15 +656,16 @@ def main() -> int:
         elif verdict == "BASELINE-RED":
             void += 1
         mark = {"CAUGHT": "✓", "SURVIVED": "✗ UNDEFENDED", "BASELINE-RED": "✗ BASELINE-RED",
-                "NOAPPLY": "· n/a", "SKIP": "· skip"}.get(verdict, verdict)
+                "NOAPPLY": "· n/a", "SKIP": "· skip",
+                "NOTESTS": "· no tests"}.get(verdict, verdict)
         print(f"{spec:<12} {mark:<9} {desc}")
-        if verdict in ("NOAPPLY", "SKIP", "BASELINE-RED"):
+        if verdict in ("NOAPPLY", "SKIP", "BASELINE-RED", "NOTESTS"):
             print(f"{'':<12} {'':<9} ({note})")
     print("-" * 74)
     # Count what DID NOT RUN alongside what failed. Every row already prints its own
     # NOAPPLY note, but the summary line is what gets quoted, and "0 invariant(s)
     # UNDEFENDED" is what a suite where NOTHING APPLIED prints too.
-    noapply = sum(1 for r in verdicts if r in ("NOAPPLY", "SKIP"))
+    noapply = sum(1 for r in verdicts if r in ("NOAPPLY", "SKIP", "NOTESTS"))
     print(f"{undef} invariant(s) UNDEFENDED (suite green on broken code); "
           f"{len(verdicts) - noapply}/{len(verdicts)} mutation(s) actually ran.")
     if void:
