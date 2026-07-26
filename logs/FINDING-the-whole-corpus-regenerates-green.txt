@@ -1,0 +1,47 @@
+FINDING — all twenty specs regenerated GREEN on the base model, first pass
+===========================================================================
+2026-07-26. An unplanned experiment: I deleted the corpus, so every -v4 tree had to be
+rebuilt, and rebuilding it ran the whole spec suite end to end in one session.
+
+THE RESULT
+      20 specs · 20 GREEN · 0 NOT-GREEN     (build + vet + test -race, verified
+                                             independently of the builder's own verdict)
+      0 escalations                          base 7B only — no fleet member was configured
+      15 of 20 needed NO fix round at all    5 converged after fix round 1
+      total wall clock ~64 minutes           41s (demo-small) to 889s (taskflow)
+
+  The configuration was the ordinary one: mlx-community/Qwen2.5-Coder-7B-Instruct-4bit at
+  temperature default, --candidates 2, retrieval few-shot with 2 shots, --max-fix-rounds 5.
+
+WHY THIS IS WORTH RECORDING
+  taskflow and tasks-api were written down as CAPABILITY WALLS as recently as yesterday —
+  3381 and 3100 seconds, eleven and nine fix rounds, ending RED. Both are in the list above
+  at 889s and 412s, green, and neither needed more than one fix round. Nothing about the
+  model changed. What changed was two spec sentences and one gate.
+
+WHAT IT DOES NOT SAY
+  GREEN IS NOT DEFENDED. That is the whole teeth programme: a suite can pass while the
+  invariants it names go unchecked, and the same afternoon that produced this table also
+  produced a mutation showing taskflow's ListProjects sort is undefended in exactly this
+  tree. Twenty green artifacts is a statement about the BUILD loop, not about the tests.
+
+  ONE DRAW EACH. Twenty runs is one sample per spec, not a distribution. `-count=4` removes
+  in-run map-order flake but says nothing about run-to-run variance, and this corpus has
+  measured 25%-of-runs failures before.
+
+  THE SPECS ARE NOT THE ONES THAT FAILED. Several were edited this week precisely because
+  they failed — the nextID sentence, the TestListLimit code block, the named Content-Type
+  tests. This is the suite as it stands today, not a rerun of the runs that were red.
+
+WHAT IT COSTS
+  The pre-deletion corpus was a MIX: 44 archived failures, thirteen BASELINE-RED rows, two
+  artifacts that did not compile at all. Those were not clutter — they were the only inputs
+  exercising the "a mutation on an already-red artifact is VOID" rule, and the substrate for
+  gate mining. A corpus where everything is green has nothing to mine and nothing to void,
+  which is why generated/plantedred-v4 had to be planted by hand and why the flat _fail-*
+  archives are a real loss (FINDING-i-deleted-the-corpus.txt).
+
+  It is also the confound the redraw diff has to carry: rows that read BASELINE-RED before
+  will read CAUGHT or SURVIVED now because there is finally a suite to ask, and that is an
+  artifact changing state, not a defence changing. _redraw_diff.py counts those on their own
+  line for that reason.
