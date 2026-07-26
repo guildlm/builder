@@ -167,12 +167,13 @@ files:
       counter's Load(). Do not use time.Sleep for synchronization.
   - path: internal/worker/worker_test.go
     purpose: >-
-      package worker. Test that the worker drains: build NewWorker(8,
-      slog.New(slog.NewTextHandler(io.Discard, nil))), Start(), Enqueue N=5
-      events, Stop(), then assert Processed() == 5 (Stop blocks until every
-      buffered event is processed, so no sleeps or polling are needed). A second
-      test: Enqueue is safe to call from multiple goroutines (spawn several,
-      each Enqueue once, use a sync.WaitGroup to wait, Stop, assert the total).
+      package worker. TWO test functions, both named:
+      TestWorkerDrains: build NewWorker(8, slog.New(slog.NewTextHandler(io.Discard,
+      nil))), Start(), Enqueue N=5 events, Stop(), then assert Processed() == 5 (Stop
+      blocks until every buffered event is processed, so no sleeps or polling are
+      needed).
+      TestEnqueueConcurrent: Enqueue is safe to call from multiple goroutines — spawn
+      several, each Enqueue once, use a sync.WaitGroup to wait, Stop, assert the total.
       Imports io, log/slog, sync, testing, and the models package. Never name a
       local variable `t`.
   - path: internal/auth/auth.go
@@ -187,10 +188,11 @@ files:
       middleware. Imports net/http, strings only.
   - path: internal/auth/auth_test.go
     purpose: >-
-      package auth. Table test with net/http/httptest: wrap a trivial 200 handler
-      with TokenAuth("secret"); a request with header "Bearer secret" -> 200; a
-      request with "Bearer wrong" -> 401; a request with no Authorization header
-      -> 401. Use httptest.NewRequest and httptest.NewRecorder. Imports net/http,
+      package auth. ONE named test function:
+      TestTokenAuthMiddleware: a table test with net/http/httptest — wrap a trivial
+      200 handler with TokenAuth("secret"); a request with header "Bearer secret" ->
+      200; a request with "Bearer wrong" -> 401; a request with no Authorization
+      header -> 401. Use httptest.NewRequest and httptest.NewRecorder. Imports net/http,
       net/http/httptest, testing. Never name a local variable `t`.
   - path: internal/service/service.go
     purpose: >-
@@ -376,7 +378,11 @@ files:
       token -> 204, then GET /tasks/1 -> 404.
       TestMalformedJSON — POST /tasks with a truncated body `{"id":"1",` and token
       -> 400.
-      TestHealthz — GET /healthz -> 200; GET /readyz -> 200.
+      TestHealthz — GET /healthz -> 200.
+      TestReadyz — GET /readyz -> 200. Its OWN function, not a second assertion inside
+      TestHealthz: measured on this project, an assertion added inside another test is
+      dropped on a later draw while the test around it survives, and only an invariant
+      with its own named test holds.
       Imports bytes, encoding/json, io, log/slog, net/http, net/http/httptest,
       testing, and the service + store + models packages. Never name a local
       variable `t`.
