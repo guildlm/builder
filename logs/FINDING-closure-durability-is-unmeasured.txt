@@ -104,9 +104,22 @@ THIRD SPEC MEASURED — jsonapi, 2026-07-26
       shortener, usersapi             UNMEASURED
 
 A SEPARATE OBSERVATION, WORTH KEEPING APART FROM THE DURABILITY RESULT
-  jsonapi's first run took 94s with ZERO fix rounds. Its re-run, same spec and same model,
-  took 293s with THREE. Cost varied by 3x while the outcome — green, both tests written,
-  closure intact — was identical.
+  jsonapi's first run took 94s and its re-run 293s, same spec and same model. I wrote that
+  the first had ZERO fix rounds and the re-run three, and that was wrong — the first run's
+  own prediction file records "94s, THREE rounds, no fleet, no escalations". Counted from
+  the logs rather than from memory:
+
+      jsonapi-ct  3 rounds, 0 escalations      ratelimit-ct     0 rounds, 0 escalations
+      jsonapi-rerun 3 rounds, 0 escalations    ratelimit-rerun  0 rounds, 0 escalations
+
+  Both controlled pairs — the only two specs re-run against an UNCHANGED spec — show the
+  IDENTICAL round count. So the work did not vary at all; only the wall clock did, and the
+  293s run was launched while a taskflow build was occupying the same three servers.
+
+  That is a better finding than the one it replaces: for a fixed spec, the fix loop did the
+  same amount of work both times, and a 3x wall-clock difference was contention rather than
+  the model doing more. Cost variance and outcome variance are different questions and I
+  had collapsed them by misreading my own record.
 
   So run-to-run variance is real and large in COST, and on these two small specs it did
   not reach the OUTCOME. That is a different claim from "small specs are stable" and only
