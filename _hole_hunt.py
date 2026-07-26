@@ -150,6 +150,41 @@ def sort_rows():
 HEADER = re.compile(r'^\s*w\.Header\(\)\.Set\("([^"]+)", *"[^"]*"\)')
 
 
+# SHAPE 5: the JSON WIRE NAME. `json:"id"` -> `json:"id_x"` renames the field ON THE WIRE
+# and nowhere else. A test that POSTs a body and decodes the response INTO THE SAME STRUCT
+# round-trips through the renamed tag on both sides and passes; only a test that touches the
+# RAW JSON — asserting a key, or decoding into a map — can see it. That is the sharpest
+# shape in this file for the same reason %w->%v was: the failure is invisible to the way the
+# tests are usually written, and the contract it breaks is the one real clients depend on.
+TAG = re.compile(r'`json:"([a-zA-Z_][\w]*)((?:,[\w]+)*)"`')
+
+
+def tag_rows():
+    out = []
+    for art in artifacts():
+        for f in sorted(art.glob("*.go")):
+            if f.name.endswith("_test.go"):
+                continue
+            hits = []
+            text = f.read_text(errors="ignore")
+            for m in TAG.finditer(text):
+                hits.append((f.name, m.group(0), m.group(1), m.group(2)))
+                if not ALL_SITES:
+                    break
+            for rel, orig, name, opts in hits:
+                def mut(t, a=orig, b=f'`json:"{name}_x{opts}"`'):
+                    # Unique-substring guard, as in wrap_rows: two fields tagged the same way
+                    # in one file would make the patch ambiguous, and an ambiguous mutation
+                    # grades a site nobody chose.
+                    return t.replace(a, b, 1) if t.count(a) == 1 else None
+                v, _ = verdict_for(art, rel, mut)
+                out.append((art.name, rel, f'json tag "{name}" renamed', v))
+                print(f"{art.name:<26} {rel:<22} {('json tag ' + name):<26} {v}", flush=True)
+            if hits and not ALL_SITES:
+                break
+    return out
+
+
 def header_rows():
     out = []
     for art in artifacts():
@@ -219,6 +254,41 @@ def self_test() -> int:
             failures.append(f"a test that {'asserts' if want == 'CAUGHT' else 'ignores'} "
                             f"the status should be {want}, got {got} ({note})")
 
+    # SHAPE 5, planted the same way. The point of a json-tag rename is that a test which
+    # round-trips through the SAME struct cannot see it, so the fixtures are: one test that
+    # asserts the raw wire key (must CAUGHT) and one that decodes into the struct (must
+    # SURVIVE). If the second ever reads CAUGHT the shape is not measuring what it claims.
+    TAGMOD = "module example.com/j\n\ngo 1.23\n"
+    TAGIMPL = ('package main\n\nimport (\n\t"encoding/json"\n\t"net/http"\n)\n\n'
+               'type Task struct {\n\tID string `json:"id"`\n}\n\n'
+               'func H(w http.ResponseWriter, r *http.Request) {\n'
+               '\tjson.NewEncoder(w).Encode(Task{ID: "1"})\n}\n\nfunc main() {}\n')
+    RAW = ('package main\n\nimport (\n\t"net/http/httptest"\n\t"strings"\n\t"testing"\n)\n\n'
+           'func TestH(t *testing.T) {\n\trec := httptest.NewRecorder()\n'
+           '\tH(rec, httptest.NewRequest("GET", "/", nil))\n'
+           '\tif !strings.Contains(rec.Body.String(), `"id"`) {\n'
+           '\t\tt.Fatalf("wire key id missing: %s", rec.Body.String())\n\t}\n}\n')
+    ROUNDTRIP = ('package main\n\nimport (\n\t"encoding/json"\n\t"net/http/httptest"\n'
+                 '\t"testing"\n)\n\nfunc TestH(t *testing.T) {\n\trec := httptest.NewRecorder()\n'
+                 '\tH(rec, httptest.NewRequest("GET", "/", nil))\n\tvar got Task\n'
+                 '\tif err := json.NewDecoder(rec.Body).Decode(&got); err != nil {\n'
+                 '\t\tt.Fatal(err)\n\t}\n\tif got.ID != "1" {\n\t\tt.Fatalf("got %q", got.ID)\n\t}\n}\n')
+
+    def rename_tag(text):
+        return text.replace('`json:"id"`', '`json:"id_x"`', 1)
+
+    for want, test_src, why in (("CAUGHT", RAW, "asserts the raw wire key"),
+                                ("SURVIVED", ROUNDTRIP, "decodes into the same struct")):
+        with tempfile.TemporaryDirectory() as td:
+            art = pathlib.Path(td) / "art"
+            art.mkdir()
+            (art / "go.mod").write_text(TAGMOD)
+            (art / "j.go").write_text(TAGIMPL)
+            (art / "j_test.go").write_text(test_src)
+            got, note = verdict_for(art, "j.go", rename_tag)
+        if got != want:
+            failures.append(f"json tag: a test that {why} should be {want}, got {got} ({note})")
+
     # the label rule, checked directly: it is a string match and string matches rot quietly
     benign = "\t\trec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}"
     if "statusRecorder" not in benign:
@@ -230,8 +300,9 @@ def self_test() -> int:
         print(f"FAIL: {f}")
     if failures:
         return 1
-    print("OK — a defended status is CAUGHT, an unasserted one SURVIVES, "
-          "and the benign label matches only the recorder default")
+    print("OK — a defended status is CAUGHT, an unasserted one SURVIVES, the benign label "
+          "matches only the recorder default,\n     and a json-tag rename is CAUGHT by a raw-key "
+          "assertion while a struct round-trip cannot see it")
     return 0
 
 
@@ -314,6 +385,8 @@ def main() -> int:
     rows += sort_rows()
     print("\n=== shape 4: unwrap an error (%w -> %v) ===")
     rows += wrap_rows()
+    print("\n=== shape 5: rename a JSON field tag ===")
+    rows += tag_rows()
     surv = [r for r in rows if r[3] == "SURVIVED"]
     # COVERAGE, counted independently of the sweep. Under-sampling was this tool's most
     # repeated defect — three times in one day it probed one site and printed a clean table,
@@ -350,6 +423,8 @@ def main() -> int:
          len([r for r in rows if r[2].startswith("reverse")])),
         ("error wrapping", WRAP, False,
          len([r for r in rows if r[2].startswith("%w")])),
+        ("json field tag", TAG, False,
+         len([r for r in rows if r[2].startswith("json tag")])),
     ):
         total = matching_sites(pat, per_line)
         flag = "" if probed >= total else f"   <- {total - probed} NOT PROBED"
