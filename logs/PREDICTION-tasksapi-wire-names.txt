@@ -32,3 +32,20 @@ PREDICTION
   Prediction 5 is the one that matters. If it fails on a fully-named entry, then naming is
   not the protection jsonapi's repair suggested, and the rule needs rewriting rather than
   applying.
+
+OUTCOME (2026-07-26, generated/tasksapi-wire, promoted to tasks-api-v4) — 6 of 6
+================================================================================
+    rc=0   302s   GREEN.   All four json tags CAUGHT; zero survivors on the tree.
+
+    1. TestWireFieldNames written.                                    HIT
+    2. json tag "id"          SURVIVED -> CAUGHT                      HIT
+    3. json tag "done"        SURVIVED -> CAUGHT                      HIT
+    4. json tag "created_at"  SURVIVED -> CAUGHT                      HIT
+    5. NOTHING DISPLACED — 19 test functions (18 + the new one), and the registered
+       "Create validates the body" mutation still CAUGHT.             HIT
+    6. tasks-api green.                                               HIT
+
+  Prediction 5 was the one under test, and it held: on an entry where every test is already
+  named, adding one more displaced nothing. jsonapi lost three tests to the same edit shape
+  because its entry mixed named tests with anonymous prose. So the rule derived from that
+  failure is confirmed rather than refuted — name everything first, then add.
