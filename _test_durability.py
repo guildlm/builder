@@ -148,7 +148,18 @@ def assertions_in(tree: pathlib.Path) -> dict:
         text = f.read_text(errors="ignore")
         blocks = re.split(r"^func (Test[A-Za-z0-9_]+)", text, flags=re.M)
         for name, body in zip(blocks[1::2], blocks[2::2]):
-            out[name] = len(re.findall(r"\bt\.(?:Error|Errorf|Fatal|Fatalf)\b", body))
+            n = len(re.findall(r"\bt\.(?:Error|Errorf|Fatal|Fatalf)\b", body))
+            # WHAT it compares, not only how often. A count alone is coarse — a test can
+            # swap one assertion for another and hold steady — so collect the SUBJECTS of
+            # its comparisons too: the http.StatusX constants, header names and field
+            # accesses that appear in `if ... != ...` conditions. ratelimit's regression
+            # was exactly a swap of subject, not a change of count.
+            subjects = set()
+            for cond in re.findall(r"if\s+([^{\n]+?)\s*\{", body):
+                if "!=" not in cond and "==" not in cond:
+                    continue
+                subjects |= set(re.findall(r"http\.Status\w+|\"[A-Za-z-]+\"|\w+\.\w+", cond))
+            out[name] = (n, frozenset(subjects))
     return out
 
 
@@ -203,14 +214,19 @@ for t, hits in sorted(sometimes.items()):
 per_tree_asserts = {n: assertions_in(pathlib.Path(a)) for n, a in zip([t[0] for t in trees], args[1:])}
 shifted = {}
 for t in sorted(always):
-    counts = {n: d.get(t, 0) for n, d in per_tree_asserts.items()}
-    if len(set(counts.values())) > 1:
-        shifted[t] = counts
+    vals = {n: d.get(t, (0, frozenset())) for n, d in per_tree_asserts.items()}
+    counts = {n: v[0] for n, v in vals.items()}
+    subj = {n: v[1] for n, v in vals.items()}
+    if len(set(counts.values())) > 1 or len(set(subj.values())) > 1:
+        lost = set().union(*subj.values()) - set.intersection(*[set(v) for v in subj.values()])
+        shifted[t] = (counts, sorted(lost)[:4])
 if shifted:
-    print(f"\n  PRESENT EVERY RUN but with a CHANGING number of assertions ({len(shifted)}):")
-    for t, counts in sorted(shifted.items()):
+    print(f"\n  PRESENT EVERY RUN but NOT ASSERTING THE SAME THINGS ({len(shifted)}):")
+    for t, (counts, lost) in sorted(shifted.items()):
         detail = ", ".join(f"{n}:{c}" for n, c in counts.items())
         print(f"      {t:<34} {detail}")
+        if lost:
+            print(f"          not asserted in every run: {', '.join(lost)}")
     print("      A name persisting is not the same as a promise staying defended.")
 
 for t, el in sorted(stable_among_eligible.items()):
