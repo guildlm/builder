@@ -33,3 +33,21 @@ PREDICTION
 
   If any of the ten is missing, the "name what exists" rule is weaker than jsonapi made it
   look, and I would rather learn that on a spec whose defences are currently intact.
+
+OUTCOME (2026-07-26, generated/usersapi-named, promoted to usersapi-v4) — 4 of 4
+================================================================================
+    rc=0   183s   GREEN
+
+    1. All ten named tests written (eleven with TestRecoverPanic).        HIT
+    2. Both registered mutations still CAUGHT.                            HIT
+    3. Sweep: 10 of 15 probes answer, ZERO survivors — no worse than before.  HIT
+    4. usersapi green.                                                    HIT
+
+  The six ex-flow cases each built their own router and preconditions, so the risk the
+  prediction named — six independent tests where there was one ordered flow, each able to
+  404 — did not materialise. Naming them was enough; the spec's explicit "each builds its
+  OWN fresh router and creates its own preconditions" is presumably why.
+
+  The debt is paid: usersapi no longer appears in _unnamed_tests.py. Eight tests that a
+  single future edit could have deleted are now part of the spec's inventory, and the two
+  registered defences riding on them are safe.
