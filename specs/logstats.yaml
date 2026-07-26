@@ -64,9 +64,9 @@ files:
       the first line Consume() reads panics with `assignment to entry in nil map`
       against an implementation that is perfectly correct. The constructor is what
       makes the map; skip the constructor and you skip the map.
-      TWO of the three test functions in this file are named here and the third is
-      TestReport below; a test the spec does not name is one a later edit deletes
-      without anyone noticing.
+      THREE test functions, all of them named — TestParseLine and TestConsume here,
+      and TestReportTieBreak below. A test the spec does not name is one a later edit
+      deletes without anyone noticing.
       TestParseLine: a valid line round-trips every Entry field exactly. To
       check the parsed timestamp, compare entry.Time.Format(time.RFC3339) against
       the RFC3339 string, or entry.Time.Equal(time.Date(2026, 1, 2, 15, 4, 5, 0,
