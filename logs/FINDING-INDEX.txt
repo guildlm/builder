@@ -1,0 +1,59 @@
+INDEX — what this session established, and what it took back
+=============================================================
+2026-07-26. One line each, with status, because the findings below are chronological and
+several of them correct earlier ones. A file that was true when written and is half-false
+now is the dangerous kind: nothing about it looks stale.
+
+STANDS
+  capability-walls-were-one-edit-deep     Two specs recorded as "the coder cannot do this"
+                                          were one edit from green — taskflow one confused
+                                          test function, tasks-api one constructor line.
+                                          Both proven by hand before the runs confirmed it.
+  count-repeat-is-free                    -count=4 adds no failures across 25 artifacts and
+                                          fits the timeout; the live A/B showed the loop
+                                          fixing the flake it had never been shown.
+  closure-scoreboard-by-mutation          7 of 7 single-site closures CAUGHT on the corpus
+                                          as it stands. The SOUND table.
+  test-presence-is-not-test-content       ratelimit kept all five test functions and
+                                          dropped every Retry-After and 200 assertion.
+  the-corpus-is-not-tracked               generated/ is gitignored: "the archive" is local
+                                          state, and logs/hole-hunt-rows.tsv is the only
+                                          durable record of what it said.
+  the-broken-archives-are-the-only-control  The two artifacts that look like rot are the
+                                          only inputs exercising the BASELINE-RED rule.
+  status-survivors-audited                7 candidates -> 1 new genuine hole; the rest were
+                                          already closed, dead sites, or unpromised.
+  unnamed-behaviour-is-unconstrained      "0 intermittent" covered only what the spec NAMES.
+
+SUPERSEDED IN PART — each carries a banner or an appended correction
+  closure-durability-is-unmeasured        Its "0 intermittent, closure HOLDS" table measures
+                                          PRESENCE. Banner at the top; the mutation table
+                                          replaces the inference.
+  closures-are-per-site-and-per-run       The per-site rule stands; "a shape's sites are a
+                                          promise's sites" does not — corrected in-file.
+  status-code-holes                       Headline denominator corrected: 64 of 150 probes
+                                          could answer, not 150.
+  registry-drift-measured                 First number was 3x too high (invented renames);
+                                          corrected in-file to 5 brittle, then repaired to
+                                          27/28 surviving.
+
+REFUTED, and left visible because the refutations cost real runs
+  spec-entry count predicts difficulty    7 entries: shortener HARD, ratelimit EASY.
+  corrective-clause density predicts it   identical 22 markers for that same pair.
+  per-spec test budget                    taskapipro writes 48 of 49.
+  per-file test count                     workapi carries 11 in one entry and drops none.
+  per-file prose length                   ratelimit's entry is the longest and drops none.
+  total named tests                       tasks-api names 17 across 3 trees, drops none.
+
+OPEN
+  Why taskflow drops tests and flickers assertions. Six hypotheses refuted. What IS known:
+  it is the only spec unstable in either sense, it pays for a harder spec in DROPPED TESTS
+  where shortener pays in TIME, and its one appended (not named) assertion is the one that
+  oscillates.
+  Whether the seven live closures survive the NEXT regeneration. Two specs re-run so far,
+  both held.
+
+THE METHOD LESSON, four times in one day
+  Every wrong number today was wrong because of what went INTO it, not how it was computed:
+  invented renames, a red tree among green ones, an archive I had touched, a window reading
+  past the end of a function. When a score surprises you, audit the input list first.
