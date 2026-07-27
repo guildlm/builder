@@ -30,10 +30,20 @@ files:
       package main. Declare EXACTLY these three things, with EXACTLY these names —
       the interface and the concrete type MUST NOT share a name or the package
       will not compile:
-      (1) `type Store interface` declaring ALL FIVE methods: Create(t Task) error,
+      (1) `type Store interface` declaring ALL FIVE methods: Create(t *Task) error,
       Get(id int) (Task, error), List() []Task, Update(t Task) error,
       Delete(id int) error. Update MUST be there — the handlers call store.Update,
       so omitting it breaks the build.
+      Create takes a POINTER, and that is not a style choice. Create is what ASSIGNS
+      the id, and the handler must put the assigned id in the 201 response. A method
+      taking a Task by VALUE assigns the id to its own copy: the caller's task still
+      has id 0, the response carries `"id":0` and a zero `created_at`, and the task
+      in the store is fine — so every test that checks the stored task passes and the
+      wire contract is broken. Measured on a green artifact: POST returned
+      `{"id":0,...,"created_at":"0001-01-01T00:00:00Z"}` while GET listed id 1.
+      So: `func (s *MemStore) Create(t *Task) error` sets `t.ID = s.nextID` and
+      `t.CreatedAt = time.Now()` on the POINTED-TO task, then stores `*t`. Handlers
+      call `a.store.Create(&t)` and then write `t` as the body.
       (2) `type MemStore struct` — the thread-safe in-memory implementation,
       guarded by sync.RWMutex with a map[int]Task and an auto-incrementing nextID.
       NewMemStore MUST set nextID to 1, so the FIRST task created gets ID 1 — never 0.
@@ -154,7 +164,12 @@ files:
       integer form like "/tasks/1", and a fresh request body is built for every
       request. Cover exactly:
       TestCreate201: POST /tasks with a valid JSON body -> 201, and the response
-      body echoes the created task (with its assigned id).
+      body echoes the created task. ASSERT THE ID IS NON-ZERO, as its own step:
+      `if created.ID == 0 { t.Errorf("ID = 0, want non-zero") }`. Checking only the
+      title passes against a handler that echoes the request back unchanged, which
+      is exactly what a value-receiver Create produces — the store gets id 1 and the
+      client is told id 0. The id is the only field in that response the client did
+      not already send, so it is the only one worth asserting.
       TestGetOKAndMissing: POST a task, then GET /tasks/1 -> 200 with the stored
       fields; on a fresh handler GET /tasks/99 -> 404.
       TestList200: POST one task, then GET /tasks -> 200 with a JSON array.

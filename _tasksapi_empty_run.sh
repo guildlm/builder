@@ -15,6 +15,11 @@ while pgrep -f "guildlm-build main" > /dev/null; do sleep 30; done
 echo "=== GPU free; tasks-api empty-list run $(date) ==="
 
 OUT="./generated/tasksapi-empty"
+# The first draw is a GRADED result (logs/RESULT-tasksapi-empty.txt): both closures held
+# and it is the evidence for the Create-by-value spec contradiction. This script opens
+# with `rm -rf "$OUT"`, generated/ is gitignored, and there is no way back — the same
+# shape as the corpus deletion. A second draw takes its own name.
+[[ -d ./generated/tasksapi-empty ]] && OUT="./generated/tasksapi-empty2"
 rm -rf "$OUT"
 LOG="logs/tasksapi-empty-$(date +%m%d%H%M).log"
 SECONDS=0

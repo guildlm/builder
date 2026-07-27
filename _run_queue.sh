@@ -44,4 +44,12 @@ echo "############ shortener mirrors ############"
 echo
 echo "############ taskflow: repair + two closures ############"
 ./_chain_run.sh taskflow
+# tasks-api SECOND draw. Its two closures both held, but the run exposed a spec
+# CONTRADICTION: the store interface was pinned as Create(t Task) error — a value, no
+# return — while the handler entry requires the 201 body to carry the assigned id. No
+# implementation satisfies both, and every draw resolved it the same wrong way. The
+# interface is now Create(t *Task) error and TestCreate201 asserts the id.
+echo
+echo "############ tasks-api: pointer Create + id assertion ############"
+./_tasksapi_empty_run.sh
 echo "=== queue complete $(date) ==="

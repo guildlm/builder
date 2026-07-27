@@ -1,0 +1,74 @@
+RESULT — tasks-api: both closures held, and the run exposed a spec contradiction
+================================================================================
+2026-07-27. Predictions: logs/PREDICTION-boundary-closures.txt. Run: _tasksapi_empty_run.sh,
+2314s (39 min), base model at :8080. Tree: NOT-GREEN.
+
+THE CLOSURES — both held, graded in isolation
+  1. EMPTY LIST. TestListEmptyIsEmptyArray was written exactly as asked and, against my
+     prediction, on a FRESH handler:
+
+         h := NewRouter(NewAPI(NewStore()))
+         ... GET /tasks ...
+         if strings.TrimSpace(rec.Body.String()) != "[]" { t.Errorf(...) }
+
+     I predicted it would populate the store first in at least one draw, on the grounds
+     that every other list test in that entry posts before asserting and the model has
+     eleven examples of that habit against one instruction. FALSIFIED — it posted nothing.
+     Graded: passes on the tree as generated, FAILS with the accumulator changed to
+     `var out []Task`. The closure catches the defect it was written for.
+
+  2. THE FOUR 400 MIRRORS. Every StatusBadRequest site in handlers.go, flipped one at a
+     time, running only the 400 tests: 7 of 7 CAUGHT. Before the edit, tasks-api-v4 had 8
+     sites of which 5 survived — the invalid-id 400 on Get, Update and Delete, the
+     malformed-body 400 on Update, and one dead site. This draw has 7 (its Create handler
+     has no ErrInvalidTask branch, so the dead site does not exist) and defends all of
+     them. No site regressed.
+
+  Both were graded test-by-test rather than through _hole_closed, because the tree is RED
+  and a red baseline voids every verdict. Same discipline as the taskflow run.
+
+WHY THE TREE IS RED — and this is the real result
+  TestCreate201 fails: "ID = 0, want non-zero". Diffing against the green reference tree
+  says something better than "this draw is worse":
+
+      tasks-api-v4     Create(t Task) error   handler echoes the caller's t
+      tasksapi-empty   Create(t Task) error   handler echoes the caller's t    <- IDENTICAL
+
+  The code is the SAME. What changed is the test. v4's TestCreate201 asserts the TITLE
+  came back; this draw's asserts the ID is non-zero. So the new tree is red because its
+  test is BETTER, not because its code is worse.
+
+  Measured on the GREEN reference tree, which is the part worth keeping:
+
+      POST /tasks -> 201  {"id":0,"title":"task1","done":false,
+                           "created_at":"0001-01-01T00:00:00Z"}
+      GET  /tasks -> 200  [{"id":1,"title":"task1","done":false,
+                            "created_at":"2026-07-27T16:24:45+03:00"}]
+
+  The stored task is correct. The RESPONSE is not: it echoes the un-assigned input, with
+  id 0 and a zero timestamp. The spec promises "the response body echoes the created task
+  (with its assigned id)". That promise is broken in the reference corpus, green, today.
+
+THE SPEC CANNOT BE SATISFIED AS WRITTEN
+  The store entry pins the interface: `Create(t Task) error` — a VALUE, no return. The
+  handler entry requires the response to carry the assigned id. A method that takes a
+  value and returns only an error cannot hand the id back, and the caller has no id to
+  look up afterwards. The two requirements are jointly unsatisfiable, and every draw
+  resolves it the same way: store the copy, echo the original.
+
+  This is the same shape the corpus already documents elsewhere — "do NOT write a test
+  that expects Load() to BOTH return an error AND hand back populated defaults ... no
+  implementation can satisfy both". A second instance, in a different spec, found by a
+  test that was finally strong enough to ask.
+
+WHY NO INSTRUMENT FOUND THIS
+  Mutation testing asks: if I break correct code, does a test notice? It presumes the
+  artifact is correct. Here the artifact is ALREADY wrong, identically in every draw, so
+  there is nothing to break and nothing to survive — the whole hole-hunt machinery is
+  blind to it by construction. Six shapes, 170 probes, and this promise was never in
+  scope for any of them.
+
+  What found it was a DIFFERENT DRAW WRITING A STRONGER TEST. That is cross-draw
+  differential testing arriving by accident, and it is worth having on purpose: when two
+  trees of one spec disagree about whether they are green, the disagreement is a finding
+  even when — especially when — the code is identical.
