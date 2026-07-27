@@ -1,0 +1,84 @@
+FINDING — the corpus re-swept: 48 candidates, 21 holes, and what the other 27 are
+=================================================================================
+2026-07-27. Model-free. logs/hole-hunt-rows.tsv (tracked), previous state preserved as
+logs/hole-hunt-rows-before-noapply-fix.tsv.
+
+THE MEASUREMENT
+  Same 25 artifacts, same day, frozen -v4 trees. The only thing that changed is the
+  instrument: mutations addressed by index/offset instead of by unique-substring match,
+  plus shape 6b for clamp values.
+
+                    rows   CAUGHT   SURVIVED   NOAPPLY   INERT   answered
+      before         162       88         16        47       9   115/162  (71%)
+      after          170      111         48         0       9   170/170  (100%)
+
+  Every probe now answers, and the candidate count TRIPLED. For as long as this corpus has
+  been quoted, two thirds of its candidate holes were invisible — not disputed, not
+  triaged, invisible — because a refusal to mutate prints just like a verdict.
+
+THE ADJUDICATION — all 48, none left as "candidate"
+  21 REAL HOLES
+     5   Chain applies every middleware   taskflow, usersapi, taskapi, taskapipro, workapi
+     5   clamp VALUE untested             taskapipro x4 (api layer), taskflow x1 (parser)
+     4   400 mirrors                      tasks-api: invalid id on Get/Update/Delete,
+                                          malformed body on Update
+     2   config rejects zero              workapi QueueSize, taskapipro DefaultPageSize
+     2   bitset out-of-range              Clear and Test at the first index past the words
+     1   shortener 400 on a URL that fails url.ParseRequestURI
+     1   shortener 404 from Stats
+     1   taskflow 404 from Delete
+
+  27 NOT HOLES
+     17  DEAD  the `else` on a sentinel-error check, writing 500. Every one of the 17 sits
+               on a line NO test executes (measured by coverage across taskflow, tasks-api,
+               usersapi, shortener), and no test of the shipped composition can reach it:
+               these artifacts wire a concrete in-memory store that returns only the
+               sentinels handled in the `if`.
+      3  INERT paginate `offset >= len(items)`. Falling through returns items[n:n], the
+               same empty slice by another route.
+      2  DEAD  jsoncodec's tags on Event itself. Event has a custom MarshalJSON that
+               encodes through an internal `wire` struct, so the tags on the outer type are
+               decoration. Measured: renaming BOTH leaves Marshal byte-identical and
+               Unmarshal working.
+      1  INERT taskapipro MaxPageSize <= 0, masked by the later Default > Max guard.
+      1  DEAD  expreval's consumeOperator bound; both callers test the same condition on
+               the line before.
+      1  DEAD  tasks-api's store Title=="" guard, subsumed by Validate's TrimSpace check.
+      1  BENIGN ledger `dot < 0`; both programs return an error for ".50", only the message
+               differs.
+      1  SPEC GAP kvservice's 400 on io.ReadAll failing — unreachable through httptest, and
+               the spec never mentions a 400.
+
+  So 44% of the survivor list is real. The number to carry is not 48 and not 16; it is 21,
+  and it took a probe, a coverage run or a code-read PER ROW to get there.
+
+THE PATTERN THAT KEEPS APPEARING — MIRRORS
+  Of the 21, at least eight are a guard whose IDENTICAL TWIN on a neighbouring route has a
+  test:
+
+      tasks-api    invalid id -> 400        Get, Update, Delete: none tested
+      tasks-api    malformed body -> 400    Create tested, Update not
+      shortener    404                      Redirect tested, Stats not
+      taskflow     404                      Get tested, Delete not
+      shortener    400                      empty url and malformed JSON tested,
+                                            url.ParseRequestURI failure not — a THREE-way
+                                            promise with two tests
+
+  taskflow's is the sharpest illustration. The spec promises "Delete (204 or 404)" and
+  names TestDelete as "POST a task FIRST, DELETE it -> 204, then GET it -> 404". That test
+  asserts a 404 — from GET. Delete's own 404 has never been requested. The promise looks
+  covered, in a test named for the very route that does not defend it.
+
+  This is the same lesson as the clamp layers found this morning: an invariant implemented
+  in N places needs N tests, and the one place with a test is what makes the other N-1 look
+  finished.
+
+WHAT THIS SAYS ABOUT THE METHOD
+  Three separate things had to be true for a hole to be visible today, and each was false
+  somewhere in this corpus:
+     the mutation must APPLY          (47 refusals, fixed)
+     the mutation must be OBSERVABLE  (6 of 15 boundary survivors were not)
+     the site must be REACHABLE       (22 of 48 survivors are not)
+  A hole hunter that checks only the first reports 48. One that checks all three reports
+  21. The difference is not tidiness — it is five specs almost edited to defend behaviour
+  that no input can produce.

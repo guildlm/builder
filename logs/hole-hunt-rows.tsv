@@ -8,75 +8,75 @@ kvservice-v4	main.go	StatusCreated->StatusOK	CAUGHT
 ratelimit-v4	api.go	StatusOK->StatusAccepted	CAUGHT
 ratelimit-v4	api.go	StatusOK->StatusAccepted	CAUGHT
 ratelimit-v4	middleware.go	StatusTooManyRequests->StatusServiceUnavailable	CAUGHT
-shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
+shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+shortener-v4	handlers.go	StatusBadRequest->StatusNotFound	SURVIVED
 shortener-v4	handlers.go	StatusCreated->StatusOK	CAUGHT
-shortener-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-shortener-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+shortener-v4	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+shortener-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 shortener-v4	handlers.go	StatusMovedPermanently->StatusFound	CAUGHT
-shortener-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-shortener-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+shortener-v4	handlers.go	StatusNotFound->StatusBadRequest	SURVIVED
+shortener-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 shortener-v4	handlers.go	StatusOK->StatusAccepted	CAUGHT
 shortener-v4	router.go	StatusOK->StatusAccepted	CAUGHT
 taskflow-v4	middleware.go	StatusOK->StatusAccepted	SURVIVED*
 taskflow-v4	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
 taskflow-v4	projects_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
 taskflow-v4	projects_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
-taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 taskflow-v4	projects_handler.go	StatusConflict->StatusBadRequest	CAUGHT
-taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 taskflow-v4	projects_handler.go	StatusCreated->StatusOK	CAUGHT
 taskflow-v4	projects_handler.go	StatusOK->StatusAccepted	CAUGHT
-taskflow-v4	projects_handler.go	StatusNotFound->StatusBadRequest	NOAPPLY
-taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+taskflow-v4	projects_handler.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 taskflow-v4	projects_handler.go	StatusOK->StatusAccepted	CAUGHT
-taskflow-v4	projects_handler.go	StatusNotFound->StatusBadRequest	NOAPPLY
-taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+taskflow-v4	projects_handler.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskflow-v4	projects_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 taskflow-v4	projects_handler.go	StatusNoContent->StatusOK	CAUGHT
 taskflow-v4	tasks_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
 taskflow-v4	tasks_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
-taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 taskflow-v4	tasks_handler.go	StatusConflict->StatusBadRequest	CAUGHT
-taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 taskflow-v4	tasks_handler.go	StatusCreated->StatusOK	CAUGHT
 taskflow-v4	tasks_handler.go	StatusOK->StatusAccepted	CAUGHT
-taskflow-v4	tasks_handler.go	StatusNotFound->StatusBadRequest	NOAPPLY
-taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+taskflow-v4	tasks_handler.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 taskflow-v4	tasks_handler.go	StatusOK->StatusAccepted	CAUGHT
-taskflow-v4	tasks_handler.go	StatusNotFound->StatusBadRequest	NOAPPLY
-taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+taskflow-v4	tasks_handler.go	StatusNotFound->StatusBadRequest	SURVIVED
+taskflow-v4	tasks_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 taskflow-v4	tasks_handler.go	StatusNoContent->StatusOK	CAUGHT
-tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	SURVIVED
+tasks-api-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 tasks-api-v4	handlers.go	StatusCreated->StatusOK	CAUGHT
 tasks-api-v4	handlers.go	StatusOK->StatusAccepted	CAUGHT
-tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-tasks-api-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	SURVIVED
+tasks-api-v4	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+tasks-api-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 tasks-api-v4	handlers.go	StatusOK->StatusAccepted	CAUGHT
-tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-tasks-api-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	SURVIVED
+tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	SURVIVED
+tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v4	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+tasks-api-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 tasks-api-v4	handlers.go	StatusOK->StatusAccepted	CAUGHT
-tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	NOAPPLY
-tasks-api-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-tasks-api-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+tasks-api-v4	handlers.go	StatusBadRequest->StatusNotFound	SURVIVED
+tasks-api-v4	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+tasks-api-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 tasks-api-v4	handlers.go	StatusNoContent->StatusOK	CAUGHT
 usersapi-v4	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
 usersapi-v4	handlers.go	StatusConflict->StatusBadRequest	CAUGHT
-usersapi-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+usersapi-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 usersapi-v4	handlers.go	StatusCreated->StatusOK	CAUGHT
-usersapi-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-usersapi-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+usersapi-v4	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+usersapi-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 usersapi-v4	handlers.go	StatusOK->StatusAccepted	CAUGHT
 usersapi-v4	handlers.go	StatusOK->StatusAccepted	CAUGHT
-usersapi-v4	handlers.go	StatusNotFound->StatusBadRequest	NOAPPLY
-usersapi-v4	handlers.go	StatusInternalServerError->StatusBadGateway	NOAPPLY
+usersapi-v4	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+usersapi-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 usersapi-v4	handlers.go	StatusNoContent->StatusOK	CAUGHT
 usersapi-v4	middleware.go	StatusOK->StatusAccepted	SURVIVED*
 usersapi-v4	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
@@ -105,18 +105,18 @@ tasks-api-v4	task.go	%w -> %v (ErrInvalidTask)	CAUGHT
 jsonapi-v4	main.go	json tag "message" renamed	CAUGHT
 jsonapi-v4	main.go	json tag "echo" renamed	CAUGHT
 jsonapi-v4	main.go	json tag "length" renamed	CAUGHT
-jsoncodec-v4	event.go	json tag "name" renamed	NOAPPLY
-jsoncodec-v4	event.go	json tag "at" renamed	NOAPPLY
-jsoncodec-v4	event.go	json tag "name" renamed	NOAPPLY
-jsoncodec-v4	event.go	json tag "at" renamed	NOAPPLY
-jsoncodec-v4	event.go	json tag "name" renamed	NOAPPLY
-jsoncodec-v4	event.go	json tag "at" renamed	NOAPPLY
+jsoncodec-v4	event.go	json tag "name" renamed	SURVIVED
+jsoncodec-v4	event.go	json tag "at" renamed	SURVIVED
+jsoncodec-v4	event.go	json tag "name" renamed	CAUGHT
+jsoncodec-v4	event.go	json tag "at" renamed	CAUGHT
+jsoncodec-v4	event.go	json tag "name" renamed	CAUGHT
+jsoncodec-v4	event.go	json tag "at" renamed	CAUGHT
 shortener-v4	handlers.go	json tag "url" renamed	CAUGHT
-taskflow-v4	models.go	json tag "id" renamed	NOAPPLY
+taskflow-v4	models.go	json tag "id" renamed	CAUGHT
 taskflow-v4	models.go	json tag "title" renamed	CAUGHT
 taskflow-v4	models.go	json tag "status" renamed	CAUGHT
 taskflow-v4	models.go	json tag "project_id" renamed	CAUGHT
-taskflow-v4	models.go	json tag "id" renamed	NOAPPLY
+taskflow-v4	models.go	json tag "id" renamed	CAUGHT
 taskflow-v4	models.go	json tag "name" renamed	CAUGHT
 tasks-api-v4	task.go	json tag "id" renamed	CAUGHT
 tasks-api-v4	task.go	json tag "title" renamed	CAUGHT
@@ -141,22 +141,30 @@ shortener-v4	codec.go	boundary > -> >=	CAUGHT
 taskapi-v4	internal/api/middleware.go	boundary >= -> >	SURVIVED
 taskapipro-v4	internal/api/middleware.go	boundary >= -> >	SURVIVED
 taskapipro-v4	internal/api/projects.go	boundary < -> <=	INERT
+taskapipro-v4	internal/api/projects.go	clamp value limit = 0 -> 7777	SURVIVED
 taskapipro-v4	internal/api/projects.go	boundary < -> <=	INERT
+taskapipro-v4	internal/api/projects.go	clamp value offset = 0 -> 7777	SURVIVED
 taskapipro-v4	internal/api/tasks.go	boundary < -> <=	INERT
+taskapipro-v4	internal/api/tasks.go	clamp value limit = 0 -> 7777	SURVIVED
 taskapipro-v4	internal/api/tasks.go	boundary < -> <=	INERT
+taskapipro-v4	internal/api/tasks.go	clamp value offset = 0 -> 7777	SURVIVED
 taskapipro-v4	internal/config/config.go	boundary <= -> <	SURVIVED
 taskapipro-v4	internal/config/config.go	boundary <= -> <	SURVIVED
 taskapipro-v4	internal/service/service.go	boundary >= -> >	SURVIVED
 taskapipro-v4	internal/service/service.go	boundary < -> <=	INERT
+taskapipro-v4	internal/service/service.go	clamp value offset = 0 -> 7777	CAUGHT
 taskapipro-v4	internal/service/service.go	boundary <= -> <	CAUGHT
 taskflow-v4	middleware.go	boundary >= -> >	SURVIVED
 taskflow-v4	pagination.go	boundary < -> <=	INERT
+taskflow-v4	pagination.go	clamp value offset = 0 -> 7777	SURVIVED
 taskflow-v4	pagination.go	boundary >= -> >	SURVIVED
 taskflow-v4	pagination.go	boundary < -> <=	INERT
+taskflow-v4	pagination.go	clamp value offset = 0 -> 7777	CAUGHT
 taskflow-v4	pagination.go	boundary <= -> <	CAUGHT
 usersapi-v4	middleware.go	boundary >= -> >	SURVIVED
 workapi-v4	internal/api/middleware.go	boundary >= -> >	SURVIVED
 workapi-v4	internal/config/config.go	boundary <= -> <	SURVIVED
 workapi-v4	internal/service/service.go	boundary >= -> >	SURVIVED
 workapi-v4	internal/service/service.go	boundary < -> <=	INERT
+workapi-v4	internal/service/service.go	clamp value offset = 0 -> 7777	CAUGHT
 workapi-v4	internal/service/service.go	boundary <= -> <	CAUGHT
