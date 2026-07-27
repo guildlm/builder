@@ -47,6 +47,29 @@ WHAT IS ALREADY VISIBLE AT N=3
   nothing; taskflow paid in time, which is the other spec's currency. That claim is now
   narrowed twice over and should not be quoted as it stands.
 
+WHERE THE SIX HOURS WENT — counted, not guessed
+  The open question was whether taskflow's 21,676s belongs to taskflow or to the edit.
+  Counting model calls in the three logs answers it, and the answer is neither size nor the
+  edit:
+
+      spec       files  rounds  resolved by          model fix-calls  wall     tree
+      usersapi     9      0     nothing to fix              0           546s   GREEN
+      taskapi     18      1     DETERMINISTIC GATES         0          1532s   GREEN
+      taskflow    16      8     model, and never            84         21676s  RED
+
+  taskapi has the MOST files of the three and cost zero fix-calls: "converged to green after
+  fix round 1 (deterministic)" — three gate repairs, no model round-trip. taskflow spent 84
+  model fix-calls across eight rounds against a budget of five and ended red.
+
+  So the cost is the FIX LOOP, and the fix loop is cheap exactly when the deterministic gates
+  can resolve it. That is the recorded ordering lesson — deterministic gate first, model for
+  the residue — with a number on it for the first time: the difference between a spec whose
+  failures fall inside the gate chain and one whose failures do not is 0 versus 84 calls, and
+  40x wall clock.
+
+  It also settles the attribution: the edit adds one file to every spec, and two specs that
+  received it paid nothing at all.
+
 STILL OPEN
   Whether three more specs make it 5/5, and whether the six hours belongs to taskflow or to
   the edit. taskapi, taskapipro and workapi carry the identical entry; taskapipro and workapi
