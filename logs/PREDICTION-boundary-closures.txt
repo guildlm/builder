@@ -1,0 +1,69 @@
+PREDICTION — the eight closures not yet started (written BEFORE any of them ran)
+================================================================================
+2026-07-27. taskflow-chain is already generating and has its own file; these are the
+other eight, all still queued behind it. Written now because a prediction recorded
+after the run is a description.
+
+THE EXPERIMENT
+  FIVE specs get the SAME edit — an own-named test asserting Chain's call order — for one
+  invariant that all five promise in the same words and none defends. That is the point:
+  an N=5 replication of "does naming a boundary invariant close it", not five anecdotes.
+  Every previous closure claim in this repo rests on N=1 per spec.
+
+PER-CLOSURE PREDICTIONS
+
+  1. Chain, usersapi / taskapi / taskapipro / workapi
+     The test is written and the mutation flips SURVIVED -> CAUGHT in at least 3 of 4.
+     Reasoning: own-named closures are 7/7 in this corpus and the assertion is unusually
+     concrete. The risk is not the naming, it is the ASSERTION: the entry spends a
+     sentence explaining why a status assertion is insufficient, and prose that explains
+     a NEGATIVE has the worse record here.
+     taskflow (already running) is the one I would bet against, being the only spec that
+     pays for added difficulty by dropping tests.
+     [confidence: 3-of-4 likely, 4-of-4 even odds]
+
+  2. workapi QueueSize == 0 / taskapipro DefaultPageSize == 0
+     Both close. These are the easiest edits of the nine — one more named test in an
+     entry that already names five or six, in specs whose config entries have never
+     dropped anything. The entries state an exact COUNT, which both edits moved.
+     [confidence: high, both]
+
+  3. bitset — the witness moves from 200 to 128
+     Both mutations flip to CAUGHT. The uncertainty is not whether the tests appear but
+     whether the NUMBER changes: the file already contains a passing test that says
+     Clear(200)/Test(200), and 200 is what the model has seen in this spec every draw.
+     The failure mode to watch for is a test correctly named
+     TestTestAtTheFirstIndexBeyondTheWords that then writes 200 — named, green, and
+     worthless. That is why the run script greps for 128 and not for the test name.
+     [confidence: moderate — this is the prediction I am least sure of]
+
+  4. tasks-api — empty list + four 400 mirrors
+     The empty-list test is written but populates the store first, in at least one draw.
+     Every other list test in that entry posts before asserting; the model has eleven
+     examples of "populate, then assert" and one instruction against it.
+     The four mirrors close more easily: they are three near-identical requests to
+     routes that already have tests, and "MIRROR" language is proven in this corpus.
+     L33 must STAY SURVIVED — it is a dead site (the store's Title=="" guard is subsumed
+     by Validate's TrimSpace check) and a closure there would mean the grader is wrong,
+     not that the hole closed.
+     [confidence: mirrors likely, empty-list uncertain]
+
+WHAT WOULD MAKE ME WRONG IN A WAY WORTH KNOWING
+  Not "a closure failed" — single failures are ordinary. The results that would change
+  how I write specs:
+
+  a. The Chain test is written in all five and CAUGHT in fewer than three. That would
+     mean the naming rule works but the ASSERTION-DICTATION does not, and the seven
+     earlier closures were easy assertions rather than well-named ones.
+  b. bitset writes 128 and the mutation still SURVIVES. That would mean I have the
+     boundary arithmetic wrong, and the whole "witness off the boundary" finding needs
+     re-deriving rather than re-stating.
+  c. Any spec drops an unrelated test. Five specs are being edited on the same day; if
+     drops cluster in the ones that received TWO edits (taskapipro, workapi, tasks-api)
+     rather than one, that is the first evidence for edit-count as a cost, which six
+     refuted hypotheses have failed to find.
+
+GRADING
+  ./_grade_closures.sh — each closure probed with the shape that FOUND it and pinned to
+  the file it lives in. Ten gradings; the tasks-api 400s resolved per LINE because that
+  shape has eight sites in one file and three were already CAUGHT before the edit.
