@@ -83,3 +83,32 @@ print("  L33 is a DEAD SITE (the store's Title=='' guard is subsumed by Validate
 print("  TrimSpace check) and is expected to stay SURVIVED.")
 PY
 fi
+
+# shortener's two mirrors, per LINE: handlers.go has three StatusBadRequest sites (two were
+# already CAUGHT) and two StatusNotFound sites (one already CAUGHT), so a shape-level grade
+# would answer about whichever comes first.
+if [[ -d generated/shortener-mirrors ]]; then
+  echo
+  echo "======== generated/shortener-mirrors  probe=400/404 mirrors (per line) ========"
+  .venv/bin/python - <<'PY'
+import pathlib, sys
+sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
+from _hole_hunt import replace_at
+from _teeth_suite import verdict_for
+art = pathlib.Path("generated/shortener-mirrors")
+src = art / "handlers.go"
+if not src.exists():
+    print("  handlers.go absent — nothing graded")
+    raise SystemExit(0)
+lines = src.read_text().splitlines()
+for old, new in (("http.StatusBadRequest", "http.StatusNotFound"),
+                 ("http.StatusNotFound", "http.StatusBadRequest")):
+    print(f"  -- {old} -> {new}")
+    for i, ln in enumerate(lines):
+        if old not in ln or ln.strip().startswith("//"):
+            continue
+        v, _ = verdict_for(art, "handlers.go", replace_at(i, ln, ln.replace(old, new, 1)))
+        print(f"     L{i+1:<4} {v:<10} {ln.strip()[:58]}")
+print("  before the edit: the ParseRequestURI 400 and the Stats 404 were the only SURVIVORs")
+PY
+fi

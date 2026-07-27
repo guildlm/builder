@@ -91,8 +91,8 @@ files:
       WRITE THESE TEST FUNCTIONS, one focused function each, named exactly:
       TestEncodeDecodeRoundTrip, TestEncodeZero, TestDecodeBadCode,
       TestShortenCreated, TestShortenBadRequest, TestShortenMalformedJSON,
-      TestRedirectFound, TestHealthOK,
-      TestRedirectMissing, TestStatsCountsOneHit.
+      TestShortenInvalidURL, TestRedirectFound, TestHealthOK,
+      TestRedirectMissing, TestStatsMissing, TestStatsCountsOneHit.
       NEVER GUESS A SHORT CODE, AND NEVER REACH PAST THE API TO PLANT ONE. The
       code is whatever Save assigned; a test that calls the store directly and
       then requests a code it made up (`GET /r/0`) gets 404 against handlers that
@@ -115,9 +115,22 @@ files:
       send the raw bytes `{"url":` (truncated ON PURPOSE; do NOT send `{}`, which
       is valid JSON and would take the empty-field branch that is already covered)
       -> 400.
+      TestShortenInvalidURL: POST /shorten with the body `{"url":"not a url"}` ->
+      400. This is the THIRD of Shorten's three 400 cases and the only one with no
+      test: the body is valid JSON (so it is not TestShortenMalformedJSON) and the
+      url field is non-empty (so it is not TestShortenBadRequest), which leaves
+      url.ParseRequestURI as the only thing that can reject it. Three ways to earn
+      a 400 need three tests; two of them covering each other is what let this one
+      go unwritten.
       TestRedirectFound: POST as above, then GET /r/+created.Code -> 301 and the
       Location header EQUALS "http://example.com".
       TestRedirectMissing: on a fresh router, GET /r/missing -> 404.
+      TestStatsMissing: on a fresh router, GET /stats/missing -> 404, asserted as
+      this test's ONLY assertion. This is the exact MIRROR of TestRedirectMissing —
+      Redirect and Stats each have their own 404 branch, and only Redirect's is
+      tested. Making up the code is CORRECT here for the same reason it is correct
+      in TestRedirectMissing: the test wants a code that does not exist, so the
+      "never guess a short code" rule above does not apply to it.
       TestContentTypeJSON: POST /shorten with a valid url and assert the RESPONSE
       header Content-Type is exactly "application/json", read off the recorder
       (rec.Header().Get("Content-Type")). Every JSON response sets it.
