@@ -9,6 +9,12 @@
 # guarantees the reader never sees the change.
 set -uo pipefail
 cd "$(dirname "$0")"
+# WAIT FOR THE OTHER QUEUE ITSELF, not merely for a build. _run_queue.sh still has
+# taskflow and tasks-api to run, and it spends minutes BETWEEN them on go test with no
+# guildlm-build process alive — which is precisely the window a "wait for a build" loop
+# treats as free. That is the four-waiters race again, and I rebuilt it ten minutes
+# after fixing it. Wait for the queue PROCESS, then for any build, then go.
+while pgrep -f "_run_queue.sh" > /dev/null; do sleep 60; done
 while pgrep -f "guildlm-build main" > /dev/null; do sleep 30; done
 echo "=== stragglers queue starts $(date) ==="
 echo "############ taskapipro: parser-clamp closure (draw 2) ############"
