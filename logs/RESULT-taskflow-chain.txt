@@ -49,7 +49,26 @@ WHY THE TREE IS RED — two defects, neither the closure's
      ACTION: make the coupling un-splittable in the entry. Not done yet — taskflow is
      holding several queued closures already and they should land as one batch.
   2. TestProjectCreateInvalid: POST an invalid project returns 201 where 400 is required.
-     An IMPLEMENTATION bug — the project handler does not validate. Unrelated to middleware.
+     An IMPLEMENTATION REGRESSION, and diffing against the working tree says exactly what
+     was lost:
+
+         taskflow-v4     if err := p.Validate(); err != nil { ... 400 ... }
+         taskflow-chain  (absent — only the malformed-body 400 survives)
+
+     The handler stopped calling Project.Validate at all. Not a subtle weakening: the call
+     is gone.
+
+     THIS IS THE SUITE WORKING. TestProjectCreateInvalid exists, it asserts the 400, and it
+     went red the moment the call disappeared — which is the entire point of the teeth
+     programme, seen from the other side. The artifact is correctly reported NOT-GREEN
+     because a real contract is defended. A corpus where this regression shipped green would
+     be the bad outcome; this is the good one.
+
+     WHAT FAILED IS THE BUILDER. Eight fix rounds against a budget of five, repeatedly
+     "widening fix targets to package impl", and it never restored a spec-required call that
+     the failing test names in its own assertion. That is a capability data point rather than
+     a spec defect, and it belongs to the gate-mining vein: a missing call that the spec
+     states and a test names is exactly the shape a deterministic gate could restore.
 
 TWO NUMBERS WORTH KEEPING
   DROPPED NOTHING. 29 tests in taskflow-v4, 30 here, the only difference being the added
