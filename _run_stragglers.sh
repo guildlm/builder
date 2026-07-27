@@ -22,4 +22,7 @@ echo "############ taskapipro: parser-clamp closure (draw 2) ############"
 echo
 echo "############ shortener: Resolve lock + concurrency test (draw 2) ############"
 ./_shortener_mirrors_run.sh
+echo
+echo "############ taskflow draw 3: paginate must not route through parsePage ############"
+./_chain_run.sh taskflow
 echo "=== stragglers complete $(date) ==="

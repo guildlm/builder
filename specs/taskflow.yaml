@@ -320,10 +320,18 @@ files:
       clamp can be changed to assign 7777 with the whole suite still green — while
       paginate's identically-shaped clamp is caught. Defending an invariant in the
       inner function does not defend the one at the edge where the request arrives.
-      TestPaginateNegativeOffset: call paginate DIRECTLY (a unit test, no HTTP) on
-      a 3-item slice with limit=0, offset=-1 -> no panic and EXACTLY 3 items. This
-      is not hypothetical: a paginate without the `offset < 0` clamp slices
-      items[:-1] and panics at runtime, and every other test passes anyway.
-      TestPaginateOffsetPastEnd: call paginate DIRECTLY on a 1-item slice with
-      limit=10, offset=5 -> no panic and EXACTLY 0 items.
+      TestPaginateNegativeOffset: call paginate with LITERAL ARGUMENTS —
+      `paginate(items, 0, -1)` on a 3-item slice — and assert EXACTLY 3 items come
+      back with no panic.
+      DO NOT obtain those arguments from parsePage. This is the one mistake to avoid
+      in this file, and it has already happened once: a draw wrote
+      `limit, offset := parsePage(httptest.NewRequest("GET", "/tasks?offset=-1"))`
+      and passed those into paginate. parsePage CLAMPS, so paginate then received
+      offset 0 and its own `offset < 0` guard was never exercised — the test passed,
+      read correctly, and defended nothing. Measured: with the arguments routed
+      through parsePage, breaking paginate's clamp SURVIVES; with the literal -1 it
+      is CAUGHT. The two functions clamp independently and each needs its own test
+      to reach it.
+      TestPaginateOffsetPastEnd: call paginate with literal arguments the same way,
+      `paginate(items, 10, 5)` on a 1-item slice -> no panic and EXACTLY 0 items.
       Imports net/http/httptest and testing. Standard library only.
