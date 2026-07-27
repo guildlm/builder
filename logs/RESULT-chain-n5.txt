@@ -88,6 +88,17 @@ FILE LAYOUT IS ADVISORY IN A WAY CONTENT IS NOT
   in logs/hole-hunt-rows.tsv. Four of five draws kept the layout and the fifth did not, with
   no signal other than a probe that suddenly did not apply.
 
+  HOW OFTEN DOES THIS HAPPEN? Counted across all of generated/: 62 files contain nothing
+  but a package clause, and 55 of those are the SAME file — internal/store/memory.go in the
+  workapi/taskapi/taskapipro family, where the model put the implementation in store.go and
+  left memory.go as a shell. 41 sit in ordinary artifacts rather than archived failures.
+
+  But they are HISTORICAL. Every one of those 55 is an older draw (workapi2..workapi27, the
+  dapt/base bench artifacts, old sweeps); no -v4 tree and none of today's five have it. The
+  current specs pin that split and get it. So the archive records a systematic layout failure
+  that spec work has since fixed, and today's count of live instances is exactly ONE: this
+  workapi middleware.go. Worth knowing before quoting 62 as a current problem — it is not one.
+
   The compiler enforces the contract; nothing enforces the layout. So a NOAPPLY is not
   evidence about a hole, and any tool that reports one must say WHERE the site went — which
   is the whole reason the drift warning exists and why it was worth fixing an hour before
