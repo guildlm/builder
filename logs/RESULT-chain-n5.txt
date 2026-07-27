@@ -1,0 +1,54 @@
+RESULT — the Chain closure across five specs (N=5, one edit)
+=============================================================
+2026-07-27. Predictions: logs/PREDICTION-taskflow-chain.txt, logs/PREDICTION-boundary-closures.txt.
+Runs: _taskflow_chain_run.sh, then _run_queue.sh -> _chain_run.sh <spec>. Base model at :8080,
+no fleet, identical flags to the runs that built the -v4 trees.
+
+THE QUESTION
+  Five of twenty-five specs describe the SAME middleware composer in the same words, all five
+  grew the same undefended loop, and all five got the SAME edit: one own-named test asserting
+  the joined call order. Every previous closure claim in this repo is N=1 per spec. This is
+  the first time one edit has been applied to five independent specs at once, so it can
+  separate "naming works" from "that spec had a good day".
+
+SCOREBOARD  (updated as each run lands)
+
+  spec        wall    tree    test written   assertion form        mutation   dropped
+  ----------  ------  ------  -------------  --------------------  ---------  -------
+  taskflow    21676s  RED     yes            element-wise `want`   CAUGHT*    none (29->30)
+  usersapi      546s  GREEN   yes            strings.Join          CAUGHT     none (11->12)
+  taskapi         -   -       -              -                     -          -
+  taskapipro      -   -       -              -                     -          -
+  workapi         -   -       -              -                     -          -
+
+  * taskflow graded in isolation (`go test -run TestChain...`), because its tree is RED for
+    two unrelated reasons and a red baseline voids every CAUGHT/SURVIVED verdict. usersapi
+    graded properly by _hole_closed, which also confirmed no registered mutation regressed.
+
+WHAT IS ALREADY VISIBLE AT N=2
+  THE CLOSURE ITSELF IS NOT THE VARIABLE. Both specs wrote the test, both assert the order,
+  both catch the mutation. The prediction I was least sure of — that the model would assert
+  the ORDER rather than the status, given that prose explaining why a WEAKER assertion is
+  insufficient has the worse record here — has now held twice.
+
+  THE RENDERING VARIES, THE CONTENT DOES NOT. usersapi wrote `strings.Join(order, ",") !=
+  "first,second,handler"`, exactly as dictated. taskflow wrote an element-wise compare against
+  a `want` slice — stronger than dictated, and it defeated the run script's grep for the
+  literal string. Two renderings, one contract, both catch the flip. Worth remembering the
+  next time a spec dictates a FORM: the model honours the assertion's MEANING more reliably
+  than its syntax, and a grader keyed to syntax will lie.
+
+  THE COST IS NOT IN THE EDIT. 21,676s against 546s for the same one-file, one-test addition —
+  a factor of forty. Whatever taskflow spent six hours on, it was not this test: it wrote it,
+  correctly, and dropped nothing. Two specs, two currencies, and neither paid in dropped tests.
+
+  NEITHER SPEC DROPPED A TEST. The corpus record says taskflow "pays for a harder spec in
+  DROPPED TESTS where shortener pays in TIME". Both of these added a file entry and lost
+  nothing; taskflow paid in time, which is the other spec's currency. That claim is now
+  narrowed twice over and should not be quoted as it stands.
+
+STILL OPEN
+  Whether three more specs make it 5/5, and whether the six hours belongs to taskflow or to
+  the edit. taskapi, taskapipro and workapi carry the identical entry; taskapipro and workapi
+  also carry a config closure in the same edit, which is the only place edit-count could show
+  up as a cost.
