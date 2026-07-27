@@ -36,6 +36,25 @@ THE HEADLINE
   clamp is defended. Same file, same shape, same assigned value, opposite answers. Per-site
   or the number is meaningless — the lesson this corpus keeps re-learning.
 
+  AND THE SPLIT IS NOT RANDOM — it is by LAYER. Every CAUGHT row is a paginate/service
+  clamp; every SURVIVED row is a query-PARSER clamp. Both specs promise both:
+
+      taskflow    "limit ... 20 (max 100) and offset to 0, clamping negatives to the
+                   default/zero"                                   <- the parser, undefended
+      taskflow    TestPaginateNegativeOffset, "call paginate DIRECTLY"   <- defended
+      taskapipro  TestListNegativeOffset, "List with limit=0 and offset=-1"  <- service, defended
+      taskapipro  four api-layer clamps in tasks.go and projects.go         <- undefended
+
+  So the invariant has a named test at ONE layer and none at the other, and the specs that
+  name the deeper test are the reason the shallower one was never written: the promise
+  reads as covered. This is the taskapipro sort lesson again in a new place — the layer a
+  test is written at is a choice, and defending an invariant once does not defend it where
+  the request actually arrives.
+
+  The five closures therefore have a shape: name a test for the PARSER's clamping, at the
+  parser, passing limit=-1 and offset=-1 through the HTTP seam. Not queued yet — all five
+  sites live in specs currently in the Chain sweep.
+
 A SECOND BLIND SPOT, in the SELECTOR rather than the filter
   Coverage was run over usersapi and taskflow looking for statement blocks no test executes.
   Almost everything is covered; the interesting exception was
