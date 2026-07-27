@@ -44,7 +44,13 @@ if NEW.is_dir() and _corpus_check(NEW) == "refuse":
 if not NEW.is_dir():
     raise SystemExit(f"{NEW} is not a directory — pass the artifact dir POSITIONALLY:\n"
                      f"  python _hole_closed.py <artifact-dir> [spec] [--probe=...] [--file=...]")
-if not any(f for f in NEW.glob("*.go") if not f.name.endswith("_test.go")):
+# rglob, NOT glob. This guard exists to refuse an empty or half-written directory, and with
+# a top-level glob it refused every LAYERED artifact instead: taskapi, taskapipro and workapi
+# keep all their Go under internal/, so the grader reported "nothing to grade" for three of
+# the five Chain closures it was built to grade. A guard that fires on the shape it was meant
+# to serve reads exactly like a real answer — "nothing to grade" is what an empty directory
+# says too.
+if not any(f for f in NEW.rglob("*.go") if not f.name.endswith("_test.go")):
     raise SystemExit(f"{NEW} has no non-test .go files — nothing to grade")
 SPEC = sys.argv[2] if len(sys.argv) > 2 else NEW.name.split("-")[0]
 # Which hole is being graded. Question (1) has to probe the SAME shape _hole_hunt used to
@@ -123,9 +129,11 @@ def break_it(text):
 # running this against the artifact whose answer was already known, which is the only
 # reason it did not become a result.
 PINNED = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--file=")), None)
+# rglob here too, and a path rather than a basename — same defect as the guard above, and
+# without --file a layered artifact would resolve target to None and grade nothing.
 target = PINNED or next(
-    (f.name for f in sorted(NEW.glob("*.go"))
-     if not f.name.endswith("_test.go") and PATTERN.search(f.read_text())), None)
+    (str(f.relative_to(NEW)) for f in sorted(NEW.rglob("*.go"))
+     if not f.name.endswith("_test.go") and PATTERN.search(f.read_text(errors="ignore"))), None)
 if PINNED and not (NEW / PINNED).exists():
     raise SystemExit(f"--file={PINNED} is not in {NEW}")
 # COUNT THE SITES. Grading the pinned file answers "is THIS site defended", and a promise
@@ -134,7 +142,7 @@ if PINNED and not (NEW / PINNED).exists():
 # named test that reaches only the first, so a run graded on one probe read as closed while
 # two sites stayed open. Across its four trees no artifact ever defended more than 4 of the
 # 6 sites its three closed promises span.
-sites = sorted(f.name for f in NEW.rglob("*.go")
+sites = sorted(str(f.relative_to(NEW)) for f in NEW.rglob("*.go")
                if not f.name.endswith("_test.go") and PATTERN.search(f.read_text(errors="ignore")))
 print(f"{LABEL} applies in: {target}" + (f"   ({len(sites)} site(s): {', '.join(sites)})"
                                          if len(sites) > 1 else ""))
@@ -144,6 +152,12 @@ print(f"{LABEL} applies in: {target}" + (f"   ({len(sites)} site(s): {', '.join(
 # NOAPPLY, while the new tree had moved writeJSON into task.go and the closure was in fact
 # CAUGHT. NOAPPLY on a pinned file that holds no site reads exactly like "the mutation does
 # not apply here", which is true and useless; the useful sentence is that the site MOVED.
+# COMPARE LIKE WITH LIKE. `sites` used to collect BASENAMES while --file carries a path
+# relative to the artifact, so every layered artifact tripped this: the pin
+# internal/api/middleware.go was "not in" a list containing middleware.go, and the grader
+# printed "the site MOVED between regenerations" about a file that had not moved at all —
+# beside a CAUGHT verdict it had just computed from that very file. A warning that
+# contradicts the result printed next to it is worse than no warning.
 if PINNED and sites and PINNED not in sites:
     print(f"  !! --file={PINNED} holds no {LABEL} site, but {', '.join(sites)} does —"
           f" the site MOVED between regenerations. Re-grade against that file;"
