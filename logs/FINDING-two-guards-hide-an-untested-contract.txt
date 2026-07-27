@@ -44,16 +44,35 @@ AND IT IS NOT HYPOTHETICAL — three artifacts have only ONE guard
   taskflow is the control in the same table — identical mutation, INERT — which is what
   makes the diagnosis "redundancy" rather than "these three are badly tested".
 
-WHY NO TEST SEES IT, AND WHY THAT KEEPS HAPPENING
-  Same reason as the json-tag shape: a Go test that decodes the response into the same
-  struct it encoded cannot see the difference. `json.Unmarshal` accepts both `[]` and
-  `null` into a []T, and both give len 0. Every assertion the corpus writes about an
-  empty list — len(got) == 0, reflect.DeepEqual against []T{} — passes on both. Only an
-  assertion on the RAW BODY can tell them apart, and no spec asks for one.
+WHY NO TEST SEES IT — and the first answer was wrong
+  The obvious explanation is the json-tag one: decoding cannot see it. Measured, that is
+  only half true, and the half that is false matters.
 
-  Two shapes now share that signature. Worth stating as a rule for spec writing: a wire
-  contract needs an assertion on the wire. Decoding is not observation — it is the second
-  half of a round trip, and a round trip is symmetric in exactly the mistakes that matter.
+      body     []T len  []T nil   reflect.DeepEqual(got, []T{})
+      ----     -------  -------   -----------------------------
+      []       0        false     true
+      null     0        true      false
+
+  So len() is blind, and DeepEqual against a non-nil empty slice DISCRIMINATES. A test
+  that compared the decoded value against []T{} would have caught this without ever
+  touching the raw body. (An earlier draft of this file claimed DeepEqual passes on both.
+  It does not.)
+
+  The real reason is simpler and worse: THE CORPUS NEVER LISTS AN EMPTY STORE. usersapi's
+  TestListReturnsAll posts two users and asserts len == 2; every list test in every one of
+  these artifacts populates the store first. The empty case is not weakly asserted, it is
+  never reached. Two guards agree about a code path no test has ever executed.
+
+  That changes what the closure has to say. "Assert the body is []" is not enough on its
+  own — the test has to GET the list on a FRESH store, which no existing test does, and
+  the spec has to say so explicitly or the model will populate it out of habit like every
+  other list test in the file.
+
+  The rule still stands for spec writing, now with a companion: a wire contract needs an
+  assertion on the wire, AND the empty case is a case. Decoding is the second half of a
+  round trip and a round trip is symmetric in exactly the mistakes that matter — but the
+  assertion that never runs is beaten by no assertion at all only in that it is harder to
+  notice.
 
 WHAT IS NOT CLAIMED
   Nothing here says the three artifacts are wrong today; they are correct. The claim is
@@ -66,6 +85,17 @@ WHAT IS NOT CLAIMED
   not shipped: 12 sites in the corpus, and 3 of the 6 HTTP artifacts would report SURVIVED
   for the redundancy reason above. A shape whose survivors are majority-inert is how today
   started, and shipping one on the same day would be a poor lesson to draw.
+
+HOW EXPOSED IS THE CORPUS TO WIRE-SHAPE DEFECTS GENERALLY
+  Counted across ten HTTP artifacts: assertions on a raw JSON body, ZERO. The one raw-body
+  assertion in the corpus is shortener's `/health` returning the plain text "ok". Three
+  artifacts (jsonapi, taskflow, tasks-api) decode into map[string]any, which is what closed
+  the json-tag holes — a map sees a renamed KEY because the key is data rather than a
+  struct field. It does not see `[]` vs `null`, because that distinction survives into a
+  decoded []any as nil-ness, and nothing checks nil-ness.
+
+  So the corpus has exactly one instrument for wire shape (map decoding), it was added for
+  one shape, and it happens not to cover this one.
 
 NEXT — three spec closures, deliberately NOT made yet
   usersapi, tasks-api and taskapi each need an own-named test asserting the RAW body of an
