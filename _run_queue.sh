@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# ONE queue for the remaining closure runs, because four independent waiters is a race.
+#
+# Each closure script parks on `while pgrep -f "guildlm-build main"; do sleep 30; done`.
+# That is correct for one waiter and wrong for four: when taskflow's six-hour build
+# finished, all four woke within the same 30-second window and only luck decided that a
+# single one won. Two 6-hour generations sharing the GPU is the failure this project has
+# already paid for once — a live build lost its files to a command run beside it.
+#
+# So: one process, one list, in order. Each script still parks on its own loop, which is
+# now a no-op guard rather than the scheduler.
+#
+# ORDER IS BY INFORMATION PER HOUR, not by when the edit was written:
+#   1. the four Chain specs — the N=5 replication, and the only result that answers a
+#      question no single run can (same edit, five specs). taskflow already landed.
+#   2. bitset — two closures, smallest spec in the corpus, minutes not hours.
+#   3. shortener — two mirror closures, and the spec that pays in TIME, so it goes last.
+set -uo pipefail
+cd "$(dirname "$0")"
+
+while pgrep -f "guildlm-build main" > /dev/null; do sleep 30; done
+echo "=== queue starts $(date) ==="
+
+for spec in usersapi taskapi taskapipro workapi; do
+  echo
+  echo "############ chain: $spec ############"
+  ./_chain_run.sh "$spec"
+done
+
+echo
+echo "############ bitset witness ############"
+./_bitset_witness_run.sh
+
+echo
+echo "############ shortener mirrors ############"
+./_shortener_mirrors_run.sh
+
+echo "=== queue complete $(date) ==="
