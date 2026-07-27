@@ -18,14 +18,14 @@ SCOREBOARD  (updated as each run lands)
   taskflow    21676s  RED     yes            element-wise `want`   CAUGHT*    none (29->30)
   usersapi      546s  GREEN   yes            strings.Join          CAUGHT     none (11->12)
   taskapi      1532s  GREEN   yes            strings.Join          CAUGHT     none (40->41)
-  taskapipro      -   -       -              -                     -          -
+  taskapipro   2760s  GREEN   yes            strings.Join          CAUGHT     none (57->59)
   workapi         -   -       -              -                     -          -
 
   * taskflow graded in isolation (`go test -run TestChain...`), because its tree is RED for
     two unrelated reasons and a red baseline voids every CAUGHT/SURVIVED verdict. usersapi
     graded properly by _hole_closed, which also confirmed no registered mutation regressed.
 
-WHAT IS ALREADY VISIBLE AT N=3
+WHAT IS ALREADY VISIBLE AT N=4
   THE CLOSURE ITSELF IS NOT THE VARIABLE. Both specs wrote the test, both assert the order,
   both catch the mutation. The prediction I was least sure of — that the model would assert
   the ORDER rather than the status, given that prose explaining why a WEAKER assertion is
@@ -55,6 +55,7 @@ WHERE THE SIX HOURS WENT — counted, not guessed
       spec       files  rounds  resolved by          model fix-calls  wall     tree
       usersapi     9      0     nothing to fix              0           546s   GREEN
       taskapi     18      1     DETERMINISTIC GATES         0          1532s   GREEN
+      taskapipro  21      2     DETERMINISTIC GATES         0          2760s   GREEN
       taskflow    16      8     model, and never            84         21676s  RED
 
   taskapi has the MOST files of the three and cost zero fix-calls: "converged to green after
