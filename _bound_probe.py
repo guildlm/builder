@@ -44,6 +44,7 @@ VERDICTS
                     catches this. The SURVIVED row that sent me here is out of date.
 """
 import pathlib
+import re
 import subprocess
 import sys
 import tempfile
@@ -51,6 +52,32 @@ import tempfile
 sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
 from _hole_hunt import BOUND, BOUND_FLIP, BOUND_LINE, inert_flip, replace_at
 from _teeth_suite import verdict_for, GEN
+
+
+NIL_SLICE = re.compile(r"(\w+) := make\((\[\][\w.]+), 0(?:, [^()]*(?:\([^()]*\))?[^()]*)?\)")
+
+
+def nil_slice(occurrence: int = 0):
+    """`out := make([]T, 0, n)` -> `var out []T`: the accumulator starts NIL.
+
+    Every observable behaviour is identical — append, len, range, indexing — except one:
+    an EMPTY result marshals as `null` instead of `[]`. A client that iterates the
+    response breaks on null; a Go test that round-trips through the same struct cannot
+    see it, and neither can any assertion on len() or on the decoded value.
+
+    This is the sibling of the json-tag shape. Both are invisible to a round-trip and
+    visible only to an assertion on the RAW body, which is why the corpus keeps growing
+    tests that cannot see either.
+    """
+    def mut(text: str):
+        seen = 0
+        for m in NIL_SLICE.finditer(text):
+            if seen != occurrence:
+                seen += 1
+                continue
+            return text[:m.start()] + f"var {m.group(1)} {m.group(2)}" + text[m.end():]
+        return None
+    return mut
 
 
 def flip_site(needle: str, occurrence: int = 0):
@@ -250,6 +277,87 @@ PROBES = [
      "zz_probe_test.go", EXPREVAL_PROBE),
     ("ledger    dot<0", "ledger-v4", "internal/money/money.go", "if dot < 0", 0,
      "internal/money/zz_probe_test.go", LEDGER_PROBE),
+
+    # NOT a boundary flip, and here because the boundary work turned it up: paginate is
+    # inert ONLY because every store builds its slice with make(), and nothing in any spec
+    # or any test requires that. The day the accumulator is declared `var out []Task`
+    # instead, an empty list goes out as `null` and every client that iterates it breaks.
+    ("taskflow  empty list []", "taskflow-v4", "store.go", nil_slice(0),
+     0, "zz_probe_test.go", '''package main
+
+import (
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestEmptyListMarshalsAsAnEmptyArray(probe *testing.T) {
+	rec := httptest.NewRecorder()
+	NewRouter(NewStore()).ServeHTTP(rec, httptest.NewRequest("GET", "/tasks", nil))
+	if got := strings.TrimSpace(rec.Body.String()); got != "[]" {
+		probe.Fatalf("GET /tasks on an empty store = %q, want []", got)
+	}
+}
+'''),
+    # The same mutation on three artifacts that have NO paginate between the store and the
+    # encoder. taskflow above is the control: identical mutation, INERT, because paginate's
+    # `return []T{}` normalises the nil away. These three ship `null`.
+    ("usersapi  empty list []", "usersapi-v4", "store.go", nil_slice(0), 0,
+     "zz_probe_test.go", '''package main
+
+import (
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestEmptyListMarshalsAsAnEmptyArray(probe *testing.T) {
+	rec := httptest.NewRecorder()
+	NewRouter(NewMemStore()).ServeHTTP(rec, httptest.NewRequest("GET", "/users", nil))
+	if got := strings.TrimSpace(rec.Body.String()); got != "[]" {
+		probe.Fatalf("GET /users on an empty store = %q, want []", got)
+	}
+}
+'''),
+    ("tasks-api empty list []", "tasks-api-v4", "store.go", nil_slice(0), 0,
+     "zz_probe_test.go", '''package main
+
+import (
+	"net/http/httptest"
+	"strings"
+	"testing"
+)
+
+func TestEmptyListMarshalsAsAnEmptyArray(probe *testing.T) {
+	rec := httptest.NewRecorder()
+	NewRouter(NewAPI(NewMemStore())).ServeHTTP(rec, httptest.NewRequest("GET", "/tasks", nil))
+	if got := strings.TrimSpace(rec.Body.String()); got != "[]" {
+		probe.Fatalf("GET /tasks on an empty store = %q, want []", got)
+	}
+}
+'''),
+    ("taskapi   empty list []", "taskapi-v4", "internal/store/memory.go", nil_slice(0), 0,
+     "internal/api/zz_probe_test.go", '''package api
+
+import (
+	"io"
+	"log/slog"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"guildlm.dev/taskapi/internal/store"
+)
+
+func TestEmptyListMarshalsAsAnEmptyArray(probe *testing.T) {
+	rec := httptest.NewRecorder()
+	NewRouter(store.NewMemStore(), slog.New(slog.NewTextHandler(io.Discard, nil))).
+		ServeHTTP(rec, httptest.NewRequest("GET", "/tasks", nil))
+	if got := strings.TrimSpace(rec.Body.String()); got != "[]" {
+		probe.Fatalf("GET /tasks on an empty store = %q, want []", got)
+	}
+}
+'''),
 ]
 
 
@@ -260,19 +368,23 @@ def judge(art: pathlib.Path, rel: str, needle: str, occ: int,
     Pass 1 has no mutation and exists only to confirm the probe compiles and passes on the
     artifact as generated. Pass 2 mutates with the probe present.
     """
+    # `needle` may be a ready-made mutator instead of a line to find, so a family whose
+    # mutation is not an operator flip rides the same machinery.
+    mutator = needle if callable(needle) else flip_site(needle, occ)
     clean, note = verdict_for(art, rel, lambda t: t, extra={probe_path: probe_src})
     if clean in ("SKIP", "NOTESTS", "NOAPPLY"):
         return clean, note
     if clean == "BASELINE-RED":
         return "PROBE-RED", "the probe fails on the unmutated artifact — fix the probe: " + note
-    v, note = verdict_for(art, rel, flip_site(needle, occ), extra={probe_path: probe_src})
+    v, note = verdict_for(art, rel, mutator, extra={probe_path: probe_src})
     if v in ("SKIP", "NOAPPLY", "NOTESTS", "BASELINE-RED"):
         return v, note
     if v == "SURVIVED":
         return "INERT-OR-WEAK", "probe passes on both — no input this probe tries tells them apart"
     if any(name in note for name in
            ("TestChain", "TestValidateRejectsZero", "TestPaginate", "TestClearOutOfRange",
-            "TestTestOutOfRange", "TestOperatorPosition", "TestParseRejects")):
+            "TestTestOutOfRange", "TestOperatorPosition", "TestParseRejects",
+            "TestEmptyListMarshals")):
         return "OBSERVABLE", note
     return "DEFENDED-ALREADY", note + " — the artifact's own suite sees this; the SURVIVED row is stale"
 

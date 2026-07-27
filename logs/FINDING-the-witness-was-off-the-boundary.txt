@@ -48,6 +48,11 @@ THE SWEEP THAT FOUND IT — all 15 boundary survivors, re-characterised
         produce: the ONLY distinguishable input is a NIL slice ([] vs null once
         marshalled), and all three stores build theirs with make(), so nil never
         arrives. Nothing was broken.
+        ⚠ NARROWED THE SAME DAY — see FINDING-two-guards-hide-an-untested-contract.txt.
+        "Nothing was broken" is true of THIS mutation and false about the property. The
+        store's make() and paginate's early return are two guards on the same contract;
+        flip BOTH and taskflow answers `null`. The `[]` contract is undefended by any
+        test in any of the six HTTP artifacts, and three of them have only one guard.
     taskapipro  `MaxPageSize <= 0` -> `< 0`
         INERT BY MASKING. Accepting MaxPageSize=0 still fails `DefaultPageSize >
         MaxPageSize` for every DefaultPageSize the preceding guard admits, so no Config

@@ -1,0 +1,74 @@
+FINDING — a property defended by redundancy, not by tests, is invisible to mutation testing
+===========================================================================================
+2026-07-27. Model-free. Reproduce: python _bound_probe.py "empty list"
+
+THE HEADLINE
+  taskflow's empty task list goes on the wire as `[]`. Two independent things make that
+  true, and a single-site mutation cannot disturb either one alone:
+
+      store.go       out := make([]Task, 0, len(s.tasks))   // never nil
+      pagination.go  if offset >= len(items) { return []T{} }  // normalises nil away
+
+  Measured, all four cells:
+
+      mutation                         GET /tasks on an empty store
+      ----------------------------     ----------------------------
+      none                             []
+      store make() -> var out []Task   []
+      paginate >= -> >                 []
+      BOTH                             null
+
+  Neither mutation is observable. Together they are. So `_hole_hunt` reports the paginate
+  flip SURVIVED, `_bound_probe` correctly reports it INERT, and both are right about the
+  mutation and wrong about the property: the `[]` contract is undefended by any test. It
+  holds because two guards happen to agree, and it will keep holding exactly as long as
+  both keep being drawn.
+
+  This is a structural limit of single-site mutation testing, which is the entire
+  methodology of the hole hunt. A property with N redundant guards needs an N-site
+  mutation to expose, and the sweep only ever flips one.
+
+AND IT IS NOT HYPOTHETICAL — three artifacts have only ONE guard
+  usersapi, tasks-api and taskapi have no paginate between the store and the encoder;
+  their list handlers pass the store's slice straight to writeJSON. One line changed:
+
+      usersapi   out := make([]User, 0, len(s.users))          -> var out []User
+      tasks-api  out := make([]Task, 0, len(s.tasks))          -> var out []Task
+      taskapi    out := make([]models.Task, 0, len(s.tasks))   -> var out []models.Task
+
+  All three then answer `null` where they answered `[]`, and ALL THREE SUITES STAY GREEN.
+  A client that iterates the response breaks; nothing in the corpus notices. Confirmed
+  two ways per artifact: the wire body was read before and after, and the artifact's own
+  suite was run on the mutant.
+
+  taskflow is the control in the same table — identical mutation, INERT — which is what
+  makes the diagnosis "redundancy" rather than "these three are badly tested".
+
+WHY NO TEST SEES IT, AND WHY THAT KEEPS HAPPENING
+  Same reason as the json-tag shape: a Go test that decodes the response into the same
+  struct it encoded cannot see the difference. `json.Unmarshal` accepts both `[]` and
+  `null` into a []T, and both give len 0. Every assertion the corpus writes about an
+  empty list — len(got) == 0, reflect.DeepEqual against []T{} — passes on both. Only an
+  assertion on the RAW BODY can tell them apart, and no spec asks for one.
+
+  Two shapes now share that signature. Worth stating as a rule for spec writing: a wire
+  contract needs an assertion on the wire. Decoding is not observation — it is the second
+  half of a round trip, and a round trip is symmetric in exactly the mistakes that matter.
+
+WHAT IS NOT CLAIMED
+  Nothing here says the three artifacts are wrong today; they are correct. The claim is
+  that their correctness is unpinned, and the corpus has already shown that unpinned
+  behaviour moves between draws — that is the whole finding behind the durability work.
+  `make([]T, 0, n)` versus `var out []T` is exactly the kind of thing a regeneration
+  changes for no reason at all.
+
+  Nor is this a new mutation SHAPE for _hole_hunt yet. It was considered and deliberately
+  not shipped: 12 sites in the corpus, and 3 of the 6 HTTP artifacts would report SURVIVED
+  for the redundancy reason above. A shape whose survivors are majority-inert is how today
+  started, and shipping one on the same day would be a poor lesson to draw.
+
+NEXT — three spec closures, deliberately NOT made yet
+  usersapi, tasks-api and taskapi each need an own-named test asserting the RAW body of an
+  empty list is "[]". Held back on purpose: all three specs are queued in the Chain sweep,
+  whose value is that FIVE specs get the SAME edit, and slipping a second edit into one of
+  them would spoil the comparison. Queue them once the sweep is graded.
