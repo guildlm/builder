@@ -19,13 +19,13 @@ SCOREBOARD  (updated as each run lands)
   usersapi      546s  GREEN   yes            strings.Join          CAUGHT     none (11->12)
   taskapi      1532s  GREEN   yes            strings.Join          CAUGHT     none (40->41)
   taskapipro   2760s  GREEN   yes            strings.Join          CAUGHT     none (57->59)
-  workapi         -   -       -              -                     -          -
+  workapi      2530s  GREEN   yes            strings.Join          CAUGHT**   none (40->42)
 
   * taskflow graded in isolation (`go test -run TestChain...`), because its tree is RED for
     two unrelated reasons and a red baseline voids every CAUGHT/SURVIVED verdict. usersapi
     graded properly by _hole_closed, which also confirmed no registered mutation regressed.
 
-WHAT IS ALREADY VISIBLE AT N=4
+THE ANSWER AT N=5
   THE CLOSURE ITSELF IS NOT THE VARIABLE. Both specs wrote the test, both assert the order,
   both catch the mutation. The prediction I was least sure of — that the model would assert
   the ORDER rather than the status, given that prose explaining why a WEAKER assertion is
@@ -56,6 +56,7 @@ WHERE THE SIX HOURS WENT — counted, not guessed
       usersapi     9      0     nothing to fix              0           546s   GREEN
       taskapi     18      1     DETERMINISTIC GATES         0          1532s   GREEN
       taskapipro  21      2     DETERMINISTIC GATES         0          2760s   GREEN
+      workapi     21      3     DETERMINISTIC GATES         2          2530s   GREEN
       taskflow    16      8     model, and never            84         21676s  RED
 
   taskapi has the MOST files of the three and cost zero fix-calls: "converged to green after
@@ -71,8 +72,34 @@ WHERE THE SIX HOURS WENT — counted, not guessed
   It also settles the attribution: the edit adds one file to every spec, and two specs that
   received it paid nothing at all.
 
-STILL OPEN
-  Whether three more specs make it 5/5, and whether the six hours belongs to taskflow or to
-  the edit. taskapi, taskapipro and workapi carry the identical entry; taskapipro and workapi
-  also carry a config closure in the same edit, which is the only place edit-count could show
-  up as a cost.
+** workapi's Chain probe first reported NOAPPLY. The declaration MOVED: this draw left
+   internal/api/middleware.go as a ONE-LINE file containing only `package api` and put
+   Middleware, Chain, Logging and Recover in router.go. Re-graded against router.go: CAUGHT.
+   The drift warning added earlier the same day is what named the right file.
+
+FILE LAYOUT IS ADVISORY IN A WAY CONTENT IS NOT
+  That NOAPPLY is the session's quietest finding and possibly its most useful. Go does not
+  care which file in a package holds a declaration, so a draw that ignores the spec's file
+  assignment still compiles, still passes, and still satisfies every promise — while leaving
+  a dead one-line file where the spec put the middleware.
+
+  Everything in the instrument layer assumes otherwise: --file pins, the per-site mutation
+  registry, _mirror_calls_audit's twin pairing, and every "which file holds the hole" answer
+  in logs/hole-hunt-rows.tsv. Four of five draws kept the layout and the fifth did not, with
+  no signal other than a probe that suddenly did not apply.
+
+  The compiler enforces the contract; nothing enforces the layout. So a NOAPPLY is not
+  evidence about a hole, and any tool that reports one must say WHERE the site went — which
+  is the whole reason the drift warning exists and why it was worth fixing an hour before
+  this run needed it.
+
+FINAL: 5 of 5 CLOSED
+  Every spec wrote the test. Every spec asserts the ORDER. Every mutation flips SURVIVED ->
+  CAUGHT. No spec dropped a test — 29->30, 11->12, 40->41, 57->59, 40->42 — and no registered
+  mutation regressed anywhere. The two config closures carried in the same edits (workapi
+  QueueSize, taskapipro DefaultPageSize) both CAUGHT as well, so the two specs that received
+  TWO edits are exactly the two that fared best per edit.
+
+  The one prediction that failed is the one worth keeping: I gave 4-of-4 even odds and it was
+  5-of-5, having doubted that a spec explaining why a WEAKER assertion is insufficient would
+  produce the stronger one. It did, in all five, in three different syntaxes.
