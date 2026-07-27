@@ -44,6 +44,21 @@ AND IT IS NOT HYPOTHETICAL — three artifacts have only ONE guard
   taskflow is the control in the same table — identical mutation, INERT — which is what
   makes the diagnosis "redundancy" rather than "these three are badly tested".
 
+  CENSUS across the six HTTP artifacts, with the evidence level marked, because half of it
+  is a reading and today is the day that distinction kept mattering:
+
+      usersapi    ONE guard   HOLE   measured — wire read before/after, suite run on mutant
+      tasks-api   ONE guard   HOLE   measured — same
+      taskapi     ONE guard   HOLE   measured — same
+      taskflow    TWO guards  inert  measured — the four-cell table above
+      taskapipro  TWO guards  inert  READ ONLY — service.go:67 and :108 both return
+                                     paginate(...), so the nil is normalised the same way
+      workapi     TWO guards  inert  READ ONLY — service.go:67, same shape
+
+  The last two are not measured. They are exactly the kind of claim that was wrong twice
+  today when it was only read, and they are cheap to settle — each needs a probe with that
+  artifact's router constructor — so settle them before quoting the census as 3/3.
+
 WHY NO TEST SEES IT — and the first answer was wrong
   The obvious explanation is the json-tag one: decoding cannot see it. Measured, that is
   only half true, and the half that is false matters.
