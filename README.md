@@ -195,7 +195,8 @@ be measurable:
 | `_named_test_audit.py` | Did the model write every test the spec NAMES — and does the spec name a mirrored route's tests at all? |
 | `_teeth_suite.py`, `_mutant_check.sh` | Does a green suite actually defend its contract? (see [TEETH.md](TEETH.md)) |
 | `_deadlock_detector.py` | Does a method re-acquire a mutex it already deferred-unlocked? |
-| `_hole_hunt.py` | Sweep for undefended promises nobody thought to check — four mutation shapes, every site |
+| `_hole_hunt.py` | Sweep for undefended promises nobody thought to check — six mutation shapes, every site. An INERT clamp forwards to shape 6b, which breaks what the clamp ASSIGNS, because breaking what it tests changes nothing by construction. |
+| `_bound_probe.py` | Is a SURVIVED row a HOLE, or was nothing broken? Writes the test the spec would get and requires it to pass unmutated and fail mutated. Split the fifteen boundary survivors 9 real / 6 not. `--locate` flips each occurrence in a file alone, because a shape tag is not an address. |
 | `_hole_closed.py` | Did a spec edit close the hole it targeted **and open no other**? |
 | `_registry_drift.py` | How many registered mutations survive a REGENERATION? Renames the artifact textually instead of regenerating it — brittleness is a property of the pattern. |
 | `_why_red.py` | Triage a RED artifact: which tests fail, and do they cluster into one shape? |

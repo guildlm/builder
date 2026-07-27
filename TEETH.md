@@ -21,12 +21,26 @@ so it violates a promise the spec actually makes, then ask whether any test goes
 | `_mutant_check.sh <spec>` | Does one spec's suite catch a hand-written bug? (exploratory) | yes (build+vet+test) |
 | `_named_test_audit.py` | Did the model write every test the spec NAMES? | no (static) |
 | `_deadlock_detector.py` | Does a method re-acquire a mutex it already deferred-unlocked? | no (static) |
-| `_hole_hunt.py` | Sweep for holes nobody thought to check — mutate every status write and drop every response header, across every artifact | yes (`go test`) |
+| `_hole_hunt.py` | Sweep for holes nobody thought to check — six shapes (status swap, header drop, sort reverse, `%w`→`%v`, json-tag rename, boundary flip) plus 6b, the clamp's assigned VALUE, across every artifact | yes (`go test`) |
+| `_bound_probe.py` | Is a SURVIVED row a hole, or was nothing broken? Writes the closing test and requires it to PASS unmutated and FAIL mutated | yes (`go test`) |
 | `_hole_closed.py` | Did a spec edit close the hole it targeted **and open no other**? | yes (`go test`) |
 
 `_named_test_audit.py` matches on names, so a test that is *present but vacuous* (right
 name, missing assertion) passes the audit while the hole stays open. Names are checkable
 by grep; teeth are not. That is why the mutation tools exist alongside it.
+
+And mutation has its own two blind spots, both found on 2026-07-27 and both worth knowing
+before quoting a SURVIVED count:
+
+- **A survivor is not a hole until something can tell the two programs apart.** Six of the
+  fifteen boundary survivors were green because nothing was broken — an early return that
+  computes the same empty slice by another route, a guard masked by a later one, a branch
+  no input reaches, a flip that only changes an error message. `_bound_probe.py` settles it
+  by writing the closing test and requiring it to fail on the mutant.
+- **A single-site mutation cannot see a property held by two redundant guards.** taskflow's
+  empty list is `[]` because the store uses `make()` *and* paginate returns `[]T{}`; break
+  either alone and it is still `[]`, break both and it is `null`. Nothing tests that
+  contract, and no shape in this file can show it.
 
 `_hole_hunt.py` exists because the registry reached **29 CAUGHT / 0 SURVIVED — 29 of 30
 mutations actually applied** by testing
