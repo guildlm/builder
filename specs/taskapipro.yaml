@@ -362,9 +362,9 @@ files:
       log/slog, net/http, and the service package.
   - path: internal/api/router_test.go
     purpose: >-
-      package api. Integration tests (net/http/httptest). This file contains ELEVEN
-      top-level declarations: the newRouter helper, and TEN test functions. WRITE
-      ALL ELEVEN — the helper is the one most easily skipped, because it is shown
+      package api. Integration tests (net/http/httptest). This file contains TWELVE
+      top-level declarations: the newRouter helper, and ELEVEN test functions. WRITE
+      ALL TWELVE — the helper is the one most easily skipped, because it is shown
       to you below and reads like something that already exists. It does not: this
       file is the only place it is declared, and every test calls it.
       Declare ONCE at package scope EXACTLY this helper — it returns http.Handler
@@ -398,6 +398,17 @@ files:
       200 with the stored fields.
       TestList: POST one task FIRST, then GET the collection -> 200 and a JSON
       array.
+      TestListNegativeOffsetIsClampedHere: POST ONE task FIRST, then GET the
+      collection with the query `?limit=10&offset=-1` and assert, as this test's
+      ONLY assertion, that EXACTLY 1 item comes back.
+      The clamp being tested is the one in THIS file — the handler reads offset
+      from the query string and clamps a negative to 0 before calling the service.
+      The service layer has its own clamp inside paginate and its own test, and
+      that test defends the service, not this. Measured across two regenerations:
+      the handler's clamp can be changed to assign 7777 instead of 0 and the whole
+      suite stays green, while the identically-shaped clamp one layer down is
+      caught. An invariant implemented in two places needs a test in both, and the
+      layer with a test is what makes the other look finished.
       TestListLimit: POST TWO tasks FIRST with ids OUT OF ORDER — id "2" then id "1" —
       GET the collection and json-decode it into a slice named `all` (length 2); assert
       all[0].ID == "1" and all[1].ID == "2": the store returns tasks id-sorted, so the

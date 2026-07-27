@@ -42,6 +42,10 @@ echo "############ shortener mirrors ############"
 # different mutation, so bundling them cannot blur a verdict. Six hours is the price of a
 # taskflow draw; it goes behind everything that answers faster.
 echo
+echo "############ taskapipro: parser-clamp closure (draw 2) ############"
+./_chain_run.sh taskapipro
+
+echo
 echo "############ taskflow: repair + two closures ############"
 ./_chain_run.sh taskflow
 # tasks-api SECOND draw. Its two closures both held, but the run exposed a spec

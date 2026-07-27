@@ -12,12 +12,17 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 SPEC="${1:?usage: _chain_run.sh <spec>}"
+# NEVER OVERWRITE A PREVIOUS DRAW. This script opens with `rm -rf "$OUT"`, generated/ is
+# gitignored, and every landed draw is the evidence behind a graded RESULT — deleting one is
+# the corpus-deletion shape with a smaller blast radius. Special-casing taskflow worked once
+# and then taskapipro needed a second draw too, so the rule is general: find the first free
+# name. n=2,3,... reads as the draw number, which is what the RESULT files call them.
 OUT="./generated/${SPEC}-chain"
-# The first taskflow-chain is a GRADED result — the six-hour run whose closure verdict
-# is recorded in logs/RESULT-taskflow-chain.txt. This script starts with `rm -rf "$OUT"`,
-# so re-running taskflow through it would delete the artifact behind a published finding.
-# generated/ is gitignored; there would be no way back. Second draw gets its own name.
-[[ "$SPEC" == taskflow ]] && OUT="./generated/taskflow-chain2"
+n=2
+while [[ -d "$OUT" ]]; do
+  OUT="./generated/${SPEC}-chain${n}"
+  n=$((n + 1))
+done
 rm -rf "$OUT"
 LOG="logs/${SPEC}-chain-$(date +%m%d%H%M).log"
 echo "=== $SPEC Chain naming run -> $OUT (log $LOG) ==="
