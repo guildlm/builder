@@ -1,0 +1,58 @@
+RESULT — shortener: both mirrors closed, and a data race found in the green tree
+================================================================================
+2026-07-27. Run: _shortener_mirrors_run.sh, 2059s, NOT-GREEN.
+
+THE CLOSURES — both held
+  Both named tests were written. Graded per site, running only the mirror tests (the tree is
+  red for an unrelated reason, and a red baseline voids a whole-suite verdict):
+
+      L26  CAUGHT  StatusBadRequest    malformed JSON        (already defended)
+      L30  CAUGHT  StatusBadRequest    empty url             (already defended)
+      L35  CAUGHT  StatusBadRequest    url.ParseRequestURI   <- was SURVIVED
+      L48  CAUGHT  StatusNotFound      Redirect              (already defended)
+      L63  CAUGHT  StatusNotFound      Stats                 <- was SURVIVED
+
+  5 of 5, and the two that were survivors are the two the edit named.
+
+WHY THE TREE IS RED — this draw's Resolve does not increment
+  TestStatsCountsOneHit: "Hits = 0, want 1". The doc comment above Resolve says it
+  "increments its Hits count"; the body reads the link and returns it. The increment is
+  simply absent — the same shape as taskflow's lost Validate call, a spec-required operation
+  missing while everything around it is right, and caught by the suite as it should be.
+
+AND THE REFERENCE TREE IS WORSE — a confirmed data race, shipping green
+  shortener-v4's Resolve DOES increment, and does it like this:
+
+      s.mu.RLock()
+      defer s.mu.RUnlock()
+      link, ok := s.m[code]
+      if !ok { return Link{}, s.ErrNotFound }
+      link.Hits++
+      s.m[code] = link          // a map WRITE while holding a READ lock
+      return link, nil
+
+  Fifty goroutines resolving one code: WARNING: DATA RACE, three times over, measured.
+
+  It ships GREEN under `go test -race -count=4` because -race only reports races the tests
+  actually drive, and no shortener test resolves concurrently. The spec asks for a
+  "goroutine-safe MemStore ... guarded by sync.RWMutex" and the artifact satisfies the letter
+  of that while getting the one thing RWMutex exists to distinguish exactly backwards.
+
+  One instance corpus-wide. No mutation shape covers "RLock where Lock is needed" — flipping
+  an operator or a status code cannot express it, and the code is not "already wrong in every
+  draw" either, so cross-draw would not have found it. It surfaced only because this draw's
+  MISSING increment sent me to read the working one.
+
+THE FIX
+  The store entry now says Resolve MUTATES and takes the full Lock, with the measured
+  evidence and the reason a map value cannot be incremented in place. And the suite gets
+  TestResolveIsSafeUnderConcurrency: fifty goroutines, a WaitGroup, and no assertion beyond
+  completing — because the assertion IS -race. That is the only shape of test that can defend
+  this, and its absence is why the bug was invisible.
+
+A NOTE ON THE SCAN THAT FOUND IT
+  The first sweep for "functions that take RLock and then write" returned ZERO across the
+  corpus. It was wrong, and the only reason I knew is that I already held a confirmed
+  instance to check it against. A corpus scan reporting nothing is indistinguishable from a
+  corpus containing nothing; the difference is whether a known positive was ever put in front
+  of it.
