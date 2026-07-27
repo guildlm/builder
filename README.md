@@ -202,6 +202,7 @@ be measurable:
 | `_why_red.py` | Triage a RED artifact: which tests fail, and do they cluster into one shape? |
 | `_candidate_triage.py` | Before spending a run on a SURVIVED row: does the spec promise it, and can the site even take effect? Two greps that have ruled out two 20-minute runs. |
 | `_test_durability.py` | Across several trees of ONE spec: which named tests does the model write EVERY run, **and does each one keep the same number of assertions**? A name persisting is not a promise staying defended. |
+| `_cross_draw.py` | Run one draw's TESTS against another draw's CODE. A tree green on its own suite and red under a sibling's has a defect its own tests never asked about — which mutation testing cannot find, because it presumes the code is correct and breaks it. Found a green artifact answering `{"id":0}` to a POST while storing id 1. |
 | `_mirror_calls_audit.py` | Structural twins (tasks_handler / projects_handler) should make the same calls — which twin is missing one? Resource names cancel, so the intended differences do not show. Caught a projects_handler that had lost its Validate call, from source, with no test run. |
 | `_mapsort_audit.py` | Which functions return a slice built from a MAP without sorting it? Go randomises map order per run, so one `go test` catches this only by luck. |
 
