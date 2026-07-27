@@ -1,0 +1,45 @@
+RESULT — the three late draws (taskflow 3, taskapipro 2, shortener 2)
+=====================================================================
+2026-07-27 evening. Run by _run_stragglers.sh after the main queue drained.
+
+1. taskflow DRAW 3 — the regression is repaired, and it is a net gain now
+   GREEN. The question was whether forbidding "route the arguments through parsePage"
+   brings back paginate's own clamp WITHOUT losing the two parser clamps draw 2 had won.
+
+       L24  CAUGHT   parsePage, empty-offset default
+       L28  CAUGHT   parsePage, negative-offset clamp   <- won in draw 2, kept
+       L42  CAUGHT   paginate's own clamp               <- LOST in draw 2, recovered
+
+   All three. Draw 2 traded one for two; draw 3 has all three. The spec sentence that did
+   it names the literal call `paginate(items, 0, -1)` and states the measured reason —
+   parsePage clamps, so arguments taken from it can never exercise the guard below.
+
+2. taskapipro DRAW 2 — 3 of 4, and I repeated the mistake I spent the day documenting
+       internal/api/tasks.go     L59  CAUGHT
+       internal/api/tasks.go     L63  CAUGHT
+       internal/api/projects.go  L58  CAUGHT
+       internal/api/projects.go  L62  SURVIVED   <- still open
+
+   The closure I wrote — TestListNegativeOffsetIsClampedHere — GETs the TASKS collection.
+   projects has its own handler, its own query parse and its own clamp, and nothing
+   requests it with a negative offset. That is the MIRROR shape, in the spec edit written
+   to close mirror holes, on the same day the mirror finding was recorded. Eight of the
+   twenty-one holes adjudicated this morning were mirrors and I still wrote a
+   single-resource test for a two-resource spec.
+   NEXT: the same test against /projects, or one test that walks both collections.
+
+3. shortener DRAW 2 — generation failure, closure UNMEASURED
+   NOT-GREEN, and not for a reason that says anything about the closure:
+       shortener_test.go:32:58: string literal not terminated
+   A syntax error in the generated test file that the fix loop could not repair. The
+   Resolve-takes-Lock change and TestResolveIsSafeUnderConcurrency are therefore untested.
+   Draw 1's two mirror closures still stand (5 of 5 sites CAUGHT, graded separately);
+   only the concurrency work is unmeasured.
+   NEXT: re-run. Nothing about the spec edit is implicated.
+
+RUNNING TALLY OF CLOSURE SITES GRADED THIS SESSION
+   held:  5 Chain + 2 config + 2 bitset + 7 tasks-api (empty list + 400 mirrors)
+        + 5 shortener mirrors + 2 taskflow (Delete-404, Chain) + 3 taskflow clamps
+        + 3 taskapipro clamps                                        = 29
+   open:  1 taskapipro projects clamp (mirror, above)
+   unmeasured: shortener Resolve lock (generation failure)
