@@ -55,3 +55,10 @@ logs/*
 # not regenerable, because it records what a specific artifact did at a specific
 # commit. Same reason as the predictions; same exception.
 !logs/FINDING-*.txt
+# ...and the RESULTS, which are what a PREDICTION becomes once the run lands. Keeping the
+# prediction and ignoring the result is the worst of the three options: it preserves the
+# guess and discards the grade, so a later reader finds five confident predictions and no
+# record of which ones missed. Caught the first time a RESULT was written — the commit
+# reported "nothing to commit, working tree clean" for a file that had just been created,
+# which is exactly the silent-ignore failure the hole-hunt-rows note above describes.
+!logs/RESULT-*.txt

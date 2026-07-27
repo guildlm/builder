@@ -1,0 +1,66 @@
+RESULT — taskflow Chain closure: the closure held, the tree did not
+====================================================================
+2026-07-27. Predictions: logs/PREDICTION-taskflow-chain.txt (written before the run).
+Run: _taskflow_chain_run.sh, base model at :8080, no fleet — the flags that built taskflow-v4.
+
+SCORECARD, against the five predictions
+  1. middleware_chain_test.go written with the named test          HIT
+  2. it asserts the ORDER, not the recorder's status               HIT  <- the one I doubted
+  3. the boundary mutation flips SURVIVED -> CAUGHT                HIT
+  4. taskflow drops at least one test somewhere else               MISS — dropped NOTHING
+  5. the tree is GREEN                                             MISS — RED, two defects
+
+THE CLOSURE HELD — measured in isolation, and why that is the honest way to say it
+  The tree is RED, and a red baseline voids every CAUGHT/SURVIVED verdict (this is the rule
+  that cost four by-hand runs to learn). So _hole_closed cannot grade it, and repairing the
+  artifact until it went green would have meant patching an IMPLEMENTATION bug and then
+  claiming a verdict about the patched thing.
+
+  Instead the narrow question was asked directly: does THIS test catch THIS mutation?
+
+      go test -run TestChainAppliesEveryMiddlewareOutermostFirst
+        tree as generated  ok
+        Chain loop >= -> > FAIL: want [first second handler], got [second handler]
+
+  That is exactly the defect the closure targets — the FIRST-listed middleware silently
+  dropped — named by the assertion the spec asked for. The claim this supports is "the test
+  the spec bought catches the hole", which is the closure question. It is NOT "the artifact
+  is defended", because the artifact does not build green.
+
+  The prediction I was least sure of was #2, on the grounds that prose explaining why a
+  WEAKER assertion is insufficient has a worse record here than prose dictating the stronger
+  one. It landed, and the model wrote a STRONGER form than dictated: an element-wise compare
+  against `want := []string{"first","second","handler"}` rather than the strings.Join the
+  spec asked for. Which is why the run script's grep for the literal "first,second,handler"
+  reported "order string absent" — a false negative, recorded in advance as advisory, and the
+  reason the mutation is the authority. A grep for an assertion's text is not a measure of
+  the assertion.
+
+WHY THE TREE IS RED — two defects, neither the closure's
+  1. TestWireFieldNames, a TEST-authoring inconsistency. The spec says: "POST a task
+     carrying a project_id, GET /tasks, and decode the array into []map[string]any". Those
+     two halves are COUPLED — the array decode is correct only for the list endpoint. This
+     draw took the second half without the first: it requests GET /tasks/1, which returns an
+     object, and decodes into []map[string]any. Self-inconsistent, so it fails at runtime.
+     taskflow-v4 deviates from the same sentence in the OTHER direction — GET /tasks/1 with
+     a map decode — which is wrong against the spec but internally consistent, so it passes.
+     The spec sentence is splittable, and both draws split it; only one split compiles into
+     a passing test.
+     ACTION: make the coupling un-splittable in the entry. Not done yet — taskflow is
+     holding several queued closures already and they should land as one batch.
+  2. TestProjectCreateInvalid: POST an invalid project returns 201 where 400 is required.
+     An IMPLEMENTATION bug — the project handler does not validate. Unrelated to middleware.
+
+TWO NUMBERS WORTH KEEPING
+  DROPPED NOTHING. 29 tests in taskflow-v4, 30 here, the only difference being the added
+  Chain test. The corpus record says taskflow "pays for a harder spec in DROPPED TESTS where
+  shortener pays in TIME". This draw added a file entry and dropped not one test.
+
+  SIX HOURS. 21,676s, against a corpus norm of roughly 300-3,400s, and it exhausted EIGHT
+  fix rounds against a budget of five before giving up. So this draw paid in TIME — the
+  shortener currency — and not in dropped tests at all.
+
+  Together those narrow the recorded claim: taskflow is the unstable spec, but "pays in
+  dropped tests" is not the mechanism, or not the only one. One draw is one draw; the four
+  sibling Chain runs queued behind this one give the same edit on four other specs and will
+  say whether six hours is taskflow or is the edit.
