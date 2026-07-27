@@ -208,3 +208,69 @@ OPEN
   five anecdotes), two config zero-guards, two bitset witnesses. Generating now; graded by
   _grade_closures.sh with the shape that found each hole.
   Three empty-list closures, deliberately held back so the N=5 comparison stays clean.
+
+--- 2026-07-27, LATER: the closure runs, and two blind spots in the method itself
+
+STANDS
+  chain-closure-holds-at-N=2          taskflow and usersapi both wrote the test, both assert
+                                      the ORDER, both CATCH the flip. usersapi graded by
+                                      _hole_closed on a green tree with no registered
+                                      mutation regressed; taskflow graded in isolation
+                                      because its tree is red for two unrelated reasons.
+  meaning-survives-rendering          usersapi wrote the dictated strings.Join; taskflow
+                                      wrote a stronger element-wise compare. One contract,
+                                      two syntaxes, both catch it — so a grader keyed to the
+                                      assertion's TEXT lies, and mine did.
+  the-cost-is-not-the-edit            546s vs 21,676s for the same one-file addition. Forty
+                                      times, and taskflow wrote the test correctly and
+                                      dropped nothing.
+  mutation-cannot-see-already-wrong-  tasks-api-v4 is GREEN and answers POST /tasks with
+  code                                {"id":0,"created_at":"0001-01-01T00:00:00Z"} while
+                                      storing id 1. Mutation testing breaks correct code and
+                                      asks whether a test notices — it presumes correctness.
+                                      Six shapes, 170 probes, structurally blind.
+  the-spec-was-unsatisfiable          `Create(t Task) error` (value, no return) plus "the
+                                      response echoes the created task with its assigned id"
+                                      cannot both hold. Second instance of the shape the
+                                      corpus documents for Load(). Repaired to *Task.
+  twins-should-make-the-same-calls    _mirror_calls_audit: 0 findings across the green corpus,
+                                      and it catches the projects_handler that lost its
+                                      Validate call — from source, no test run.
+  cross-draw-is-a-real-instrument     _cross_draw reproduces the tasks-api finding on purpose,
+                                      and produces NOTHING on the two green usersapi draws
+                                      (both directions green), which is the false-positive
+                                      check.
+
+SUPERSEDED IN PART
+  "taskflow pays in dropped tests"    Narrowed twice today. Two specs added a file entry;
+                                      neither dropped anything. taskflow paid in TIME, which
+                                      the record assigns to shortener.
+
+TOOL DEFECTS, both in tools written the same hour
+  a headline that counted the         _cross_draw made ASYMMETRIC the summary number and
+  empty category                      printed "0 findings" on a run that had just surfaced
+                                      two real ones. Both counts now printed.
+  a resource filter that filtered     _mirror_calls_audit's normaliser stripped the PLURAL the
+  nothing                             file is named for ("tasks") while methods are singular
+                                      ("CreateTask"), so nothing cancelled and every twin
+                                      looked asymmetric. Caught by its own symmetric fixture
+                                      on the first run.
+  RESULT-*.txt was gitignored         PREDICTION-* and FINDING-* were un-ignored and RESULT-*
+                                      was not, so the first result written reported "nothing
+                                      to commit". Keeping the guess and discarding the grade
+                                      is the worst of the three options.
+
+TWO HAZARDS CLOSED
+  four parked waiters were a race — all woke in the same 30s window when taskflow finished,
+  and only luck stopped two six-hour builds sharing the GPU. One serial queue now.
+  _chain_run.sh and _tasksapi_empty_run.sh both open with `rm -rf "$OUT"`, so a second draw
+  would have deleted the artifact behind a published RESULT, in a gitignored directory. Both
+  now write to a -chain2 / -empty2 name.
+
+OPEN
+  Three more Chain specs (taskapi, taskapipro, workapi) — and whether six hours belongs to
+  taskflow or to the edit. taskapipro and workapi carry a config closure in the same edit,
+  which is the only place edit-count could show up as a cost.
+  bitset's witness closure — the prediction I am least sure of, because a test named for the
+  boundary can still write 200.
+  shortener's two mirrors; tasks-api's second draw with the pointer Create.
