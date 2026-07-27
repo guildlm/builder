@@ -574,8 +574,16 @@ def verdict_for(art: Path, rel: str, mutate, extra: dict | None = None) -> tuple
         # A CAUGHT/SURVIVED verdict is only meaningful if the UNMUTATED artifact is green:
         # a red baseline makes the mutant red for the wrong reason (fake CAUGHT). This bit the
         # by-hand runs 4x (walkv/usersapi/taskapipro) — encode "check baseline green first."
-        if _go_test(work).returncode != 0:
-            return "BASELINE-RED", "unmutated artifact already fails — verdict void, fix baseline first"
+        base = _go_test(work)
+        if base.returncode != 0:
+            # CARRY THE REASON. With `extra` in play a red baseline is usually the caller's
+            # probe rather than the artifact, and "fix the baseline" sends you to the wrong
+            # file: the first probe to hit this had the wrong package clause, which reads as
+            # a failed assertion until you see `found packages eval and expreval`.
+            why = (base.stdout + base.stderr).strip().splitlines()
+            tail = " / ".join(l.strip() for l in why[:2])[:200] if why else ""
+            return "BASELINE-RED", ("unmutated artifact already fails — verdict void, fix "
+                                    "baseline first" + (f": {tail}" if tail else ""))
         (work / rel).write_text(mutated)
         r = _go_test(work)
     if r.returncode == 0:

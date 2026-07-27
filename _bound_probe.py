@@ -49,7 +49,7 @@ import sys
 import tempfile
 
 sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
-from _hole_hunt import BOUND, BOUND_FLIP, replace_at
+from _hole_hunt import BOUND, BOUND_FLIP, BOUND_LINE, inert_flip, replace_at
 from _teeth_suite import verdict_for, GEN
 
 
@@ -158,6 +158,56 @@ func TestPaginateAtOffsetEqualToLength(probe *testing.T) {{
 '''
 
 
+BITSET_PROBE = '''package bitset
+
+import "testing"
+
+func TestClearOutOfRangeIndexIsANoOp(probe *testing.T) {
+	b := New()
+	b.Set(0)
+	b.Clear(64)
+	if !b.Test(0) {
+		probe.Fatalf("Clear(64) on a one-word set disturbed bit 0")
+	}
+}
+
+func TestTestOutOfRangeIndexIsFalse(probe *testing.T) {
+	b := New()
+	b.Set(0)
+	if b.Test(64) {
+		probe.Fatalf("Test(64) on a one-word set = true, want false")
+	}
+}
+'''
+
+# 64 is the FIRST index of the next word, i.e. wordIndex == len(words) exactly — the one
+# input the flip moves. 63 stays inside word 0 and 128 is two words past the end, and
+# neither tells the two programs apart: the untested case is always the boundary itself.
+
+EXPREVAL_PROBE = '''package eval
+
+import "testing"
+
+func TestOperatorPositionAtEndOfInput(probe *testing.T) {
+	for _, expr := range []string{"1+", "1*", "1 + ", "(1+2", "1+2*"} {
+		if _, err := Eval(expr); err == nil {
+			probe.Fatalf("Eval(%q) = nil error, want an error", expr)
+		}
+	}
+}
+'''
+
+LEDGER_PROBE = '''package money
+
+import "testing"
+
+func TestParseRejectsALeadingDecimalPoint(probe *testing.T) {
+	if _, err := Parse(".50"); err == nil {
+		probe.Fatalf("Parse(\\".50\\") = nil error, want an error")
+	}
+}
+'''
+
 PROBES = [
     # (label, artifact, rel file to mutate, needle, occurrence, probe path, probe source)
     ("taskflow  Chain", "taskflow-v4", "middleware.go", "for i := len(mws) - 1", 0,
@@ -191,6 +241,15 @@ PROBES = [
     ("workapi   paginate", "workapi-v4", "internal/service/service.go",
      "if offset >= len(items)", 0, "internal/service/zz_probe_test.go",
      paginate_probe("service", "paginate(items, 10, 3)")),
+
+    ("bitset    Clear<len", "bitset-v4", "bitset.go", "if wordIndex < len(b.words)", 0,
+     "zz_probe_test.go", BITSET_PROBE),
+    ("bitset    Test>=len", "bitset-v4", "bitset.go", "if wordIndex >= len(b.words)", 1,
+     "zz_probe_test.go", BITSET_PROBE),
+    ("expreval  consumeOperator", "expreval-v4", "eval.go", "if p.pos >= len(p.input) {", 0,
+     "zz_probe_test.go", EXPREVAL_PROBE),
+    ("ledger    dot<0", "ledger-v4", "internal/money/money.go", "if dot < 0", 0,
+     "internal/money/zz_probe_test.go", LEDGER_PROBE),
 ]
 
 
@@ -205,13 +264,15 @@ def judge(art: pathlib.Path, rel: str, needle: str, occ: int,
     if clean in ("SKIP", "NOTESTS", "NOAPPLY"):
         return clean, note
     if clean == "BASELINE-RED":
-        return "PROBE-RED", "the probe fails on the unmutated artifact — fix the probe"
+        return "PROBE-RED", "the probe fails on the unmutated artifact — fix the probe: " + note
     v, note = verdict_for(art, rel, flip_site(needle, occ), extra={probe_path: probe_src})
     if v in ("SKIP", "NOAPPLY", "NOTESTS", "BASELINE-RED"):
         return v, note
     if v == "SURVIVED":
         return "INERT-OR-WEAK", "probe passes on both — no input this probe tries tells them apart"
-    if "TestChain" in note or "TestValidateRejectsZero" in note or "TestPaginate" in note:
+    if any(name in note for name in
+           ("TestChain", "TestValidateRejectsZero", "TestPaginate", "TestClearOutOfRange",
+            "TestTestOutOfRange", "TestOperatorPosition", "TestParseRejects")):
         return "OBSERVABLE", note
     return "DEFENDED-ALREADY", note + " — the artifact's own suite sees this; the SURVIVED row is stale"
 
@@ -284,7 +345,58 @@ def self_test() -> int:
     return 0
 
 
+def locate(art: pathlib.Path, rel: str) -> int:
+    """Which OCCURRENCE in this file is the survivor? Flip each one alone and report.
+
+    logs/hole-hunt-rows.tsv addresses a site by (artifact, file, tag), and the tag is the
+    operator pair — so expreval's eval.go carries five rows reading `boundary >= -> >`,
+    four CAUGHT and one SURVIVED, with nothing to say WHICH of the five parser bounds is
+    undefended. taskapipro's config.go carries the same ambiguity across two guards that
+    turn out to have opposite answers: one observable, one masked downstream.
+
+    A tag is not an address. This prints the line number and the source line beside each
+    verdict, which is the address, and it is the same per-site lesson the mutation registry
+    had to learn when a multi-site sort mutation reported its STRONGEST site.
+    """
+    src = art / rel
+    if not src.exists():
+        raise SystemExit(f"{src} does not exist")
+    lines = src.read_text(errors="ignore").splitlines()
+    sites = []
+    for i, ln in enumerate(lines):
+        s = ln.strip()
+        if s.startswith("//") or not BOUND_LINE.search(ln) or not BOUND.search(ln):
+            continue
+        sites.append((i, ln))
+    if not sites:
+        raise SystemExit(f"no boundary site in {rel} — nothing was measured, which is "
+                         f"not the same as no holes")
+    print(f"{art.name}/{rel}: {len(sites)} boundary site(s)\n")
+    for occ, (i, ln) in enumerate(sites):
+        op = BOUND.search(ln).group(1)
+        body = lines[i + 1] if i + 1 < len(lines) else ""
+        if inert_flip(ln, body):
+            print(f"  line {i+1:<4} occ {occ}  {op} -> {BOUND_FLIP[op]:<3} INERT      {ln.strip()}")
+            continue
+        v, _ = verdict_for(art, rel, flip_site(ln.strip(), 0)
+                           if lines.count(ln) == 1 else _flip_index(i, ln))
+        print(f"  line {i+1:<4} occ {occ}  {op} -> {BOUND_FLIP[op]:<3} {v:<10} {ln.strip()}",
+              flush=True)
+    return 0
+
+
+def _flip_index(idx: int, line: str):
+    """Flip by LINE INDEX, for files where the same source line appears more than once."""
+    op = BOUND.search(line).group(1)
+    return replace_at(idx, line, line.replace(op, BOUND_FLIP[op], 1))
+
+
 def main() -> int:
+    if "--locate" in sys.argv:
+        rest = [a for a in sys.argv[1:] if not a.startswith("-")]
+        if len(rest) != 2:
+            raise SystemExit("usage: _bound_probe.py --locate <artifact-dir> <file.go>")
+        return locate(pathlib.Path(rest[0]), rest[1])
     wanted = [a for a in sys.argv[1:] if not a.startswith("-")]
     rows = [p for p in PROBES if not wanted or any(w in p[0] or w in p[1] for w in wanted)]
     if wanted and not rows:

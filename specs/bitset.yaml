@@ -40,6 +40,19 @@ files:
       nothing). Without that guard Clear(200) indexes past the words slice and PANICS
       at runtime, while every other assertion in this test still passes. Then
       b.Clear(1); assert b.Test(1) is false and b.Test(65) is still true.
+      TestTestAtTheFirstIndexBeyondTheWords: b := New(); b.Set(1); b.Set(65) — the
+      set now holds EXACTLY TWO words, so word index 2 is the FIRST one past the
+      end and 128 is its first bit. Assert, as this test's ONLY assertion, that
+      b.Test(128) is false. 128 and not 200: the guard is `i/64 >= len(words)`, and
+      an index chosen comfortably beyond the slice (200 is word 3, a whole word too
+      far) passes whether the guard reads >= or >. Only the first index past the
+      end distinguishes a correct guard from an off-by-one that indexes the slice
+      and panics.
+      TestClearAtTheFirstIndexBeyondTheWords: build the same two-word set, call
+      b.Clear(128), and assert — as this test's ONLY assertion — that b.Test(1) is
+      still true. The point is that Clear(128) RETURNS AT ALL: with the guard off
+      by one it indexes word 2 of a two-word slice and panics. Same reason for 128
+      rather than 200.
       TestCount: b := New(); b.Set(0); b.Set(1); b.Set(63); b.Set(64); assert
       b.Count() == 4.
       TestUnion: a := New(); a.Set(1); a.Set(2); c := New(); c.Set(2); c.Set(130);

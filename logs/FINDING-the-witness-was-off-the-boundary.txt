@@ -1,0 +1,110 @@
+FINDING — a named test, asserting the right invariant, that defends nothing
+===========================================================================
+2026-07-27. Model-free. Reproduce: python _bound_probe.py bitset
+
+THE HEADLINE
+  Every rule established yesterday was already satisfied by bitset's Clear/Test
+  out-of-range defence, and the mutation still SURVIVED:
+
+    the invariant is NAMED in the spec           yes, at length — three sentences
+    a test was WRITTEN                           yes, TestSetTestClear
+    it ASSERTS the invariant                     yes, "does not panic", "still false"
+    the assert SURVIVED the redraw               yes, it is in the tree today
+
+  It misses because the WITNESS VALUE is off the boundary. The set holds two words
+  after Set(1), Set(65). The guard is `i/64 >= len(words)`, so the flip to `>` moves
+  behaviour at word index EXACTLY 2 — bits 128..191. The test uses 200, which is word
+  index 3: a whole word too far. Both the correct guard and the off-by-one skip it, so
+  the assertion is true in both programs and the test cannot fail.
+
+  This is a failure mode the corpus had not recorded. The two known ones are about
+  whether the assertion EXISTS (unnamed test never written; appended assert evaporates
+  at the next draw). This one is about whether an assertion that exists can DISCRIMINATE.
+
+  The refinement to yesterday's rule:
+      an invariant needs its own named test, asserting one thing,
+      AT THE VALUE WHERE THE INVARIANT COULD FAIL.
+  "Comfortably out of range" is the instinct that produced 200, and it is precisely
+  wrong: a value chosen for being safely beyond the edge exercises the same code path as
+  an ordinary in-range value.
+
+THE SWEEP THAT FOUND IT — all 15 boundary survivors, re-characterised
+  _hole_hunt's sixth shape reported 15 SURVIVED, read as 15 undefended promises. Probed
+  one at a time — write the test, require it to PASS unmutated and FAIL mutated, and
+  require the PROBE to be what went red — the split is 9 / 6:
+
+  OBSERVABLE (9)   real holes; the probe body is the closure
+    taskflow / usersapi / taskapi / taskapipro / workapi  Chain applies every middleware
+    workapi     Validate rejects QueueSize == 0
+    taskapipro  Validate rejects DefaultPageSize == 0
+    bitset      Clear at the first index past the words
+    bitset      Test at the first index past the words
+
+  NOT HOLES (6)    green for a reason that has nothing to do with the tests
+    taskflow / taskapipro / workapi  paginate `offset >= len(items)` -> `>`
+        INERT. Falling through computes limit = len(items)-offset = 0 and returns
+        items[n:n] — an empty slice, exactly what the skipped branch returned.
+        Differentially executed over every (items, limit, offset) the corpus can
+        produce: the ONLY distinguishable input is a NIL slice ([] vs null once
+        marshalled), and all three stores build theirs with make(), so nil never
+        arrives. Nothing was broken.
+    taskapipro  `MaxPageSize <= 0` -> `< 0`
+        INERT BY MASKING. Accepting MaxPageSize=0 still fails `DefaultPageSize >
+        MaxPageSize` for every DefaultPageSize the preceding guard admits, so no Config
+        reaches a different verdict. Note this is the SECOND of two identical rows: its
+        neighbour, DefaultPageSize, IS observable. Same file, same tag, opposite answer.
+    expreval    consumeOperator's `p.pos >= len(p.input)`
+        DEAD SITE. Both call sites — parseTerm:70 and parseExpr:104 — test the SAME
+        condition on the line immediately before the call and break. The function's own
+        bounds check cannot be entered at the boundary by any input, so its error return
+        is unreachable code. Not a test gap: a test that could cover it does not exist.
+    ledger      `if dot < 0` -> `<= 0`
+        MESSAGE-ONLY. dot == 0 means a leading ".", e.g. ".50". The original then takes
+        whole = "" and ParseInt fails; the mutant returns "money has no decimal point".
+        Both return a non-nil error for the same input, so only a test asserting the
+        error TEXT can tell them apart. Same benign class as the statusRecorder default.
+
+WHY THIS MATTERS BEYOND THE SIX
+  A SURVIVED count is a claim about the tests, and 6 of these 15 were claims about the
+  code. Acting on the raw number would have meant editing five specs to defend
+  behaviour that cannot change — and, in expreval's case, asking for a test of a branch
+  no input reaches, which is a spec that can never be satisfied.
+
+  _hole_hunt already filtered two inert shapes SYNTACTICALLY (a clamp assigning the
+  value it compared; `if x < 0 { return -x }`). Every one of the four inert cases above
+  got past that filter, and none of them could have been caught by a pattern over one
+  line and its successor: paginate's inertness lives three lines away, MaxPageSize's
+  lives in a later guard, expreval's lives in its callers, ledger's lives in what
+  strconv does with "". Inertness is semantic. The filter is not wrong, it is the wrong
+  instrument for the residue, which is why the residue now gets a probe instead.
+
+TOOLING
+  _bound_probe.py           the probe runner; verdicts OBSERVABLE / INERT-OR-WEAK /
+                            PROBE-RED / DEFENDED-ALREADY, self-tested on four planted
+                            fixtures including one weak probe that must NOT be reported
+                            as inert.
+  _bound_probe.py --locate  flips each boundary occurrence in a file ALONE and prints
+                            line number beside verdict. logs/hole-hunt-rows.tsv
+                            addresses a site by (artifact, file, operator-pair), and
+                            expreval carries five rows reading `>= -> >` with one
+                            survivor among them. A tag is not an address.
+  verdict_for(..., extra=)  probes ride through the SAME baseline-green and no-tests
+                            discipline as every other verdict, rather than a second
+                            copy-and-run written beside it.
+
+  Two tool bugs surfaced while doing this, both fixed:
+    _hole_hunt dispatched --self-test at MODULE level, so importing it for its mutators
+    made `_bound_probe.py --self-test` run _hole_hunt's fixtures and print ITS green.
+    A tool that reports another tool's self-test is worse than one with none.
+
+    BASELINE-RED carried no reason. The first probe written here had the wrong package
+    clause (the artifact is `package eval`, the spec is named expreval) and the verdict
+    read as a failed assertion for as long as it took to go look.
+
+THE CLOSURES QUEUED FROM THIS
+  bitset      two own-named tests at index 128 — the first bit of the first word past
+              the end — with the reason 200 does not discriminate written into the spec.
+  five specs  Chain given its own named test asserting the joined call order.
+  two specs   Validate given a zero-valued boundary case, stated as zero and not as a
+              negative number, for the same reason bitset's 200 fails: -1 and 0 are on
+              the same side of `< 0`.

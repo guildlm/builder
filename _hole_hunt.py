@@ -199,6 +199,34 @@ BOUND_FLIP = {"<": "<=", "<=": "<", ">": ">=", ">=": ">"}
 BOUND_LINE = re.compile(r"(<=|>=|<|>)\s*(0\b|len\(|cap\(|capacity|limit|offset|Limit|Cap)")
 
 
+def inert_flip(line: str, body: str) -> bool:
+    """Is flipping this line's boundary operator a change NO INPUT can observe?
+
+    `if offset < 0 { offset = 0 }` flipped to `<= 0` takes the clamp branch at offset==0
+    and assigns 0 to something already 0, so a SURVIVED verdict there says nothing about
+    the tests. Detected the same way the guard reads: the compared variable, the constant,
+    and an assignment of that constant in the body. Learned from this shape's own
+    self-test, whose first fixture flipped `offset >= len(items)` and changed nothing.
+
+    TWO shapes, and there are certainly more — this is SYNTACTIC, and inertness is
+    semantic. `_bound_probe.py` is the empirical answer for the ones that get through:
+    paginate's early return is inert because falling through computes an empty slice by a
+    different route, which no pattern over one line and its successor can see.
+
+    Extracted so _bound_probe classifies flips the same way this does. A second copy of a
+    predicate is a second thing to keep true.
+    """
+    guard = re.match(r"\s*(?:\}\s*else\s+)?if\s+(\w+)\s*[<>]=?\s*(\w+)", line)
+    if not guard:
+        return False
+    # (1) the clamp assigns the boundary value it just compared against. (2) `if x < 0 {
+    # return -x }` — the negation of zero is zero, so including the boundary changes
+    # nothing. numkit's abs() is exactly that and would otherwise be reported as a hole.
+    return bool(re.match(rf"\s*{guard.group(1)}\s*=\s*{guard.group(2)}\s*$", body)
+                or (guard.group(2) == "0"
+                    and re.match(rf"\s*return\s+-{guard.group(1)}\s*$", body)))
+
+
 def bound_rows():
     out = []
     for art in artifacts():
@@ -220,24 +248,8 @@ def bound_rows():
             text_lines = f.read_text(errors="ignore").splitlines()
             for idx, line, op in hits:
                 flipped = line.replace(op, BOUND_FLIP[op], 1)
-                # INERT FLIPS ARE NOT HOLES. `if offset < 0 { offset = 0 }` flipped to `<= 0`
-                # takes the clamp branch at offset==0 and assigns 0 to something already 0 —
-                # no input can tell the two apart, so a SURVIVED verdict there says nothing
-                # about the tests. Detected the same way the guard reads: the compared
-                # variable, the constant, and an assignment of that constant in the body.
-                # Learned from this shape's own self-test, whose first fixture flipped
-                # `offset >= len(items)` and changed nothing at all.
-                guard = re.match(r"\s*(?:\}\s*else\s+)?if\s+(\w+)\s*[<>]=?\s*(\w+)", line)
                 body = text_lines[idx + 1] if idx + 1 < len(text_lines) else ""
-                # TWO inert shapes, and there are certainly more. (1) the clamp assigns the
-                # boundary value it just compared against. (2) `if x < 0 { return -x }` — the
-                # negation of zero is zero, so including the boundary changes nothing. numkit's
-                # abs() is exactly that and would otherwise be reported as an undefended hole.
-                inert = bool(guard) and (
-                    re.match(rf"\s*{guard.group(1)}\s*=\s*{guard.group(2)}\s*$", body)
-                    or (guard.group(2) == "0"
-                        and re.match(rf"\s*return\s+-{guard.group(1)}\s*$", body)))
-                if inert:
+                if inert_flip(line, body):
                     tag = f"boundary {op} -> {BOUND_FLIP[op]}"
                     out.append((art.name, rel, tag, "INERT"))
                     print(f"{art.name:<26} {rel:<22} {tag:<26} INERT (clamp assigns the "
