@@ -46,8 +46,15 @@ files:
       encodes it with Encode to produce the code, stores and returns the Link.
       Resolve(code string) (Link, error) returns the link and increments its
       Hits count, or a sentinel ErrNotFound (errors.Is-matchable) when absent.
+      Resolve MUTATES, so it takes the FULL Lock()/Unlock() — never RLock. It reads
+      the Link out of the map, increments Hits on the copy, and writes the copy BACK
+      into the map; all three steps are a write, and a map value cannot be mutated in
+      place. Measured on a generated artifact: Resolve held RLock and then executed
+      `s.m[code] = link`, which `go test -race` reports as a DATA RACE the moment two
+      requests resolve the same code at once — and it shipped GREEN, because no test
+      resolves concurrently. RLock is for Stats, which genuinely only reads.
       Stats(code string) (Link, error) returns the link WITHOUT touching Hits,
-      or ErrNotFound. Standard library only.
+      or ErrNotFound — RLock is correct there. Standard library only.
   - path: handlers.go
     purpose: >-
       package main. JSON handlers over a *MemStore. A LinkHandler struct
@@ -92,7 +99,8 @@ files:
       TestEncodeDecodeRoundTrip, TestEncodeZero, TestDecodeBadCode,
       TestShortenCreated, TestShortenBadRequest, TestShortenMalformedJSON,
       TestShortenInvalidURL, TestRedirectFound, TestHealthOK,
-      TestRedirectMissing, TestStatsMissing, TestStatsCountsOneHit.
+      TestRedirectMissing, TestStatsMissing, TestResolveIsSafeUnderConcurrency,
+      TestStatsCountsOneHit.
       NEVER GUESS A SHORT CODE, AND NEVER REACH PAST THE API TO PLANT ONE. The
       code is whatever Save assigned; a test that calls the store directly and
       then requests a code it made up (`GET /r/0`) gets 404 against handlers that
@@ -125,6 +133,13 @@ files:
       TestRedirectFound: POST as above, then GET /r/+created.Code -> 301 and the
       Location header EQUALS "http://example.com".
       TestRedirectMissing: on a fresh router, GET /r/missing -> 404.
+      TestResolveIsSafeUnderConcurrency: POST once to get a code, then launch 50
+      goroutines that each GET /r/+created.Code, join them with a sync.WaitGroup,
+      and assert NOTHING beyond the run completing. The assertion is `go test
+      -race`: Resolve increments Hits, so it writes the map, and if it holds RLock
+      instead of Lock this test reports a DATA RACE while every sequential test
+      passes. Measured on a generated artifact that shipped green with exactly that
+      bug. Imports sync.
       TestStatsMissing: on a fresh router, GET /stats/missing -> 404, asserted as
       this test's ONLY assertion. This is the exact MIRROR of TestRedirectMissing —
       Redirect and Stats each have their own 404 branch, and only Redirect's is

@@ -13,6 +13,8 @@ while pgrep -f "guildlm-build main" > /dev/null; do sleep 30; done
 echo "=== GPU free; shortener mirrors run $(date) ==="
 
 OUT="./generated/shortener-mirrors"
+n=2
+while [[ -d "$OUT" ]]; do OUT="./generated/shortener-mirrors${n}"; n=$((n + 1)); done
 rm -rf "$OUT"
 LOG="logs/shortener-mirrors-$(date +%m%d%H%M).log"
 SECONDS=0
