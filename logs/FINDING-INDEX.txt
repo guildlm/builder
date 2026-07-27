@@ -131,3 +131,80 @@ LATER THE SAME AFTERNOON — three instrument defects, all found by real data
   The common shape: each tool was correct on the inputs I had thought to plant, and wrong on
   an input the day produced. A fixture suite proves what you imagined; pointing the tool at
   live state is a different test, and it found something all three times.
+
+
+=============================================================================
+2026-07-27 — the boundary survivors, adjudicated
+
+STANDS
+  the-witness-was-off-the-boundary    bitset satisfies every rule established the day
+                                      before — invariant NAMED, own test WRITTEN, right
+                                      thing ASSERTED, assertion SURVIVED the redraw — and
+                                      the mutation still lives, because the witness is 200
+                                      and the flip moves behaviour at 128. Third failure
+                                      mode: not "does the assertion exist" but "can it
+                                      discriminate". Rule gains a clause: at the value
+                                      where the invariant could fail.
+  nine-of-fifteen                     All 15 boundary survivors probed one at a time. 9 are
+                                      real holes; 6 are green for reasons that have nothing
+                                      to do with tests (3 paginate inert, 1 config masked
+                                      downstream, 1 dead site, 1 message-only). Acting on
+                                      the raw SURVIVED count would have meant asking five
+                                      specs to defend behaviour that cannot change.
+  inertness-is-semantic               All four inert cases got past _hole_hunt's syntactic
+                                      filter and none COULD have been caught by it: the
+                                      reason lives three lines away, in a later guard, in
+                                      the callers, or inside strconv. The residue of a
+                                      syntactic filter needs an empirical one.
+  expreval-branch-is-unreachable      Measured, not read: a planted panic survives every
+                                      string of length 0..3 over the operator alphabet
+                                      (5,220) plus 200,000 random ones, while the same
+                                      panic three lines away fires on the empty string.
+  two-guards-hide-an-untested-        taskflow's `[]` wire shape is held by store make()
+  contract                            AND paginate's []T{} return. Neither mutation alone
+                                      is observable; BOTH together give `null`. Single-site
+                                      mutation testing structurally cannot see a property
+                                      with redundant guards — and three artifacts with only
+                                      ONE guard ship `null` on a one-line change with green
+                                      suites.
+  the-corpus-never-lists-empty        Every list test in every HTTP artifact populates the
+                                      store first. The empty case is not weakly asserted;
+                                      it is never reached. Raw-JSON-body assertions in the
+                                      whole corpus: zero.
+
+SUPERSEDED IN PART — corrected in place
+  paginate "nothing was broken"       True of the mutation, false about the property. The
+                                      inert verdict stands; the conclusion drawn from it
+                                      did not. Banner added in-file.
+  "DeepEqual passes on both"          Wrong, and measured wrong the same hour: DeepEqual
+                                      against a non-nil empty slice DISCRIMINATES `[]` from
+                                      `null`. len() is the blind one.
+
+MEASURED AND SKIPPED
+  numeric-constant shape              A seventh shape flipping documented constants by one:
+                                      ~10 sites corpus-wide and the config defaults among
+                                      them already pinned by TestLoadDefaults. A gate that
+                                      would never fail.
+  nil-slice as a hole-hunt SHAPE      12 sites, but 3 of 6 HTTP artifacts would report
+                                      SURVIVED for the redundancy reason above. A
+                                      majority-inert shape is how this day started. Kept as
+                                      a _bound_probe family instead, where observability is
+                                      proven per site.
+
+TWO TOOL DEFECTS, same shape as yesterday's three
+  a self-test that was not mine       _hole_hunt dispatched --self-test at MODULE level, so
+                                      importing it for its mutators made a NEW tool's
+                                      --self-test run _hole_hunt's fixtures and print its
+                                      green. Found by reading output that was too familiar.
+  the writer list was already stale   _corpus_state matched driver scripts by name, and four
+                                      drivers written this morning were invisible to it —
+                                      including in the minutes each spends running go test
+                                      between builds, when no guildlm-build process exists
+                                      at all. Matched by convention now, with the negative
+                                      case pinned.
+
+OPEN
+  The nine closures. Five Chain (one edit, five specs — an N=5 replication rather than
+  five anecdotes), two config zero-guards, two bitset witnesses. Generating now; graded by
+  _grade_closures.sh with the shape that found each hole.
+  Three empty-list closures, deliberately held back so the N=5 comparison stays clean.
