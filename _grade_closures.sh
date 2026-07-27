@@ -54,3 +54,32 @@ PY
 else
   echo "--- generated/tasksapi-empty: NOT GENERATED YET (probe=nil-slice) ---"
 fi
+
+# The tasks-api mirror closures, graded per LINE because a tag is not an address: the same
+# `StatusBadRequest -> StatusNotFound` shape has eight sites in handlers.go and three of them
+# were already CAUGHT before this edit.
+if [[ -d generated/tasksapi-empty ]]; then
+  echo
+  echo "======== generated/tasksapi-empty  probe=400-mirrors (per line) ========"
+  .venv/bin/python - <<'PY'
+import pathlib, sys
+sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
+from _hole_hunt import replace_at
+from _teeth_suite import verdict_for
+art = pathlib.Path("generated/tasksapi-empty")
+src = art / "handlers.go"
+if not src.exists():
+    print("  handlers.go absent — nothing graded")
+    raise SystemExit(0)
+lines = src.read_text().splitlines()
+for i, ln in enumerate(lines):
+    if "http.StatusBadRequest" not in ln or ln.strip().startswith("//"):
+        continue
+    mut = replace_at(i, ln, ln.replace("http.StatusBadRequest", "http.StatusNotFound", 1))
+    v, _ = verdict_for(art, "handlers.go", mut)
+    print(f"  L{i+1:<4} {v:<10} {ln.strip()[:66]}")
+print("  before the edit: L24/L28/L80 CAUGHT, L33/L52/L71/L76/L99 SURVIVED")
+print("  L33 is a DEAD SITE (the store's Title=='' guard is subsumed by Validate's")
+print("  TrimSpace check) and is expected to stay SURVIVED.")
+PY
+fi

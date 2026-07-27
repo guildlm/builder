@@ -172,6 +172,19 @@ files:
       title -> 200. `PUT /tasks/{id}` is registered on the router and the handler
       is shipped — and until this test existed it was never called once.
       TestUpdateMissing: PUT /tasks/999, an id nobody created -> 404.
+      TestNonNumericIDReturns400: on a fresh handler, request the path "/tasks/abc"
+      — an id that is not an integer at all — with GET, then PUT, then DELETE, and
+      assert each answers 400. These three handlers are structural MIRRORS: each
+      begins with strconv.Atoi on the path value and each has its own 400 branch,
+      so exercising one shows nothing about the other two, and a mirror nobody
+      exercises is a branch nobody has shown to work. Note 400 and NOT 404: "abc"
+      is a malformed id, not a missing task, and answering 404 would tell a client
+      to stop retrying a request it could have fixed.
+      TestUpdateMalformedJSONReturns400: POST a task FIRST, then PUT /tasks/1 with
+      MALFORMED bytes (truncated, like `{"title":`) -> assert the STATUS CODE is
+      400 and nothing else. This is the Update MIRROR of TestInvalid400; Create's
+      malformed-body branch has a test and Update's does not, and they are separate
+      lines of code.
       TestUpdateInvalid: POST a task FIRST, then PUT it with an EMPTY title -> 400.
       TestCreateInvalid: POST /tasks with WELL-FORMED JSON whose title is blank —
       exactly this body: {"title":"   "} (spaces only, VALID json) -> 400. This is the
