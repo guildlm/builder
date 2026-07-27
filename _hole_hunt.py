@@ -185,6 +185,74 @@ def tag_rows():
     return out
 
 
+# SHAPE 6: the BOUNDARY. `offset >= len(items)` -> `offset > len(items)`, `limit <= 0` ->
+# `limit < 0`. One character, one input's worth of behaviour: the clamp that used to fire on
+# the exact boundary now lets it through, and every value on either side behaves identically.
+# That is the classic untested case, and this corpus is full of clamps — paginate's three
+# guards, the rate limiter's capacity, the LRU's eviction, bitset's bounds. A test that
+# exercises a range but never its endpoint cannot see it.
+BOUND = re.compile(r"(?<![<>=!])(<=|>=|<|>)(?!=)")
+BOUND_FLIP = {"<": "<=", "<=": "<", ">": ">=", ">=": ">"}
+# Only lines that compare against a LIMIT-shaped operand: a length, a capacity, zero, or a
+# named bound. Flipping `i < len(x)` inside an ordinary loop just changes an iteration count
+# and is usually caught by anything at all, which makes it noise rather than a probe.
+BOUND_LINE = re.compile(r"(<=|>=|<|>)\s*(0\b|len\(|cap\(|capacity|limit|offset|Limit|Cap)")
+
+
+def bound_rows():
+    out = []
+    for art in artifacts():
+        for f in sorted(art.rglob("*.go")):
+            if f.name.endswith("_test.go"):
+                continue
+            rel = str(f.relative_to(art))
+            hits = []
+            for i, ln in enumerate(f.read_text(errors="ignore").splitlines()):
+                stripped = ln.strip()
+                if stripped.startswith("//") or not BOUND_LINE.search(ln):
+                    continue
+                m = BOUND.search(ln)
+                if not m:
+                    continue
+                hits.append((i, ln, m.group(1)))
+                if not ALL_SITES:
+                    break
+            text_lines = f.read_text(errors="ignore").splitlines()
+            for idx, line, op in hits:
+                flipped = line.replace(op, BOUND_FLIP[op], 1)
+                # INERT FLIPS ARE NOT HOLES. `if offset < 0 { offset = 0 }` flipped to `<= 0`
+                # takes the clamp branch at offset==0 and assigns 0 to something already 0 —
+                # no input can tell the two apart, so a SURVIVED verdict there says nothing
+                # about the tests. Detected the same way the guard reads: the compared
+                # variable, the constant, and an assignment of that constant in the body.
+                # Learned from this shape's own self-test, whose first fixture flipped
+                # `offset >= len(items)` and changed nothing at all.
+                guard = re.match(r"\s*(?:\}\s*else\s+)?if\s+(\w+)\s*[<>]=?\s*(\w+)", line)
+                body = text_lines[idx + 1] if idx + 1 < len(text_lines) else ""
+                # TWO inert shapes, and there are certainly more. (1) the clamp assigns the
+                # boundary value it just compared against. (2) `if x < 0 { return -x }` — the
+                # negation of zero is zero, so including the boundary changes nothing. numkit's
+                # abs() is exactly that and would otherwise be reported as an undefended hole.
+                inert = bool(guard) and (
+                    re.match(rf"\s*{guard.group(1)}\s*=\s*{guard.group(2)}\s*$", body)
+                    or (guard.group(2) == "0"
+                        and re.match(rf"\s*return\s+-{guard.group(1)}\s*$", body)))
+                if inert:
+                    tag = f"boundary {op} -> {BOUND_FLIP[op]}"
+                    out.append((art.name, rel, tag, "INERT"))
+                    print(f"{art.name:<26} {rel:<22} {tag:<26} INERT (clamp assigns the "
+                          f"boundary value; no input distinguishes the flip)", flush=True)
+                    continue
+                mut = replace_at(idx, line, flipped.rstrip("\n"))
+                v, _ = verdict_for(art, rel, mut)
+                tag = f"boundary {op} -> {BOUND_FLIP[op]}"
+                out.append((art.name, rel, tag, v))
+                print(f"{art.name:<26} {rel:<22} {tag:<26} {v}", flush=True)
+            if hits and not ALL_SITES:
+                break
+    return out
+
+
 def header_rows():
     out = []
     for art in artifacts():
@@ -289,6 +357,42 @@ def self_test() -> int:
         if got != want:
             failures.append(f"json tag: a test that {why} should be {want}, got {got} ({note})")
 
+    # SHAPE 6, planted both ways. A boundary flip changes behaviour at EXACTLY ONE input, so
+    # the fixtures are a test that probes the endpoint (must CAUGHT) and one that probes only
+    # the interior (must SURVIVE). If the interior test ever reads CAUGHT the probe is
+    # changing more than the boundary and is not measuring what it claims.
+    BMOD = "module example.com/b\n\ngo 1.23\n"
+    # `limit <= 0 -> use everything` is the shape this corpus actually writes (paginate's
+    # first guard). Flipped to `< 0`, limit=0 stays 0 and the page comes back EMPTY. The
+    # first fixture I wrote flipped `offset >= len(items)`, which changes nothing at all —
+    # items[len:] is a valid empty slice either way — and the self-test caught that the probe
+    # was inert before it ever ran on the corpus.
+    BIMPL = ('package main\n\nfunc Page(items []int, limit int) []int {\n'
+             '\tif limit <= 0 {\n\t\tlimit = len(items)\n\t}\n'
+             '\tif limit > len(items) {\n\t\tlimit = len(items)\n\t}\n'
+             '\treturn items[:limit]\n}\n\nfunc main() {}\n')
+    EDGE = ('package main\n\nimport "testing"\n\nfunc TestB(t *testing.T) {\n'
+            '\tif got := Page([]int{1, 2}, 0); len(got) != 2 {\n'
+            '\t\tt.Fatalf("limit=0 means no limit, got %v", got)\n\t}\n}\n')
+    INTERIOR = ('package main\n\nimport "testing"\n\nfunc TestB(t *testing.T) {\n'
+                '\tif got := Page([]int{1, 2}, 1); len(got) != 1 {\n'
+                '\t\tt.Fatalf("limit=1 should give 1, got %v", got)\n\t}\n}\n')
+
+    def flip(text):
+        return text.replace("limit <= 0", "limit < 0", 1)
+
+    for want, test_src, why in (("CAUGHT", EDGE, "probes the endpoint"),
+                                ("SURVIVED", INTERIOR, "probes only the interior")):
+        with tempfile.TemporaryDirectory() as td:
+            art = pathlib.Path(td) / "art"
+            art.mkdir()
+            (art / "go.mod").write_text(BMOD)
+            (art / "b.go").write_text(BIMPL)
+            (art / "b_test.go").write_text(test_src)
+            got, note = verdict_for(art, "b.go", flip)
+        if got != want:
+            failures.append(f"boundary: a test that {why} should be {want}, got {got} ({note})")
+
     # the label rule, checked directly: it is a string match and string matches rot quietly
     benign = "\t\trec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}"
     if "statusRecorder" not in benign:
@@ -301,8 +405,9 @@ def self_test() -> int:
     if failures:
         return 1
     print("OK — a defended status is CAUGHT, an unasserted one SURVIVES, the benign label "
-          "matches only the recorder default,\n     and a json-tag rename is CAUGHT by a raw-key "
-          "assertion while a struct round-trip cannot see it")
+          "matches only the recorder default,\n     a json-tag rename is CAUGHT by a raw-key "
+          "assertion while a struct round-trip cannot see it,\n     and a boundary flip is "
+          "CAUGHT by an endpoint test while an interior test cannot see it")
     return 0
 
 
@@ -387,6 +492,8 @@ def main() -> int:
     rows += wrap_rows()
     print("\n=== shape 5: rename a JSON field tag ===")
     rows += tag_rows()
+    print("\n=== shape 6: flip a boundary comparison ===")
+    rows += bound_rows()
     surv = [r for r in rows if r[3] == "SURVIVED"]
     # COVERAGE, counted independently of the sweep. Under-sampling was this tool's most
     # repeated defect — three times in one day it probed one site and printed a clean table,
@@ -394,7 +501,7 @@ def main() -> int:
     # The check deliberately does NOT reuse the sweep's own site selection: it re-scans the
     # corpus for each pattern and compares the totals, so a selector that silently narrows
     # shows up as a gap rather than as a smaller, tidier report.
-    def matching_sites(pattern, per_line=False):
+    def matching_sites(pattern, per_line=False, search=False, recurse=False):
         """Count sites the pattern matches. `per_line` for the LINE-ANCHORED patterns (CODE,
         HEADER): they start with ^ and are compiled without MULTILINE because the sweep feeds
         them one line at a time, so scanning whole-file text with them finds nothing. The
@@ -402,19 +509,26 @@ def main() -> int:
         a coverage check that under-counted, in the tool built to catch under-counting."""
         n = 0
         for art in artifacts():
-            for f in art.glob("*.go"):
+            # `search` and `recurse` exist because the boundary pattern needs both and the
+            # counter reported `matched 0 probed 9` without them: BOUND_LINE is not anchored,
+            # so .match never fires, and bound_rows walks nested packages with rglob while
+            # this walked only the top level. A coverage check that under-counts, in the
+            # counter written to catch under-counting — the third time on this tool.
+            for f in (art.rglob("*.go") if recurse else art.glob("*.go")):
                 if f.name.endswith("_test.go"):
                     continue
                 text = f.read_text(errors="ignore")
                 if per_line:
-                    n += sum(1 for ln in text.splitlines() if pattern.match(ln))
+                    probe = pattern.search if search else pattern.match
+                    n += sum(1 for ln in text.splitlines()
+                             if not ln.strip().startswith("//") and probe(ln))
                 else:
                     n += len(pattern.findall(text))
         return n
 
 
     print("\ncoverage — sites the patterns match in the corpus vs rows probed above:")
-    for label, pat, per_line, probed in (
+    for label, pat, per_line, probed, *extra in (
         ("status code", CODE, True,
          len([r for r in rows if "->" in r[2] and "Status" in r[2]])),
         ("response header", HEADER, True,
@@ -425,8 +539,11 @@ def main() -> int:
          len([r for r in rows if r[2].startswith("%w")])),
         ("json field tag", TAG, False,
          len([r for r in rows if r[2].startswith("json tag")])),
+        ("boundary compare", BOUND_LINE, True,
+         len([r for r in rows if r[2].startswith("boundary")]), True, True),
     ):
-        total = matching_sites(pat, per_line)
+        search, recurse = (extra + [False, False])[:2]
+        total = matching_sites(pat, per_line, search, recurse)
         flag = "" if probed >= total else f"   <- {total - probed} NOT PROBED"
         print(f"  {label:<16} matched {total:>3}   probed {probed:>3}{flag}")
 
