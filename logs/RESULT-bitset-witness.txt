@@ -1,0 +1,50 @@
+RESULT — bitset: the witness moved to the boundary, and both holes closed
+=========================================================================
+2026-07-27. Prediction: logs/PREDICTION-boundary-closures.txt item 3, flagged as "the
+prediction I am least sure of". Run: _bitset_witness_run.sh, 290s, GREEN.
+
+THE PREDICTION, AND WHY IT WAS THE SHAKY ONE
+  The failure mode to watch for was a test correctly named
+  TestTestAtTheFirstIndexBeyondTheWords that then writes 200 — named, green, and worthless,
+  because 200 is word index 3 against a two-word set and the flip only moves behaviour at
+  word index 2. The file already contained a passing test using 200, three sentences away,
+  and 200 is what this spec has produced every previous draw. That is exactly the pull a
+  spec instruction has to overcome, which is why the run script greps for the NUMBER and not
+  for the test name.
+
+WHAT HAPPENED
+  Both tests were written at 128:
+
+      func TestTestAtTheFirstIndexBeyondTheWords(t *testing.T) {
+          b := New(); b.Set(1); b.Set(65)
+          if b.Test(128) { t.Errorf("b.Test(128) = true, want false") }
+      }
+      func TestClearAtTheFirstIndexBeyondTheWords(t *testing.T) {
+          b := New(); b.Set(1); b.Set(65)
+          b.Clear(128)
+          if !b.Test(1) { t.Errorf("b.Test(1) = false after Clear(128), want true") }
+      }
+
+  One assertion each, on the boundary value, exactly as specified. The old 200 assertions in
+  TestSetTestClear are untouched and still pass — they were never wrong, only insufficient.
+
+  GRADED:
+      Test guard  >= -> >   SURVIVED -> CAUGHT
+      Clear guard <  -> <=  SURVIVED -> CAUGHT
+      registered mutations: no regression
+      inventory: 3 tests -> 5, nothing dropped
+      290 seconds, green first pass
+
+WHAT THIS SETTLES
+  The rule that came out of this hole — "an invariant needs its own named test, asserting one
+  thing, AT THE VALUE WHERE THE INVARIANT COULD FAIL" — is not just a diagnosis of the old
+  artifact. Stated in the spec WITH the reason 200 fails to discriminate, it produces the
+  right number on the first draw, against three sentences of contrary precedent in the same
+  file.
+
+  That is the second time today a spec explaining WHY a weaker form is insufficient produced
+  the stronger form. The Chain entry does the same thing about asserting the status instead
+  of the order, and landed 5 of 5. Prose that explains a NEGATIVE has a bad record in this
+  corpus, and both of today's counter-examples share a feature: they explain the negative and
+  then dictate the POSITIVE concretely — a number, a string — rather than leaving the reader
+  to infer it.
