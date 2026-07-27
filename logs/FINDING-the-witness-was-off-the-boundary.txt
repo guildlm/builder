@@ -72,6 +72,17 @@ THE SWEEP THAT FOUND IT — all 15 boundary survivors, re-characterised
         Both return a non-nil error for the same input, so only a test asserting the
         error TEXT can tell them apart. Same benign class as the statusRecorder default.
 
+THE SIXTEENTH SURVIVOR, so the census is complete
+  The corpus rows carry 16 SURVIVED: the 15 boundary flips above and kvservice's
+  `StatusBadRequest -> StatusNotFound`, which has been carried as "known non-target" since
+  it appeared. Checked rather than inherited, because today was about labels being wrong:
+  the 400 is written on `io.ReadAll(r.Body)` returning an error, the spec does not mention
+  a 400 anywhere, and an ordinary httptest request cannot make ReadAll fail. So it is a
+  SPEC GAP on a path reachable only with a deliberately failing reader — not a promise
+  with a missing test. The label stands, and now it stands on a reading.
+
+  Final adjudication of all 16:  9 real holes (closures queued), 6 not holes, 1 spec gap.
+
 WHY THIS MATTERS BEYOND THE SIX
   A SURVIVED count is a claim about the tests, and 6 of these 15 were claims about the
   code. Acting on the raw number would have meant editing five specs to defend
