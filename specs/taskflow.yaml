@@ -227,8 +227,17 @@ files:
       here is blind to them — they marshal from Task and decode into Task, so both
       sides go through the SAME struct tags and a rename is invisible. Measured:
       renaming project_id leaves this suite green while a real client breaks. So: POST
-      a task carrying a project_id, GET /tasks, and decode the array into
-      []map[string]any — never into []Task. Then assert with the comma-ok form, each on
+      a task carrying a project_id, then request the LIST endpoint — the path is
+      exactly "/tasks", with NO id after it — and decode its body into
+      []map[string]any, never into []Task.
+      THE PATH AND THE DECODE TARGET MUST AGREE, and this is the one thing to get
+      right here: "/tasks" answers a JSON ARRAY and takes []map[string]any;
+      "/tasks/1" answers a single JSON OBJECT and would need map[string]any. A test
+      that requests "/tasks/1" and decodes into []map[string]any compiles and then
+      fails at run time with "cannot unmarshal object into Go value of type
+      []map[string]interface {}". Measured: one draw did exactly that and cost the
+      whole build. Request the list.
+      Then assert with the comma-ok form, each on
       its OWN line, that the first element has the keys "id", "title", "status" and
       "project_id": `if _, ok := m["project_id"]; !ok { t.Errorf(...) }`. A length
       check is NOT a substitute — renaming a key leaves the count unchanged.
@@ -240,6 +249,12 @@ files:
       from Validate, so no HTTP test can tell a wrapped sentinel from an unwrapped one —
       only this direct assertion defends the errors.Is contract the spec promises.
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
+      TestDeleteMissingReturns404: on a FRESH router, DELETE /tasks/nope — an id
+      nobody created — and assert, as this test's ONLY assertion, that the code is
+      404. TestDelete above does NOT cover this: its 404 comes from the GET after a
+      successful delete, so Delete's OWN 404 branch has never been requested. Two
+      routes, two 404 branches, and only Get's is exercised — measured, the Delete
+      one survives being changed to a 400 with the whole suite green.
       TestMalformedJSON: POST truncated bytes (NOT an empty `{}`) -> 400.
       Do NOT write the project endpoints here — they live in
       projects_test.go, in this same package.
@@ -289,13 +304,26 @@ files:
       Never name a local variable `t`.
   - path: pagination_test.go
     purpose: >-
-      package main. Unit tests for paginate ONLY — no HTTP, no router, no
-      store. These share nothing with the handler tests and are split out so
-      no single test file carries the whole suite.
+      package main. Unit tests for the pagination layer ONLY — paginate and
+      parsePage, no router and no store. These share nothing with the handler tests
+      and are split out so no single test file carries the whole suite. parsePage
+      takes an *http.Request, so its tests build one with
+      httptest.NewRequest("GET", "/tasks?limit=...&offset=...", nil) and call
+      parsePage on it directly; that is still a unit test, not a router test.
+      TestParsePageClampsNegativeOffset: parsePage on a request whose query is
+      "offset=-5" returns offset 0. ONE assertion, on offset.
+      TestParsePageClampsLimitAboveMax: parsePage on a request whose query is
+      "limit=500" returns limit 100. ONE assertion, on limit.
+      These two clamps live in parsePage and are DIFFERENT CODE from paginate's,
+      which the two tests below cover. Measured on a generated tree: parsePage's
+      "limit above 100" branch is executed by no test at all, and its negative-offset
+      clamp can be changed to assign 7777 with the whole suite still green — while
+      paginate's identically-shaped clamp is caught. Defending an invariant in the
+      inner function does not defend the one at the edge where the request arrives.
       TestPaginateNegativeOffset: call paginate DIRECTLY (a unit test, no HTTP) on
       a 3-item slice with limit=0, offset=-1 -> no panic and EXACTLY 3 items. This
       is not hypothetical: a paginate without the `offset < 0` clamp slices
       items[:-1] and panics at runtime, and every other test passes anyway.
       TestPaginateOffsetPastEnd: call paginate DIRECTLY on a 1-item slice with
       limit=10, offset=5 -> no panic and EXACTLY 0 items.
-      Standard library only.
+      Imports net/http/httptest and testing. Standard library only.

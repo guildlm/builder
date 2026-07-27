@@ -13,6 +13,11 @@ set -uo pipefail
 cd "$(dirname "$0")"
 SPEC="${1:?usage: _chain_run.sh <spec>}"
 OUT="./generated/${SPEC}-chain"
+# The first taskflow-chain is a GRADED result — the six-hour run whose closure verdict
+# is recorded in logs/RESULT-taskflow-chain.txt. This script starts with `rm -rf "$OUT"`,
+# so re-running taskflow through it would delete the artifact behind a published finding.
+# generated/ is gitignored; there would be no way back. Second draw gets its own name.
+[[ "$SPEC" == taskflow ]] && OUT="./generated/taskflow-chain2"
 rm -rf "$OUT"
 LOG="logs/${SPEC}-chain-$(date +%m%d%H%M).log"
 echo "=== $SPEC Chain naming run -> $OUT (log $LOG) ==="

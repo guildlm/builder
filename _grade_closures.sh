@@ -112,3 +112,34 @@ for old, new in (("http.StatusBadRequest", "http.StatusNotFound"),
 print("  before the edit: the ParseRequestURI 400 and the Stats 404 were the only SURVIVORs")
 PY
 fi
+
+# taskflow's second run: Delete's own 404 and parsePage's clamp VALUE. Both are per-site —
+# tasks_handler.go has two StatusNotFound writes of which Get's was already CAUGHT, and
+# pagination.go has two `offset = 0` clamps of which paginate's was already CAUGHT.
+if [[ -d generated/taskflow-chain2 ]]; then
+  echo
+  echo "======== generated/taskflow-chain2  probe=delete-404 + parsePage clamp ========"
+  .venv/bin/python - <<'PY'
+import pathlib, sys
+sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
+from _hole_hunt import replace_at
+from _teeth_suite import verdict_for
+art = pathlib.Path("generated/taskflow-chain2")
+for rel, needle, mk in (
+    ("tasks_handler.go", "http.StatusNotFound",
+     lambda ln: ln.replace("http.StatusNotFound", "http.StatusBadRequest", 1)),
+    ("pagination.go", "offset = 0", lambda ln: ln.replace("offset = 0", "offset = 7777", 1)),
+):
+    src = art / rel
+    if not src.exists():
+        print(f"  {rel} absent"); continue
+    print(f"  -- {rel}")
+    lines = src.read_text().splitlines()
+    for i, ln in enumerate(lines):
+        if needle not in ln or ln.strip().startswith("//"):
+            continue
+        v, _ = verdict_for(art, rel, replace_at(i, ln, mk(ln)))
+        print(f"     L{i+1:<4} {v:<10} {ln.strip()[:56]}")
+print("  before: Get's 404 CAUGHT / Delete's SURVIVED; paginate's clamp CAUGHT / parsePage's SURVIVED")
+PY
+fi

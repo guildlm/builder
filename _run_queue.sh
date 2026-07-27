@@ -35,4 +35,13 @@ echo
 echo "############ shortener mirrors ############"
 ./_shortener_mirrors_run.sh
 
+# taskflow LAST and appended after the queue was already running, because its closure run
+# had already landed (RED, six hours) and its result is measured. This re-run carries three
+# changes at once — a spec REPAIR (the TestWireFieldNames path/decode coupling that cost the
+# last build), plus the Delete-404 and parsePage-clamp closures — and each is graded by a
+# different mutation, so bundling them cannot blur a verdict. Six hours is the price of a
+# taskflow draw; it goes behind everything that answers faster.
+echo
+echo "############ taskflow: repair + two closures ############"
+./_chain_run.sh taskflow
 echo "=== queue complete $(date) ==="
