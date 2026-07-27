@@ -105,6 +105,36 @@ def test_flags_a_spec_that_forbids_the_models_idiom():
     assert "interface" in problem
 
 
+def test_flags_a_call_quoted_by_value_in_one_entry_and_by_pointer_in_another():
+    # Written after doing exactly this. Create was changed to take a *Task in the
+    # interface entry, and the store-test entry went on saying it takes the Task BY
+    # VALUE and that "your local variable does NOT come back with an ID" — false
+    # under the new signature, and the model would have written a test around a
+    # workaround it no longer needs.
+    s = spec(
+        FileSpec(path="store.go",
+                 purpose="type Store interface with Create(t *Task) error."),
+        FileSpec(path="store_test.go",
+                 purpose="NOTE Create takes the Task BY VALUE: Create(t Task) error."),
+    )
+    (problem,) = lint_spec(s)
+    assert "by VALUE and by POINTER" in problem
+
+
+def test_does_not_flag_two_unrelated_calls_that_share_a_name():
+    # tasks-api really does have a store Create(t *Task) error AND a handler
+    # Create(w http.ResponseWriter, r *http.Request). Different arity, different
+    # things, no contradiction — and a rule that flagged this would fire on the
+    # spec it was written for.
+    s = spec(
+        FileSpec(path="store.go",
+                 purpose="type Store interface with Create(t *Task) error."),
+        FileSpec(path="handlers.go",
+                 purpose="Handler method Create(w http.ResponseWriter, r *http.Request)."),
+    )
+    assert not [p for p in lint_spec(s) if "POINTER" in p]
+
+
 def test_the_whole_current_suite_is_clean():
     import pathlib
 

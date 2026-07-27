@@ -5875,6 +5875,39 @@ def lint_spec(spec: Spec) -> list[str]:
                 f"name and give the implementation a different one."
             )
 
+    # 5. THE SAME CALL QUOTED BY VALUE IN ONE ENTRY AND BY POINTER IN ANOTHER.
+    #    A spec mentions its store methods in five or six places — the interface, the
+    #    implementation note, the handler snippet, two test entries — and an edit to one
+    #    of them leaves the rest describing the old contract. Written after doing exactly
+    #    that: `Create(t Task) error` was changed to `Create(t *Task) error` in the
+    #    interface, and the store-test entry went on saying "Create takes the Task BY VALUE
+    #    ... your local variable does NOT come back with an ID", which is now false and
+    #    would have produced a test built around a workaround it no longer needs.
+    #
+    #    Scoped to name AND arity, comparing types that differ ONLY by a leading `*`,
+    #    because a spec legitimately holds two unrelated calls with one name: tasks-api has
+    #    a store `Create(t Task) error` and a handler `Create(w http.ResponseWriter, r
+    #    *http.Request)`. Those differ in arity and never collide here.
+    sigs: dict[tuple[str, int], set[str]] = {}
+    for f in spec.files:
+        for m in re.finditer(r"\b([A-Z]\w*)\(([^()]*)\)", f.purpose or ""):
+            params = [p.strip() for p in m.group(2).split(",") if p.strip()]
+            if not params:
+                continue
+            types = tuple(p.split()[-1] for p in params)
+            sigs.setdefault((m.group(1), len(params)), set()).add(",".join(types))
+    for (name, _arity), variants in sorted(sigs.items()):
+        if len(variants) < 2:
+            continue
+        stripped = {v.replace("*", "") for v in variants}
+        if len(stripped) == 1:
+            problems.append(
+                f"{name} is quoted both by VALUE and by POINTER in this spec "
+                f"({' vs '.join(sorted(variants))}). Those are different contracts — a "
+                f"value receiver cannot hand anything back to the caller — and whichever "
+                f"entry the model reads last wins. Say it the same way everywhere."
+            )
+
     return problems
 
 
