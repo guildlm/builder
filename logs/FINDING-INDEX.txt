@@ -274,3 +274,18 @@ OPEN
   bitset's witness closure — the prediction I am least sure of, because a test named for the
   boundary can still write 200.
   shortener's two mirrors; tasks-api's second draw with the pointer Create.
+
+--- 2026-07-27, cross-draw exercised on five spec groups
+  tasks-api   BOTH-DRAWS  REAL — Create by value; the spec backs the borrowed test and every
+                          draw is wrong. Spec repaired to *Task.
+  taskflow    BOTH-DRAWS  NOT real — the borrowed TestWireFieldNames is itself broken
+                          (requests /tasks/1, decodes an array). The spec contradicts it.
+  taskapi     ASYMMETRIC  REAL — an OLD generated/taskapi reads TASKAPI_ADDR / TASKAPI_
+                          READ_TIMEOUT where the spec says ADDR / READ_TIMEOUT. Its own two
+                          test files never check Load; both siblings' TestLoadFromEnv catches
+                          it. Historical artifact, so it validates the instrument rather than
+                          indicting current work — and it is the first true ASYMMETRIC.
+  usersapi    clean       both directions green.
+  taskapipro  clean       the two CURRENT trees are mutually green; the BOTH-DRAWS rows come
+                          from an old tree that is red at home.
+  So all three verdict classes have now occurred, and each one checked out on inspection.
