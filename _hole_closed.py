@@ -13,7 +13,11 @@ file's prompt — _file_list puts every purpose into every one — so an edit th
 hole and opens another looks like a success from (1) alone. This project has needed three
 attempts on a single spec edit before.
 
-    python _hole_closed.py <regenerated-artifact-dir> [spec-name] [--probe=content-type|status|badrequest] [--file=router.go]
+    python _hole_closed.py <regenerated-artifact-dir> [spec-name] [--probe=NAME] [--file=router.go]
+
+      --probe: content-type | status | badrequest        (response shapes)
+               chain-loop | queue-size | default-page-size | bitset-test | bitset-clear
+                                                          (boundary flips)
 
 The spec name defaults to the directory's leading segment; it selects which registered
 mutations in _teeth_suite must not regress. Question (1) probes whichever shape _hole_hunt used to FIND the hole, chosen with
@@ -59,6 +63,35 @@ PROBES = {
         re.compile(r'\bhttp\.StatusBadRequest\b'),
         "http.StatusNotFound",
         "StatusBadRequest -> StatusNotFound"),
+    # BOUNDARY PROBES. Unlike the three above, a boundary flip cannot be addressed by the
+    # operator alone — `>=` occurs all over a file and flipping the first one grades a site
+    # nobody touched. Each pattern here carries enough CONTEXT to be unique in its file, and
+    # replaces via a callable so the matched text is reproduced with one operator moved. A
+    # regeneration that words the site differently gets NOAPPLY, which is the honest answer;
+    # a pattern loose enough to always match is the failure mode being avoided.
+    "chain-loop": (
+        re.compile(r"for i := len\(mws\) ?- ?1; i >= 0; i--"),
+        lambda s: s.replace(">=", ">", 1),
+        "Chain loop >= -> > (drops the outermost middleware)"),
+    "queue-size": (
+        re.compile(r"\w+\.QueueSize <= 0"),
+        lambda s: s.replace("<=", "<", 1),
+        "QueueSize <= 0 -> < 0 (accepts a zero-length queue)"),
+    "default-page-size": (
+        re.compile(r"\w+\.DefaultPageSize <= 0"),
+        lambda s: s.replace("<=", "<", 1),
+        "DefaultPageSize <= 0 -> < 0 (accepts a zero page size)"),
+    # Anchored on the BODY, because Set and Test open with a byte-identical guard line and
+    # only their branches differ. This is the same per-site lesson the mutation registry
+    # learned: the strongest site is not the site under test.
+    "bitset-test": (
+        re.compile(r"if wordIndex >= len\(b\.words\) \{\n\t\treturn false"),
+        lambda s: s.replace(">=", ">", 1),
+        "Test guard >= -> > (indexes one word past the end)"),
+    "bitset-clear": (
+        re.compile(r"if wordIndex < len\(b\.words\) \{"),
+        lambda s: s.replace("<", "<=", 1),
+        "Clear guard < -> <= (indexes one word past the end)"),
 }
 PROBE = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--probe=")),
              "content-type")
@@ -69,7 +102,16 @@ PATTERN, REPLACEMENT, LABEL = PROBES[PROBE]
 
 def break_it(text):
     m = PATTERN.search(text)
-    return text.replace(m.group(0), REPLACEMENT, 1) if m else None
+    if not m:
+        return None
+    rep = REPLACEMENT(m.group(0)) if callable(REPLACEMENT) else REPLACEMENT
+    # A REPLACEMENT THAT CHANGES NOTHING IS A SILENT PASS. A callable whose operator did
+    # not appear in the matched text would hand back the same source, the mutant would be
+    # byte-identical to the baseline, and the grade would read SURVIVED — "the closure
+    # failed" — about a mutation that was never applied.
+    if rep == m.group(0):
+        return None
+    return text.replace(m.group(0), rep, 1)
 
 
 # 1. the hole itself.
