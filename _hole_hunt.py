@@ -699,9 +699,22 @@ if __name__ == "__main__":
     if _targets:
         if any(_corpus_check(t) == "refuse" for t in _targets):
             raise SystemExit(2)
-    elif _corpus_check() != "clear":
-        print("REFUSING a whole-corpus sweep while the corpus is being written — it would "
-              "overwrite\nlogs/hole-hunt-rows.tsv with verdicts about partial trees. Wait "
-              "for the rebuild.", file=sys.stderr)
-        raise SystemExit(2)
+    else:
+        # REFUSE ON THE TREES THIS SWEEP WOULD MEASURE, not on the fact that something,
+        # somewhere, is generating. The blanket rule was written when every run wrote
+        # straight into a -v4 tree, and it is now too coarse: closure runs write to
+        # ./generated/<spec>-chain, -witness, -empty, and leave every -v4 tree untouched.
+        # Under the old rule a day of closure runs blocked the whole-corpus sweep outright,
+        # which is a real cost — the sweep is the only thing that refreshes the tracked
+        # baseline, and this is exactly the day it most needed refreshing.
+        #
+        # The hazard the rule exists for is unchanged and still enforced: a HALF-WRITTEN
+        # tree in the swept set has no _test.go and survives every mutation, so the row
+        # file would record "undefended" about an artifact nobody finished.
+        _moving = [a.name for a in sorted(GEN.glob("*-v4")) if _corpus_check(a) == "refuse"]
+        if _moving:
+            print("REFUSING a whole-corpus sweep: " + ", ".join(_moving) + " being written "
+                  "right now.\nlogs/hole-hunt-rows.tsv would record verdicts about a "
+                  "half-generated tree.", file=sys.stderr)
+            raise SystemExit(2)
     raise SystemExit(main())
