@@ -227,6 +227,31 @@ def inert_flip(line: str, body: str) -> bool:
                     and re.match(rf"\s*return\s+-{guard.group(1)}\s*$", body)))
 
 
+# `offset = 0`, `limit = 100` — a clamp body, and the only part of a clamp a mutation can
+# move. Numeric only: substituting an identifier could change types or not compile, and a
+# probe that fails to build reports CAUGHT for the wrong reason.
+CLAMP_ASSIGN = re.compile(r"^(\s*)(\w+)\s*=\s*(\d+)\s*$")
+CLAMP_SENTINEL = 7777
+
+
+def clamp_value_row(art, rel, idx: int, body: str):
+    """Break what an INERT clamp ASSIGNS, since breaking what it tests changes nothing.
+
+    Returns [] when the body assigns something non-numeric (numkit's `return -x` shape has
+    no assignment at all), so an unprobeable site produces no row rather than a reassuring
+    one.
+    """
+    m = CLAMP_ASSIGN.match(body)
+    if not m:
+        return []
+    val = CLAMP_SENTINEL if int(m.group(3)) != CLAMP_SENTINEL else CLAMP_SENTINEL + 1111
+    mut = replace_at(idx, body, f"{m.group(1)}{m.group(2)} = {val}")
+    v, _ = verdict_for(art, rel, mut)
+    tag = f"clamp value {m.group(2)} = {m.group(3)} -> {val}"
+    print(f"{art.name:<26} {rel:<22} {tag:<26} {v}", flush=True)
+    return [(art.name, rel, tag, v)]
+
+
 def bound_rows():
     out = []
     for art in artifacts():
@@ -254,6 +279,15 @@ def bound_rows():
                     out.append((art.name, rel, tag, "INERT"))
                     print(f"{art.name:<26} {rel:<22} {tag:<26} INERT (clamp assigns the "
                           f"boundary value; no input distinguishes the flip)", flush=True)
+                    # INERT IS A REDIRECT, NOT A VERDICT. The property that makes a clamp's
+                    # CONDITION unobservable — the body assigns the value it just compared —
+                    # is exactly what makes the assigned VALUE the only thing worth breaking.
+                    # This shape flips operators and never touches values, so every clamp in
+                    # the corpus was a systematic blind spot that the inert filter HID rather
+                    # than forwarded. Measured when the filter was finally questioned: 5 of 9
+                    # inert clamps have an untested assigned value, including two promised in
+                    # so many words ("clamping negatives to the default/zero").
+                    out.extend(clamp_value_row(art, rel, idx + 1, body))
                     continue
                 mut = replace_at(idx, line, flipped.rstrip("\n"))
                 v, _ = verdict_for(art, rel, mut)
@@ -405,6 +439,43 @@ def self_test() -> int:
         if got != want:
             failures.append(f"boundary: a test that {why} should be {want}, got {got} ({note})")
 
+    # SHAPE 6b — the clamp's VALUE, planted both ways. This exists because the INERT verdict
+    # used to end the inquiry: `if offset < 0 { offset = 0 }` is genuinely unobservable when
+    # the OPERATOR moves, and that says nothing about whether anything tests what the clamp
+    # assigns. Both fixtures share the identical inert condition, so the only thing the two
+    # cases differ in is whether a test passes a negative offset — which is the whole claim.
+    CMOD = "module example.com/c\n\ngo 1.23\n"
+    CIMPL = ("package c\n\nfunc Clamp(offset int) int {\n"
+             "\tif offset < 0 {\n\t\toffset = 0\n\t}\n\treturn offset\n}\n")
+    C_DEFENDED = ('package c\n\nimport "testing"\n\nfunc TestClamp(t *testing.T) {\n'
+                  '\tif Clamp(-5) != 0 {\n\t\tt.Fatalf("Clamp(-5) = %d, want 0", Clamp(-5))\n\t}\n}\n')
+    # Exercises Clamp, never with a negative — the shape that leaves a clamp undefended.
+    C_UNDEFENDED = ('package c\n\nimport "testing"\n\nfunc TestClamp(t *testing.T) {\n'
+                    '\tif Clamp(5) != 5 {\n\t\tt.Fatalf("Clamp(5) = %d, want 5", Clamp(5))\n\t}\n}\n')
+    for want, test_src, why in (("CAUGHT", C_DEFENDED, "passes a negative"),
+                                ("SURVIVED", C_UNDEFENDED, "never passes a negative")):
+        with tempfile.TemporaryDirectory() as td:
+            art = pathlib.Path(td) / "art"
+            art.mkdir()
+            (art / "go.mod").write_text(CMOD)
+            (art / "c.go").write_text(CIMPL)
+            (art / "c_test.go").write_text(test_src)
+            # line 4 (0-based) is `\t\toffset = 0`, the clamp body
+            rows = clamp_value_row(art, "c.go", 4, "\t\toffset = 0")
+        if not rows:
+            failures.append("clamp value: the probe produced NO ROW for a numeric clamp body")
+        elif rows[0][3] != want:
+            failures.append(f"clamp value: a test that {why} should be {want}, got {rows[0][3]}")
+    # A non-numeric clamp body must produce NO row rather than a reassuring one.
+    with tempfile.TemporaryDirectory() as td:
+        art = pathlib.Path(td) / "art"
+        art.mkdir()
+        (art / "go.mod").write_text(CMOD)
+        (art / "c.go").write_text(CIMPL)
+        (art / "c_test.go").write_text(C_DEFENDED)
+        if clamp_value_row(art, "c.go", 4, "\t\treturn -offset"):
+            failures.append("clamp value: a body with no numeric assignment must yield no row")
+
     # the label rule, checked directly: it is a string match and string matches rot quietly
     benign = "\t\trec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}"
     if "statusRecorder" not in benign:
@@ -419,7 +490,8 @@ def self_test() -> int:
     print("OK — a defended status is CAUGHT, an unasserted one SURVIVES, the benign label "
           "matches only the recorder default,\n     a json-tag rename is CAUGHT by a raw-key "
           "assertion while a struct round-trip cannot see it,\n     and a boundary flip is "
-          "CAUGHT by an endpoint test while an interior test cannot see it")
+          "CAUGHT by an endpoint test while an interior test cannot see it,\n     and an "
+          "INERT clamp's assigned VALUE is CAUGHT only by a test that passes a negative")
     return 0
 
 

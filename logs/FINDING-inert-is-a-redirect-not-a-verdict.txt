@@ -1,0 +1,86 @@
+FINDING — the inert filter was hiding five holes, one per clamp
+===============================================================
+2026-07-27. Model-free. Reproduce: python _hole_hunt.py --self-test, then the shape-6 sweep.
+
+THE HEADLINE
+  `if offset < 0 { offset = 0 }` flipped to `<= 0` takes the clamp branch at offset==0 and
+  assigns 0 to something already 0. No input distinguishes the two programs, so INERT is
+  the correct verdict and the row says nothing about the tests. That much has been right
+  since the shape was written.
+
+  What was wrong is what came next: nothing. INERT ended the inquiry.
+
+  The property that makes a clamp's CONDITION unobservable — the body assigns the value it
+  just compared — is exactly what makes the assigned VALUE the only thing left worth
+  breaking. Shape 6 flips operators and never touches values, so EVERY CLAMP IN THE CORPUS
+  was a systematic blind spot, and the inert filter was what hid them: it printed a
+  reassuring label and moved on.
+
+  Re-probed, mutating what each inert clamp ASSIGNS instead of what it tests:
+
+      taskapipro  internal/api/projects.go     limit  = 0    SURVIVED
+      taskapipro  internal/api/projects.go     offset = 0    SURVIVED
+      taskapipro  internal/api/tasks.go        limit  = 0    SURVIVED
+      taskapipro  internal/api/tasks.go        offset = 0    SURVIVED
+      taskflow    pagination.go                offset = 0    SURVIVED
+      taskapipro  internal/service/service.go  offset = 0    CAUGHT
+      taskflow    pagination.go                offset = 0    CAUGHT   (the other site)
+      workapi     internal/service/service.go  offset = 0    CAUGHT
+      numkit      numkit.go                    (return -x)   no assignment, no row
+
+  5 of 9. And these are promised in so many words — taskflow's spec says the parser clamps
+  "negatives to the default/zero". A request with offset=-1 could return items starting at
+  7777 and every suite stays green.
+
+  Note the two taskflow rows: the parser's clamp is undefended, the paginate function's
+  clamp is defended. Same file, same shape, same assigned value, opposite answers. Per-site
+  or the number is meaningless — the lesson this corpus keeps re-learning.
+
+A SECOND BLIND SPOT, in the SELECTOR rather than the filter
+  Coverage was run over usersapi and taskflow looking for statement blocks no test executes.
+  Almost everything is covered; the interesting exception was
+
+      taskflow/pagination.go:17   } else if limit > 100 {
+
+  the "max 100" clamp, never entered by any test. Shape 6 had never probed it, because
+  BOUND_LINE requires the operand after the operator to be `0`, `len(`, `cap(`, or a
+  limit-shaped NAME — and here it is the bare literal 100.
+
+  Widening the selector to accept bare numeric literals was measured before being adopted,
+  and it should NOT be adopted. Four sites corpus-wide, and with the inert filter applied
+  correctly the verdicts are:
+
+      taskflow    } else if limit > 100 {          INERT   (clamps 100 to 100)
+      ledger      if len(t.Postings) < 2 {         CAUGHT
+      logstats    if e.Status >= 500 {             CAUGHT
+      walkv       if len(parts) < 2 {              CAUGHT
+
+  So the selector's blind spot for boundary FLIPS is empty. But the clamp behind the one
+  INERT row is real and undefended, and shape 6b catches it by the value: `limit = 100`
+  changed to `limit = 1000` SURVIVES. Two independent instruments — coverage saying "never
+  executed", a value mutation saying "undefended" — agreeing on one line.
+
+METHOD
+  Twice today an INERT/inert-looking result was the end of a thought and shouldn't have
+  been. paginate's inert flip hid an untested wire contract held by two redundant guards
+  (FINDING-two-guards-hide-an-untested-contract.txt); the inert clamps hid five untested
+  clamp values. The pattern is the same both times:
+
+      "this mutation changes nothing" is a fact about the MUTATION.
+      "nothing here needs a test" is a claim about the PROPERTY.
+      The first does not imply the second, and the filter that establishes the first is
+      exactly where the second gets assumed.
+
+  So an inert verdict now forwards to a different mutation rather than terminating. Shipped
+  as shape 6b in _hole_hunt with planted fixtures both ways: a clamp whose test passes a
+  negative is CAUGHT, an otherwise identical one whose test never passes a negative
+  SURVIVES, and a non-numeric clamp body yields NO ROW rather than a reassuring one.
+
+  Also worth writing down, since it happened here: the first version of the widened selector
+  used `[2-9][0-9]*` for "a literal of 2 or more" and therefore did not match 100. It
+  reported ZERO new sites — a clean, plausible, wrong answer, in the scan written to look
+  for a blind spot. Caught only because the site that motivated the scan was missing from
+  its own output.
+
+NOT SHIPPED
+  The selector widening. Four sites, three already CAUGHT, one INERT and now covered by 6b.
