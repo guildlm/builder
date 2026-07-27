@@ -168,15 +168,18 @@ def tag_rows():
             hits = []
             text = f.read_text(errors="ignore")
             for m in TAG.finditer(text):
-                hits.append((f.name, m.group(0), m.group(1), m.group(2)))
+                hits.append((f.name, m.start(), m.end(), m.group(0), m.group(1), m.group(2)))
                 if not ALL_SITES:
                     break
-            for rel, orig, name, opts in hits:
-                def mut(t, a=orig, b=f'`json:"{name}_x{opts}"`'):
-                    # Unique-substring guard, as in wrap_rows: two fields tagged the same way
-                    # in one file would make the patch ambiguous, and an ambiguous mutation
-                    # grades a site nobody chose.
-                    return t.replace(a, b, 1) if t.count(a) == 1 else None
+            for rel, start, end, orig, name, opts in hits:
+                # ADDRESSED BY OFFSET. The unique-substring guard here refused any tag that
+                # appears twice in a file, and taskflow carries `json:"id"` on both Task and
+                # Project — so the tag shape reported NOAPPLY for the one artifact it most
+                # needed to answer about. Same defect as the status shape and the same fix:
+                # the detector already located the site, so hand the mutator that location
+                # instead of asking it to find the text again.
+                def mut(t, s=start, e=end, a=orig, b=f'`json:"{name}_x{opts}"`'):
+                    return t[:s] + b + t[e:] if t[s:e] == a else None
                 v, _ = verdict_for(art, rel, mut)
                 out.append((art.name, rel, f'json tag "{name}" renamed', v))
                 print(f"{art.name:<26} {rel:<22} {('json tag ' + name):<26} {v}", flush=True)
@@ -530,14 +533,14 @@ def main() -> int:
             # matched. A flag that under-delivers on its own name is the under-sampling
             # defect wearing a disguise, and it is the fourth time in this file.
             hits = []
-            for ln in f.read_text(errors="ignore").splitlines():
+            for i, ln in enumerate(f.read_text(errors="ignore").splitlines()):
                 m = CODE.match(ln)
                 if m and m.group(1) in SWAP:
-                    hits.append((f.name, m.group(1), ln.strip()))
+                    hits.append((i, f.name, m.group(1), ln))
                     if not ALL_SITES:
                         break
             for hit in hits:
-                rel, old, line = hit
+                idx, rel, old, line = hit
                 new = SWAP[old]
                 # Mutate the LINE that was found, not the first textual occurrence in the
                 # file. `re.subn(..., count=1)` over whole-file text hits whichever comes
@@ -546,11 +549,17 @@ def main() -> int:
                 # SURVIVED for a mutation that only ever edited a comment: a hole announced
                 # where none exists, which is the one direction a hole hunter must not fail
                 # in. The site detector already skips comment lines; the mutator did not.
-                def mut(text, ln=line, o=old, n=new):
-                    if text.count(ln) != 1:
-                        return None          # ambiguous line — refuse rather than guess
-                    return text.replace(ln, ln.replace(f"http.{o}", f"http.{n}", 1), 1)
+                # ADDRESSED BY INDEX, which is what the detector already knew. This used to
+                # refuse any line appearing more than once in its file ("ambiguous — refuse
+                # rather than guess"), and that refusal was 39 of the 47 NOAPPLY rows in the
+                # sweep: a QUARTER of the corpus answering nothing, quietly, because handlers
+                # repeat `http.Error(w, "...", http.StatusInternalServerError)` verbatim.
+                # replace_at was written for exactly this and had only been wired into the
+                # newer shapes — the older one kept refusing, and a refusal in a hole hunter
+                # reads like a clean row unless somebody counts them.
+                mut = replace_at(idx, line, line.replace(f"http.{old}", f"http.{new}", 1))
                 v, note = verdict_for(art, rel, mut)
+                line = line.strip()
                 # LABEL a known-benign shape, do not suppress it. `statusRecorder{..., status:
                 # http.StatusOK}` is the DEFAULT a logging middleware records before the
                 # handler writes anything, so mutating it changes log output and nothing else.
