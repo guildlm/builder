@@ -51,13 +51,15 @@ AND IT IS NOT HYPOTHETICAL — three artifacts have only ONE guard
       tasks-api   ONE guard   HOLE   measured — same
       taskapi     ONE guard   HOLE   measured — same
       taskflow    TWO guards  inert  measured — the four-cell table above
-      taskapipro  TWO guards  inert  READ ONLY — service.go:67 and :108 both return
-                                     paginate(...), so the nil is normalised the same way
-      workapi     TWO guards  inert  READ ONLY — service.go:67, same shape
+      taskapipro  TWO guards  inert  measured — probe through NewRouter(TaskService,
+                                     ProjectService, logger); body stays [] on the mutant
+      workapi     TWO guards  inert  measured — same, through NewRouter(svc, "secret",
+                                     logger) with a Bearer header and a no-op enqueuer
 
-  The last two are not measured. They are exactly the kind of claim that was wrong twice
-  today when it was only read, and they are cheap to settle — each needs a probe with that
-  artifact's router constructor — so settle them before quoting the census as 3/3.
+  All six measured the same way. The prediction for the last two was read off service.go
+  before the probes were written and both held, which is worth exactly as much as any
+  confirmed prediction and no more: the two readings that were WRONG today looked just as
+  solid before they were checked.
 
 WHY NO TEST SEES IT — and the first answer was wrong
   The obvious explanation is the json-tag one: decoding cannot see it. Measured, that is

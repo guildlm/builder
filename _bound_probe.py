@@ -358,6 +358,65 @@ func TestEmptyListMarshalsAsAnEmptyArray(probe *testing.T) {
 	}
 }
 '''),
+    # The two remaining HTTP artifacts, both predicted INERT for taskflow's reason — their
+    # list path returns paginate(...), which normalises the nil away. Probed rather than
+    # read, because "I read the call site" was wrong twice on 2026-07-27 and the census is
+    # only worth quoting if every cell in it was measured the same way.
+    ("taskapipro empty list []", "taskapipro-v4", "internal/store/memory.go", nil_slice(0), 0,
+     "internal/api/zz_probe_test.go", '''package api
+
+import (
+	"io"
+	"log/slog"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"guildlm.dev/taskapipro/internal/service"
+	"guildlm.dev/taskapipro/internal/store"
+)
+
+func TestEmptyListMarshalsAsAnEmptyArray(probe *testing.T) {
+	st := store.NewMemStore()
+	rec := httptest.NewRecorder()
+	NewRouter(service.NewTaskService(st), service.NewProjectService(st),
+		slog.New(slog.NewTextHandler(io.Discard, nil))).
+		ServeHTTP(rec, httptest.NewRequest("GET", "/tasks", nil))
+	if got := strings.TrimSpace(rec.Body.String()); got != "[]" {
+		probe.Fatalf("GET /tasks on an empty store = %q, want []", got)
+	}
+}
+'''),
+    ("workapi   empty list []", "workapi-v4", "internal/store/memory.go", nil_slice(0), 0,
+     "internal/api/zz_probe_test.go", '''package api
+
+import (
+	"io"
+	"log/slog"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"guildlm.dev/workapi/internal/models"
+	"guildlm.dev/workapi/internal/service"
+	"guildlm.dev/workapi/internal/store"
+)
+
+type zzEnq struct{}
+
+func (zzEnq) Enqueue(e models.Event) {}
+
+func TestEmptyListMarshalsAsAnEmptyArray(probe *testing.T) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", "/tasks", nil)
+	req.Header.Set("Authorization", "Bearer secret")
+	NewRouter(service.NewTaskService(store.NewMemStore(), zzEnq{}), "secret",
+		slog.New(slog.NewTextHandler(io.Discard, nil))).ServeHTTP(rec, req)
+	if got := strings.TrimSpace(rec.Body.String()); got != "[]" {
+		probe.Fatalf("GET /tasks on an empty store = %q, want []", got)
+	}
+}
+'''),
 ]
 
 
