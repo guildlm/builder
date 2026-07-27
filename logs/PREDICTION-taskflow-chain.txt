@@ -1,0 +1,45 @@
+PREDICTION — taskflow Chain closure run (written BEFORE the run)
+================================================================
+
+THE HOLE (measured, not assumed)
+  generated/taskflow-v4/middleware.go:16
+      for i := len(mws) - 1; i >= 0; i-- {
+  flipped to `i > 0` never applies mws[0]. Chain's own doc comment promises "the FIRST
+  listed is the OUTERMOST", and taskflow wires Chain(mux, Logging, Recover) — so the
+  flip silently deletes Logging from every request while the handler still answers 200.
+
+  _hole_hunt says SURVIVED. _bound_probe says OBSERVABLE: a probe asserting the call
+  ORDER fails on the mutant and passes unmutated, and the failing test named in the
+  output is the probe, not the artifact's suite. So this is a test gap, not an inert
+  flip — unlike three of its neighbours in the same sweep.
+
+  No test in taskflow-v4 mentions Chain at all. middleware_recover_test.go wraps Recover
+  DIRECTLY, deliberately, so it never composes anything.
+
+THE EDIT
+  A new entry, middleware_chain_test.go, naming ONE test that asserts ONE thing:
+  strings.Join(order, ",") == "first,second,handler". Written as a separate file rather
+  than appended to middleware_recover_test.go for two reasons: that entry's prose is
+  tuned and says "ONE test", and this corpus has already shown that adding a sentence to
+  a working entry is how a defence gets dropped at the next draw (2/2 SURVIVED for
+  appended asserts vs 7/7 CAUGHT for own-named tests).
+
+PREDICTIONS
+  1. The file middleware_chain_test.go is written, containing
+     TestChainAppliesEveryMiddlewareOutermostFirst.                      [likely]
+  2. It asserts the joined order string, not the recorder's status code. This is the
+     one I am least sure of: the spec spends a sentence saying why the status
+     assertion is insufficient, and prose that explains a NEGATIVE has a worse record
+     in this corpus than prose that dictates a POSITIVE.                 [uncertain]
+  3. The boundary mutation flips SURVIVED -> CAUGHT on the fresh tree.   [follows from 1+2]
+  4. taskflow drops at least one test somewhere else. It is the one spec in the corpus
+     that pays for added difficulty by dropping tests, and this adds a file. If a
+     drop happens, _test_durability should show it and it counts AGAINST this edit
+     even if the Chain test lands.                                       [~50/50]
+  5. The tree is GREEN on build+vet+test-race.                           [likely]
+
+WHAT WOULD FALSIFY THE CLOSURE
+  A tree where TestChainAppliesEveryMiddlewareOutermostFirst exists but the mutation
+  still SURVIVES — which would mean the test was written and asserts something the
+  flip does not change. That is the exact shape found twice today, and it is why the
+  grading step greps for the order string rather than for the test name.

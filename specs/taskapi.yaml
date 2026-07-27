@@ -260,6 +260,24 @@ files:
       be turned into a response, NOT escape out of ServeHTTP.
       Imports io, log/slog, net/http, net/http/httptest, testing. Never name a
       local variable `t`.
+  - path: internal/api/middleware_chain_test.go
+    purpose: >-
+      package api. ONE test for Chain itself — the composer every request passes
+      through, and which no test has ever called.
+      TestChainAppliesEveryMiddlewareOutermostFirst: declare `order := []string{}`
+      in the test body and a helper `mark := func(name string) Middleware` whose
+      returned handler APPENDS name to order and THEN calls next.ServeHTTP. Wrap an
+      inner http.HandlerFunc that appends "handler". Then call
+      Chain(inner, mark("first"), mark("second")).ServeHTTP with
+      httptest.NewRecorder() and httptest.NewRequest("GET", "/", nil), and assert
+      — as the test's ONLY assertion — that strings.Join(order, ",") equals
+      "first,second,handler".
+      That one string is the entire contract: BOTH middlewares ran, and the FIRST
+      listed ran OUTERMOST. Asserting the recorder's status instead would pass even
+      if Chain silently dropped a middleware, because the inner handler still
+      answers. Do NOT construct Logging or Recover here — this test needs no logger.
+      Imports net/http, net/http/httptest, strings, testing. Never name a local
+      variable `t`.
   - path: cmd/server/main.go
     purpose: >-
       package main — the composition root. Import config, store, api (their full

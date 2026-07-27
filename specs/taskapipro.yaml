@@ -35,7 +35,7 @@ files:
   - path: internal/config/config_test.go
     purpose: >-
       package config. Load() is the seam every deployment goes through. Write
-      EXACTLY these five test functions and NO OTHERS — do not invent extra cases.
+      EXACTLY these six test functions and NO OTHERS — do not invent extra cases.
       Load() returns TWO values: write `cfg, err := Load()`.
       Use t.Setenv (never os.Setenv); a test that calls t.Setenv must NOT call
       t.Parallel. Compare durations against time.Second multiples (5*time.Second),
@@ -59,6 +59,14 @@ files:
       return nil and the test would fail against a correct implementation. An
       invalid Config is UNREACHABLE through Load by construction. Validate's
       contract is about a Config value; test it on a Config value.
+      TestValidateRejectsZeroDefaultPageSize — build a Config VALUE DIRECTLY with
+      a field-named literal (Addr ":8080", MaxPageSize 100, DefaultPageSize 0) and
+      call Validate() on it: it must return a non-nil error. ZERO is the case, not
+      a negative number: the guard is `DefaultPageSize <= 0`, and a test that only
+      tries -1 passes against an implementation that wrote `< 0` and then silently
+      accepts a default page size of zero, because 0 > 100 is false and the
+      max-below-default guard never fires either. One assertion, on the boundary
+      value itself.
       TestValidateOK — a sane Config passes Validate(). Build it the same way, as
       a direct field-named literal.
       Do NOT write a test that expects Load() to BOTH return an error AND hand
@@ -455,6 +463,24 @@ files:
       be turned into a response, NOT escape out of ServeHTTP.
       Imports io, log/slog, net/http, net/http/httptest, testing. Never name a
       local variable `t`.
+  - path: internal/api/middleware_chain_test.go
+    purpose: >-
+      package api. ONE test for Chain itself — the composer every request passes
+      through, and which no test has ever called.
+      TestChainAppliesEveryMiddlewareOutermostFirst: declare `order := []string{}`
+      in the test body and a helper `mark := func(name string) Middleware` whose
+      returned handler APPENDS name to order and THEN calls next.ServeHTTP. Wrap an
+      inner http.HandlerFunc that appends "handler". Then call
+      Chain(inner, mark("first"), mark("second")).ServeHTTP with
+      httptest.NewRecorder() and httptest.NewRequest("GET", "/", nil), and assert
+      — as the test's ONLY assertion — that strings.Join(order, ",") equals
+      "first,second,handler".
+      That one string is the entire contract: BOTH middlewares ran, and the FIRST
+      listed ran OUTERMOST. Asserting the recorder's status instead would pass even
+      if Chain silently dropped a middleware, because the inner handler still
+      answers. Do NOT construct Logging or Recover here — this test needs no logger.
+      Imports net/http, net/http/httptest, strings, testing. Never name a local
+      variable `t`.
   - path: cmd/server/main.go
     purpose: >-
       package main — composition root. Import config, store, service, api and
