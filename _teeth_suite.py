@@ -536,10 +536,21 @@ def _go_test(work: Path):
     return subprocess.run(_GO_TEST, cwd=work, capture_output=True, text=True)
 
 
-def verdict_for(art: Path, rel: str, mutate) -> tuple[str, str]:
+_FAILED_TEST = re.compile(r"^\s*--- FAIL: (\w+)", re.M)
+
+
+def verdict_for(art: Path, rel: str, mutate, extra: dict | None = None) -> tuple[str, str]:
     """The whole judgement, over ANY project directory — which is what makes it
     checkable. `_run` supplies the archived artifact; --self-test supplies planted
-    fixtures whose answer is known in advance."""
+    fixtures whose answer is known in advance.
+
+    `extra` adds files to the copy before ANY test runs — the artifact's own suite plus
+    a probe I wrote. It exists so that "is this mutation observable at all?" can be asked
+    with the SAME baseline-green and no-tests discipline as "did the suite catch it",
+    rather than a second copy-and-run written beside it that would drift. A probe that
+    makes the baseline red is a broken probe and reports BASELINE-RED, which is exactly
+    the answer wanted: it asserts something the unmutated artifact does not do.
+    """
     src = art / rel
     if not src.exists():
         return "SKIP", f"{rel} not in artifact"
@@ -557,6 +568,9 @@ def verdict_for(art: Path, rel: str, mutate) -> tuple[str, str]:
     with tempfile.TemporaryDirectory() as td:
         work = Path(td) / "proj"
         shutil.copytree(art, work)
+        for name, text in (extra or {}).items():
+            (work / name).parent.mkdir(parents=True, exist_ok=True)
+            (work / name).write_text(text)
         # A CAUGHT/SURVIVED verdict is only meaningful if the UNMUTATED artifact is green:
         # a red baseline makes the mutant red for the wrong reason (fake CAUGHT). This bit the
         # by-hand runs 4x (walkv/usersapi/taskapipro) — encode "check baseline green first."
@@ -564,8 +578,13 @@ def verdict_for(art: Path, rel: str, mutate) -> tuple[str, str]:
             return "BASELINE-RED", "unmutated artifact already fails — verdict void, fix baseline first"
         (work / rel).write_text(mutated)
         r = _go_test(work)
-    return ("CAUGHT", "suite red — defended") if r.returncode != 0 \
-        else ("SURVIVED", "GREEN on broken code — UNDEFENDED")
+    if r.returncode == 0:
+        return "SURVIVED", "GREEN on broken code — UNDEFENDED"
+    # WHICH test went red is the whole answer when a probe was supplied: red from the
+    # artifact's own suite would mean the mutation was defended all along, red from the
+    # probe means the probe is what sees it.
+    named = sorted(set(_FAILED_TEST.findall(r.stdout + r.stderr)))
+    return "CAUGHT", "suite red — defended" + (f" (failing: {', '.join(named)})" if named else "")
 
 
 def _run(spec: str, rel: str, desc: str, mutate) -> tuple[str, str]:

@@ -411,11 +411,6 @@ def self_test() -> int:
     return 0
 
 
-if "--self-test" in sys.argv:
-    raise SystemExit(self_test())
-
-
-
 def replace_at(index: int, old: str, new: str):
     """A mutator that edits ONE LINE BY INDEX, not by matching its text.
 
@@ -594,6 +589,13 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # DISPATCHED HERE, NOT AT MODULE LEVEL, which is where it used to sit. Any tool that
+    # imports this module for its mutators — _bound_probe does, for BOUND/replace_at —
+    # inherited the dispatch: running `_bound_probe.py --self-test` ran THIS file's
+    # self-test instead, printed its OK line, and exited 0 before the caller's own
+    # fixtures were ever built. A green that belongs to another tool is the worst kind.
+    if "--self-test" in sys.argv:
+        raise SystemExit(self_test())
     # NEVER SWEEP A MOVING CORPUS. A whole-corpus run overwrites logs/hole-hunt-rows.tsv —
     # the tracked baseline, and the only durable record of what the corpus said — so a
     # sweep taken while artifacts are being regenerated would replace real verdicts with
