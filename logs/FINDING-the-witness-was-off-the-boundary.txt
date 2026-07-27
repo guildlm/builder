@@ -58,6 +58,14 @@ THE SWEEP THAT FOUND IT — all 15 boundary survivors, re-characterised
         condition on the line immediately before the call and break. The function's own
         bounds check cannot be entered at the boundary by any input, so its error return
         is unreachable code. Not a test gap: a test that could cover it does not exist.
+
+        MEASURED, not read off the source, because "I read both callers" is how the
+        paginate claim was nearly got wrong twice. A panic planted in that branch survives
+        EXHAUSTIVE evaluation of every string of length 0..3 over "0123456789+-*/() "
+        (5,220 inputs) plus 200,000 random strings of length 1..12. Positive control: the
+        same panic planted in parseFactor's bounds check — three lines away, same shape —
+        fires on the FIRST input, the empty string. So the probe can see a reached branch
+        and does not see this one. Evidence, not proof: exhaustive only to length 3.
     ledger      `if dot < 0` -> `<= 0`
         MESSAGE-ONLY. dot == 0 means a leading ".", e.g. ".50". The original then takes
         whole = "" and ParseInt fails; the mutant returns "money has no decimal point".

@@ -25,8 +25,16 @@ import subprocess
 import sys
 
 OUT_RE = re.compile(r"--out[= ]+(\S+)")
-# The commands that write into generated/: a build directly, and the sweeps that drive them.
-WRITER_RE = re.compile(r"guildlm-build\s+main|_sweep\.sh|_rebuild_corpus\.sh|_ab_run\.sh")
+# The commands that write into generated/: a build directly, and the scripts that drive
+# them. The drivers matter on their own because a driver spends real time BETWEEN builds —
+# `go test -race -count=4` on a fresh artifact, then the next spec — and in that window no
+# `guildlm-build main` process exists while the corpus is still very much moving.
+#
+# Matched by the repo's naming convention rather than by a list of names. The list went
+# stale the first time it was tested: four new drivers (_chain_run, _chain_sweep,
+# _taskflow_chain_run, _bitset_witness_run) were writing the corpus while this reported
+# "clear" between their builds, because they were written after the list was.
+WRITER_RE = re.compile(r"guildlm-build\s+main|_rebuild_corpus\.sh|_[a-z0-9_]*(sweep|run)\.sh")
 
 
 def writers(ps_output: str) -> list[tuple[str, str | None]]:
@@ -99,6 +107,17 @@ def self_test() -> int:
     # A writer with no --out (a sweep script) must not be read as 'refuse' for every target.
     if check("generated/x-v4", "bash ./_sweep.sh a b c\n") != "warn":
         fails.append("a writer with no --out can only warn — it names no target")
+    # DRIVERS COUNT AS WRITERS BETWEEN THEIR BUILDS. Each of these spends minutes running
+    # go test on a finished artifact before starting the next one, with no guildlm-build
+    # process alive; a checker that reads that window as "clear" gives its blessing to
+    # exactly the measurement it exists to prevent.
+    for driver in ("bash ./_chain_sweep.sh", "bash ./_chain_run.sh usersapi",
+                   "/bin/bash ./_bitset_witness_run.sh", "bash ./_taskflow_chain_run.sh"):
+        if check("generated/x-v4", driver + "\n") != "warn":
+            fails.append(f"{driver} writes the corpus and must at least warn")
+    # And the convention must not swallow things that merely look like scripts.
+    if writers("bash ./verify_pipeline.sh\nbash ./_mutant_check.sh\n"):
+        fails.append("a verifier and a mutation checker do not write the corpus")
     for f in fails:
         print(f"  FAIL: {f}")
     print("self-test: " + ("FAILED" if fails else "ok — refuses the tree in flight, warns about the rest"))

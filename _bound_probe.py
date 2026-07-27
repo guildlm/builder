@@ -410,6 +410,17 @@ def main() -> int:
         out.append((label, v))
         print(f"{label:<28} {v:<17} {note}", flush=True)
 
+    # WRITE THE ROWS, but only for a FULL run. logs/hole-hunt-rows.tsv stays exactly what
+    # the sweep produced — raw verdicts are worth more unedited — so the interpretation
+    # lives beside it under the same (artifact, file) key rather than on top of it. A
+    # partial run would drop every probe it did not select, so a selected run prints and
+    # writes nothing.
+    if not wanted:
+        rows = "\n".join(f"{a}\t{rel}\t{label.split(None, 1)[1]}\t{v}"
+                         for (label, a, rel, *_), (_, v) in zip(PROBES, out))
+        pathlib.Path("logs/bound-probe-rows.tsv").write_text(rows + "\n")
+        print("wrote logs/bound-probe-rows.tsv\n")
+
     print()
     obs = [l for l, v in out if v == "OBSERVABLE"]
     inert = [l for l, v in out if v == "INERT-OR-WEAK"]
@@ -427,4 +438,19 @@ def main() -> int:
 if __name__ == "__main__":
     if "--self-test" in sys.argv:
         raise SystemExit(self_test())
+    # NEVER PROBE A MOVING TREE. Same rule as _hole_hunt, and it applies harder here: a
+    # half-written artifact has no _test.go, so the probe passes on the baseline, passes on
+    # the mutant, and the verdict reads INERT-OR-WEAK — "nothing was broken" — about a tree
+    # that was simply not finished. The reassuring answer is the wrong one, again.
+    from _corpus_state import check as _corpus_check
+    _selected = [a for a in sys.argv[1:] if not a.startswith("-")]
+    if "--locate" in sys.argv:
+        if _selected and _corpus_check(_selected[0]) == "refuse":
+            raise SystemExit(2)
+    elif _selected:
+        if any(_corpus_check(GEN / p[1]) == "refuse" for p in PROBES
+               if any(w in p[0] or w in p[1] for w in _selected)):
+            raise SystemExit(2)
+    elif any(_corpus_check(GEN / p[1]) == "refuse" for p in PROBES):
+        raise SystemExit(2)
     raise SystemExit(main())
