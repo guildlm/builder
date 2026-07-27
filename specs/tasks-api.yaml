@@ -158,6 +158,15 @@ files:
       TestGetOKAndMissing: POST a task, then GET /tasks/1 -> 200 with the stored
       fields; on a fresh handler GET /tasks/99 -> 404.
       TestList200: POST one task, then GET /tasks -> 200 with a JSON array.
+      TestListEmptyIsEmptyArray: on a FRESH handler — post NOTHING, this is the
+      whole point — GET /tasks and assert, as this test's ONLY assertion, that
+      strings.TrimSpace(rec.Body.String()) is exactly "[]".
+      Assert the RAW BODY, not a decoded value: an empty list encoded from a nil
+      slice goes out as `null`, and decoding `null` into a []Task gives a slice of
+      length 0 exactly like `[]` does, so every length check passes either way
+      while clients that iterate the response break. Every other list test here
+      populates the store first, so this empty case is otherwise never requested at
+      all. Import strings for this.
       TestDelete: POST a task, DELETE /tasks/1 -> 204, then GET /tasks/1 -> 404.
       TestUpdateOK: POST a task FIRST (expect 201), then PUT /tasks/1 with a new
       title -> 200. `PUT /tasks/{id}` is registered on the router and the handler

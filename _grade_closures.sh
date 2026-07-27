@@ -34,3 +34,23 @@ grade generated/taskapipro-chain taskapipro default-page-size internal/config/co
 
 grade generated/bitset-witness   bitset     bitset-test       bitset.go
 grade generated/bitset-witness   bitset     bitset-clear      bitset.go
+
+# The empty-list closure. Graded by the nil-slice mutation, not by the boundary shape:
+# `make([]Task, 0, n)` -> `var out []Task`, which is the one-line change that turns the
+# response body from [] into null with every existing assertion still passing.
+if [[ -d generated/tasksapi-empty ]]; then
+  echo
+  echo "======== generated/tasksapi-empty  probe=nil-slice ========"
+  .venv/bin/python - <<'PY'
+import pathlib, sys
+sys.path.insert(0, "/Users/fatihturker/Desktop/Personal/Dev/guildlm/builder")
+from _bound_probe import nil_slice
+from _teeth_suite import verdict_for
+art = pathlib.Path("generated/tasksapi-empty")
+v, note = verdict_for(art, "store.go", nil_slice(0))
+print(f"  nil-slice on store.go -> {v}   [was SURVIVED before the spec edit]")
+print(f"  {note}")
+PY
+else
+  echo "--- generated/tasksapi-empty: NOT GENERATED YET (probe=nil-slice) ---"
+fi
