@@ -219,10 +219,17 @@ files:
       TestMalformedJSON: POST truncated bytes like `{"title":` (NOT an empty
       `{}`) -> 400.
       TestDeleteMissing: DELETE a task id nobody created -> 404.
-      TestHealthz: GET /healthz -> assert the STATUS CODE is 200. The body is the
-      bare JSON string "ok" — NOT an object: if you check it at all, decode it
-      into a `string`, never into a struct (a struct decode of a bare string
-      silently yields the zero value and fails a handler that is working).
+      TestHealthz: GET /healthz -> assert the STATUS CODE is 200, and assert NOTHING
+      ELSE. Do NOT touch the body at all.
+      This used to say "if you check it at all, decode it into a `string`, never into
+      a struct", which warned about the trap and then permitted the check. Measured:
+      a draw took the option and compared the RAW body against `ok`, which fails —
+      the handler writes the bare JSON string `"ok"` and the raw bytes are `"ok"\n`,
+      quotes and newline included. The suite went red against a handler that is
+      working, and the fix loop spent rounds on it.
+      An OPTIONAL assertion is an invitation to write the wrong one. The status code
+      is the entire contract this endpoint has; there is nothing here worth the risk
+      of a second assertion, so the option is withdrawn rather than explained better.
       That is ELEVEN test functions and NO more — the project endpoints are covered
       in projects_test.go, in this same package. Do not write them here.
       Imports bytes, encoding/json, io, log/slog, net/http, net/http/httptest,
