@@ -1,0 +1,69 @@
+FINDING — a quarter of the corpus's mutation sites are on lines no test executes
+================================================================================
+2026-07-28. Tool: _reachability.py. One `go test -coverprofile` per artifact, 26 artifacts.
+Frozen -v4 trees.
+
+THE NUMBER
+
+    250 mutation sites (status, header, boundary, error-wrapping)
+     60 on lines the suite NEVER EXECUTES        24%
+
+Broken down:
+
+     37  the `else { 500 }` on a sentinel-error check
+      8  a 400
+      7  an error wrapping (%w) on a parse/validation failure
+      4  a 404
+      4  other status writes
+
+Two artifacts refused rather than answered — tasks-api-min and tasks-api-noshadownudge do
+not produce a usable profile, and a red suite's zeroes mean "the test stopped earlier", not
+"unreachable". Reporting those as 100% cold would have marked two whole artifacts dead.
+
+WHAT COLD IS NOT
+
+It is tempting — and it is what I assumed for the first ten minutes — to read COLD as "not a
+hole". That reading is exactly backwards for the sharpest holes in this corpus.
+
+    taskflow  tasks_handler.go:72   writeJSON(w, http.StatusNotFound, nil)   COLD
+    workapi   internal/api/tasks.go:93  writeJSON(w, http.StatusNotFound, nil)   COLD
+
+Both are Delete's own 404. Both specs promise it in the handler's own comment. Both suites
+contain a test named for the delete that asserts a 404 — from the GET that follows a
+SUCCESSFUL delete. taskflow's is the mirror I closed this week; workapi's was found today by
+this tool and closed an hour ago. In both cases COLD is not the reason it is not a hole. COLD
+IS THE HOLE: not one weak assertion, but no request at all.
+
+So:
+
+    COLD + reachable in production   = the strongest kind of hole. Nothing even goes there.
+    COLD + unreachable               = dead code. Not a hole, and never was.
+
+The 37 sentinel-else 500s are the second: the capstone established that these artifacts wire
+a concrete in-memory store which returns only the sentinels the `if` already handles, so no
+input reaches the `else`. The 4 cold 404s are the first — DELETE a missing id and you are
+there immediately.
+
+    COLD is an AMPLIFIER on a candidate, not a dismissal of one. What discriminates is
+    production reachability, and coverage cannot see that: it measures the SUITE's reach,
+    not the program's.
+
+WHY THIS MATTERS NOW
+
+Three times this corpus settled a row by asking "does this line run" — the 17 dead 500s,
+expreval's consumeOperator bound, tasks-api's subsumed Title guard — and each time it cost a
+coverage run or a code-read PER ROW. That was affordable at 48 candidates. It is not
+affordable at what the sweep is about to become: five of six shapes were skipping internal/
+entirely, and workapi alone goes from 6 rows to 36 once the walk is fixed.
+
+One test run per artifact answers the reachability half for every site in it at once, BEFORE
+any mutation is applied. The sweep still has to run — a cold site still needs its SURVIVED
+row for the accounting — but the adjudication that follows is now a join, not 60 code-reads.
+
+THE HONEST LIMIT
+
+Coverage is measured on the suite AS IT STANDS. Every closure this week ADDS a test, so a
+site that is cold today may be warm in the next draw — which is the point of the closures,
+and it means this table is a snapshot of the -v4 corpus and not a property of the specs.
+Re-run it after the redraw; the cold count going DOWN is a result about the campaign, and
+the one number here I would actually like to watch.
