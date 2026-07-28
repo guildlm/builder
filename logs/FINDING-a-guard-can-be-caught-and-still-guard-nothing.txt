@@ -16,10 +16,26 @@ config_test.go pins all of it across four tests. One of those boundaries — the
 `DefaultPageSize <= 0` guard — is a closure I graded CAUGHT this week and counted as one
 of the twenty-nine that held.
 
-The handler that actually paginates, in both independent draws:
+The handler that actually paginates. TWO independent draws, TWO different non-answers, and
+neither of them is 20:
 
-    if limit <= 0  { limit = 100 }        // not cfg.DefaultPageSize, and not 20 either
-    if limit > 100 { limit = 100 }        // not cfg.MaxPageSize
+    chain2:   if limit <= 0  { limit = 100 }     // not cfg.DefaultPageSize, and not 20
+              if limit > 100 { limit = 100 }     // not cfg.MaxPageSize
+
+    v4:       (no default at all — limit stays 0 and goes straight to the service, where
+               `limit <= 0` means len(items)-offset)
+
+So the -v4 artifact does not merely hardcode the wrong default. It applies NO PAGE LIMIT:
+GET /tasks returns every task in the store, and GET /tasks?limit=1000000 does too. A
+documented default of 20 and a documented cap of 100, and the shipped composition honours
+neither at any input.
+
+That is worth separating from "the number is hardcoded", because it changes what the gap
+IS. A hardcoded 100 is a wrong constant — one edit from right. No limit at all is a missing
+FEATURE that every draw resolves differently, which is the signature of a promise the spec
+makes in one place and never asks for anywhere else. Measured across the corpus: no
+artifact contains a literal matching either default, in any file that does not read the
+field. There is nothing to correct. There is nothing there.
 
 Nothing outside internal/config reads either field. Measured, whole corpus:
 
