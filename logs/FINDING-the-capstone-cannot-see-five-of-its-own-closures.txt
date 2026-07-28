@@ -1,0 +1,52 @@
+FINDING — the capstone comparison is blind to five closures made this week
+==========================================================================
+2026-07-29, written BEFORE the v4-vs-v5 diff, deliberately, so it cannot become an
+explanation offered after a number.
+
+THE SWEEP HAS SIX SHAPES
+
+    1 status code   2 response header   3 sort comparator
+    4 error wrap    5 json field tag    6 boundary compare (+6b clamp value)
+
+Two mutation forms used for closures this week are NOT among them, and grep confirms
+neither appears in _hole_hunt at all:
+
+    nil-slice   `out := make([]T, 0, n)` -> `var out []T`, which turns an empty list from
+                `[]` into `null` with every length check still passing.
+    race        `Lock()` -> `RLock()`, a write performed under a read lock. Recorded when
+                the shortener race was found: no shape can express it.
+
+SO THE POST-SWEEP DIFF CANNOT SEE THESE FIVE SITES
+
+    tasks-api   TestListEmptyIsEmptyArray            nil-slice, store.go
+    usersapi    TestListEmptyIsEmptyArray            nil-slice, store.go
+    taskapi     TestListEmptyIsEmptyArray            nil-slice, internal/store/memory.go
+    taskapi     TestProjectListEmptyIsEmptyArray     nil-slice, internal/store/memory.go
+    shortener   TestResolveIsSafeUnderConcurrency    race, store.go   [already hand-graded
+                                                     on shortener-v5: CAUGHT]
+
+Four of the five are empty-list closures graded CAUGHT this week — a third of the closures
+made tonight. If I run _redraw_diff, read "no CAUGHT->SURVIVED regressions" and report that
+the closures held, I will have reported on a population that silently excludes them.
+
+That is the failure mode this entire session has been about — a correct answer to a smaller
+question than the one asked — arriving in the capstone measurement itself, which is the
+worst place for it and the least likely place to be checked.
+
+WHY NOT JUST ADD nil-slice AS SHAPE 7
+
+Because it would not help and would quietly mislead. v4 has already been swept; adding a
+shape now gives v5 rows with no v4 counterpart, so _redraw_diff reports them as "only in the
+new sweep" — the drift bucket, not a verdict change. The sites would appear to be NEW rather
+than compared. Getting a real before/after for them needs BOTH generations swept with the
+shape, which means re-sweeping v4 a second time, hours, for four sites.
+
+THE PLAN, which is cheaper and honest
+
+Hand-grade the four nil-slice sites on their -v5 trees as they land, exactly as the race
+closure was hand-graded on shortener-v5 — mutate, run the closure's own test, record. Then
+state in the capstone that the diff covers six shapes, that five closures live outside all
+of them, and that those five were graded separately.
+
+A comparison that omits five of the things being compared is not wrong if it SAYS so. It is
+wrong if the omission is discovered afterwards, and it is worthless if nobody looks.
