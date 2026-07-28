@@ -1,0 +1,56 @@
+RESULT — shortener: the race closure MEASURED for the first time, and it has teeth
+==================================================================================
+2026-07-28. generated/shortener-mirrors3, drawn by _run_queue_0728.sh.
+Prediction: logs/PREDICTION-mirror-and-empty-list.txt (written before the run).
+
+THE CLOSURE THAT HAD NEVER BEEN MEASURED
+
+The previous draw died on a production error (`string literal not terminated`) before the
+gates ever ran, so TestResolveIsSafeUnderConcurrency had been written into the spec and never
+once exercised. This re-run was for that one measurement.
+
+    as shipped   Resolve holds s.mu.Lock()      test PASSES, -race quiet
+    mutated      Resolve holds s.mu.RLock()     WARNING: DATA RACE, test FAILS
+
+CAUGHT. The mutation is the original bug verbatim — the confirmed data race where Resolve
+took a READ lock and then wrote `s.m[code] = link` through it.
+
+This closure is unlike every other one in the campaign: the test contains NO assertion at
+all. Fifty goroutines resolve the same code concurrently and the test asserts nothing. The
+assertion IS `-race`. That is the only form that could work here, because the corpus proved
+the alternative does not: `go test -race -count=4` was GREEN over this exact race for as long
+as the race existed, since -race only reports a race a test actually DRIVES, and no test
+resolved concurrently.
+
+PREDICTIONS, scored:
+  - it compiles this time [moderate — an unterminated literal is a sampling accident,
+    but shortener has 12 _fail- archives, the most in the corpus]     ✓
+  - the race test is written                                   [high]  ✓
+  - -race is green on the shipped code                         [high]  ✓
+  - both mirror tests written (TestShortenInvalidURL, TestStatsMissing)  ✓
+
+THE TREE IS NOT GREEN, for two reasons and neither is the closure
+
+1. `./shortener_test.go:71: (*testing.common).Errorf format %) has unknown verb )` — one
+   character dropped from the spec's own `Decode(%q)`. vet named file, line and verb; the fix
+   loop burned two rounds and could not repair it. There is now a deterministic gate for
+   exactly this (_fix_bad_format_verb, 6 tests), and applying it to a COPY of this tree
+   cleared vet in a single pass. The landed artifact is untouched and stays as evidence.
+
+2. `shortener_test.go:238: redirect: got 301` — an assertion on a SETUP step. The spec says
+   "GET /r/+created.Code EXACTLY ONCE (this is what increments Hits)": a step, not an
+   assertion point. 301 is exactly what the spec promises the redirect returns. The model
+   asserted on the step anyway and expected something else.
+
+That second one is the third instance tonight of the same shape — an assertion the spec did
+not ask for. See FINDING-every-fix-round-tonight-was-test-side.txt.
+
+HOW THIS WAS MEASURED, stated because it is not the usual path
+The tree is red, so the measurement ran on a COPY with the format-verb gate applied, and the
+race closure was graded by mutating Resolve's lock and re-running that ONE test under -race.
+Narrower than a whole-suite grade and recorded as such. The first attempt at the mutation
+silently did not apply — a heredoc ran from the wrong directory — and the test passed on
+unmutated code, which measures nothing. Caught it because a closure that "passes" when you
+expected a race is the shape of a mutation that never landed.
+
+SESSION TALLY: 34 closure sites graded, 34 held.
