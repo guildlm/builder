@@ -30,8 +30,17 @@ files:
       error (fmt.Errorf wrapping with %w) — do NOT silently fall back. Finally call
       c.Validate() and, if it returns an error, return the ZERO Config and that
       error. A method (c Config) Validate() error returning an error if Addr is
-      empty or MaxPageSize < DefaultPageSize. Imports os, strconv, time, fmt. No
-      other project package.
+      empty, if `c.DefaultPageSize <= 0`, or if MaxPageSize < DefaultPageSize.
+      ALL THREE GUARDS, and the zero-page-size one is NOT implied by the others:
+      with DefaultPageSize 0 and MaxPageSize 100, `100 < 0` is false, so a Validate
+      carrying only the other two accepts a page size of zero and returns nil.
+      Measured: config_test.go below requires TestValidateRejectsZeroDefaultPageSize,
+      and when that test was added this entry was NOT updated to match. Three draws
+      inferred the missing guard from the test entry anyway and one did not — it
+      spent its entire fix-round budget failing a test the implementation was never
+      asked to satisfy. A behaviour a test demands has to be promised HERE, in the
+      entry that writes the code, not only in the entry that checks it.
+      Imports os, strconv, time, fmt. No other project package.
   - path: internal/config/config_test.go
     purpose: >-
       package config. Load() is the seam every deployment goes through. Write
