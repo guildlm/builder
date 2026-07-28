@@ -1,12 +1,19 @@
-RESULT — the five closures the capstone diff cannot see, graded by hand on -v5
-==============================================================================
+RESULT — the NINE closure sites the capstone diff cannot see, graded by hand
+============================================================================
 Running record. Rationale: logs/FINDING-the-capstone-cannot-see-five-of-its-own-closures.txt
 
 The v4-vs-v5 diff covers the sweep's SIX shapes. Two mutation forms used for closures this
 week are in none of them — nil-slice (`make([]T, 0, n)` -> `var out []T`, an empty list going
-out as `null` while every length check still passes) and race (`Lock` -> `RLock`). So five
-closure sites are structurally invisible to the capstone and are graded here instead, on the
-same fresh -v5 trees, by mutating and running the closure's OWN test.
+out as `null` while every length check still passes) and race (`Lock` -> `RLock`).
+
+A THIRD cause was found by auditing rather than assuming: shape 6b matches a clamp assigning
+a NUMERIC LITERAL only, so the config-wiring closure's four sites are invisible as well —
+and they are invisible BECAUSE of the fix, which replaced `limit = 100` with
+`limit = h.defaultPageSize`. Closing that hole took the site out of the shape that would have
+graded it.
+
+Nine sites, structurally invisible to the capstone, graded here instead by mutating and
+running the closure's OWN test.
 
     artifact          closure                              form        verdict
     ----------------  -----------------------------------  ----------  --------
@@ -18,7 +25,17 @@ same fresh -v5 trees, by mutating and running the closure's OWN test.
     taskapi-v5        TestListEmptyIsEmptyArray            nil-slice   pending draw
     taskapi-v5        TestProjectListEmptyIsEmptyArray     nil-slice   pending draw
 
-2 of 5 verified, both CAUGHT on an INDEPENDENT draw from the repaired spec — which is the
+    taskapipro-chain4 TestListDefaults...PageSize          field clamp CAUGHT
+    taskapipro-chain4 TestListCapsAt...MaxPageSize         field clamp CAUGHT
+    taskapipro-chain4 TestProjectListDefaults...PageSize   field clamp SURVIVED
+    taskapipro-chain4 TestProjectListCapsAt...MaxPageSize  field clamp SURVIVED
+                      Graded on chain4 (the draw made for them) rather than a -v5 tree; the
+                      projects pair is the twin whose witness could not fail — it POSTed ONE
+                      project and asserted 1, so page size 2 and 7777 both return one item.
+                      The projects entry now carries its own measured reason and taskapipro's
+                      -v5 draw is the unverified retest.
+
+6 of 9 verified, both CAUGHT on an INDEPENDENT draw from the repaired spec — which is the
 strong form of the claim. The grades recorded earlier this week were taken on the draws made
 FOR those closures; these are fresh trees that had no reason to reproduce them except that
 the spec asks.
