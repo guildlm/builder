@@ -1,0 +1,69 @@
+RESULT — the corpus re-swept with the repaired walk: 170 rows -> 314, and the delta is
+exactly the four blind artifacts
+========================================================================================
+2026-07-29. Same FROZEN -v4 trees. Nothing about the corpus changed; only the instrument.
+Before: logs/hole-hunt-rows-before-walk-fix.tsv. After: logs/hole-hunt-rows.tsv (tracked).
+
+    ROWS   before 170   after 314   (+144)
+
+    ledger-v4          3 ->  31    +28
+    taskapi-v4         1 ->  40    +39
+    taskapipro-v4     15 ->  62    +47
+    workapi-v4         6 ->  36    +30
+                              ----------
+                              +144
+
+THE CONTROL IS EXACT, and it is the reason to believe the rest. 28+39+47+30 = 144, and the
+total delta is 144. EVERY added row comes from the four artifacts with an internal/ layout.
+Not one row moved on any flat artifact — taskflow, tasks-api, usersapi, shortener, jsonapi,
+ratelimit and the libraries are unchanged to the row. That is precisely what a glob-vs-rglob
+fix should do and nothing else, and it means the +144 is not noise, not draw variance, and
+not the trees changing. It is the size of a question five of six mutation shapes were never
+asked.
+
+taskapi-v4 contributed ONE row to the sweep this entire campaign has been reading. It has 40.
+
+VERDICTS
+
+    CAUGHT      111 -> 204
+    SURVIVED     48 ->  95
+    SURVIVED*     2 ->   6
+    INERT         9 ->   9
+
+Survivors doubled. That is triage load, not nineteen new holes — and tonight's own
+measurements already say most of it will not be holes: 24% of sites sit on never-executed
+lines and the dead 500-else class dominates that population.
+
+WHAT IT DOES TO THE PUBLISHED NUMBER
+
+"19 real holes" (itself a correction of 21) was computed over 170 rows. Those rows existed;
+the adjudication behind them stands. What was never true is the COMPLETENESS: the corpus
+being described was roughly half the corpus that could have been probed. The honest form has
+always been "19 among the rows we made", and it took the walk fix to see how few rows that
+was.
+
+THE SHARP SET, LOCATED MECHANICALLY FOR THE FIRST TIME
+
+Joining the survivors against the reachability rows:
+
+    at least 35 sites are WARM + SURVIVED — a test EXECUTES the line and asserts nothing
+    about what it produced.
+
+That is this project's founding observation — coverage measures lines RUN, not invariants
+DEFENDED — and until tonight it was found one row at a time, by hand. It is now a list. The
+concentrations are worth reading: taskapipro internal/config/config.go >= 3, workapi
+internal/config/config.go >= 3, taskapipro tasks.go and projects.go >= 2 each, taskflow
+pagination.go >= 2, workapi models.go >= 2.
+
+Both config.go entries are the mirror already recorded in
+FINDING-the-mirror-lesson-learned-in-one-direction.txt — five identical parse-error branches,
+one exercised. The sweep now independently agrees with the coverage run that found them.
+
+BOUNDED, NOT EXACT, and stated on every line of the report: sweep rows carry no LINE NUMBER,
+so a file with mixed cold and warm sites can only be bounded (k cold sites, m survivors => at
+least m-k warm ones survived). Adding the line to the sweep's rows makes the join exact and
+is a small change. Deliberately NOT made during the run — changing the tool mid-sweep leaves
+rows that disagree with the tool that wrote them. Worth doing before the NEXT sweep.
+
+NEXT: ./_sweep_v5.sh --check, then the redraw. The before-baseline is now taken with the
+repaired instrument, which is the whole reason this run had to happen first.

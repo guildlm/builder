@@ -5,6 +5,20 @@ jsonapi-v4	main.go	StatusOK->StatusAccepted	CAUGHT
 kvservice-v4	main.go	StatusNotFound->StatusBadRequest	CAUGHT
 kvservice-v4	main.go	StatusBadRequest->StatusNotFound	SURVIVED
 kvservice-v4	main.go	StatusCreated->StatusOK	CAUGHT
+ledger-v4	internal/api/accounts.go	StatusCreated->StatusOK	CAUGHT
+ledger-v4	internal/api/accounts.go	StatusOK->StatusAccepted	CAUGHT
+ledger-v4	internal/api/accounts.go	StatusOK->StatusAccepted	CAUGHT
+ledger-v4	internal/api/accounts.go	StatusOK->StatusAccepted	CAUGHT
+ledger-v4	internal/api/middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
+ledger-v4	internal/api/middleware.go	StatusOK->StatusAccepted	SURVIVED*
+ledger-v4	internal/api/response.go	StatusNotFound->StatusBadRequest	CAUGHT
+ledger-v4	internal/api/response.go	StatusConflict->StatusBadRequest	SURVIVED
+ledger-v4	internal/api/response.go	StatusBadRequest->StatusNotFound	CAUGHT
+ledger-v4	internal/api/response.go	StatusUnprocessableEntity->StatusBadRequest	CAUGHT
+ledger-v4	internal/api/response.go	StatusUnprocessableEntity->StatusBadRequest	SURVIVED
+ledger-v4	internal/api/response.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+ledger-v4	internal/api/transactions.go	StatusCreated->StatusOK	CAUGHT
+ledger-v4	internal/api/transactions.go	StatusOK->StatusAccepted	CAUGHT
 ratelimit-v4	api.go	StatusOK->StatusAccepted	CAUGHT
 ratelimit-v4	api.go	StatusOK->StatusAccepted	CAUGHT
 ratelimit-v4	middleware.go	StatusTooManyRequests->StatusServiceUnavailable	CAUGHT
@@ -19,6 +33,63 @@ shortener-v4	handlers.go	StatusNotFound->StatusBadRequest	SURVIVED
 shortener-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 shortener-v4	handlers.go	StatusOK->StatusAccepted	CAUGHT
 shortener-v4	router.go	StatusOK->StatusAccepted	CAUGHT
+taskapi-v4	internal/api/middleware.go	StatusOK->StatusAccepted	SURVIVED*
+taskapi-v4	internal/api/middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
+taskapi-v4	internal/api/projects.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskapi-v4	internal/api/projects.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskapi-v4	internal/api/projects.go	StatusConflict->StatusBadRequest	CAUGHT
+taskapi-v4	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapi-v4	internal/api/projects.go	StatusCreated->StatusOK	CAUGHT
+taskapi-v4	internal/api/projects.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskapi-v4	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapi-v4	internal/api/projects.go	StatusOK->StatusAccepted	CAUGHT
+taskapi-v4	internal/api/projects.go	StatusOK->StatusAccepted	CAUGHT
+taskapi-v4	internal/api/projects.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskapi-v4	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapi-v4	internal/api/projects.go	StatusNoContent->StatusOK	CAUGHT
+taskapi-v4	internal/api/router.go	StatusOK->StatusAccepted	CAUGHT
+taskapi-v4	internal/api/tasks.go	StatusBadRequest->StatusNotFound	SURVIVED
+taskapi-v4	internal/api/tasks.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskapi-v4	internal/api/tasks.go	StatusConflict->StatusBadRequest	CAUGHT
+taskapi-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapi-v4	internal/api/tasks.go	StatusCreated->StatusOK	CAUGHT
+taskapi-v4	internal/api/tasks.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskapi-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapi-v4	internal/api/tasks.go	StatusOK->StatusAccepted	CAUGHT
+taskapi-v4	internal/api/tasks.go	StatusOK->StatusAccepted	CAUGHT
+taskapi-v4	internal/api/tasks.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskapi-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapi-v4	internal/api/tasks.go	StatusNoContent->StatusOK	CAUGHT
+taskapipro-v4	internal/api/middleware.go	StatusOK->StatusAccepted	SURVIVED*
+taskapipro-v4	internal/api/middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
+taskapipro-v4	internal/api/projects.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskapipro-v4	internal/api/projects.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskapipro-v4	internal/api/projects.go	StatusConflict->StatusBadRequest	CAUGHT
+taskapipro-v4	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapipro-v4	internal/api/projects.go	StatusCreated->StatusOK	CAUGHT
+taskapipro-v4	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapipro-v4	internal/api/projects.go	StatusOK->StatusAccepted	CAUGHT
+taskapipro-v4	internal/api/projects.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskapipro-v4	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapipro-v4	internal/api/projects.go	StatusOK->StatusAccepted	CAUGHT
+taskapipro-v4	internal/api/projects.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskapipro-v4	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapipro-v4	internal/api/projects.go	StatusNoContent->StatusOK	CAUGHT
+taskapipro-v4	internal/api/router.go	StatusOK->StatusAccepted	SURVIVED
+taskapipro-v4	internal/api/router.go	StatusOK->StatusAccepted	SURVIVED
+taskapipro-v4	internal/api/tasks.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskapipro-v4	internal/api/tasks.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskapipro-v4	internal/api/tasks.go	StatusConflict->StatusBadRequest	CAUGHT
+taskapipro-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapipro-v4	internal/api/tasks.go	StatusCreated->StatusOK	CAUGHT
+taskapipro-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapipro-v4	internal/api/tasks.go	StatusOK->StatusAccepted	CAUGHT
+taskapipro-v4	internal/api/tasks.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskapipro-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapipro-v4	internal/api/tasks.go	StatusOK->StatusAccepted	CAUGHT
+taskapipro-v4	internal/api/tasks.go	StatusNotFound->StatusBadRequest	SURVIVED
+taskapipro-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskapipro-v4	internal/api/tasks.go	StatusNoContent->StatusOK	CAUGHT
 taskflow-v4	middleware.go	StatusOK->StatusAccepted	SURVIVED*
 taskflow-v4	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
 taskflow-v4	projects_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
@@ -80,28 +151,77 @@ usersapi-v4	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
 usersapi-v4	handlers.go	StatusNoContent->StatusOK	CAUGHT
 usersapi-v4	middleware.go	StatusOK->StatusAccepted	SURVIVED*
 usersapi-v4	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
+workapi-v4	internal/api/middleware.go	StatusOK->StatusAccepted	SURVIVED*
+workapi-v4	internal/api/middleware.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+workapi-v4	internal/api/router.go	StatusOK->StatusAccepted	CAUGHT
+workapi-v4	internal/api/router.go	StatusOK->StatusAccepted	CAUGHT
+workapi-v4	internal/api/tasks.go	StatusBadRequest->StatusNotFound	CAUGHT
+workapi-v4	internal/api/tasks.go	StatusBadRequest->StatusNotFound	CAUGHT
+workapi-v4	internal/api/tasks.go	StatusConflict->StatusBadRequest	CAUGHT
+workapi-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+workapi-v4	internal/api/tasks.go	StatusCreated->StatusOK	CAUGHT
+workapi-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+workapi-v4	internal/api/tasks.go	StatusOK->StatusAccepted	CAUGHT
+workapi-v4	internal/api/tasks.go	StatusNotFound->StatusBadRequest	CAUGHT
+workapi-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+workapi-v4	internal/api/tasks.go	StatusOK->StatusAccepted	CAUGHT
+workapi-v4	internal/api/tasks.go	StatusNotFound->StatusBadRequest	SURVIVED
+workapi-v4	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+workapi-v4	internal/api/tasks.go	StatusNoContent->StatusOK	CAUGHT
 jsonapi-v4	main.go	drop Content-Type	CAUGHT
 kvservice-v4	main.go	drop Content-Type	CAUGHT
+ledger-v4	internal/api/response.go	drop Content-Type	SURVIVED
 ratelimit-v4	middleware.go	drop Retry-After	CAUGHT
 ratelimit-v4	middleware.go	drop Content-Type	CAUGHT
 shortener-v4	handlers.go	drop Content-Type	CAUGHT
+taskapi-v4	internal/api/response.go	drop Content-Type	SURVIVED
+taskapipro-v4	internal/api/response.go	drop Content-Type	SURVIVED
 taskflow-v4	httpjson.go	drop Content-Type	CAUGHT
 tasks-api-v4	handlers.go	drop Content-Type	CAUGHT
 usersapi-v4	handlers.go	drop Content-Type	CAUGHT
+workapi-v4	internal/api/response.go	drop Content-Type	SURVIVED
+ledger-v4	internal/store/memory.go	reverse sort by ID	CAUGHT
+ledger-v4	internal/store/memory.go	reverse sort by ID	SURVIVED
 logstats-v4	stats.go	reverse sort by Path	CAUGHT
 priorityqueue-v4	pq.go	reverse sort by Priority	CAUGHT
+taskapi-v4	internal/store/memory.go	reverse sort by ID	CAUGHT
+taskapi-v4	internal/store/memory.go	reverse sort by ID	CAUGHT
+taskapipro-v4	internal/store/memory.go	reverse sort by ID	CAUGHT
+taskapipro-v4	internal/store/memory.go	reverse sort by ID	CAUGHT
 taskflow-v4	store.go	reverse sort by ID	CAUGHT
 taskflow-v4	store.go	reverse sort by ID	CAUGHT
 tasks-api-v4	store.go	reverse sort by ID	CAUGHT
 usersapi-v4	store.go	reverse sort by ID	CAUGHT
+workapi-v4	internal/store/memory.go	reverse sort by ID	CAUGHT
+ledger-v4	internal/models/models.go	%w -> %v (ErrInvalid)	SURVIVED
+ledger-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
+ledger-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
+ledger-v4	internal/models/models.go	%w -> %v (ErrUnbalanced)	CAUGHT
 logstats-v4	parse.go	%w -> %v (ErrBadLine)	CAUGHT
 logstats-v4	parse.go	%w -> %v (ErrBadLine)	CAUGHT
 logstats-v4	parse.go	%w -> %v (ErrBadLine)	CAUGHT
 logstats-v4	parse.go	%w -> %v (ErrBadLine)	CAUGHT
+taskapi-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
+taskapi-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
+taskapi-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
+taskapipro-v4	internal/config/config.go	%w -> %v (?)	SURVIVED
+taskapipro-v4	internal/config/config.go	%w -> %v (?)	SURVIVED
+taskapipro-v4	internal/config/config.go	%w -> %v (?)	SURVIVED
+taskapipro-v4	internal/config/config.go	%w -> %v (?)	SURVIVED
+taskapipro-v4	internal/config/config.go	%w -> %v (?)	SURVIVED
+taskapipro-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
+taskapipro-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
+taskapipro-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
 taskflow-v4	models.go	%w -> %v (ErrValidation)	CAUGHT
 taskflow-v4	models.go	%w -> %v (ErrValidation)	CAUGHT
 taskflow-v4	models.go	%w -> %v (ErrValidation)	CAUGHT
 tasks-api-v4	task.go	%w -> %v (ErrInvalidTask)	CAUGHT
+workapi-v4	internal/config/config.go	%w -> %v (?)	SURVIVED
+workapi-v4	internal/config/config.go	%w -> %v (?)	SURVIVED
+workapi-v4	internal/config/config.go	%w -> %v (?)	SURVIVED
+workapi-v4	internal/config/config.go	%w -> %v (?)	SURVIVED
+workapi-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
+workapi-v4	internal/models/models.go	%w -> %v (ErrInvalid)	CAUGHT
 jsonapi-v4	main.go	json tag "message" renamed	CAUGHT
 jsonapi-v4	main.go	json tag "echo" renamed	CAUGHT
 jsonapi-v4	main.go	json tag "length" renamed	CAUGHT
@@ -111,7 +231,26 @@ jsoncodec-v4	event.go	json tag "name" renamed	CAUGHT
 jsoncodec-v4	event.go	json tag "at" renamed	CAUGHT
 jsoncodec-v4	event.go	json tag "name" renamed	CAUGHT
 jsoncodec-v4	event.go	json tag "at" renamed	CAUGHT
+ledger-v4	internal/models/models.go	json tag "id" renamed	CAUGHT
+ledger-v4	internal/models/models.go	json tag "name" renamed	CAUGHT
+ledger-v4	internal/models/models.go	json tag "account_id" renamed	CAUGHT
+ledger-v4	internal/models/models.go	json tag "amount" renamed	CAUGHT
+ledger-v4	internal/models/models.go	json tag "id" renamed	CAUGHT
+ledger-v4	internal/models/models.go	json tag "memo" renamed	SURVIVED
+ledger-v4	internal/models/models.go	json tag "postings" renamed	CAUGHT
 shortener-v4	handlers.go	json tag "url" renamed	CAUGHT
+taskapi-v4	internal/models/models.go	json tag "id" renamed	CAUGHT
+taskapi-v4	internal/models/models.go	json tag "title" renamed	CAUGHT
+taskapi-v4	internal/models/models.go	json tag "status" renamed	CAUGHT
+taskapi-v4	internal/models/models.go	json tag "project_id" renamed	SURVIVED
+taskapi-v4	internal/models/models.go	json tag "id" renamed	CAUGHT
+taskapi-v4	internal/models/models.go	json tag "name" renamed	CAUGHT
+taskapipro-v4	internal/models/models.go	json tag "id" renamed	CAUGHT
+taskapipro-v4	internal/models/models.go	json tag "title" renamed	CAUGHT
+taskapipro-v4	internal/models/models.go	json tag "status" renamed	CAUGHT
+taskapipro-v4	internal/models/models.go	json tag "project_id" renamed	SURVIVED
+taskapipro-v4	internal/models/models.go	json tag "id" renamed	CAUGHT
+taskapipro-v4	internal/models/models.go	json tag "name" renamed	CAUGHT
 taskflow-v4	models.go	json tag "id" renamed	CAUGHT
 taskflow-v4	models.go	json tag "title" renamed	CAUGHT
 taskflow-v4	models.go	json tag "status" renamed	CAUGHT
@@ -122,6 +261,11 @@ tasks-api-v4	task.go	json tag "id" renamed	CAUGHT
 tasks-api-v4	task.go	json tag "title" renamed	CAUGHT
 tasks-api-v4	task.go	json tag "done" renamed	CAUGHT
 tasks-api-v4	task.go	json tag "created_at" renamed	CAUGHT
+workapi-v4	internal/models/models.go	json tag "id" renamed	CAUGHT
+workapi-v4	internal/models/models.go	json tag "title" renamed	CAUGHT
+workapi-v4	internal/models/models.go	json tag "status" renamed	CAUGHT
+workapi-v4	internal/models/models.go	json tag "type" renamed	SURVIVED
+workapi-v4	internal/models/models.go	json tag "task_id" renamed	SURVIVED
 bitset-v4	bitset.go	boundary >= -> >	CAUGHT
 bitset-v4	bitset.go	boundary < -> <=	SURVIVED
 bitset-v4	bitset.go	boundary >= -> >	SURVIVED
