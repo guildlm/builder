@@ -49,8 +49,15 @@ def run_test(root: pathlib.Path, names: str) -> tuple[bool, bool, str]:
     r = subprocess.run(["go", "test", "./...", "-run", f"^({names})$", "-count=1", "-v"],
                        cwd=root, capture_output=True, text=True)
     out = r.stdout + r.stderr
-    ran = any(line.startswith("=== RUN") for line in out.splitlines())
-    return r.returncode == 0, ran, out
+    seen = {ln.split()[-1] for ln in out.splitlines() if ln.startswith("=== RUN")}
+    # EVERY NAME MUST HAVE RUN, not just one of them. Reporting only "nothing ran" leaves
+    # the far likelier mistake invisible: a filter of three names where one is misspelled
+    # silently narrows to two, and the site that only the missing test defends comes back
+    # SURVIVED. That happened — grading shortener's 400 mirrors I passed
+    # TestShortenEmptyURL, the actual test is TestShortenBadRequest, and the empty-url site
+    # reported SURVIVED. I was one sentence from recording a regression that did not exist.
+    missing = [n for n in names.split("|") if n and n not in seen]
+    return r.returncode == 0, (bool(seen), missing), out
 
 
 def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str,
@@ -87,10 +94,15 @@ def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str,
                                f"does not exist — nothing was mutated, and a row about an "
                                f"unapplied mutation is not a measurement")
 
-        ok, ran, out = run_test(base, names)
+        ok, (ran, missing), out = run_test(base, names)
         if not ran:
             return "NOTESTS", (f"{names} matched NO test in this module — nothing ran, and a "
                                f"pass from zero tests is not evidence. Check the name.")
+        if missing:
+            return "NOTESTS", (f"these names matched NO test and were silently dropped from "
+                               f"the filter: {', '.join(missing)}. The verdict would be about "
+                               f"a NARROWER set of tests than you asked for, which is how a "
+                               f"defended site reports SURVIVED.")
         if not ok:
             return "PROBE-RED", (f"{names} FAILS on the unmutated tree — the test is wrong, "
                                  f"not the code:\n" + out.strip()[-400:])
@@ -101,7 +113,7 @@ def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str,
             h, sep, tail = tail.partition(old)
             head += h + (sep if _ < occurrence else "")
         target.write_text(head + new + tail)
-        ok, ran, out = run_test(base, names)
+        ok, _, out = run_test(base, names)
         where = f"occurrence {occurrence} of {n_sites}"
         # A MUTANT THAT DOES NOT COMPILE IS NOT A CAUGHT MUTANT. `go test` exits non-zero
         # for a build error exactly as it does for a failing assertion, and this tool read
@@ -195,6 +207,14 @@ def self_test() -> int:
         v, _ = grade(art, "t.go", "return 0", "return 7777", "TestNoSuchName")
         if v != "NOTESTS":
             fails.append(f"a test name matching nothing must be NOTESTS, never a verdict: {v}")
+
+    # A MISSPELLED NAME AMONG GOOD ONES must not silently narrow the filter.
+    with tempfile.TemporaryDirectory() as td:
+        art = build(td, GOOD, TESTS)
+        v, note = grade(art, "t.go", "return 0", "return 7777", "TestMine|TestTypoed")
+        if v != "NOTESTS":
+            fails.append(f"a name matching nothing, alongside one that does, must be "
+                         f"reported — otherwise a defended site reads SURVIVED: {v}")
 
     for f in fails:
         print(f"  FAIL: {f}")
