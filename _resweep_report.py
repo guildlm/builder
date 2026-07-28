@@ -88,7 +88,13 @@ def main() -> int:
     for r in rows(LOGS / "reachability-rows.tsv"):
         if len(r) >= 5 and r[4] == "COLD":
             cold[(r[0], r[1])] += 1
-    surv = collections.Counter((r[0], r[1]) for r in after if r[3].startswith("SURVIVED"))
+    # SURVIVED* is the LABELLED-BENIGN class — a statusRecorder default that a logging
+    # middleware records before the handler writes anything, so mutating it changes log output
+    # and nothing else. It has cost a code-read twice. Counting it in the "sharp set" would
+    # inflate the one number this report exists to make small, which is the over-reporting
+    # this session has spent all night finding in other tools.
+    benign = sum(1 for r in after if r[3] == "SURVIVED*")
+    surv = collections.Counter((r[0], r[1]) for r in after if r[3] == "SURVIVED")
     print("\nWARM + SURVIVED (LOWER BOUND) — a test runs the line and asserts nothing:")
     total = 0
     for key in sorted(surv):
@@ -97,6 +103,9 @@ def main() -> int:
             total += n
             print(f"   {key[0]:<26} {key[1]:<34} >= {n}")
     print(f"\n   at least {total} site(s) executed and undefended.")
+    if benign:
+        print(f"   ({benign} SURVIVED* row(s) excluded — the labelled-benign statusRecorder\n"
+              f"    default, which changes log output and nothing else.)")
     print("   BOUNDED, not exact: sweep rows carry no line number, so a file with mixed cold\n"
           "   and warm sites can only be bounded. Adding the line to the sweep's rows makes\n"
           "   this exact and is a small change worth doing before the next sweep.")
