@@ -144,7 +144,19 @@ but _redraw_diff parses rows POSITIONALLY and hard-fails on anything but exactly
 A 5-column v5 file against a 4-column v4 file stops this comparison dead, loudly, at the
 moment it is most wanted. After the diff, not before.
 
-TWO THINGS TO SAY OUT LOUD BEFORE READING THE RESULT, both measured, both limits:
+THREE THINGS TO SAY OUT LOUD BEFORE READING THE RESULT, all measured, all limits:
+
+0. THE DIFF CANNOT SEE FIVE OF THIS WEEK'S CLOSURES. The sweep has six shapes and two
+   mutation forms used for closures are in none of them: nil-slice (an empty list going out
+   as `null`) and race (Lock -> RLock). So four empty-list closures and the shortener race
+   are structurally invisible here — a third of the closures made on the 28th. They are
+   graded by hand on the same -v5 trees and recorded in
+   logs/RESULT-sweep-invisible-closures.txt. READ THAT FILE ALONGSIDE THIS DIFF. A
+   comparison that omits five of the things being compared is fine if it says so, wrong if
+   the omission is found afterwards, and worthless if nobody looks.
+   Full reasoning: logs/FINDING-the-capstone-cannot-see-five-of-its-own-closures.txt
+
+TWO MORE:
 
 1. THE COMPARABLE SET WILL BE SMALL, AND ITS SIZE IS THE HEADLINE, NOT A FOOTNOTE.
    Dry-run of the same comparison across the July 27 redraw: 99 comparable sites, and
