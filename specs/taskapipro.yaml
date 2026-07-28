@@ -340,8 +340,22 @@ files:
   - path: internal/api/tasks.go
     purpose: >-
       package api. TaskHandler holding a service.TaskService (import the service
-      package; hold the INTERFACE by value, never a pointer), built by
-      NewTaskHandler(svc service.TaskService) *TaskHandler. Methods
+      package; hold the INTERFACE by value, never a pointer) AND two ints,
+      defaultPageSize and maxPageSize, built by
+      NewTaskHandler(svc service.TaskService, defaultPageSize, maxPageSize int)
+      *TaskHandler.
+      List MUST use those two fields and NOT literals:
+          if limit <= 0            { limit = h.defaultPageSize }
+          if limit > h.maxPageSize { limit = h.maxPageSize }
+      This is a WIRING requirement, not a style note. Measured across two independent
+      draws of this spec: config parses DEFAULT_PAGE_SIZE into cfg.DefaultPageSize
+      (20) and MAX_PAGE_SIZE into cfg.MaxPageSize (100), Validate guards both, four
+      tests pin them — and NOTHING outside internal/config ever read either field.
+      One draw hardcoded 100 and the other applied no limit at all, so GET /tasks
+      returned every task in the store. The documented default of 20 has never been
+      served by any draw, and DEFAULT_PAGE_SIZE=5 changed nothing a client could
+      observe. A value that is parsed, validated and tested is still absent from the
+      product if no handler reads it. Methods
       (http.HandlerFunc) pass r.Context() as the ctx to every svc call and use
       response helpers, r.PathValue("id") and r.URL.Query() for
       ?limit=&offset=&status=: Create (decodeJSON a models.Task ->
@@ -353,8 +367,14 @@ files:
       store packages.
   - path: internal/api/projects.go
     purpose: >-
-      package api. ProjectHandler holding service.ProjectService (by value),
-      NewProjectHandler(svc service.ProjectService) *ProjectHandler, passing
+      package api. ProjectHandler holding service.ProjectService (by value) AND the
+      same two ints, defaultPageSize and maxPageSize,
+      NewProjectHandler(svc service.ProjectService, defaultPageSize, maxPageSize int)
+      *ProjectHandler. Its List uses them exactly as tasks.go does — same two lines,
+      same fields, no literals. Both routes or neither: this corpus has paid four
+      times for wiring one of two identical routes and leaving the twin, and the
+      twin is always what makes the gap look closed.
+      Passing
       r.Context() as the ctx to every svc call: Create (400 on ErrInvalid, 201,
       409 on store.ErrExists), List (limit/offset, 200), Get (200/404), Delete
       (204/404). Reuse response helpers. Imports errors, net/http, strconv, and
@@ -362,7 +382,12 @@ files:
   - path: internal/api/router.go
     purpose: >-
       package api. func NewRouter(ts service.TaskService, ps service.ProjectService,
-      logger *slog.Logger) http.Handler building an http.ServeMux (NOT a
+      logger *slog.Logger, defaultPageSize, maxPageSize int) http.Handler — FIVE
+      parameters, and the last two are plain ints, NOT a config.Config. The api
+      package must not import config: a handler needs two numbers, and passing the
+      whole struct (which carries an Addr and three timeouts) turns a wiring fix into
+      a layering change nobody asked for. Pass both ints on to NewTaskHandler and
+      NewProjectHandler. Build an http.ServeMux (NOT a
       third-party router), constructing the handlers, and registering Go 1.22
       METHOD+pattern routes (never a bare pattern twice): "POST /tasks",
       "GET /tasks", "GET /tasks/{id}", "DELETE /tasks/{id}", the same four for
@@ -371,20 +396,22 @@ files:
       log/slog, net/http, and the service package.
   - path: internal/api/router_test.go
     purpose: >-
-      package api. Integration tests (net/http/httptest). This file contains TWELVE
-      top-level declarations: the newRouter helper, and ELEVEN test functions. WRITE
-      ALL TWELVE — the helper is the one most easily skipped, because it is shown
+      package api. Integration tests (net/http/httptest). This file contains FIFTEEN
+      top-level declarations: the two helpers above, and THIRTEEN test functions. WRITE
+      ALL FIFTEEN — the helper is the one most easily skipped, because it is shown
       to you below and reads like something that already exists. It does not: this
       file is the only place it is declared, and every test calls it.
-      Declare ONCE at package scope EXACTLY this helper — it returns http.Handler
-      and it does NOT type-assert:
-        func newRouter() http.Handler {
+      Declare ONCE at package scope EXACTLY these TWO helpers. Neither type-asserts:
+        func newRouterWithPaging(defaultPageSize, maxPageSize int) http.Handler {
             return NewRouter(
                 service.NewTaskService(store.NewMemStore()),
                 service.NewProjectService(store.NewMemStore()),
                 slog.New(slog.NewTextHandler(io.Discard, nil)),
+                defaultPageSize, maxPageSize,
             )
         }
+        func newRouter() http.Handler { return newRouterWithPaging(20, 100) }
+      newRouter keeps the DOCUMENTED defaults, so every existing test is unchanged.
       NewRouter is WRAPPED IN MIDDLEWARE — Chain returns an http.HandlerFunc, not
       the mux — so writing `func newRouter() *http.ServeMux` and returning
       `NewRouter(...).(*http.ServeMux)` PANICS at runtime: `interface conversion:
@@ -428,6 +455,22 @@ files:
       one, NEVER "at most one": a handler that wrongly returns ZERO items
       satisfies "<= 1" and the bug ships green. Do NOT
       re-assert on `all` beyond the id-order check above.
+      TestListDefaultsToTheConfiguredPageSize: build the router with
+      newRouterWithPaging(2, 100), POST THREE tasks, then GET /tasks with NO limit
+      parameter and assert, as this test's ONLY assertion, that EXACTLY 2 come back.
+      TestListCapsAtTheConfiguredMaxPageSize: build the router with
+      newRouterWithPaging(20, 2), POST THREE tasks, then GET /tasks?limit=100 and
+      assert, as this test's ONLY assertion, that EXACTLY 2 come back.
+      THE SMALL NUMBERS ARE THE POINT — do not "simplify" them to the real defaults.
+      The obvious version of this test is "the default is 20, so POST 25 and expect
+      20", and it is the version that CANNOT FAIL: with fewer than 21 items in the
+      store a handler that ignores defaultPageSize entirely returns everything, which
+      is also 3, which is also what a correct handler returns. The witness has to sit
+      ON the boundary, not past it — the same reason a bitset assertion at index 200
+      could not see a guard that moves at 128. With (2, 100) and three tasks a handler
+      that ignores the field returns 3 and the test fails; with (20, 2) and a request
+      for 100 it returns 3 and the test fails. Three POSTs, not twenty-five, and no
+      single hardcoded literal satisfies BOTH helper calls.
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
       TestDeleteMissingReturns404: on a FRESH router, DELETE /tasks/nope — an id
       nobody created — and assert, as this test's ONLY assertion, that the code is
@@ -447,7 +490,7 @@ files:
       and declaring it twice in one package does not compile.
       TestMalformedJSON: POST truncated bytes like `{"title":` (NOT an empty `{}`)
       -> 400.
-      That is ELEVEN test functions and NO more — the project endpoints are covered
+      That is THIRTEEN test functions and NO more — the project endpoints are covered
       in projects_test.go, in this same package. Do not write them here.
       Imports bytes, encoding/json, io, log/slog, net/http,
       net/http/httptest, testing, and the service + store + models packages.
@@ -466,7 +509,7 @@ files:
       must POST that precondition ITSELF first. Build each request inline with
       httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
       is a one-shot reader). Each is its own function and asserts ONE outcome:
-      NINE test functions, all of them:
+      ELEVEN test functions, all of them:
       EVERY project POST body carries a CLIENT-SUPPLIED id — the API does not
       generate them. Always send both fields: `{"id":"1","name":"p1"}`.
       TestProjectCreateGet: POST `{"id":"1","name":"p1"}` -> 201, and the response
@@ -490,6 +533,16 @@ files:
       instead of 0 and the whole suite stayed green. Two routes that implement an
       invariant twice need it asserted twice — the route with a test is what makes
       the other one look finished.
+      TestProjectListDefaultsToTheConfiguredPageSize: build the router with
+      newRouterWithPaging(2, 100) — it is declared in router_test.go, in this same
+      package, so CALL it and do NOT redeclare it — POST THREE projects, then GET
+      /projects with NO limit parameter and assert, as this test's ONLY assertion,
+      that EXACTLY 2 come back.
+      TestProjectListCapsAtTheConfiguredMaxPageSize: newRouterWithPaging(20, 2),
+      POST THREE projects, GET /projects?limit=100, assert EXACTLY 2.
+      Both routes get both tests for the same reason the negative-offset clamp needed
+      a twin here: projects.go has its own handler and its own two lines, and a
+      request to /tasks never executes one of them.
       TestProjectDelete: POST a project FIRST, DELETE it -> 204, then GET it ->
       404.
       TestProjectDeleteMissing: DELETE a project id nobody created -> 404.
@@ -534,7 +587,9 @@ files:
       log/slog. main(): logger := slog.New(slog.NewJSONHandler(os.Stdout, nil));
       cfg := config.Load(); if err := cfg.Validate(); err != nil log and exit; s
       := store.NewMemStore(); ts := service.NewTaskService(s); ps :=
-      service.NewProjectService(s); handler := api.NewRouter(ts, ps, logger);
+      service.NewProjectService(s); handler := api.NewRouter(ts, ps, logger, cfg.DefaultPageSize, cfg.MaxPageSize)
+      — this call is the ONLY place the parsed page sizes enter the request path, and
+      until it existed they entered nothing;
       build *http.Server{Addr: cfg.Addr, Handler, ReadTimeout, WriteTimeout};
       run in a goroutine; graceful shutdown on os.Interrupt via
       signal.NotifyContext + srv.Shutdown(context.WithTimeout(cfg.ShutdownTimeout)).
