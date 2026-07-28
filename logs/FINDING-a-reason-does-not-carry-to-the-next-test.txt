@@ -1,5 +1,5 @@
-FINDING — the instruction travelled between entries; the REASON did not
-=======================================================================
+FINDING — the instruction carried; the REASON did not, and not even three lines
+===============================================================================
 2026-07-28. Controlled within one spec, one draw, one model: taskapipro-chain4.
 
 THE COMPARISON, which was sitting in the spec the whole time
@@ -51,17 +51,48 @@ A model that writes "POST ONE project, assert 1" has not disobeyed anything it c
 project is a perfectly sensible list test. The number 3 is only meaningful if you know what
 it is defending against, and that knowledge lived in another entry.
 
-AND THIS IS THE SAME PRINCIPLE THAT PRODUCED THIS MORNING'S PROMISE GAP
+CORRECTION — SAME NIGHT, AND IT NARROWS THE MECHANISM RATHER THAN THE RESULT
+
+I titled this "between entries" and that is wrong. The controlling comparison is tighter and
+the tighter version is more surprising.
+
+TestProjectListNegativeOffsetIsClampedHere lives in the SAME ENTRY as the paging test that
+failed — projects_test.go, three sentences above it — and it carries its OWN eight-line
+reason ("projects.go has its own handler, its own strconv parse and its own `offset < 0`
+clamp ... Measured: with the task test in place and this one missing, the projects clamp
+could be changed to assign 7777 and the whole suite stayed green"). That test HELD: CAUGHT on
+both draws.
+
+So within one entry, in one draw:
+
+    test WITH its own reason, three lines up   -> CAUGHT
+    test WITHOUT one, immediately below it     -> witness cannot fail, SURVIVED
+
+The reason did not have to cross an entry boundary to fail to apply. It did not carry three
+sentences.
+
+    THE REASON MUST BE ATTACHED TO THE TEST, not merely present in the entry. Adjacency
+    does not transfer it, and neither does a cross-reference.
+
+That also explains the /tasks side without appealing to entries at all: its paging reason sits
+immediately after both paging tests, attached to them. Every closure tonight that held had its
+justification next to it; the one that failed is the one whose justification was a pointer.
+
+The entry boundary is still real — it is what _promise_gap measures, and the config guard this
+morning genuinely failed to cross one. But it is not what happened here, and publishing the
+wider mechanism would have had me solving the wrong problem: moving reasons between entries
+rather than attaching one to every test that needs it.
+
+THE PROMISE GAP IS THE SAME FAMILY, ONE LEVEL COARSER
 
 _promise_gap.py exists because taskapipro's config_test entry demanded a guard its config.go
 entry never promised, and the model — reading one entry at a time — wrote a test the
 implementation had never been asked to satisfy. Same mechanism here, one layer up:
 
-    THE MODEL READS ONE ENTRY AT A TIME. A reason stated in one entry does not travel to
-    another, any more than a promise does.
-
-I wrote that sentence into a tool this morning and then, this afternoon, put the reasoning
-for a pair of twin tests in only one of the two entries they live in.
+    A PROMISE STATED IN ONE ENTRY DOES NOT REACH ANOTHER (this morning's config guard, which
+    _promise_gap now finds), AND A REASON STATED FOR ONE TEST DOES NOT REACH THE NEXT TEST
+    (tonight's paging twin). Same failure, at two different granularities — and the finer one
+    is the one that bites, because it looks like it should be safe.
 
 THE FIX, and why it is not "repeat the sentence louder"
 
