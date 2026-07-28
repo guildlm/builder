@@ -10,8 +10,16 @@
 # better", and they are not the same claim: draw 2 of taskflow won two clamps and silently
 # lost a third one layer down, which no per-closure grade could have shown.
 #
-# RUN ORDER: this goes AFTER the closure queue and after the taskapipro config-wiring edit.
-# Sweeping a half-repaired spec set produces an "after" number that is about neither state.
+# RUN ORDER: this goes AFTER the closure queue, after the taskapipro config-wiring edit, and
+# AFTER ./_resweep_v4.sh. Sweeping a half-repaired spec set produces an "after" number that
+# is about neither state — and comparing against the CURRENT baseline would be worse than
+# that, because the baseline was taken with a broken instrument.
+#
+# Five of six mutation shapes walked glob("*.go") instead of rglob, so every internal/-layout
+# artifact contributed zero status and zero wrap rows. workapi alone goes 6 rows -> 36 with
+# the walk fixed. A v4-vs-v5 diff taken against the old baseline would show a large jump and
+# none of it would be about the specs: it would be the tool fix wearing the costume of a
+# result. _resweep_v4.sh re-takes the before with the repaired instrument first.
 #
 # NEVER OVERWRITE A LANDED DRAW. _ab_run_v5.sh opens with `rm -rf "$OUT"`, generated/ is
 # gitignored, and this repo has already paid once for a glob that emptied 136 artifacts. So
