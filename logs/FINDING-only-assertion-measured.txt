@@ -1,0 +1,65 @@
+FINDING — "as this test's ONLY assertion", measured across 33 generated instances
+=================================================================================
+2026-07-28. Model-free, source-only, every artifact in generated/.
+
+WHY. Five words are doing a lot of work in this campaign. "As this test's ONLY assertion"
+appears in every boundary closure written this week, and the rule it encodes — one invariant,
+its own named test — is the single claim the whole 31-of-31 record rests on. Tonight
+usersapi's empty-list test came back with TWO assertion sites, and I wrote in the commit that
+this was "first evidence it is read as emphasis rather than as a constraint".
+
+That was too quick. Here is the measurement.
+
+    33 generated instances of the eight closures that use the phrase
+    26  exactly ONE assertion site
+     5  two sites
+     2  four sites
+
+Which reads as 79% compliance, and that number is misleading. The seven non-conforming cases
+split into exactly two kinds, and neither is what the phrase exists to prevent.
+
+KIND 1 — SETUP PRECONDITIONS (taskapipro's clamp test, both draws, 4 sites):
+
+    if w.Code != http.StatusCreated { ... }        // the POST that arranges the case
+    if w.Code != http.StatusOK      { ... }        // the GET answered at all
+    if err := json...Decode(&resp); err != nil { } // the body parsed
+    if len(resp) != 1               { ... }        // <- THE INVARIANT
+
+Three guards on the arrangement, one assertion about the behaviour. A test that POSTs before
+it can measure anything has to check the POST worked, or a failure reports the wrong cause.
+
+KIND 2 — ONE INVARIANT, TWO STATEMENTS (usersapi's Chain test):
+
+    if len(order) != len(want)   { t.Fatalf(...) }
+    for i := range want { if order[i] != want[i] { t.Fatalf(...) } }
+
+A length check and an element-wise comparison, both about the call order. One invariant,
+spelled in two steps because Go has no slice equality for this.
+
+THE NUMBER THAT MATTERS: in 33 instances, ZERO tests asserted a SECOND, DIFFERENT invariant.
+
+That is what the phrase is for. The failure it was written against is the one measured on
+2026-07-27 — an assertion added INSIDE another test evaporated on the next draw 2 out of 2,
+while every own-named invariant survived. The risk is a test that quietly becomes about two
+things, and then loses one. It has not happened once.
+
+THE PATTERN, which is more useful than the percentage
+
+    "ONLY assertion" is honoured literally whenever the test needs NO SETUP.
+
+Every 1-site instance is a test that arranges nothing: bitset on a fresh set, Chain on two
+marker middlewares, DeleteMissingReturns404 on an empty router. Every multi-site instance is
+a test that had to build a precondition first. The extra sites are not the model ignoring the
+instruction; they are the cost of arranging the case.
+
+So the phrase should not be strengthened, and I was about to strengthen it. What would
+actually help is separating the two ideas the entries currently conflate: ONE INVARIANT PER
+TEST (never violated, keep saying it) and ONE ASSERTION STATEMENT (violated routinely,
+harmlessly, and demanding it would push the model toward tests that cannot report why they
+failed).
+
+CORRECTION TO TONIGHT'S EARLIER COMMIT
+  "first evidence it is read as emphasis rather than as a constraint" — withdrawn. The
+  constraint that matters held 33 of 33. What I saw in one test was a status precondition,
+  and I generalised from n=1 to a claim about the instruction, in a session whose whole
+  subject is not doing that.
