@@ -95,6 +95,10 @@ files:
       }`. Separately assert Encode(0) == "0". Then assert Decode("!") and
       Decode("") EACH return ErrBadCode via errors.Is (an empty string and any
       character outside the alphabet are invalid input).
+      FOURTEEN test functions in this file and NO OTHERS — the thirteen listed here
+      plus TestContentTypeJSON below. Every one is named; nothing in this file is
+      described without a name, because a test named nowhere is one a later edit
+      deletes with no one noticing.
       WRITE THESE TEST FUNCTIONS, one focused function each, named exactly:
       TestEncodeDecodeRoundTrip, TestEncodeZero, TestDecodeBadCode,
       TestShortenCreated, TestShortenBadRequest, TestShortenMalformedJSON,
@@ -154,6 +158,17 @@ files:
       endpoint in this service that does not return JSON).
       TestStatsCountsOneHit: POST as above, then GET /r/+created.Code EXACTLY
       ONCE (this is what increments Hits), and ONLY THEN GET /stats/+created.Code.
+      The redirect request is a SETUP STEP. Do NOT assert anything about it — not
+      its status, not its Location header, not its body. Its only job here is to
+      make Hits become 1; TestRedirectFound is where the redirect's own contract is
+      checked, and checking it twice buys nothing.
+      Measured, because this is not a style preference: a draw asserted on that
+      step and expected something other than 301, and 301 is exactly what this
+      service's redirect returns and what this spec promises two entries above. The
+      suite went red against a correct handler and the fix loop spent its rounds on
+      it. An assertion on a step that exists only to arrange the case is an
+      assertion with nothing behind it, and this is the third time tonight that a
+      test the spec did not ask for is what broke the build.
       Assert the STATUS FIRST, as its own step, BEFORE touching the body:
         if rec3.Code != http.StatusOK { t.Fatalf("stats: got %d", rec3.Code) }
       then decode the Link and assert Hits == 1. Do not leave the 200 implied by an

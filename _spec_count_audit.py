@@ -207,8 +207,12 @@ if __name__ == "__main__":
         if not t.is_file():
             raise SystemExit(f"{t} is not a file")
     flagged = checked = contradicting = 0
+    uncovered = []
     for spec in targets:
-        for row in audit(spec):
+        rows = audit(spec)
+        if not rows:
+            uncovered.append(spec.name)
+        for row in rows:
             checked += 1
             if row["contradiction"]:
                 contradicting += 1
@@ -240,5 +244,17 @@ if __name__ == "__main__":
     # entries is not a clean corpus, it is an unasked question.
     print(f"\n{flagged} mismatch(es) and {contradicting} self-contradiction(s) in {checked} "
           f"entr(y/ies) that state a count ({len(targets)} spec file(s) read)")
+    # NAME WHAT THIS AUDIT DOES NOT COVER. A spec with no count sentence anywhere is not a
+    # clean spec — it is a spec this check cannot see, and "0 mismatches" over 25 files
+    # reads as 25 files checked. It is 15. The same denominator discipline the sweep's
+    # coverage block already enforces, applied to the audit itself.
+    if uncovered:
+        print(f"\nNOT COVERED — {len(uncovered)} spec(s) state no test count anywhere, so "
+              f"this audit\nis silent about them, which is not the same as clean:")
+        for name in uncovered:
+            print(f"   {name}")
+        print("   A count is a CHECKSUM on an enumeration. Adding one is cheap; adding ten\n"
+              "   at once is a ten-spec perturbation with no draw to verify it, so do them\n"
+              "   as their specs come up for a draw.")
     if not checked:
         print("no entry stated a count — this audit had nothing to check, which is not a pass")
