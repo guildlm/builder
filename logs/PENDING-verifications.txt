@@ -1,0 +1,42 @@
+PENDING — which spec edits from 2026-07-28/29 are still unverified, and what verifies each
+==========================================================================================
+One place, because these were scattered across five result files and one of them turned out
+to have no scheduled retest at all.
+
+    spec         edit                                          verified by         status
+    -----------  --------------------------------------------  ------------------  ---------
+    shortener    setup-step assertion FORBIDDEN                 shortener-v5        DONE
+                 Result: the prohibition was IGNORED and the tree went green anyway,
+                 because the justification stated the correct value (301). See
+                 FINDING-the-prohibition-failed-the-value-worked.txt.
+
+    usersapi     empty-list closure (nil-slice)                 usersapi-v5         in flight
+    taskapi      empty-list closures x2 (nil-slice)             taskapi-v5   (9/22) pending
+    taskapi      healthz body assertion WITHDRAWN               taskapi-v5   (9/22) pending
+                 THE CLEAN TEST of prohibition-vs-value: unlike shortener, the entry does
+                 NOT tell it what the body contains. No body assertion => withdrawal works
+                 when unaccompanied by the answer. A correct body assertion => what fixes
+                 these is information, never prohibition.
+
+    taskapipro   projects paging: REASON attached to the test   taskapipro-v5 (21/22) pending
+                 3 sites SURVIVED on chain4 with only the instruction. Interesting either
+                 way: if the attached reason works, spec reasoning is a per-test cost
+                 payable at every test; if not, an exact quantity needs a mechanism other
+                 than prose.
+
+    workapi      Delete-404 closure                             workapi-v5   (22/22) pending
+                 Already CAUGHT on workapi-chain2; this is the survives-its-own-redraw test.
+
+    taskflow     TestProjectListSorted RENAME                   *** NO RETEST SCHEDULED ***
+                 taskflow was spec 3 of 22 and drawn BEFORE the rename. The naming-shape
+                 hypothesis — that the one name breaking a file's TestProject* convention is
+                 the one that goes missing — has nothing scheduled to test it.
+                 ACTION: draw taskflow once after the v5 sweep drains. One spec, ~30 min at
+                 its current cost (2 fix rounds, 0 model calls), and the answer is binary:
+                 the renamed test is written, or the hypothesis is dead.
+
+ALSO PENDING, not a spec edit:
+    Four nil-slice sites and four field-clamp sites are invisible to the capstone diff and
+    are hand-graded in RESULT-sweep-invisible-closures.txt (6 of 9 done).
+    Widen shape 6b to match `x = h.field` and add nil-slice as a shape — but only before a
+    pair of sweeps that can both use them, never between v4 and v5.

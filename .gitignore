@@ -42,6 +42,12 @@ logs/*
 # Caught because the commit that added the file said "tracked in git on purpose" and the
 # file was silently ignored — the claim and the behaviour disagreed, and only running
 # `git ls-files` on it said so.
+# ...and the pending list. Same class as the predictions and for the same reason: it is a
+# set of claims with the outcome that would refute each one, written BEFORE the measurement.
+# Untracked it is a scratch note; tracked it is checkable against what actually happened.
+# Caught the way the rest of this file was: the commit said "nothing to commit" and I read
+# that instead of retrying it.
+!logs/PENDING-*.txt
 !logs/hole-hunt-rows.tsv
 # Do not verify this with `git check-ignore` — it reports pattern matching and says
 # nothing about tracking, so it answered "ignored" for a file that was already
