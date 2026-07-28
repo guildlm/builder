@@ -40,11 +40,31 @@ projects.go has its own store call and a request to /tasks never executes it. Th
 BOTH accumulators and BOTH tests caught it. Had only the tasks test existed, the projects
 endpoint would have shipped returning null with the suite green.
 
-WHAT HAPPENS NEXT DOES NOT CHANGE THIS
-The fix loop will probably repair the accumulator and the tree will go green. That is the
-system working: the test forced the repair. If instead the loop "repairs" the TEST, that is a
-different and much worse finding, and it will be recorded as one. Either way the measurement
-above already happened.
+OUTCOME: NOT-GREEN, and neither of the two things I pre-registered
+
+I wrote that the loop would probably repair the accumulator (system working) or "repair" the
+TEST (much worse finding). It did neither.
+
+    RESULT taskapi: NOT-GREEN (build=0 vet=0 test=1)
+
+Five fix rounds, seven files touched, every one of them in internal/api.
+internal/store/memory.go was never opened and still reads `var tasks []models.Task`. Both
+closure assertions survived intact — the loop edited both test FILES and left the assertions
+alone. See FINDING-the-fix-loop-widens-within-the-wrong-package.txt: widening resolves the
+package from the failing TEST, and in a layered spec the defect is a package down.
+
+So the honest summary of this draw: the closure caught a real bug, the fix loop could not
+reach it, and the tree shipped RED — which is the correct outcome. A red tree with a true
+test is worth more than a green one with the bug in it, and before 2026-07-28 this draw would
+have been the second thing.
+
+AND THE GRADER TOLD ME THE OPPOSITE OF THE TRUTH
+_grade_scoped, asked about the closure on this tree, returned PROBE-RED with the message
+"the test is wrong, not the code". Exactly backwards: the code has the defect, the test is
+right. That wording is a fine default for a probe written against a tree believed good, and
+it is an unjustified attribution the moment the artifact is the broken thing. It cannot tell
+the two apart — that needs knowing whether the artifact is correct, which is the question —
+so it now reports the fact and names BOTH readings instead of choosing one.
 
 
 AND THE DEFECT IS THE MUTATION, VERBATIM

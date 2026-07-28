@@ -104,8 +104,23 @@ def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str,
                                f"a NARROWER set of tests than you asked for, which is how a "
                                f"defended site reports SURVIVED.")
         if not ok:
-            return "PROBE-RED", (f"{names} FAILS on the unmutated tree — the test is wrong, "
-                                 f"not the code:\n" + out.strip()[-400:])
+            # DO NOT ATTRIBUTE THE CAUSE. This used to read "the test is wrong, not the
+            # code", which is the right default for a probe I wrote against a tree believed
+            # good — and it was exactly backwards the first time it fired on real data.
+            # taskapi-v5 shipped `var tasks []models.Task`, so an empty list marshals as
+            # `null`, and TestListEmptyIsEmptyArray failed on the unmutated tree because the
+            # CODE has the defect the test was written to defend against. The tool announced
+            # the opposite with confidence.
+            #
+            # It cannot tell these apart — that needs knowing whether the artifact is
+            # correct, which is the whole question. So it reports the fact and names both
+            # readings instead of choosing one.
+            return "PROBE-RED", (
+                f"{names} FAILS on the UNMUTATED tree. TWO readings, and this tool cannot\n"
+                f"   choose between them: either the test is wrong, OR the artifact already "
+                f"has\n   the defect the test defends against — in which case the test is "
+                f"working and\n   the closure is doing its job. Read the failure before "
+                f"concluding.\n" + out.strip()[-400:])
 
         # Replace the Nth occurrence, leaving the others alone.
         head, sep, tail = "", "", text
