@@ -1,0 +1,102 @@
+FINDING — five of six mutation shapes never looked inside internal/
+====================================================================
+2026-07-28. Model-free. Frozen trees. Found while checking a route-coverage result.
+
+HOW IT SURFACED
+
+_route_coverage reported taskapipro's GET /healthz and GET /readyz as never requested. Both
+are registered in internal/api/router.go and both write http.StatusOK. So I went looking for
+the matching status rows in the sweep to see what the mutation said about them, and found
+that taskapipro-v4 has NO rows for router.go at all. Not SURVIVED. Absent.
+
+Then the general form:
+
+    status/wrap ROWS in the 170-row sweep      sites those two shapes MATCH
+      ledger-v4          0                       18
+      taskapi-v4         0                       30
+      taskapipro-v4      0                       38
+      workapi-v4         0                       23
+
+Every artifact with an internal/ layout contributed ZERO status rows and ZERO error-wrapping
+rows to the sweep the whole campaign has been reading. The flat artifacts — taskflow,
+tasks-api, usersapi, shortener, jsonapi — were swept fully, which is why nothing looked odd.
+
+THE CAUSE
+
+Six shapes, six copies of the same walk, and five of them said `glob` where the sixth said
+`rglob`:
+
+    wrap_rows     art.glob("*.go")      top level only
+    sort_rows     art.glob("*.go")      top level only
+    tag_rows      art.glob("*.go")      top level only
+    header_rows   art.glob("*.go")      top level only
+    status (main) art.glob("*.go")      top level only
+    bound_rows    art.rglob("*.go")     the whole tree
+
+`glob("*.go")` on an artifact laid out as internal/api/..., internal/store/... matches
+nothing at all. Not a partial sample — nothing.
+
+AND THE COVERAGE CHECK AGREED WITH IT
+
+This is the part worth keeping. The sweep has a coverage counter whose entire purpose is to
+report sites matched versus sites probed, so under-sampling shows up as a gap. It had a
+`recurse` parameter, defaulting to False, and exactly one caller passed True — the boundary
+shape. Its own comment records why:
+
+    "`search` and `recurse` exist because the boundary pattern needs both and the counter
+     reported `matched 0 probed 9` without them ... bound_rows walks nested packages with
+     rglob while this walked only the top level."
+
+I had noticed the discrepancy, for one shape, and resolved it by teaching the COUNTER to
+match the shape. For the other five, counter and shape both walked the top level, matched
+equalled probed, and every one reported as fully covered.
+
+    A coverage number computed over the walk can only ever report the walk back to you.
+
+That is the third instrument in this repo whose completeness check was calibrated to the
+thing it was built to catch, and the most expensive: the capstone's "170/170, 100% of probes
+answering" is true of the rows that exist and says nothing about the rows that were never
+created. The denominator was the walk.
+
+WHAT IT COSTS — MEASURED, ONE ARTIFACT
+
+workapi-v4, swept with the repaired walk (--all-sites):
+
+    recorded in the tracked sweep      6 rows
+    with the walk fixed               36 rows, 36 of 36 answering, 16 SURVIVED
+
+Sixteen candidates on one artifact, none of which had ever been asked. Extrapolating is not
+a measurement, so I am not going to publish a corpus number until the full re-sweep runs —
+but the four nested artifacts hold 109 status/wrap sites between them, plus tag, sort and
+header sites, against a sweep that currently totals 170 rows for the whole corpus.
+
+WHAT IT DOES NOT COST
+
+Every CAUGHT verdict already graded stands. The closures were graded per site with explicit
+file pins, and the boundary/clamp shape — the one that carried this week's work — was the
+ONE shape that already recursed. Nothing measured is retracted. What changes is the claim
+about COMPLETENESS: "the corpus has 19 real holes" was always "19 among the rows we made",
+and five shapes were making none for four artifacts.
+
+Sixteen SURVIVED is also not sixteen holes. Six of workapi's are
+StatusInternalServerError->StatusBadGateway, which is the class the capstone adjudicated as
+seventeen DEAD 500-else branches on unreachable lines. The adjudication work is ahead, not
+behind. But it cannot start on rows nobody generated.
+
+THE SECOND BUG, FOUND BY FIXING THE FIRST
+
+Switching to rglob made every nested site report SKIP. The shapes passed `f.name` — the
+BASENAME — as the file to mutate, which is identical to the relative path only when the file
+sits at the top level. So the first fix produced "internal/api/middleware.go matched" and
+"middleware.go SKIPPED", and the tool was right to refuse: it could not find the file it was
+asked to mutate. Failing toward SKIP rather than toward a silent mis-mutation is the correct
+direction, and it is the only reason this was a five-minute problem rather than a retraction.
+All five shapes now address by artifact-relative path.
+
+THE FIX
+
+One `go_files(art)` used by all six shapes AND the counter, because six copies of a walk is
+what allowed five of them to drift. The `recurse` flag is gone: the corpus is the corpus, and
+if a shape under-samples the gap now appears in the coverage line, which is the entire reason
+that line exists. Pinned in the self-test with a nested fixture, and the pin verified by
+reverting to glob and watching it fail.

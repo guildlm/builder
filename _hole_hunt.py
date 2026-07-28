@@ -70,6 +70,18 @@ def rows_path(suffix: str) -> pathlib.Path:
 ROWS_PATH = rows_path(GEN_SUFFIX)
 
 
+def go_files(art):
+    """Every non-test .go file in the artifact — the WHOLE tree, subdirectories included.
+
+    One function because there used to be six copies of this walk and five of them said
+    `glob` instead of `rglob`. The four artifacts with an internal/ layout contributed zero
+    status rows and zero wrap rows to a 170-row sweep, and no report said so: the coverage
+    counter had been given a `recurse` flag and passed False for those same five shapes, so
+    matched equalled probed and each read as fully covered.
+    """
+    return sorted(f for f in art.rglob("*.go") if not f.name.endswith("_test.go"))
+
+
 def artifacts():
     """The artifacts to sweep: the positional targets, or the whole archive.
 
@@ -94,7 +106,7 @@ def artifacts():
 def wrap_rows():
     out = []
     for art in artifacts():
-        for f in sorted(art.glob("*.go")):
+        for f in go_files(art):
             if f.name.endswith("_test.go"):
                 continue
             text = f.read_text(errors="ignore")
@@ -115,9 +127,10 @@ def wrap_rows():
                 after = text[text.index(orig) + len(orig):][:120]
                 sentinel = re.search(r"\bErr(?!orf\b)[A-Za-z]+", after)
                 tag = f"%w -> %v ({sentinel.group(0) if sentinel else '?'})"
-                v, _ = verdict_for(art, f.name, mut)
-                out.append((art.name, f.name, tag, v))
-                print(f"{art.name:<26} {f.name:<22} {tag:<26} {v}", flush=True)
+                rel = str(f.relative_to(art))
+                v, _ = verdict_for(art, rel, mut)
+                out.append((art.name, rel, tag, v))
+                print(f"{art.name:<26} {rel:<22} {tag:<26} {v}", flush=True)
             if not ALL_SITES:
                 break
     return out
@@ -140,14 +153,14 @@ COMPARATOR = re.compile(r'(\w+\[i\]\.\w+) < (\w+\[j\]\.\w+)')
 def sort_rows():
     out = []
     for art in artifacts():
-        for f in sorted(art.glob("*.go")):
+        for f in go_files(art):
             if f.name.endswith("_test.go"):
                 continue
             hits = []
             for i, ln in enumerate(f.read_text(errors="ignore").splitlines()):
                 m = COMPARATOR.search(ln)
                 if m:
-                    hits.append((f.name, m.group(0), f"{m.group(1)} > {m.group(2)}",
+                    hits.append((str(f.relative_to(art)), m.group(0), f"{m.group(1)} > {m.group(2)}",
                                  m.group(1).split(".")[-1], i))
                     if not ALL_SITES:
                         break
@@ -182,13 +195,13 @@ TAG = re.compile(r'`json:"([a-zA-Z_][\w]*)((?:,[\w]+)*)"`')
 def tag_rows():
     out = []
     for art in artifacts():
-        for f in sorted(art.glob("*.go")):
+        for f in go_files(art):
             if f.name.endswith("_test.go"):
                 continue
             hits = []
             text = f.read_text(errors="ignore")
             for m in TAG.finditer(text):
-                hits.append((f.name, m.start(), m.end(), m.group(0), m.group(1), m.group(2)))
+                hits.append((str(f.relative_to(art)), m.start(), m.end(), m.group(0), m.group(1), m.group(2)))
                 if not ALL_SITES:
                     break
             for rel, start, end, orig, name, opts in hits:
@@ -278,7 +291,7 @@ def clamp_value_row(art, rel, idx: int, body: str):
 def bound_rows():
     out = []
     for art in artifacts():
-        for f in sorted(art.rglob("*.go")):
+        for f in go_files(art):
             if f.name.endswith("_test.go"):
                 continue
             rel = str(f.relative_to(art))
@@ -325,14 +338,14 @@ def bound_rows():
 def header_rows():
     out = []
     for art in artifacts():
-        for f in sorted(art.glob("*.go")):
+        for f in go_files(art):
             if f.name.endswith("_test.go"):
                 continue
             hits = []
             for i, ln in enumerate(f.read_text(errors="ignore").splitlines()):
                 m = HEADER.match(ln)
                 if m:
-                    hits.append((f.name, m.group(1), i, ln.strip()))
+                    hits.append((str(f.relative_to(art)), m.group(1), i, ln.strip()))
                     if not ALL_SITES:
                         break
             for rel, header, idx, line in hits:
@@ -508,6 +521,25 @@ def self_test() -> int:
     if rows_path("v5") == rows_path("v4"):
         failures.append("a second generation must not write to the baseline's file")
 
+    # THE WALK MUST REACH NESTED PACKAGES. Five of six shapes said glob instead of rglob,
+    # so ledger, taskapi, taskapipro and workapi — every artifact with an internal/ layout —
+    # contributed no status and no wrap rows at all, and the coverage counter agreed with
+    # them because it had been given a flag and passed False.
+    with tempfile.TemporaryDirectory() as td:
+        art = pathlib.Path(td)
+        (art / "internal" / "api").mkdir(parents=True)
+        (art / "top.go").write_text("package main\n")
+        (art / "internal" / "api" / "deep.go").write_text("package api\n")
+        (art / "internal" / "api" / "deep_test.go").write_text("package api\n")
+        names = [f.name for f in go_files(art)]
+        if "deep.go" not in names:
+            failures.append(f"a file in internal/api must be swept, not just the top "
+                            f"level — this is the five-shape bug: {names}")
+        if "top.go" not in names:
+            failures.append(f"the top level must still be swept: {names}")
+        if "deep_test.go" in names:
+            failures.append("_test.go files are the assertion, not the subject")
+
     # the label rule, checked directly: it is a string match and string matches rot quietly
     benign = "\t\trec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}"
     if "statusRecorder" not in benign:
@@ -554,7 +586,7 @@ def main() -> int:
     # before it can answer, so it got filed as "no verdict" instead of as this.
     rows = []
     for art in artifacts():
-        for f in sorted(art.glob("*.go")):
+        for f in go_files(art):
             if f.name.endswith("_test.go"):
                 continue
             # EVERY matching line, not the first in the file. --all-sites said "every site"
@@ -565,7 +597,7 @@ def main() -> int:
             for i, ln in enumerate(f.read_text(errors="ignore").splitlines()):
                 m = CODE.match(ln)
                 if m and m.group(1) in SWAP:
-                    hits.append((i, f.name, m.group(1), ln))
+                    hits.append((i, str(f.relative_to(art)), m.group(1), ln))
                     if not ALL_SITES:
                         break
             for hit in hits:
@@ -618,7 +650,7 @@ def main() -> int:
     # The check deliberately does NOT reuse the sweep's own site selection: it re-scans the
     # corpus for each pattern and compares the totals, so a selector that silently narrows
     # shows up as a gap rather than as a smaller, tidier report.
-    def matching_sites(pattern, per_line=False, search=False, recurse=False):
+    def matching_sites(pattern, per_line=False, search=False, *_ignored):
         """Count sites the pattern matches. `per_line` for the LINE-ANCHORED patterns (CODE,
         HEADER): they start with ^ and are compiled without MULTILINE because the sweep feeds
         them one line at a time, so scanning whole-file text with them finds nothing. The
@@ -626,12 +658,22 @@ def main() -> int:
         a coverage check that under-counted, in the tool built to catch under-counting."""
         n = 0
         for art in artifacts():
-            # `search` and `recurse` exist because the boundary pattern needs both and the
-            # counter reported `matched 0 probed 9` without them: BOUND_LINE is not anchored,
-            # so .match never fires, and bound_rows walks nested packages with rglob while
-            # this walked only the top level. A coverage check that under-counts, in the
-            # counter written to catch under-counting — the third time on this tool.
-            for f in (art.rglob("*.go") if recurse else art.glob("*.go")):
+            # ALWAYS THE WHOLE TREE. There used to be a `recurse` flag here, defaulting
+            # to False, and only the boundary shape passed True — because I noticed that
+            # bound_rows walked nested packages while this walked the top level, and
+            # resolved the discrepancy by teaching the COUNTER to match the shape.
+            #
+            # Five shapes globbed only the top level, the counter counted only the top
+            # level, matched equalled probed, and every one of them read as fully covered.
+            # The check built to catch under-sampling had been calibrated to it. Four
+            # artifacts with an internal/ layout — ledger, taskapi, taskapipro, workapi —
+            # contributed ZERO status and ZERO wrap rows to a 170-row sweep, and nothing
+            # said so, because a coverage number computed over the walk can only ever
+            # report the walk back to you.
+            #
+            # The corpus is the corpus. There is no flag now: if a shape under-samples, the
+            # gap shows up here, which is the entire reason this counter exists.
+            for f in go_files(art):
                 if f.name.endswith("_test.go"):
                     continue
                 text = f.read_text(errors="ignore")
