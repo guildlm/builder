@@ -103,4 +103,22 @@ _redraw_diff compares ORDINALLY — the same artifact/file/shape occurs many tim
 collapsing the rows by text turned 149 into 82 the first time it was tried. Read the
 CAUGHT->SURVIVED direction first: that is a closure that did not survive its own redraw,
 and it is the only number that can retract a claim made this week.
+
+TWO THINGS TO SAY OUT LOUD BEFORE READING THE RESULT, both measured, both limits:
+
+1. THE COMPARABLE SET WILL BE SMALL, AND ITS SIZE IS THE HEADLINE, NOT A FOOTNOTE.
+   Dry-run of the same comparison across the July 27 redraw: 99 comparable sites, and
+   50 sites present only in the old sweep with 71 only in the new. Sites are keyed by
+   (artifact, file, shape, ordinal), so a draw that moves a declaration to another file
+   loses the key entirely — workapi has already done exactly that with Chain, putting it
+   in router.go and leaving middleware.go a one-line package clause. A v4-vs-v5 diff has
+   MORE of this, not less, because the specs deliberately changed. Report the comparable
+   count first. A "0 regressions" over 12 comparable rows is not the same claim as over 99,
+   and the difference is invisible unless the denominator is printed.
+
+2. -v4 IS NOT A CLEAN PRE-CAMPAIGN BASELINE. Those trees were rebuilt on 27 July, after
+   the corpus deletion, from the specs as they stood THAT MORNING — which already carried
+   the ratelimit and jsonapi closures from the 26th. So the diff measures "the closures
+   written after the rebuild", not "the whole campaign". The honest claim is bounded that
+   way, and stating the bound is cheaper than having it found.
 NEXT
