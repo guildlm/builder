@@ -50,6 +50,26 @@ CODE = re.compile(r"^\s*(?!//)(?!\s*\*).*http\.(Status[A-Za-z]+)")
 WRAP = re.compile(r'fmt\.Errorf\("([^"]*)%w([^"]*)"')
 
 
+ALL_SITES = "--all-sites" in sys.argv
+# WHICH GENERATION OF THE CORPUS. Defaults to v4 — the reference trees every row in
+# logs/hole-hunt-rows.tsv was measured on — so nothing about an unflagged run changes.
+#
+# It exists because the campaign's closing question is a BEFORE/AFTER: the repaired specs
+# have to be redrawn and re-swept, and the only honest way to compare is to keep both row
+# files. Overwriting the tracked baseline with the "after" numbers would leave the claim
+# "the survivor count dropped" resting on a file that no longer holds the number it dropped
+# from. Each generation gets its own dump path for the same reason the baseline is tracked
+# at all: a verdict that changes has to show up as a diff, not as a memory.
+GEN_SUFFIX = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--gen=")), "v4")
+def rows_path(suffix: str) -> pathlib.Path:
+    """v4 keeps the tracked baseline's exact name; every other generation gets its own."""
+    return pathlib.Path("logs") / ("hole-hunt-rows.tsv" if suffix == "v4"
+                                   else f"hole-hunt-rows-{suffix}.tsv")
+
+
+ROWS_PATH = rows_path(GEN_SUFFIX)
+
+
 def artifacts():
     """The artifacts to sweep: the positional targets, or the whole archive.
 
@@ -61,7 +81,7 @@ def artifacts():
     """
     targets = [a for a in sys.argv[1:] if not a.startswith("-")]
     if not targets:
-        return sorted(GEN.glob("*-v4"))
+        return sorted(GEN.glob(f"*-{GEN_SUFFIX}"))
     out = []
     for t in targets:
         d = pathlib.Path(t)
@@ -330,7 +350,6 @@ def header_rows():
 # was ever probed, and the one that was probed turned out to be the real hole. Under-
 # sampling in a hole hunt is the same error as a green suite: absence of a finding read as
 # absence of a hole.
-ALL_SITES = "--all-sites" in sys.argv
 
 def self_test() -> int:
     """Prove the hunt can tell a defended status from an undefended one.
@@ -478,6 +497,16 @@ def self_test() -> int:
         (art / "c_test.go").write_text(C_DEFENDED)
         if clamp_value_row(art, "c.go", 4, "\t\treturn -offset"):
             failures.append("clamp value: a body with no numeric assignment must yield no row")
+
+    # THE BASELINE PATH MUST NOT MOVE. --gen exists so a redraw can be swept without
+    # overwriting the tracked v4 rows, and the one way it could do damage is by renaming the
+    # v4 file — then the "before" numbers are gone and the before/after claim rests on a
+    # file that no longer holds the number it moved from.
+    if str(rows_path("v4")) != "logs/hole-hunt-rows.tsv":
+        failures.append(f"the v4 dump path must stay exactly the tracked baseline, "
+                        f"got {rows_path('v4')}")
+    if rows_path("v5") == rows_path("v4"):
+        failures.append("a second generation must not write to the baseline's file")
 
     # the label rule, checked directly: it is a string match and string matches rot quietly
     benign = "\t\trec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}"
@@ -645,7 +674,7 @@ def main() -> int:
     # part that failed. Only written for a whole-corpus sweep; a targeted run answers about
     # one tree and would clobber the baseline with something not comparable to it.
     if not [a for a in sys.argv[1:] if not a.startswith("-")]:
-        dump = pathlib.Path("logs") / "hole-hunt-rows.tsv"
+        dump = ROWS_PATH
         if dump.parent.is_dir():
             dump.write_text("".join(f"{a}\t{f}\t{tag}\t{v}\n" for a, f, tag, v in rows))
             print(f"\n  rows written to {dump} (tracked — a changed verdict shows as a diff)")
@@ -711,10 +740,10 @@ if __name__ == "__main__":
         # The hazard the rule exists for is unchanged and still enforced: a HALF-WRITTEN
         # tree in the swept set has no _test.go and survives every mutation, so the row
         # file would record "undefended" about an artifact nobody finished.
-        _moving = [a.name for a in sorted(GEN.glob("*-v4")) if _corpus_check(a) == "refuse"]
+        _moving = [a.name for a in sorted(GEN.glob(f"*-{GEN_SUFFIX}")) if _corpus_check(a) == "refuse"]
         if _moving:
             print("REFUSING a whole-corpus sweep: " + ", ".join(_moving) + " being written "
-                  "right now.\nlogs/hole-hunt-rows.tsv would record verdicts about a "
+                  "right now.\n" + str(ROWS_PATH) + " would record verdicts about a "
                   "half-generated tree.", file=sys.stderr)
             raise SystemExit(2)
     raise SystemExit(main())
