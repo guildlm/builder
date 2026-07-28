@@ -1,0 +1,97 @@
+RESULT — taskapipro draw 4: the wiring landed, the cost hypothesis died, and one twin
+cannot fail
+=====================================================================================
+2026-07-28. generated/taskapipro-chain4, GREEN.
+Prediction: logs/PREDICTION-wiring-and-the-third-mirror.txt, written before launch.
+
+THE EDIT: five entries, a constructor signature changed in four files, a new test helper,
+four new tests. The largest of the campaign by a wide margin, and the first that asked the
+spec to WIRE A VALUE THROUGH THREE LAYERS rather than add a test.
+
+WHAT LANDED — all of it, on the production side
+
+    tasks.go / projects.go   handlers hold defaultPageSize + maxPageSize; List uses
+                             h.defaultPageSize and h.maxPageSize, no literals
+    router.go                NewRouter(ts, ps, logger, defaultPageSize, maxPageSize int)
+                             — FIVE params, two plain INTS, not a config.Config
+    main.go                  api.NewRouter(ts, ps, logger, cfg.DefaultPageSize,
+                                           cfg.MaxPageSize)
+    router_test.go           newRouterWithPaging + newRouter delegating to (20, 100)
+    counts                   15 declarations / 13 tests / 11 project tests — exact
+
+THE REAL VERDICT, which no mutation gives:
+
+    _dead_config on the new tree:  0 dead fields of 6.
+
+Before this edit the same tool reported DefaultPageSize and MaxPageSize dead in two
+independent draws — parsed, validated, tested, read by nobody, with one draw hardcoding 100
+and the other applying no limit at all. The tool that found the gap is silent on the tree
+that fixed it. The documented default of 20 is now served.
+
+THE COST HYPOTHESIS DIED
+
+    taskapipro draw 3   7 fix rounds, 10 model fix-calls, RED
+    taskapipro draw 4   2 fix rounds,  0 model fix-calls, GREEN   <- the BIGGER edit
+
+Draw 4 converged after one deterministic round. I wrote before launching that if this failed
+on SIZE rather than content it would be "the first real evidence for the edit-count-is-a-cost
+hypothesis, which currently has none". It still has none, and now has evidence against: the
+largest edit of the campaign produced the cheapest taskapipro draw of the night. What made
+draw 3 expensive was a spec that could not be satisfied — a test entry demanding a guard the
+implementation entry never promised — and repairing that one clause is what bought the
+0 fix-calls here.
+
+The specific failure I predicted — the model passing config.Config despite the entry
+forbidding it — did NOT occur, in either handler.
+
+THE ASYMMETRY, and it is the finding
+
+    tasks.go     L54 CAUGHT    limit = h.defaultPageSize   (the err-fallback path)
+                 L57 SURVIVED  limit = h.defaultPageSize   (the `limit <= 0` clamp)
+                 L60 CAUGHT    limit = h.maxPageSize
+                 L65/L68 CAUGHT  offset clamps (draw 3's closures, held)
+    projects.go  L53 SURVIVED  limit = h.defaultPageSize
+                 L56 SURVIVED  limit = h.defaultPageSize
+                 L59 SURVIVED  limit = h.maxPageSize
+                 L64/L67 CAUGHT  offset clamps (held)
+
+Tasks' paging is defended. PROJECTS' PAGING IS NOT — and both twin tests were written, with
+the right names, calling the right helper with the right small values.
+
+The projects test POSTs ONE project and asserts len == 1. The spec says "POST THREE projects
+... assert EXACTLY 2 come back". With one project in the store, defaultPageSize 2 and
+defaultPageSize 7777 both return one item. NO INPUT DISTINGUISHES THEM.
+
+    The test is named correctly, calls newRouterWithPaging(2, 100) correctly, asserts a
+    plausible number, and cannot fail.
+
+This is the SECOND of the three failure modes for a named invariant, catalogued in
+guildlm-suite-teeth hours before it happened: written, but the WITNESS CANNOT DISCRIMINATE —
+the bitset shape, asserting at 200 while the flip moves at 128. It occurred in the closure
+whose witness design I argued for at length, in the twin of a test that got it right.
+
+Same sentence, two entries, one file apart. One obeyed "POST THREE"; the other posted one.
+The naming rule held completely and bought nothing here, which is exactly what that rule's
+own limits predict.
+
+L57 is a different thing and NOT a hole: when no limit parameter is sent, the err-fallback at
+L54 already assigns defaultPageSize, so `limit <= 0` is false and L57 never executes. The
+absorbing-guard pattern measured this morning on the same file. Reaching it needs `?limit=0`.
+
+ALSO HELD
+
+    Delete's own 404, both sites CAUGHT — the third instance of that mirror, closed.
+    All four offset clamps stayed CAUGHT.
+    Reachability: 14 cold of 48 sites on this tree.
+
+TALLY: this is the campaign's FIRST closure that did not hold. 38 sites graded and held
+across the session; 3 sites (projects paging) SURVIVED with the test written.
+
+WHAT TO DO, and what NOT to do
+The fix is one clause in one entry — the projects entry must state the item count as
+concretely as the tasks entry does, because "POST THREE projects" was already there and was
+not followed. That makes the interesting question whether restating it works at all, or
+whether the twin needs the count expressed differently (e.g. "the store must hold MORE items
+than the page size, or this test cannot fail" as the reason rather than the instruction).
+Do NOT simply repeat the sentence louder: tonight already produced one case where explaining
+a trap better did not work, and withdrawing the option did.
