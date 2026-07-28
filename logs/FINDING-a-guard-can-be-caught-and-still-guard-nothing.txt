@@ -1,0 +1,93 @@
+FINDING — a guard can be CAUGHT and still guard nothing that reaches a client
+=============================================================================
+2026-07-28. Tool: _dead_config.py (new, self-tested, reject-nothing pinned).
+Found while probing taskapipro's clamp sites per line for the projects-clamp closure —
+i.e. while doing something else, which is where four of this week's findings came from.
+
+WHAT WAS MEASURED
+
+taskapipro's config declares two pagination fields:
+
+    DefaultPageSize int      // Load() defaults it to 20, parses DEFAULT_PAGE_SIZE
+    MaxPageSize     int      // Load() defaults it to 100, parses MAX_PAGE_SIZE
+
+Validate() rejects a MaxPageSize below the default and a DefaultPageSize of zero.
+config_test.go pins all of it across four tests. One of those boundaries — the
+`DefaultPageSize <= 0` guard — is a closure I graded CAUGHT this week and counted as one
+of the twenty-nine that held.
+
+The handler that actually paginates, in both independent draws:
+
+    if limit <= 0  { limit = 100 }        // not cfg.DefaultPageSize, and not 20 either
+    if limit > 100 { limit = 100 }        // not cfg.MaxPageSize
+
+Nothing outside internal/config reads either field. Measured, whole corpus:
+
+    trees with a Config struct    3   (taskapi-v4, taskapipro-v4, workapi-v4)
+    config fields audited        16
+    fields read outside their own package by NOTHING    2  — both taskapipro's
+    same two fields dead in taskapipro-chain2 as well   → two independent draws
+
+The documented default of 20 has never been served by any draw. Setting
+DEFAULT_PAGE_SIZE=5 changes nothing an HTTP client can observe. The env var is parsed,
+the value is validated, the validation is tested, the test catches its own mutation —
+and the number is thrown away one layer up.
+
+WHY EVERY TOOL IN THIS REPO IS BLIND TO IT
+
+The mutation registry asks one question: break this line, does a test notice? Here a test
+DOES notice, because config_test.go pins the value. So the site grades DEFENDED — and
+that grade is CORRECT. Validate() really does reject a zero page size; the test really
+does catch its removal. Nothing about the closure is fake.
+
+What the grade does not say, and structurally cannot, is whether the guarded value MATTERS.
+A test can only defend a promise something keeps. It cannot notice that nothing ever asked.
+
+This inverts every hole this corpus has hunted. The whole campaign so far has been about
+UNTESTED invariants — sites where breaking the code kept the suite green. This is a TESTED
+invariant with no consumer: the suite is green, the mutation is caught, the closure held,
+and the feature is absent from behaviour anyway. CAUGHT and SURVIVED are both verdicts
+about the TEST. Neither is a verdict about the FEATURE.
+
+    A mutation score measures how well the tests defend the code that runs.
+    It says nothing about code that does not run because nobody calls it.
+
+THE SEVENTEEN DEAD 500-ELSE BRANCHES WERE THE SAME SHAPE FROM THE OTHER SIDE
+
+Yesterday's capstone adjudicated 48 candidates down to 21 real holes, and the single
+largest non-hole category was seventeen unreachable `else { 500 }` branches — sites where
+the mutation SURVIVED because the line never executes. I called those "not holes" and moved
+on. This is the mirror image: a site that never executes, where the mutation is CAUGHT
+because a unit test executes it directly. Reachability was the discriminator in both cases,
+and in both cases the mutation verdict was silent about it. Nine of the fifteen boundary
+survivors needed the same third question. That is now three separate places where
+REACHABILITY, not the verdict, decided what the row meant.
+
+WHAT THE TOOL IS AND IS NOT
+
+_dead_config.py reads Go source and asks: is this field selected (`.Field`) anywhere
+outside the package that declares it and the tests that pin it? No model, no build, no
+test run — milliseconds.
+
+A hit is a CANDIDATE, not a verdict. A field may be legitimately unread and still right:
+a struct mirroring an external format, a field an endpoint will take next week. What a hit
+cannot mean is "covered". Whatever the tests say about it, no request has ever been served
+differently because of it.
+
+Reject-nothing evidence, which is the number that makes the 2 worth reading: of 16 fields
+audited the tool stays silent on 14, including workapi's QueueSize and AuthToken — both
+consumed — and every Addr and timeout in the corpus. It is not reporting the shape "config
+fields are suspicious". It found one site, in one spec, in both of that spec's draws.
+
+NOT YET FIXED — DELIBERATELY
+
+taskapipro draw 3 is generating against the current spec as I write this. Editing that spec
+now would make the artifact unattributable to the file on disk, which is the mistake the
+"changing the spec AND the server in one run" rule already exists to prevent. The wiring
+edit — hand the handler the config, use cfg.DefaultPageSize and cfg.MaxPageSize, and give
+the default its own named test that asks for no limit and counts what comes back — goes in
+after draw 3 lands and is graded.
+
+Note what that test has to look like, because the boundary lesson applies: asserting
+"20 items come back" needs MORE THAN 20 items in the store, or the witness sits off the
+boundary exactly like the bitset test that asserted at 200 while the flip moved at 128.
