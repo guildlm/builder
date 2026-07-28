@@ -45,3 +45,34 @@ The fix loop will probably repair the accumulator and the tree will go green. Th
 system working: the test forced the repair. If instead the loop "repairs" the TEST, that is a
 different and much worse finding, and it will be recorded as one. Either way the measurement
 above already happened.
+
+
+AND THE DEFECT IS THE MUTATION, VERBATIM
+
+What the draw actually wrote:
+
+    func (s *MemStore) ListTasks() []models.Task {
+        s.mu.RLock()
+        defer s.mu.RUnlock()
+        var tasks []models.Task          <- nil accumulator
+        for _, t := range s.tasks {
+            tasks = append(tasks, t)
+        }
+
+That is character-for-character the mutation this closure is graded with:
+`out := make([]T, 0, n)` -> `var out []T`. I did not choose a contrived break to make the
+test look useful. I chose the thing the model does when nothing stops it.
+
+    The nil accumulator is the IDIOMATIC Go choice. `make([]T, 0, n)` is the DELIBERATE one.
+    A mutation shape that turns the deliberate form into the idiomatic one is not vandalism —
+    it is a rehearsal of the most likely regression.
+
+That retroactively justifies the shape itself, which the whole grading programme rests on and
+which nothing had tested. Every "CAUGHT" recorded against nil-slice this week was evidence
+about a test. This is evidence about the MUTATION: it models what actually goes wrong.
+
+THE FIX LOOP IS EDITING THE IMPLEMENTATION, NOT THE TEST
+Checked while it ran, because the opposite would have been the more important finding:
+router_test.go:128 still reads `strings.TrimSpace(rec.Body.String()) != "[]"`, unchanged, and
+the loop has widened into internal/api/projects.go and response.go. The test forced the
+repair rather than being repaired.
