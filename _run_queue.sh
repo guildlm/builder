@@ -1,7 +1,14 @@
 #!/usr/bin/env bash
 # ONE queue for the remaining closure runs, because four independent waiters is a race.
 #
-# Each closure script parks on `while pgrep -f "guildlm-build main"; do sleep 30; done`.
+# MATCH THE EXECUTABLE, NOT A STRING ANY COMMAND LINE CAN CONTAIN. `pgrep -f
+# "guildlm-build main"` also matches every shell whose own command line mentions it —
+# including the `until ! pgrep -f "guildlm-build main"; do sleep; done` waiters this
+# repo writes constantly. Two orphaned waiters of mine matched their own pattern and
+# made _resweep_v4 refuse on a machine with nothing generating. The guard was right
+# about its query and wrong about the world, which is the failure this whole session
+# has been about. `.venv/bin/guildlm-build` is the path only the real process carries.
+# Each closure script parks on `while pgrep -f "\.venv/bin/guildlm-build"; do sleep 30; done`.
 # That is correct for one waiter and wrong for four: when taskflow's six-hour build
 # finished, all four woke within the same 30-second window and only luck decided that a
 # single one won. Two 6-hour generations sharing the GPU is the failure this project has
@@ -18,7 +25,7 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
-while pgrep -f "guildlm-build main" > /dev/null; do sleep 30; done
+while pgrep -f "\.venv/bin/guildlm-build" > /dev/null; do sleep 30; done
 echo "=== queue starts $(date) ==="
 
 for spec in usersapi taskapi taskapipro workapi; do

@@ -19,7 +19,14 @@ if [[ -n "$SCHEDULERS" ]]; then
   echo "$SCHEDULERS" | sed 's/^/  /'
   exit 3
 fi
-if pgrep -f "guildlm-build main" > /dev/null; then
+# MATCH THE EXECUTABLE, NOT A STRING ANY COMMAND LINE CAN CONTAIN. `pgrep -f
+# "guildlm-build main"` also matches every shell whose own command line mentions it —
+# including the `until ! pgrep -f "guildlm-build main"; do sleep; done` waiters this
+# repo writes constantly. Two orphaned waiters of mine matched their own pattern and
+# made _resweep_v4 refuse on a machine with nothing generating. The guard was right
+# about its query and wrong about the world, which is the failure this whole session
+# has been about. `.venv/bin/guildlm-build` is the path only the real process carries.
+if pgrep -f "\.venv/bin/guildlm-build" > /dev/null; then
   echo "REFUSING: a generation is in flight."
   exit 3
 fi

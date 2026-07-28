@@ -13,7 +13,14 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
-while pgrep -f "guildlm-build main" > /dev/null; do sleep 30; done
+# MATCH THE EXECUTABLE, NOT A STRING ANY COMMAND LINE CAN CONTAIN. `pgrep -f
+# "guildlm-build main"` also matches every shell whose own command line mentions it —
+# including the `until ! pgrep -f "guildlm-build main"; do sleep; done` waiters this
+# repo writes constantly. Two orphaned waiters of mine matched their own pattern and
+# made _resweep_v4 refuse on a machine with nothing generating. The guard was right
+# about its query and wrong about the world, which is the failure this whole session
+# has been about. `.venv/bin/guildlm-build` is the path only the real process carries.
+while pgrep -f "\.venv/bin/guildlm-build" > /dev/null; do sleep 30; done
 echo "=== GPU free; starting corpus rebuild $(date) ==="
 
 # Highest instrument value first: the HTTP specs carry the teeth registry, the hole-hunt

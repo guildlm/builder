@@ -15,7 +15,14 @@ cd "$(dirname "$0")"
 # treats as free. That is the four-waiters race again, and I rebuilt it ten minutes
 # after fixing it. Wait for the queue PROCESS, then for any build, then go.
 while pgrep -f "_run_queue.sh" > /dev/null; do sleep 60; done
-while pgrep -f "guildlm-build main" > /dev/null; do sleep 30; done
+# MATCH THE EXECUTABLE, NOT A STRING ANY COMMAND LINE CAN CONTAIN. `pgrep -f
+# "guildlm-build main"` also matches every shell whose own command line mentions it —
+# including the `until ! pgrep -f "guildlm-build main"; do sleep; done` waiters this
+# repo writes constantly. Two orphaned waiters of mine matched their own pattern and
+# made _resweep_v4 refuse on a machine with nothing generating. The guard was right
+# about its query and wrong about the world, which is the failure this whole session
+# has been about. `.venv/bin/guildlm-build` is the path only the real process carries.
+while pgrep -f "\.venv/bin/guildlm-build" > /dev/null; do sleep 30; done
 echo "=== stragglers queue starts $(date) ==="
 echo "############ taskapipro: parser-clamp closure (draw 2) ############"
 ./_chain_run.sh taskapipro
