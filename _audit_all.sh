@@ -39,7 +39,8 @@ selftest() {  # <script> — a failed self-test disqualifies that tool's finding
 
 section "SELF-TESTS"
 for t in _spec_count_audit.py _promise_gap.py _dead_config.py _route_coverage.py \
-         _named_test_audit.py _unnamed_tests.py _mirror_calls_audit.py _registry_drift.py; do
+         _named_test_audit.py _unnamed_tests.py _named_present.py \
+         _mirror_calls_audit.py _registry_drift.py; do
   [[ -f "$t" ]] && selftest "$t"
 done
 
@@ -58,6 +59,13 @@ echo "   middleware_chain_test.go (the Chain closure postdates them), so the HTT
 echo "   are skipped. Date the missing names against the artifact before believing a gap:"
 echo "   of 41 absences measured tonight, 29 were only the spec being newer than the tree."
 $PY _named_test_audit.py 2>&1 | tail -18
+echo
+echo "-- PER DRAW: tests the spec names that this draw did not write"
+echo "   A missing name is STOCHASTIC, not a dead spec sentence — two names measured on"
+echo "   2026-07-28 were absent from some draws and present in others. The remedy is this"
+echo "   check per draw, NOT rewriting the sentence. Rows whose spec is newer than the tree"
+echo "   are labelled: a name added after a draw cannot be in it."
+$PY _named_present.py 2>/dev/null | tail -14
 echo
 echo "-- tests present in a tree that the spec names NOWHERE (a later edit deletes these)"
 $PY _unnamed_tests.py 2>&1 | tail -6

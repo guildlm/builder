@@ -59,7 +59,61 @@ def audit(tree: pathlib.Path) -> tuple[str, list[str]] | None:
     return ("SPEC-NEWER" if stale else "OK", sorted(named - have))
 
 
+def self_test() -> int:
+    """Planted fixtures. Written after the fact, which is itself the finding: this tool
+    shipped without one, in a repo whose rule is that every instrument has planted fixtures
+    and a reject-nothing pin — and it then produced two wrong answers in its first hour."""
+    import tempfile
+    fails = []
+    with tempfile.TemporaryDirectory() as d:
+        root = pathlib.Path(d)
+        (root / "specs").mkdir()
+        (root / "specs" / "demo.yaml").write_text(
+            "files:\n  - path: a_test.go\n    purpose: >-\n"
+            "      TWO test functions: TestAlpha and TestBeta.\n")
+        tree = root / "generated" / "demo-v5"
+        (tree / "sub").mkdir(parents=True)
+        (tree / "a_test.go").write_text("package a\nfunc TestAlpha(t *testing.T) {}\n")
+
+        global HERE
+        saved, HERE = HERE, root
+        try:
+            state, missing = audit(tree)
+            if missing != ["TestBeta"]:
+                fails.append(f"a spec-named test absent from the tree must be reported: {missing}")
+            # REJECT-NOTHING PIN: write it and the tool must go quiet. A checker that reports
+            # a name as missing once it EXISTS is worse than none — it would have had me
+            # rewriting specs that work, which is exactly the mistake this tool exists to
+            # prevent me from making.
+            (tree / "sub" / "b_test.go").write_text("package a\nfunc TestBeta(t *testing.T) {}\n")
+            state, missing = audit(tree)
+            if missing:
+                fails.append(f"both names are present now — nothing may be reported: {missing}")
+            # A test in a SUBDIRECTORY counts. The corpus is full of internal/ layouts, and a
+            # walk that missed them is the bug that cost this project a 170-row sweep.
+            if not (tree / "sub" / "b_test.go").exists():
+                fails.append("fixture did not write the nested file")
+            # Substrings must not count: TestBetaExtra is not TestBeta.
+            (tree / "sub" / "b_test.go").write_text(
+                "package a\nfunc TestBetaExtra(t *testing.T) {}\n")
+            state, missing = audit(tree)
+            if missing != ["TestBeta"]:
+                fails.append(f"TestBetaExtra is not TestBeta — a substring must not satisfy "
+                             f"a name: {missing}")
+        finally:
+            HERE = saved
+
+    for f in fails:
+        print(f"  FAIL: {f}")
+    print("self-test: " + ("FAILED" if fails else
+                           "ok — names a missing test, silent once it exists, counts nested "
+                           "files, rejects substrings"))
+    return 1 if fails else 0
+
+
 if __name__ == "__main__":
+    if "--self-test" in sys.argv:
+        raise SystemExit(self_test())
     targets = [pathlib.Path(a) for a in sys.argv[1:] if not a.startswith("-")]
     if not targets:
         targets = sorted((HERE / "generated").glob("*-v5"))
