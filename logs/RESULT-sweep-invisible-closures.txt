@@ -1,0 +1,27 @@
+RESULT — the five closures the capstone diff cannot see, graded by hand on -v5
+==============================================================================
+Running record. Rationale: logs/FINDING-the-capstone-cannot-see-five-of-its-own-closures.txt
+
+The v4-vs-v5 diff covers the sweep's SIX shapes. Two mutation forms used for closures this
+week are in none of them — nil-slice (`make([]T, 0, n)` -> `var out []T`, an empty list going
+out as `null` while every length check still passes) and race (`Lock` -> `RLock`). So five
+closure sites are structurally invisible to the capstone and are graded here instead, on the
+same fresh -v5 trees, by mutating and running the closure's OWN test.
+
+    artifact          closure                              form        verdict
+    ----------------  -----------------------------------  ----------  --------
+    shortener-v5      TestResolveIsSafeUnderConcurrency    race        CAUGHT
+                      Resolve Lock -> RLock: WARNING: DATA RACE, test fails.
+    tasks-api-v5      TestListEmptyIsEmptyArray            nil-slice   CAUGHT
+                      store.go `out := make([]Task, 0, len(s.tasks))` -> `var out []Task`.
+    usersapi-v5       TestListEmptyIsEmptyArray            nil-slice   pending draw
+    taskapi-v5        TestListEmptyIsEmptyArray            nil-slice   pending draw
+    taskapi-v5        TestProjectListEmptyIsEmptyArray     nil-slice   pending draw
+
+2 of 5 verified, both CAUGHT on an INDEPENDENT draw from the repaired spec — which is the
+strong form of the claim. The grades recorded earlier this week were taken on the draws made
+FOR those closures; these are fresh trees that had no reason to reproduce them except that
+the spec asks.
+
+Scoped grades via _grade_scoped.py: the verdict is that the NAMED TEST catches the mutation,
+not that the whole suite does. Narrower, and said so every time.
