@@ -1,0 +1,80 @@
+FINDING — a cold line and an unwritten test are the same gap, seen from two ends
+================================================================================
+2026-07-28 late. Model-free. Tools: _reachability.py, _named_test_audit.py + per-test dating.
+
+THE CONVERGENCE
+
+_reachability, walking coverage: taskapi's `internal/api/tasks.go:25`
+
+    writeError(w, http.StatusBadRequest, "malformed request body")     COLD
+
+Executed zero times by the whole suite.
+
+The naming audit, walking the spec: taskapi's spec NAMES `TestMalformedJSON` — "POST
+truncated bytes like `{"title":` (NOT an empty `{}`) -> 400" — and no test file in the tree
+contains it.
+
+Two instruments, opposite directions, same gap. One says the line never runs; the other says
+the test that would run it was never written. Neither knew about the other.
+
+IT IS NOT DRAW VARIANCE, AND THAT TOOK A DATE TO ESTABLISH
+
+    the name entered specs/taskapi.yaml      2026-07-11 15:19
+    generated/taskapi-v4 was drawn           2026-07-26 16:09
+    generated/taskapi-chain was drawn        (also absent)
+
+Fifteen days, two independent draws, and the test was never written either time. Compare
+taskapipro's TestListSorted — the loss this repo's own naming audit was BUILT to catch,
+absent from draw 1 and, measured just now, present in draws 2 and 3. That one self-healed
+and is not an open item. Saying so is the point of checking rather than assuming.
+
+WHY NEITHER TOOL SAID SO ON ITS OWN
+
+_named_test_audit refuses to score an artifact when any file the spec DECLARES is missing
+from the tree, on the reasoning that a run in flight looks exactly like a model refusing to
+write. That is correct and its docstring argues it well. But every -v4 tree now lacks
+middleware_chain_test.go, because the Chain closure was added to the specs after those trees
+were drawn — so the audit skipped taskapi, taskapipro, taskflow, usersapi and workapi
+entirely. The artifacts under active campaign work are exactly the ones it could not see.
+
+The fix is not to loosen the refusal, it is to make it PER TEST. Dating each missing name
+against the artifact's build time separates the two populations cleanly:
+
+    41 spec-named tests absent from their -v4 tree
+    29  SPEC AHEAD — the name was added after the tree was drawn. Not a finding; it is
+        the campaign working as intended, and scoring it would manufacture 29 failures.
+    12  named BEFORE the draw and still absent
+        10  all of them tasks-api-noshadownudge, an experimental variant whose tree is
+            incomplete and whose suite does not build. A broken artifact, not a result.
+         1  taskapipro TestListSorted — self-healed in later draws, verified.
+         1  taskapi TestMalformedJSON — the real one.
+
+Yield: ONE. That is worth writing down as the headline rather than the 41, because 41 is
+what an unfiltered version of this check reports, and it would have sent me hunting
+twenty-nine gaps that are just a clock.
+
+WHAT IT MEANS FOR THE CAMPAIGN'S CENTRAL CLAIM
+
+The rule this week has been "an invariant with its own named test holds — 30 of 30". That
+number is about closures I WROTE AND THEN GRADED. It is not the base rate for naming. Here
+is a test named in a spec for fifteen days, in an entry that names nine others, and the model
+did not write it twice running.
+
+    Naming is necessary and it is not sufficient. A named test can simply not be written,
+    and nothing in the green-suite / coverage / mutation stack can see that: a test that
+    was never written lowers no coverage number and survives no mutation, because it is
+    not there to fail.
+
+That is the third distinct failure mode for a named invariant, alongside the two already
+recorded — the test written but its assertion evaporated (2/2 SURVIVED), and the test
+written with a witness that cannot discriminate (bitset asserting at 200 while the flip
+moves at 128). This one is the plainest and the only one no runtime instrument can reach.
+
+NOT ACTED ON YET, DELIBERATELY
+
+taskapi is generating RIGHT NOW as the third job in tonight's queue, against the spec as it
+stands. Editing that spec now would not reach this draw — the file is read at start — and
+would make the artifact unattributable to the file on disk. So the next measurement is free:
+check whether THIS draw wrote TestMalformedJSON. Absent in three independent draws would be
+strong evidence the sentence itself is not taking, and would earn a rewrite rather than a
+repetition.
