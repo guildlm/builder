@@ -174,6 +174,7 @@ if __name__ == "__main__":
     if not targets:
         targets = sorted(pathlib.Path("generated").glob("*-v4"))
     total = cold_n = 0
+    all_rows = []
     for art in targets:
         rows, note = audit(art)
         if rows is None:
@@ -183,12 +184,33 @@ if __name__ == "__main__":
         unknown = [r for r in rows if r["runs"] is None]
         total += len(rows)
         cold_n += len(cold)
+        all_rows.append((art.name, rows))
         print(f"\n{art.name}  {len(rows)} mutation site(s), {len(cold)} on lines NEVER "
               f"EXECUTED, {len(unknown)} with no coverage block")
         for r in cold:
             print(f"   COLD  {r['file']}:{r['line']:<4} {r['shape']:<9} {r['src'][:58]}")
+    # ALWAYS WRITE THE ROWS DOWN — _hole_hunt's rule, and it exists because a retraction
+    # once traced back to nothing worse than `tail`: a summary was kept, the row list was
+    # not, and a later count that differed by one could not be compared to anything. The
+    # file is git-TRACKED so a changed verdict shows up as a diff without anyone
+    # remembering to save the previous run.
+    #
+    # Only for a WHOLE-CORPUS run. A targeted run answers about one tree and would replace
+    # the baseline with something not comparable to it.
+    if not [a for a in sys.argv[1:] if not a.startswith("-")]:
+        dump = pathlib.Path("logs") / "reachability-rows.tsv"
+        if dump.parent.is_dir():
+            dump.write_text("".join(
+                f"{a}\t{r['file']}\t{r['line']}\t{r['shape']}\t"
+                f"{'COLD' if r['cold'] else 'run'}\t{r['src'][:70]}\n"
+                for a, rows_ in all_rows for r in rows_))
+            print(f"\n  rows written to {dump} (tracked — a changed verdict shows as a diff)")
+
     print(f"\n{cold_n} site(s) on never-executed lines, out of {total} in "
           f"{len(targets)} artifact(s)")
+    print("Watch this number ACROSS DRAWS, not in isolation: every closure adds a test, so a\n"
+          "site cold today should be warm in the next draw. The count going DOWN is a result\n"
+          "about the campaign; the count alone is a property of one snapshot.")
     print("COLD answers ONE half of 'is this a hole': no assertion can catch a mutation on a\n"
           "line no test runs. The other half — whether the shipped composition can reach it\n"
           "at all — still needs a read. Coverage is the SUITE's reach, not the program's.")
