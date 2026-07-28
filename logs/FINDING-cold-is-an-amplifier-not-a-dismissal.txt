@@ -67,3 +67,40 @@ site that is cold today may be warm in the next draw — which is the point of t
 and it means this table is a snapshot of the -v4 corpus and not a property of the specs.
 Re-run it after the redraw; the cold count going DOWN is a result about the campaign, and
 the one number here I would actually like to watch.
+
+
+CROSS-VALIDATED AGAINST THE MUTATION SWEEP (2026-07-29, during the v4 re-sweep)
+
+The premise of this tool is that a mutation on a never-executed line cannot be caught. That
+was an argument; here is the measurement. taskapipro's internal/config/config.go, %w shape:
+
+    reachability   L36 run      L44 COLD   L52 COLD   L60 COLD   L68 COLD
+    sweep          5 rows, ALL SURVIVED
+
+    COLD => SURVIVED   holds, 4 of 4.
+    SURVIVED => COLD   does NOT. L36 is executed and survives anyway.
+
+That asymmetry is the whole value and it is now data rather than reasoning. It splits the
+survivor list into two populations that need completely different work:
+
+    COLD + SURVIVED   pre-answered. No assertion could have caught it. Adjudicate by asking
+                      whether the shipped composition can REACH the line at all — dead
+                      branch (the 500-else class) or a real hole nothing requests (Delete's
+                      404). One coverage run per artifact answers the first half for every
+                      site at once.
+
+    WARM + SURVIVED   the sharp set. A test EXECUTES this line and asserts nothing about
+                      what it produced. This is the project's founding observation —
+                      coverage measures lines RUN, not invariants DEFENDED — and it is now
+                      mechanically locatable instead of being found one row at a time.
+
+PRACTICAL CONSEQUENCE for the post-sweep triage: compute WARM+SURVIVED first. It is the
+smaller set and every member of it is a candidate that no cheap check can dismiss.
+
+A LIMIT ON THE JOIN, stated because it bounds the above: the sweep's rows carry
+(artifact, file, shape, verdict) and no LINE NUMBER, while reachability's carry lines. So a
+file whose sites are mixed cold and warm cannot be joined exactly — only bounded (if a
+file+shape has k cold sites and m SURVIVED rows, at least m-k warm sites survived). Adding
+the line to the sweep's rows would make the join exact and is a small change. NOT made now:
+the sweep is running, and changing the tool mid-run would leave rows that disagree with the
+tool that wrote them.
