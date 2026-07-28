@@ -371,9 +371,9 @@ files:
       log/slog, net/http, and the service package.
   - path: internal/api/router_test.go
     purpose: >-
-      package api. Integration tests (net/http/httptest). This file contains ELEVEN
-      top-level declarations: the newRouter helper, and TEN test functions. WRITE
-      ALL ELEVEN — the helper is the one most easily skipped, because it is shown
+      package api. Integration tests (net/http/httptest). This file contains TWELVE
+      top-level declarations: the newRouter helper, and ELEVEN test functions. WRITE
+      ALL TWELVE — the helper is the one most easily skipped, because it is shown
       to you below and reads like something that already exists. It does not: this
       file is the only place it is declared, and every test calls it.
       Declare ONCE at package scope EXACTLY this helper — it returns http.Handler
@@ -429,9 +429,25 @@ files:
       satisfies "<= 1" and the bug ships green. Do NOT
       re-assert on `all` beyond the id-order check above.
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
+      TestDeleteMissingReturns404: on a FRESH router, DELETE /tasks/nope — an id
+      nobody created — and assert, as this test's ONLY assertion, that the code is
+      404.
+      TestDelete above does NOT cover this: the 404 it asserts comes from the GET
+      that follows a SUCCESSFUL delete, so Delete's own ErrNotFound branch is never
+      requested. Measured with a coverage run on this artifact: the
+      `writeJSON(w, http.StatusNotFound, nil)` inside Delete is executed ZERO times
+      by the whole suite, while Get's identical line is executed.
+      Its twin already exists: the projects test file carries exactly this case for
+      the other collection. One of two identical routes is defended, and the
+      defended one is what makes this one look finished. The store-level delete
+      test does not cover it either — that is the STORE returning ErrNotFound, a
+      different layer, and an invariant implemented in two layers needs a test in
+      both.
+      Do NOT write the projects version here; it belongs to the projects test file
+      and declaring it twice in one package does not compile.
       TestMalformedJSON: POST truncated bytes like `{"title":` (NOT an empty `{}`)
       -> 400.
-      That is TEN test functions and NO more — the project endpoints are covered
+      That is ELEVEN test functions and NO more — the project endpoints are covered
       in projects_test.go, in this same package. Do not write them here.
       Imports bytes, encoding/json, io, log/slog, net/http,
       net/http/httptest, testing, and the service + store + models packages.

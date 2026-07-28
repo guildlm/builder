@@ -1,0 +1,70 @@
+RESULT — taskapipro draw 3: the mirrored projects clamp CLOSED, tree RED for another reason
+===========================================================================================
+2026-07-28. Run: _run_queue_0728.sh -> _chain_run.sh taskapipro -> generated/taskapipro-chain3
+Prediction: logs/PREDICTION-mirror-and-empty-list.txt (written before the run).
+Base model at :8080, no fleet, same flags as every -v4 tree and every chain draw.
+3475s wall, 7 fix rounds (6 budgeted), 5 model fix-calls.
+
+THE CLOSURE HELD
+
+Graded per LINE, package-scoped (see the caveat below):
+
+    internal/api/tasks.go     L54 SURVIVED   limit  = 0     (inert — see below)
+                              L57 SURVIVED   limit  = 0     (inert)
+                              L62 CAUGHT     offset = 0
+                              L65 CAUGHT     offset = 0
+    internal/api/projects.go  L53 SURVIVED   limit  = 0     (inert)
+                              L56 SURVIVED   limit  = 0     (inert)
+                              L61 CAUGHT     offset = 0
+                              L64 CAUGHT     offset = 0     <- THE TARGET
+
+Draw 2 baseline, same probe: projects.go's negative-offset clamp SURVIVED. It is now CAUGHT.
+That was the one site left open in the save point, and it was open because the test I wrote
+for this invariant yesterday GETs /tasks — projects.go has its own handler, its own query
+parse and its own clamp, and a task request never executes a line of it.
+
+BOTH tasks.go sites STAYED CAUGHT. This matters more than it sounds: draw 2 won two parser
+clamps and silently LOST paginate's clamp one layer down, because the edit made the model
+route the tested argument through the clamp being tested. Putting this test in a DIFFERENT
+FILE from its twin — projects_test.go, not router_test.go — is the structural reason the two
+could not contaminate each other, and it was the reason stated in the prediction, not after.
+
+Predictions: L64 flips to CAUGHT [high] ✓. The three already-CAUGHT sites stay CAUGHT
+[high, flagged as the one I had got wrong before] ✓. Tree GREEN [moderate] ✗.
+
+THE limit SITES ARE NOT A REGRESSION
+
+All four `limit = 0` sites SURVIVE, and that is the correct answer, established this morning
+with _bound_probe: a wrong limit of 7777 is ABSORBED by paginate's own
+`limit > len(items)-offset` guard, which maps it to exactly the value `limit <= 0` produces
+from 0. Two routes to one number; no response can differ. INERT-OR-WEAK, not undefended —
+and it is why the corpus's real clamp-hole count is 3 and not 5.
+
+THE TREE IS RED, AND NOT BECAUSE OF THIS
+
+    FAIL  internal/config      TestValidateRejectsZeroDefaultPageSize
+    ok    internal/api, internal/models, internal/service, internal/store
+
+The failure is my own incomplete closure edit from yesterday: config_test.go's entry demands
+`DefaultPageSize <= 0` and config.go's entry promised only "Addr empty or MaxPageSize <
+DefaultPageSize". The implementation was never asked for the guard the test requires. Three
+earlier draws inferred it anyway; this one read literally and spent seven rounds failing a
+test no implementation it was asked for could pass. Repaired in the spec, and generalised
+into _promise_gap.py, which reproduces the finding against the pre-fix spec out of git.
+
+CAVEAT ON THE GRADE — stated because it is weaker than the usual one
+
+The whole-suite verdict machinery returns BASELINE-RED for every site on a red tree, so this
+grade ran `go test ./internal/api/...` instead. That is legitimate here — the closure lives
+in internal/api, the failure lives in internal/config, and Go packages fail independently —
+but it IS a narrower claim: it says the api package's own tests catch the mutation, not that
+the whole suite does. Nothing in the api package depends on config, so I do not expect the
+distinction to matter; I am recording it because a scoped run that goes unmentioned is how a
+weaker claim gets read as the stronger one.
+
+ALSO IN THIS DRAW
+
+The Chain closure held again, unprompted — TestChainAppliesEveryMiddlewareOutermostFirst was
+written and asserts the joined order string. That is the sixth independent draw carrying it.
+
+SESSION TALLY: 30 closure sites graded, 30 held. The save point's one open site is closed.
