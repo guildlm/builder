@@ -1,0 +1,69 @@
+FINDING — the spec teaches the mirror lesson for the success path and misses it for the error path
+==================================================================================================
+2026-07-28 late. Model-free: _reachability rows + a read of the spec. Frozen -v4 trees.
+NOT ACTED ON — see the last section.
+
+THE SITES
+
+Cold sites from logs/reachability-rows.tsv, in the two categories I had not yet examined:
+
+    taskapipro-v4  internal/config/config.go:44  invalid WRITE_TIMEOUT: %w      COLD
+    taskapipro-v4  internal/config/config.go:52  invalid SHUTDOWN_TIMEOUT: %w   COLD
+    taskapipro-v4  internal/config/config.go:60  invalid DEFAULT_PAGE_SIZE: %w  COLD
+    taskapipro-v4  internal/config/config.go:68  invalid MAX_PAGE_SIZE: %w      COLD
+    workapi-v4     internal/config/config.go:49  invalid WRITE_TIMEOUT: %w      COLD
+    workapi-v4     internal/config/config.go:56  invalid SHUTDOWN_TIMEOUT: %w   COLD
+
+Measured on taskapipro: config.go has FIVE structurally identical parse-error branches and
+the suite exercises exactly ONE.
+
+    TestLoadInvalidDuration — t.Setenv READ_TIMEOUT to "not-a-duration"
+
+READ_TIMEOUT is tested. The other four are the same four lines with a different env var
+name, and nothing has ever run them.
+
+WHY THIS ONE IS WORTH WRITING DOWN
+
+Not because four undefended branches is a big hole — it is a small one, and each branch is
+four lines. It is worth writing down because of where the spec already says the right thing.
+The entry directly above, describing the SUCCESS path, reads:
+
+    "The three duration vars are structural MIRRORS of one another — exercise all three, not
+     just the first; a mirror nobody exercises is a branch nobody has shown to work."
+
+That sentence is in this spec because the campaign learned the mirror lesson and I wrote it
+in. It is attached to TestLoadFromEnv, which reads all six values on the happy path. The
+ERROR path — the same vars, the same mirror, the same argument word for word — got
+TestLoadInvalidDuration, singular, for one variable.
+
+    The lesson was learned in one direction and not carried to the other, in the same entry,
+    by the person who wrote the sentence.
+
+That is the same shape as every mirror this campaign has found — Delete's 404 against Get's,
+projects' clamp against tasks', one collection's empty list against the other's — except
+this time both halves are in one file, one entry, four inches apart. Proximity did not help.
+Nor did having the general rule written down: the rule was applied to the case in front of
+me and not to its twin.
+
+WHAT WOULD CLOSE IT
+
+One test, own-named, that sets a NON-DURATION var to garbage — TestLoadInvalidPageSize with
+DEFAULT_PAGE_SIZE="abc" — plus a sentence saying the parse-error branches are mirrors of one
+another exactly as the success-path vars are. Not five tests: the point of the corpus's own
+finding about mirrors is that the SECOND one is what proves the first was not luck, and a
+table over all five would collapse back into one function with one assertion.
+
+DELIBERATELY NOT DONE TONIGHT
+
+taskapipro is generating draw 4 right now, so its spec is frozen for the duration —
+editing it would make the artifact unattributable to the file on disk.
+
+workapi is NEXT in that queue and could take the edit, and I am not doing that either. Its
+draw is carrying exactly one closure (Delete's own 404), and the prediction I wrote before
+launching says the informative comparison is workapi's ONE-test edit against taskapipro's
+five-entry wiring — whether what closes a hole is the NAMING or whether a spec can also be
+asked to restructure production code in the same draw. Adding a second closure to workapi
+would blur the only clean half of that comparison to save one queue slot.
+
+Recorded here so the next session has it without rediscovering it. It is cheap, it is real,
+and it will still be there.
