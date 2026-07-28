@@ -20,7 +20,7 @@ WHAT IT CHECKS, in order — all three, or the verdict is not a verdict:
     2. the named test FAILS on the mutated tree         (else SURVIVED: nothing here defends)
     3. the mutation actually APPLIED                    (else NOAPPLY: nothing was measured)
 
-    _grade_scoped.py <artifact> <rel.go> <old-text> <new-text> <TestName>[,<TestName>...]
+    _grade_scoped.py <artifact> <rel.go> <old-text> <new-text> <TestName>[,<TestName>] [occurrence]
     _grade_scoped.py --self-test
 """
 from __future__ import annotations
@@ -38,7 +38,20 @@ def run_test(root: pathlib.Path, pkg: str, names: str) -> tuple[bool, str]:
     return r.returncode == 0, (r.stdout + r.stderr)
 
 
-def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str) -> tuple[str, str]:
+def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str,
+          occurrence: int = 0) -> tuple[str, str]:
+    """`occurrence` selects WHICH site — text is not an address.
+
+    Found by running this tool on a real tree instead of only on fixtures. Asked to grade
+    taskapipro's projects.go clamp, the first version replaced the FIRST `offset = 0` in the
+    file — the strconv error fallback — and reported SURVIVED, while a per-line grade of the
+    same tree had the clamp CAUGHT. Both were right: the closure's test sends
+    `?limit=10&offset=-1`, so offset parses, the error branch never runs, and mutating it
+    cannot change what that test sees. The site the closure defends is the SECOND occurrence.
+
+    Every other instrument in this repo learned this and has a replace_at; this one shipped
+    without it and produced a confident wrong verdict on its first real input. A single
+    textual match is an address only in a file where the text appears once."""
     mod = next((p for p in art.rglob("go.mod")), None)
     if mod is None:
         return "SKIP", "no go.mod"
@@ -55,20 +68,31 @@ def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str) -> tuple[
         shutil.copytree(root, base)
         target = base / src.relative_to(root)
         text = target.read_text()
-        if old not in text:
-            return "NOAPPLY", (f"{old!r} not present in {rel} — nothing was mutated, and a "
-                               f"row about an unapplied mutation is not a measurement")
+        n_sites = text.count(old)
+        if n_sites <= occurrence:
+            return "NOAPPLY", (f"{old!r} occurs {n_sites}x in {rel}; occurrence {occurrence} "
+                               f"does not exist — nothing was mutated, and a row about an "
+                               f"unapplied mutation is not a measurement")
 
         ok, out = run_test(base, pkg, names)
         if not ok:
             return "PROBE-RED", (f"{names} FAILS on the unmutated tree — the test is wrong, "
                                  f"not the code:\n" + out.strip()[-400:])
 
-        target.write_text(text.replace(old, new, 1))
+        # Replace the Nth occurrence, leaving the others alone.
+        head, sep, tail = "", "", text
+        for _ in range(occurrence + 1):
+            h, sep, tail = tail.partition(old)
+            head += h + (sep if _ < occurrence else "")
+        target.write_text(head + new + tail)
         ok, out = run_test(base, pkg, names)
+        where = f"occurrence {occurrence} of {n_sites}"
         if ok:
-            return "SURVIVED", f"{names} still passes with {old!r} -> {new!r}: it does not defend this"
-        return "CAUGHT", f"{names} fails on the mutant, as it should"
+            return "SURVIVED", (f"{names} still passes with {old!r} -> {new!r} at {where}: "
+                                f"it does not defend THAT site"
+                                + (f". {n_sites} sites match this text — check you aimed at "
+                                   f"the right one." if n_sites > 1 else ""))
+        return "CAUGHT", f"{names} fails on the mutant at {where}, as it should"
 
 
 def self_test() -> int:
@@ -108,6 +132,24 @@ def self_test() -> int:
         if v != "NOAPPLY":
             fails.append(f"an unapplied mutation must say so, not report a verdict: {v}")
 
+    # THE BUG THIS TOOL SHIPPED WITH: two sites, same text, and only the second is defended.
+    TWO = ("package t\n\nfunc A(n int) int {\n\tif n > 9 {\n\t\treturn 0\n\t}\n\treturn n\n}\n"
+           "func B(n int) int {\n\tif n < 0 {\n\t\treturn 0\n\t}\n\treturn n\n}\n")
+    T2 = ('package t\n\nimport "testing"\n\n'
+          'func TestB(t *testing.T) { if B(-1) != 0 { t.Fatal("want 0") } }\n')
+    with tempfile.TemporaryDirectory() as td:
+        art = build(td, TWO, T2)
+        v, _ = grade(art, "t.go", "return 0", "return 7777", "TestB", 0)
+        if v != "SURVIVED":
+            fails.append(f"occurrence 0 is A's clamp, which TestB does not defend: {v}")
+        v, _ = grade(art, "t.go", "return 0", "return 7777", "TestB", 1)
+        if v != "CAUGHT":
+            fails.append(f"occurrence 1 is B's clamp, which TestB DOES defend — text is not "
+                         f"an address, and this is the verdict the first version got wrong: {v}")
+        v, _ = grade(art, "t.go", "return 0", "return 7777", "TestB", 9)
+        if v != "NOAPPLY":
+            fails.append(f"an occurrence that does not exist is NOAPPLY: {v}")
+
     for f in fails:
         print(f"  FAIL: {f}")
     print("self-test: " + ("FAILED" if fails else
@@ -120,10 +162,11 @@ if __name__ == "__main__":
     if "--self-test" in sys.argv:
         raise SystemExit(self_test())
     a = [x for x in sys.argv[1:] if not x.startswith("-")]
-    if len(a) != 5:
+    if len(a) not in (5, 6):
         raise SystemExit(__doc__)
     art, rel, old, new, names = pathlib.Path(a[0]), a[1], a[2], a[3], a[4]
-    v, note = grade(art, rel, old, new, names)
+    occ = int(a[5]) if len(a) == 6 else 0
+    v, note = grade(art, rel, old, new, names, occ)
     print(f"{v:<11} {art.name}  {rel}  {old!r} -> {new!r}  via {names}")
     print(f"   {note}")
     print("   NARROWER THAN A SUITE GRADE, on purpose: this says the NAMED TEST catches the\n"
