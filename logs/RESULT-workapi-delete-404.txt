@@ -1,0 +1,53 @@
+RESULT — workapi: Delete's own 404 closed, and the two instruments agree
+========================================================================
+2026-07-28. generated/workapi-chain2, GREEN, 3 fix rounds / 3 model fix-calls.
+Prediction: logs/PREDICTION-wiring-and-the-third-mirror.txt, written before launch.
+
+THE CLOSURE
+
+    internal/api/tasks.go  L78  writeJSON(w, http.StatusNotFound, nil)  CAUGHT   (Get)
+    internal/api/tasks.go  L93  writeJSON(w, http.StatusNotFound, nil)  CAUGHT   (Delete)
+
+Before: Get's line ran, Delete's was COLD — executed zero times by the whole suite, while
+the spec's TestDeleteTask asserted a 404 from the GET that FOLLOWS a successful delete. The
+handler's own comment promised "204, or 404 if absent" and the second half had never been
+requested by anything.
+
+TestDeleteMissingReturns404 was written exactly as specified — fresh router, DELETE an id
+nobody created, auth header, and ONE assertion:
+
+    if rec.Code != http.StatusNotFound { t.Fatalf(...) }
+
+No setup, so a single assertion, which is the pattern tonight's 33-instance measurement
+predicted: "ONLY assertion" is honoured literally whenever the test arranges nothing.
+
+TWO INSTRUMENTS, INDEPENDENTLY
+
+    mutation      StatusNotFound -> StatusBadRequest at L93   CAUGHT
+    reachability  workapi cold sites 8 of 29  ->  7 of 29
+                  and tasks.go:93, COLD in the -v4 baseline, is no longer in the list
+
+That cross-check is built into _grade_next.sh on purpose: a closed 404 must stop being cold,
+and if the mutation said CAUGHT while coverage still said COLD, one of them would be wrong
+and that would matter more than either verdict. They agree.
+
+This is the third instance of one mirror closed — taskflow (Monday), taskapipro and workapi
+(tonight). All three specs promised Delete's 404 in the handler's own comment and asserted it
+from the GET that follows a successful delete.
+
+PREDICTIONS, scored:
+  - TestDeleteMissingReturns404 written, mutation CAUGHT   [HIGH]  ✓
+  - the site is no longer COLD on a reachability re-run    [HIGH]  ✓
+
+THE ASYMMETRY I ASKED FOR DID NOT HAPPEN — a different one did
+I wrote before launching that the informative outcome would be workapi's one-test edit
+holding while taskapipro's five-entry wiring failed, because that would separate "naming
+closes holes" from "a spec can also be asked to restructure production code". Both landed,
+and the big edit was CHEAPER (2 rounds / 0 model calls against workapi's 3 / 3).
+
+The asymmetry appeared somewhere I had not predicted: INSIDE taskapipro, between two twin
+paging tests. Tasks' held, projects' produced a witness that cannot fail. So the separation I
+wanted did arrive — not between edit sizes, but between a test with its reason attached and
+one without. See logs/FINDING-a-reason-does-not-carry-to-the-next-test.txt.
+
+SESSION TALLY: 40 closure sites graded and held; 3 (taskapipro projects paging) SURVIVED.
