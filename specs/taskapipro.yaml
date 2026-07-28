@@ -540,6 +540,18 @@ files:
       that EXACTLY 2 come back.
       TestProjectListCapsAtTheConfiguredMaxPageSize: newRouterWithPaging(20, 2),
       POST THREE projects, GET /projects?limit=100, assert EXACTLY 2.
+      THREE PROJECTS, NOT ONE — and this is the whole test, not a detail of it.
+      Measured on the previous draw of this spec: this test was written with the right
+      name, calling newRouterWithPaging(2, 100) correctly, and it POSTed ONE project
+      and asserted EXACTLY 1. With one project in the store a page size of 2 and a
+      page size of 7777 both return that one project, so NO INPUT DISTINGUISHES A
+      CORRECT HANDLER FROM ONE THAT IGNORES THE FIELD ENTIRELY. The test passed, and
+      it passed with the page size deliberately broken — measured, SURVIVED on all
+      three paging sites in projects.go while the identical test for /tasks caught
+      them.
+      The store must hold MORE items than the page size or the test cannot fail. That
+      is the same reason a bitset assertion at index 200 could not see a guard that
+      moves at 128: a witness past the boundary agrees with every implementation.
       Both routes get both tests for the same reason the negative-offset clamp needed
       a twin here: projects.go has its own handler and its own two lines, and a
       request to /tasks never executes one of them.

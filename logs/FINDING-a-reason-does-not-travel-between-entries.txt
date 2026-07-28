@@ -1,0 +1,76 @@
+FINDING — the instruction travelled between entries; the REASON did not
+=======================================================================
+2026-07-28. Controlled within one spec, one draw, one model: taskapipro-chain4.
+
+THE COMPARISON, which was sitting in the spec the whole time
+
+Two twin tests, identical in intent, in two different file entries.
+
+  router_test.go entry (TASKS) — instruction PLUS ten lines of reason:
+
+      "TestListDefaultsToTheConfiguredPageSize: ... newRouterWithPaging(2, 100),
+       POST THREE tasks ... assert ... EXACTLY 2 come back.
+       THE SMALL NUMBERS ARE THE POINT — do not 'simplify' them to the real defaults.
+       The obvious version of this test is 'the default is 20, so POST 25 and expect
+       20', and it is the version that CANNOT FAIL: with fewer than 21 items ... The
+       witness has to sit ON the boundary, not past it — the same reason a bitset
+       assertion at index 200 could not see a guard that moves at 128 ..."
+
+  projects_test.go entry (PROJECTS) — the same instruction, no reason:
+
+      "TestProjectListDefaultsToTheConfiguredPageSize: ... newRouterWithPaging(2, 100)
+       ... POST THREE projects ... assert ... EXACTLY 2 come back."
+
+RESULT, same draw:
+
+    tasks     POSTed THREE, asserted 2   -> both paging mutations CAUGHT
+    projects  POSTed ONE,   asserted 1   -> all three paging mutations SURVIVED
+
+The projects test has the right name, calls the right helper with the right small values,
+and asserts a plausible number. With one project in the store, a page size of 2 and a page
+size of 7777 both return that one project. It cannot fail.
+
+WHAT THIS ISOLATES
+
+Everything else is held constant — same spec file, same generation, same model, same
+sentence structure, the same literal instruction "POST THREE ... assert EXACTLY 2". The only
+difference is whether the REASON was attached in that entry.
+
+    The instruction alone was not enough. The instruction plus the reason was.
+
+That is not what I would have guessed from the rest of tonight. The healthz failure taught
+the opposite-looking lesson — an entry that explained a trap and then permitted the check
+produced the wrong assertion twice, and WITHDRAWING the option is what fixed it. Both are
+true and they are not in conflict:
+
+    For an option you do not want exercised    -> withdraw it. Explaining is not a constraint.
+    For a quantity that must be exact          -> give the reason. The number alone does not
+                                                  survive contact with a plausible alternative.
+
+A model that writes "POST ONE project, assert 1" has not disobeyed anything it can see: one
+project is a perfectly sensible list test. The number 3 is only meaningful if you know what
+it is defending against, and that knowledge lived in another entry.
+
+AND THIS IS THE SAME PRINCIPLE THAT PRODUCED THIS MORNING'S PROMISE GAP
+
+_promise_gap.py exists because taskapipro's config_test entry demanded a guard its config.go
+entry never promised, and the model — reading one entry at a time — wrote a test the
+implementation had never been asked to satisfy. Same mechanism here, one layer up:
+
+    THE MODEL READS ONE ENTRY AT A TIME. A reason stated in one entry does not travel to
+    another, any more than a promise does.
+
+I wrote that sentence into a tool this morning and then, this afternoon, put the reasoning
+for a pair of twin tests in only one of the two entries they live in.
+
+THE FIX, and why it is not "repeat the sentence louder"
+
+The projects entry now carries its own reason, and the reason is the MEASUREMENT rather than
+the rule: what the previous draw actually wrote, why it could not fail, and that the twin
+for /tasks caught the same mutations. Tonight already showed that explaining a trap better
+does not always work (healthz) — so what is stated here is not "be careful", it is "this
+exact test was written last time and defended nothing".
+
+Unverified. The next taskapipro draw answers it, and the answer is interesting either way:
+if the reason works, spec reasoning is a per-entry cost that has to be paid in each entry;
+if it does not, then a quantity that must be exact needs a different mechanism entirely.
