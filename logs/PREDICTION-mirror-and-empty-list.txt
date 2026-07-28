@@ -1,0 +1,86 @@
+PREDICTION — today's four closure runs (written BEFORE any of them landed)
+==========================================================================
+2026-07-28. Queue: taskapipro -> usersapi -> taskapi -> shortener, one process, in order.
+taskapipro was already at file 5/21 when this was written; nothing has been graded.
+SERVER: MLX :8080 UP, base model (mlx-community/Qwen2.5-Coder-7B-Instruct-4bit), no fleet,
+identical flags to every -v4 tree and every chain draw.
+
+THE FOUR RUNS
+
+  1. taskapipro draw 3 — the mirrored clamp
+     projects_test.go gets TestProjectListNegativeOffsetIsClampedHere, the twin of the
+     task test written yesterday. Baseline measured per line on draw 2 before the edit:
+         tasks.go     L59 CAUGHT   L63 CAUGHT
+         projects.go  L58 CAUGHT   L62 SURVIVED   <- the target
+     Also carried in the same edit: two count repairs (router entry ELEVEN/TEN made
+     consistent at TEN, service entry EIGHT -> NINE). Those are gradable separately —
+     the count question is "were all the enumerated tests written", the clamp question
+     is a mutation.
+
+     PREDICTION: L62 flips to CAUGHT. [confidence: high]
+     Reasoning: 7/7 own-named boundary closures have held in this corpus, and this one is
+     a WORD-FOR-WORD twin of a test that already exists two files over and already works.
+     The model has the working version in its own context.
+
+     PREDICTION: the three already-CAUGHT sites stay CAUGHT. [confidence: high, but this
+     is the question I got wrong once already] Draw 2 won two parser clamps and silently
+     LOST paginate's clamp one layer down, because my edit put the new test in a file that
+     made the model route the argument through the clamp being tested. The same shape is
+     available here: projects_test.go is a different FILE from router_test.go, so the two
+     tests cannot contaminate each other's arguments the way they did in taskflow. That is
+     the structural reason I am more confident this time, not optimism.
+
+     PREDICTION: tree GREEN. [confidence: moderate — 2760s and GREEN in draw 2, and this
+     is a smaller edit than that one]
+
+  2. usersapi — empty list is [] not null
+     TestListEmptyIsEmptyArray, own name, asserts the RAW body is "[]". Graded by the
+     nil-slice mutation on store.go: `make([]User, 0, len(...))` -> `var out []User`.
+
+     PREDICTION: written, and the mutation flips to CAUGHT. [confidence: high]
+     This is the closure with the best precedent in the corpus — tasks-api ran the
+     identical edit and it held, and usersapi is the cheapest, most reliable spec here
+     (546s, 0 fix rounds, 0 model fix-calls in the N=5 run).
+
+     PREDICTION I AM LESS SURE OF: that the test asserts the RAW STRING rather than
+     decoding. [confidence: even odds] The entry spends five lines explaining why a
+     decoded length check cannot see the difference — and prose explaining why a WEAKER
+     assertion is insufficient has the worse record here (that reasoning failed once and
+     then came back 5/5 in the Chain runs, so I no longer think it is a reliable negative
+     signal; I just have no clean measurement for it on THIS assertion form).
+
+  3. taskapi — BOTH collections
+     TestListEmptyIsEmptyArray (router_test.go) and TestProjectListEmptyIsEmptyArray
+     (projects_test.go). Two separate `make` lines in memory.go, L46 and L87.
+
+     PREDICTION: both flip to CAUGHT. [confidence: moderate-high on each individually]
+     PREDICTION I WILL BE WATCHING HARDEST: that writing the twin UP FRONT costs nothing.
+     Every mirror closure so far has been retrofitted after the twin was found open. This
+     is the first time both halves are specified before either is measured, and the honest
+     risk is that two tests in two files asserting the same string read as redundant to
+     the model and one of them comes back weaker. If exactly one is CAUGHT, that is the
+     result worth having.
+
+  4. shortener re-run
+     Nothing changed in the spec since the draw that died on a production error
+     (`shortener_test.go:32:58: string literal not terminated`, unrepaired after the fix
+     loop). This is a pure re-draw to MEASURE the two things draw 2 never reached: the
+     Resolve-lock closure (TestResolveIsSafeUnderConcurrency, whose assertion IS -race)
+     and whether draw 1's two mirror closures reproduce.
+
+     PREDICTION: it compiles this time. [confidence: moderate — an unterminated literal
+     is a sampling accident, not a spec property, but I have no measurement of how often
+     this spec produces one; shortener has 12 _fail- archives, the most of any spec in
+     the corpus, which is not nothing]
+     PREDICTION: if it compiles, the race test is written and -race is GREEN.
+     [confidence: high on written, high on green — the data race lives in Resolve's
+     RLock-while-writing, which the spec repair also fixed at the source]
+
+WHAT WOULD FALSIFY THE WEEK'S HEADLINE
+  "An own-named test asserting one thing closes the hole" is 7/7 + 5/5 + yesterday's
+  three. The cheapest way for that to be wrong is for one of these four to write the test,
+  name it correctly, and assert something that cannot fail — which is the bitset shape
+  (witness at 200, flip at 128) and the only failure mode the naming rule does not
+  address. The empty-list assertion is the one exposed to it: `len(got) == 0` passes on
+  both `[]` and `null`. That is why the entry names the raw string, and it is the single
+  thing I will check first in each tree.
