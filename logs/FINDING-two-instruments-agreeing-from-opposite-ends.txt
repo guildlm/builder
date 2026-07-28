@@ -17,16 +17,20 @@ contains it.
 Two instruments, opposite directions, same gap. One says the line never runs; the other says
 the test that would run it was never written. Neither knew about the other.
 
-IT IS NOT DRAW VARIANCE, AND THAT TOOK A DATE TO ESTABLISH
+IT SURVIVED TWO DRAWS — AND A THIRD OVERTURNED THAT (see the update at the end)
 
     the name entered specs/taskapi.yaml      2026-07-11 15:19
     generated/taskapi-v4 was drawn           2026-07-26 16:09
     generated/taskapi-chain was drawn        (also absent)
 
-Fifteen days, two independent draws, and the test was never written either time. Compare
-taskapipro's TestListSorted — the loss this repo's own naming audit was BUILT to catch,
-absent from draw 1 and, measured just now, present in draws 2 and 3. That one self-healed
-and is not an open item. Saying so is the point of checking rather than assuming.
+Fifteen days, two independent draws, and the test was written in neither. At this point I
+took that for a spec defect. It was not — the third draw wrote it, and the section at the
+end of this file retracts the conclusion. The dating below is still what separates a real
+absence from a clock; what it cannot do is turn TWO absences into a property of the spec.
+
+Compare taskapipro's TestListSorted — the loss this repo's own naming audit was BUILT to
+catch, absent from draw 1 and, measured just now, present in draws 2 and 3. I checked that
+one rather than assuming, and should have read it as the warning it was.
 
 WHY NEITHER TOOL SAID SO ON ITS OWN
 
@@ -49,9 +53,10 @@ against the artifact's build time separates the two populations cleanly:
          1  taskapipro TestListSorted — self-healed in later draws, verified.
          1  taskapi TestMalformedJSON — the real one.
 
-Yield: ONE. That is worth writing down as the headline rather than the 41, because 41 is
-what an unfiltered version of this check reports, and it would have sent me hunting
-twenty-nine gaps that are just a clock.
+Yield: ONE candidate — and, after the third draw, ZERO confirmed spec defects. That is
+still worth writing down against the 41 an unfiltered version reports, because 29 of those
+are only a clock. But the honest final count for tonight is that this audit produced no
+defect, and the value it delivered was the per-test dating method, not a finding.
 
 WHAT IT MEANS FOR THE CAMPAIGN'S CENTRAL CLAIM
 
@@ -70,11 +75,42 @@ recorded — the test written but its assertion evaporated (2/2 SURVIVED), and t
 written with a witness that cannot discriminate (bitset asserting at 200 while the flip
 moves at 128). This one is the plainest and the only one no runtime instrument can reach.
 
-NOT ACTED ON YET, DELIBERATELY
+UPDATE, SAME NIGHT — THE THIRD DRAW WROTE IT, AND THAT CHANGES THE CONCLUSION
 
-taskapi is generating RIGHT NOW as the third job in tonight's queue, against the spec as it
-stands. Editing that spec now would not reach this draw — the file is read at start — and
-would make the artifact unattributable to the file on disk. So the next measurement is free:
-check whether THIS draw wrote TestMalformedJSON. Absent in three independent draws would be
-strong evidence the sentence itself is not taking, and would earn a rewrite rather than a
-repetition.
+taskapi's third draw (generated/taskapi-chain2, read while the run was still finishing, so
+provisional until the gates land) DOES contain TestMalformedJSON, in
+internal/api/router_test.go.
+
+So the sentence is not dead. It is UNRELIABLE. Absent in taskapi-v4, absent in taskapi-chain,
+present in taskapi-chain2 — the same shape as taskapipro's TestListSorted, absent in draw 1
+and present in draws 2 and 3. Two independent named tests, both intermittent.
+
+That kills the conclusion this file was heading toward. I had written that a third absence
+"would earn a rewrite rather than a repetition", implying the spec language had failed. It
+had not. What failed is the inference from a single artifact:
+
+    A named test missing from ONE draw is not evidence the spec failed to ask for it.
+    It is one sample of a stochastic writer, and this corpus has now produced two named
+    tests that appear in some draws and not others.
+
+The claim that survives is the narrower one: naming is NECESSARY AND NOT SUFFICIENT, and no
+runtime instrument can see the difference, because a test that was never written lowers no
+coverage number and survives no mutation. What does NOT survive is the implied remedy.
+Rewriting a sentence that works two draws in three would have been fixing the wrong thing —
+and I would then have "confirmed" the fix by drawing again and watching it appear.
+
+The right remedy is the audit run PER DRAW, which is what _named_test_audit is for, and
+exactly why it needs per-test dating: to say "this draw missed one" without saying "this
+spec is broken".
+
+WHAT WAS ACTED ON, AND WHAT WAS NOT
+
+The spec was NOT edited, and that turned out right for a better reason than the one I had:
+I withheld the edit only because the draw was in flight and editing would make the artifact
+unattributable. Had the draw finished ten minutes earlier I would have rewritten a sentence
+that works.
+
+Also confirmed in the same draw, and the reason it was worth watching: BOTH halves of the
+empty-list mirror were written — TestListEmptyIsEmptyArray in router_test.go and
+TestProjectListEmptyIsEmptyArray in projects_test.go. First mirror in this campaign specified
+before either half was found open, and both halves took.
