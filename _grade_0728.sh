@@ -34,6 +34,30 @@ ready() {  # <artifact> -> 0 if it exists AND nothing is writing it
   return 0
 }
 
+# SAY WHETHER THE TREE IS GREEN BEFORE PRINTING ANY VERDICT ABOUT IT. Every probe below
+# compares "suite on clean code" against "suite on mutated code", and on a RED tree the
+# first half is already failing, so verdict_for returns BASELINE-RED for every site. Those
+# rows are honest but they sit in a column headed CAUGHT/SURVIVED and read like verdicts
+# about the site. taskapipro draw 3 is in a fix loop on a config test as I write this, so
+# this is not hypothetical for tonight's run.
+#
+# A RED tree is not a reason to skip grading — a package can be green while another is red,
+# and taskapipro's internal/api passed while internal/config failed, which is exactly the
+# case where the closure IS gradable. So: announce, then grade anyway.
+banner() {  # <artifact>
+  local art="$1" mod
+  mod=$(find "$art" -name go.mod 2>/dev/null | head -1)
+  [[ -z "$mod" ]] && { echo "  (no go.mod — generation failed early)"; return; }
+  if (cd "$(dirname "$mod")" && go test ./... > /dev/null 2>&1); then
+    echo "  tree is GREEN — mutation verdicts below are about the sites."
+  else
+    echo "  ** TREE IS NOT GREEN. ** Any BASELINE-RED row below is a statement about the"
+    echo "  TREE, not about the site: the unmutated suite already fails, so nothing can be"
+    echo "  learned from breaking it further. Per-package results:"
+    (cd "$(dirname "$mod")" && go test ./... 2>&1 | grep -E "^(ok|FAIL|---)" | sed 's/^/    /')
+  fi
+}
+
 # ---- 1. taskapipro draw 3: the mirrored projects clamp ------------------------------
 # Baseline, measured per line on draw 2 BEFORE the edit:
 #   tasks.go     L54 SURVIVED(inert)  L59 CAUGHT  L63 CAUGHT  L67 SURVIVED(inert)  L71 SURVIVED
@@ -44,6 +68,7 @@ ready() {  # <artifact> -> 0 if it exists AND nothing is writing it
 if ready generated/taskapipro-chain3; then
   echo
   echo "======== generated/taskapipro-chain3  probe=clamp value (per line) ========"
+  banner generated/taskapipro-chain3
   .venv/bin/python - <<'PY'
 import pathlib, re, sys
 sys.path.insert(0, ".")
@@ -85,6 +110,7 @@ grade_nil() {  # <artifact> <relative go file> <label>
   fi
   echo
   echo "======== $art  probe=nil-slice  $label ========"
+  banner "$art"
   .venv/bin/python - "$art" "$rel" <<'PY'
 import pathlib, re, sys
 sys.path.insert(0, ".")
@@ -126,6 +152,7 @@ done
 if [[ -n "$SH" ]]; then
   echo
   echo "======== $SH  probe=race + 400/404 mirrors ========"
+  banner "$SH"
   echo "  -- was the concurrency test written at all?"
   grep -rl "TestResolveIsSafeUnderConcurrency" "$SH" 2>/dev/null | sed 's/^/     named in: /' \
     || echo "     NOT WRITTEN — the closure did not take; the race is undefended again"
