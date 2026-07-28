@@ -138,6 +138,12 @@ collapsing the rows by text turned 149 into 82 the first time it was tried. Read
 CAUGHT->SURVIVED direction first: that is a closure that did not survive its own redraw,
 and it is the only number that can retract a claim made this week.
 
+DO NOT ADD THE LINE NUMBER TO THE SWEEP'S ROWS UNTIL THIS DIFF IS DONE. It is a good idea
+and it is queued — it would make the survivor/reachability join exact instead of bounded —
+but _redraw_diff parses rows POSITIONALLY and hard-fails on anything but exactly 4 fields.
+A 5-column v5 file against a 4-column v4 file stops this comparison dead, loudly, at the
+moment it is most wanted. After the diff, not before.
+
 TWO THINGS TO SAY OUT LOUD BEFORE READING THE RESULT, both measured, both limits:
 
 1. THE COMPARABLE SET WILL BE SMALL, AND ITS SIZE IS THE HEADLINE, NOT A FOOTNOTE.

@@ -107,8 +107,13 @@ def main() -> int:
         print(f"   ({benign} SURVIVED* row(s) excluded — the labelled-benign statusRecorder\n"
               f"    default, which changes log output and nothing else.)")
     print("   BOUNDED, not exact: sweep rows carry no line number, so a file with mixed cold\n"
-          "   and warm sites can only be bounded. Adding the line to the sweep's rows makes\n"
-          "   this exact and is a small change worth doing before the next sweep.")
+          "   and warm sites can only be bounded. Adding the line makes the join exact.\n"
+          "   SEQUENCING, and it is not 'whenever': do it AFTER the v4-vs-v5 diff, never\n"
+          "   before. _redraw_diff parses rows POSITIONALLY and hard-fails on anything but\n"
+          "   exactly 4 tab-separated fields, so a 5-column v5 file against a 4-column v4\n"
+          "   file stops the capstone comparison dead. It fails LOUDLY, which is the right\n"
+          "   design and the opposite of the failure mode this session kept finding — but it\n"
+          "   would fail at the worst possible moment.")
 
     print("\nWHAT THE ROW DELTA IS NOT: not the corpus getting worse, not new holes. The trees\n"
           "are frozen and unchanged. It is the size of the question five of six shapes were\n"
