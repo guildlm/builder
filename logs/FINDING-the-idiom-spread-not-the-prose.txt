@@ -81,3 +81,39 @@ that catch them live in internal/api. If TestHealthz keeps the api package red, 
 whole-suite grade returns BASELINE-RED for both closures. The honest fallback is a
 `-run` scoped to the two closure tests, stated as the narrower claim it is — the same
 caveat already recorded for taskapipro's package-scoped grade tonight.
+
+
+REFINEMENT, same night — AN IDIOM NEEDS A RECEPTIVE SITE, AND AN OPTIONAL ASSERTION IS ONE
+
+The same edit went into TWO specs tonight. usersapi and taskapi both got an empty-list
+closure asserting the RAW body, and both therefore got `strings` imported into a test file
+that did not have it. One bled and one did not.
+
+    taskapi   router_test.go   strings.TrimSpace appears TWICE — my test, and healthz,
+                               where it is wrong. Six fix rounds.
+    usersapi  users_test.go    strings.TrimSpace appears ONCE — my test. Tree GREEN.
+
+The difference is what was next door. taskapi's healthz entry said:
+
+    "assert the STATUS CODE is 200. The body is the bare JSON string "ok" ... if you check
+     it at all, decode it into a `string`, never into a struct"
+
+— an OPTIONAL body assertion. usersapi's entry has no optional body assertion anywhere; grep
+for "if you check", "optional", "decode it into" returns nothing. There was no test with a
+CHOICE about how to assert a body, so the new idiom had nowhere to go.
+
+    An idiom does not spread to any neighbour. It spreads to a neighbour that was already
+    deciding how to write the same kind of assertion — and an OPTIONAL assertion is exactly
+    a test that has been handed that decision.
+
+That joins the two findings this file and the healthz one recorded separately. The optional
+assertion was not merely risky on its own account: it was the LANDING SITE. Withdrawing it
+("assert the status code and NOTHING ELSE, do not touch the body") removes the risk and the
+receptor in one edit, which is why that fix is worth more than the one-line change it looks
+like.
+
+Practical form, and it is cheap enough to run by hand at edit time:
+
+    When a closure introduces a new assertion IDIOM or IMPORT into a test file, look for a
+    neighbouring test in that file whose entry leaves the assertion OPTIONAL. That is where
+    it will land. If there is none — as in usersapi — the edit is much safer than it looks.
