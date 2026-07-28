@@ -82,3 +82,12 @@ echo "were never asked. Read the coverage block in the log: any 'NOT PROBED' lin
 echo "survives this fix is a shape still under-sampling, and that is the number to chase."
 echo
 echo "Then, and only then, the redraw:  ./_sweep_v5.sh --check"
+echo
+echo "THE OTHER BASELINE DOES NOT NEED RE-TAKING, and this was checked rather than assumed:"
+echo "logs/reachability-rows.tsv (250 sites, 60 cold) comes from _reachability, which imports"
+echo "go_files from _hole_hunt — so it would have inherited the glob bug. Git order settles it:"
+echo "the walk fix (c05bc95) landed BEFORE _reachability was written (694d500) and before its"
+echo "rows were dumped (034b1a6). That baseline was taken with the repaired walk."
+echo
+echo "The rule that prompted the check is the point: when an instrument changes, EVERY number"
+echo "taken with it is suspect until its date is compared, not just the one you were looking at."
