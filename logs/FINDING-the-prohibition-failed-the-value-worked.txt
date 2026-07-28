@@ -1,0 +1,62 @@
+FINDING — the prohibition was ignored; the VALUE I put beside it is what fixed the draw
+=======================================================================================
+2026-07-29. shortener-v5, first spec of the v5 redraw. GREEN, 0 fix rounds.
+Previous draw: RED, rounds spent on this exact test.
+
+WHAT I CHANGED
+
+TestStatsCountsOneHit had asserted on a SETUP step — the redirect GET whose only job is to
+increment Hits — and expected something other than 301, which is what the service returns
+and what the spec promises two entries above. The suite went red against a correct handler.
+
+My edit forbade the assertion outright:
+
+    "The redirect request is a SETUP STEP. Do NOT assert anything about it — not its status,
+     not its Location header, not its body."
+
+and, in the paragraph explaining why, stated the value:
+
+    "...a draw asserted on that step and expected something other than 301, and 301 is
+     exactly what this service's redirect returns..."
+
+WHAT THE DRAW DID
+
+    rec2 := httptest.NewRecorder()
+    h.ServeHTTP(rec2, httptest.NewRequest(http.MethodGet, "/r/"+created.Code, nil))
+    if rec2.Code != http.StatusMovedPermanently {
+        t.Fatalf("redirect: got %d", rec2.Code)
+    }
+
+It asserted anyway. The prohibition — three clauses, naming status, header and body — was not
+followed. What changed is that the assertion is now CORRECT, because the prose I wrote to
+justify the prohibition told it the right value.
+
+    The result I wanted arrived for a reason other than the one I intended.
+
+WHY THIS MATTERS MORE THAN THE GREEN TREE
+
+If I had checked only the outcome — RED with fix rounds, then GREEN with none — I would have
+concluded that withdrawing an option works, and filed it as confirmation of tonight's
+healthz lesson ("explaining a trap is not a constraint; withdrawing the option is"). The
+artifact says otherwise. The option was withdrawn and exercised anyway.
+
+What actually worked was supplying the correct VALUE. That is the same shape as tonight's
+other measured result, from the opposite direction: for a QUANTITY that must be exact, the
+reason is what makes it stick, and the instruction alone does not. Here a PROHIBITION alone
+did not stick either — and the information embedded in its justification did all the work.
+
+    A spec sentence that forbids something and also states the right answer will be read for
+    the answer. The prohibition is the part that gets dropped.
+
+WHAT IS STILL OPEN
+
+Whether withdrawing an option EVER works is now untested rather than confirmed. taskapi's
+healthz entry got the same treatment ("assert the status code and NOTHING ELSE, do not touch
+the body") and has NOT been redrawn — it is in this v5 sweep, later in the list. That is the
+clean test, because unlike here I did NOT tell it what the body contains. If healthz comes
+back with no body assertion, withdrawal works when it is not accompanied by the answer. If
+it comes back asserting the body correctly, then what fixes these is information and never
+prohibition.
+
+n=1, and shortener is the noisiest spec in the corpus (12 _fail- archives). Recorded now so
+the healthz result has something to be compared against rather than explained after.
