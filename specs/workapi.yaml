@@ -403,6 +403,19 @@ files:
       token -> 204, then GET /tasks/1 -> 404.
       TestMalformedJSON — POST /tasks with a truncated body `{"id":"1",` and token
       -> 400.
+      TestDeleteMissingReturns404 — on a FRESH router, DELETE /tasks/nope with a valid
+      token — an id nobody created — and assert, as this test's ONLY assertion, that
+      the code is 404.
+      TestDeleteTask above does NOT cover this. Its 404 comes from the GET that
+      follows a SUCCESSFUL delete, so Delete's own ErrNotFound branch has never been
+      requested by anything. The handler comment says "Delete removes {id} returning
+      204, or 404 if absent" and the second half of that sentence is untested.
+      Measured on this artifact with a coverage run: the `writeJSON(w,
+      http.StatusNotFound, nil)` inside Delete is executed ZERO times by the whole
+      suite, while Get's identical line is executed. Two routes, two 404 branches,
+      one exercised. This is the same hole taskflow had, in the same shape, and the
+      promise looks covered because a test named for the delete asserts a 404 that
+      comes from somewhere else.
       TestHealthz — GET /healthz -> 200.
       TestReadyz — GET /readyz -> 200. Its OWN function, not a second assertion inside
       TestHealthz: measured on this project, an assertion added inside another test is
