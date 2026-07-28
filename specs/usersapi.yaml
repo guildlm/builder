@@ -98,7 +98,7 @@ files:
       exist), do NOT use one shared table loop with fresh state per row — a case
       that GETs or DELETEs id "1" would 404 unless "1" was created first. Instead:
       one ORDERED flow test on a SINGLE router (h := NewRouter(NewMemStore())) that
-      carries state across steps IN ORDER. TEN test functions in this file, all of
+      carries state across steps IN ORDER. ELEVEN test functions in this file, all of
       them, and each of the CRUD cases gets its OWN NAME — a test described here but
       not named is one a later edit deletes without anyone noticing:
       TestCreateReturns201AndEcho: POST a valid user with id "1" -> 201 and the body
@@ -108,6 +108,20 @@ files:
       stored user (assert fields).
       TestListReturnsAll: POST id "1" FIRST, then GET /users -> 200 and a JSON array
       containing user "1".
+      TestListEmptyIsEmptyArray: on a FRESH NewRouter(NewMemStore()) — post NOTHING,
+      that is the whole point — GET /users and assert, as this test's ONLY assertion,
+      that strings.TrimSpace(rec.Body.String()) is exactly "[]".
+      Assert the RAW BODY, not a decoded value: an empty list encoded from a nil slice
+      goes out as `null`, and decoding `null` into a []User gives a slice of length 0
+      exactly like `[]` does, so every length check passes either way while clients
+      that iterate the response break. The store returns `make([]User, 0, len(...))`
+      and that one `make` is the ONLY thing standing between this endpoint and `null`
+      — replace it with `var out []User` and the whole suite still passes.
+      TestContentTypeJSON below already GETs this exact empty collection; it asserts
+      the HEADER, so the empty body flows through a request that cannot see it. Do NOT
+      add this assertion to that test — it needs its own name, because an assertion
+      added inside another test is the shape that evaporated on the next regeneration
+      twice in this corpus, while every own-named invariant survived. Import strings.
       TestDeleteExistingThen404: POST id "1" FIRST, DELETE /users/1 -> 204, then GET
       /users/1 -> 404.
       TestDeleteMissingReturns404: DELETE an id nobody created -> 404.

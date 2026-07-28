@@ -237,7 +237,7 @@ files:
       Every assertion states the EXACT expected value. Never assert "at most N":
       a paginate that wrongly returns ZERO items satisfies "at most 1" and the bug
       ships green. If you expect one item, require len(got) == 1.
-      EIGHT test functions, all of them:
+      NINE test functions, all of them:
       TestCreateOK: Create a valid task -> no error.
       TestCreateInvalid: Create a task with a bad status -> the error is
       models.ErrInvalid (errors.Is).
@@ -362,9 +362,9 @@ files:
       log/slog, net/http, and the service package.
   - path: internal/api/router_test.go
     purpose: >-
-      package api. Integration tests (net/http/httptest). This file contains TWELVE
-      top-level declarations: the newRouter helper, and ELEVEN test functions. WRITE
-      ALL TWELVE — the helper is the one most easily skipped, because it is shown
+      package api. Integration tests (net/http/httptest). This file contains ELEVEN
+      top-level declarations: the newRouter helper, and TEN test functions. WRITE
+      ALL ELEVEN — the helper is the one most easily skipped, because it is shown
       to you below and reads like something that already exists. It does not: this
       file is the only place it is declared, and every test calls it.
       Declare ONCE at package scope EXACTLY this helper — it returns http.Handler
@@ -441,7 +441,7 @@ files:
       must POST that precondition ITSELF first. Build each request inline with
       httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
       is a one-shot reader). Each is its own function and asserts ONE outcome:
-      EIGHT test functions, all of them:
+      NINE test functions, all of them:
       EVERY project POST body carries a CLIENT-SUPPLIED id — the API does not
       generate them. Always send both fields: `{"id":"1","name":"p1"}`.
       TestProjectCreateGet: POST `{"id":"1","name":"p1"}` -> 201, and the response
@@ -454,6 +454,17 @@ files:
       TestProjectGetMissing: GET a project id nobody created -> 404.
       TestProjectList: POST ONE project FIRST, then GET the collection -> 200 and
       a JSON array holding EXACTLY 1 project.
+      TestProjectListNegativeOffsetIsClampedHere: POST ONE project FIRST, then GET
+      /projects with the query `?limit=10&offset=-1` and assert, as this test's
+      ONLY assertion, that EXACTLY 1 project comes back.
+      This is the SAME invariant as the task test of the same name in
+      router_test.go and it is NOT covered by it: projects.go has its own handler,
+      its own strconv parse and its own `offset < 0` clamp, and a test that GETs
+      /tasks never executes one line of it. Measured: with the task test in place
+      and this one missing, the projects clamp could be changed to assign 7777
+      instead of 0 and the whole suite stayed green. Two routes that implement an
+      invariant twice need it asserted twice — the route with a test is what makes
+      the other one look finished.
       TestProjectDelete: POST a project FIRST, DELETE it -> 204, then GET it ->
       404.
       TestProjectDeleteMissing: DELETE a project id nobody created -> 404.

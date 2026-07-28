@@ -204,6 +204,17 @@ files:
       200 with the stored fields.
       TestList: POST one task FIRST, then GET the collection -> 200 and a JSON
       array.
+      TestListEmptyIsEmptyArray: on a FRESH router — post NOTHING, that is the whole
+      point — GET /tasks and assert, as this test's ONLY assertion, that
+      strings.TrimSpace(rec.Body.String()) is exactly "[]".
+      Assert the RAW BODY, not a decoded value: an empty list encoded from a nil
+      slice goes out as `null`, and decoding `null` into a []models.Task gives a
+      slice of length 0 exactly like `[]` does, so every length check passes either
+      way while clients that iterate the response break. The store's
+      `make([]models.Task, 0, len(...))` is the ONLY thing standing between this
+      endpoint and `null` — one line, no second guard behind it. Every other list
+      test POSTs first, so the empty collection is otherwise never requested at all.
+      Import strings for this.
       TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
       TestMalformedJSON: POST truncated bytes like `{"title":` (NOT an empty
       `{}`) -> 400.
@@ -212,10 +223,10 @@ files:
       bare JSON string "ok" — NOT an object: if you check it at all, decode it
       into a `string`, never into a struct (a struct decode of a bare string
       silently yields the zero value and fails a handler that is working).
-      That is TEN test functions and NO more — the project endpoints are covered
+      That is ELEVEN test functions and NO more — the project endpoints are covered
       in projects_test.go, in this same package. Do not write them here.
       Imports bytes, encoding/json, io, log/slog, net/http, net/http/httptest,
-      testing, and store + models.
+      strings, testing, and store + models.
   - path: internal/api/projects_test.go
     purpose: >-
       package api. The project endpoints, in their OWN file so that neither test
@@ -238,13 +249,23 @@ files:
       TestProjectGetMissing: GET a project id nobody created -> 404.
       TestProjectList: POST ONE project FIRST, then GET the collection -> 200 and
       a JSON array holding EXACTLY 1 project.
+      TestProjectListEmptyIsEmptyArray: on a FRESH router — post NOTHING — GET
+      /projects and assert, as this test's ONLY assertion, that
+      strings.TrimSpace(rec.Body.String()) is exactly "[]".
+      This is the SAME invariant as TestListEmptyIsEmptyArray in router_test.go and
+      it is NOT covered by it. The store builds the project slice with its OWN
+      `make([]models.Project, 0, len(...))`, a different line from the task one, and
+      a test that GETs /tasks never executes it. Two collections that promise a JSON
+      array need it asserted twice — measured elsewhere in this corpus: a clamp with
+      an identical twin one route over stayed green through every draw because the
+      twin had the test.
       TestProjectDelete: POST a project FIRST, DELETE it -> 204, then GET it ->
       404.
       TestProjectDeleteMissing: DELETE a project id nobody created -> 404.
       Build each request inline with httptest.NewRequest + a FRESH
       httptest.NewRecorder per call (a request body is a one-shot reader).
-      Imports bytes, encoding/json, net/http, net/http/httptest, testing, and the
-      models package. Never name a local variable `t`.
+      Imports bytes, encoding/json, net/http, net/http/httptest, strings, testing,
+      and the models package. Never name a local variable `t`.
   - path: internal/api/middleware_test.go
     purpose: >-
       package api. ONE test for the middleware whose entire job is to run when
