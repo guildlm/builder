@@ -1,0 +1,55 @@
+FINDING — a prohibition holds, unless you also supply the answer
+================================================================
+2026-07-29. Two specs, one night, the same edit shape, opposite outcomes — and the
+difference is a single property of the justification.
+
+PROVISIONAL: taskapi-v5's router_test.go is written but the draw has not finished, so a fix
+round could still touch it. Confirmed status follows when the draw lands.
+
+THE PAIR
+
+  shortener — prohibition PLUS the correct value:
+      "The redirect request is a SETUP STEP. Do NOT assert anything about it — not its
+       status, not its Location header, not its body."
+      ...and in the paragraph explaining why: "...expected something other than 301, and 301
+      is exactly what this service's redirect returns..."
+
+      RESULT: it asserted anyway. `if rec2.Code != http.StatusMovedPermanently`. The
+      prohibition was dropped and the VALUE was used.
+
+  taskapi — prohibition ALONE, no value:
+      "assert the STATUS CODE is 200, and assert NOTHING ELSE. Do NOT touch the body at all."
+      The entry never says what the body contains.
+
+      RESULT: no body assertion. Just the status check.
+          func TestHealthz(t *testing.T) {
+              ... if rec.Code != http.StatusOK { t.Errorf(...) }
+          }
+
+THE RULE, and it is sharper than what I had
+
+I had drafted two rules tonight that looked like they conflicted: "for an option you do not
+want exercised, WITHDRAW it — explaining is not a constraint" (from healthz going wrong
+twice), and "the prohibition was ignored; the VALUE is what fixed the draw" (from shortener).
+Both were measured. Neither is the rule.
+
+    A prohibition WORKS. It stops working the moment the same entry also supplies the
+    answer, because then there is something to use, and using it is easier than obeying.
+
+That is actionable in a way neither draft was: when you forbid an assertion, the
+justification must argue WITHOUT stating the correct value. Explaining WHY the assertion is
+wrong is fine. Saying what the right one would be defeats the sentence it is attached to.
+
+It also re-reads the original healthz failure. The wording that failed twice was "if you
+check it at all, decode it into a `string`, never into a struct" — which is not merely an
+optional assertion, it is an optional assertion WITH THE METHOD SUPPLIED. Same defect: the
+sentence handed over the means while gesturing at restraint.
+
+WHAT THIS DOES NOT SHOW
+
+n=1 per side, on two specs with different histories, and shortener is the noisiest artifact in
+the corpus. What makes it worth writing down anyway is that the prediction was recorded in
+logs/PENDING-verifications.txt BEFORE the draw, with both outcomes and what each would mean:
+"No body assertion => withdrawal works when unaccompanied by the answer. A correct body
+assertion => what fixes these is information, never prohibition." The first branch is what
+happened.
