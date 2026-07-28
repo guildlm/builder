@@ -49,16 +49,38 @@ SURVIVED -> CAUGHT and both tasks.go sites stayed CAUGHT. The tree is RED on
 internal/config for an unrelated reason (a promise the implementation entry never made),
 so that grade is package-scoped and says so.
 
-taskapi — IN FLIGHT
--------------------
-Two closures, tasks and projects, both `make([]T, 0, ...)` in internal/store/memory.go.
-This is the first mirror in the campaign specified BEFORE either half was found open, and
-the prediction I most want an answer to is whether writing the twin up front costs anything.
-If exactly one comes back CAUGHT, that is the result worth having.
+taskapi draw 2 — BOTH TWINS CAUGHT, tree NOT-GREEN for an unrelated reason
+--------------------------------------------------------------------------
+    internal/store/memory.go L51  make([]models.Task, 0, ...)     CAUGHT
+                                  via TestListEmptyIsEmptyArray
+    internal/store/memory.go L96  make([]models.Project, 0, ...)  CAUGHT
+                                  via TestProjectListEmptyIsEmptyArray
 
-Free second measurement on the same draw, from tonight's convergence finding: does this draw
-write TestMalformedJSON? The spec has named it since 2026-07-11 and neither taskapi-v4 nor
-taskapi-chain contains it. Absent in a third independent draw would mean the sentence is not
-taking and earns a rewrite rather than a repetition.
+The prediction was that if exactly ONE came back CAUGHT that would be the result worth
+having — a sign that specifying a mirror before either half is found open costs something.
+It does not. Both halves were written and both are defended, first draw. 33 of 33 sites.
 
-SESSION TALLY: 31 closure sites graded, 31 held.
+Scoped grades (_grade_scoped.py), because the tree is red on TestHealthz — an unrelated test
+that compared a raw JSON body against `ok`. The narrower claim is stated: the NAMED TEST
+catches the mutation, not that the whole suite does.
+
+That TestHealthz failure is itself the most interesting thing this draw produced, and it has
+its own file: logs/FINDING-the-idiom-spread-not-the-prose.txt. My closure introduced
+`strings` and a raw-body assertion into router_test.go, and the neighbouring healthz test
+copied the idiom into a place where it is wrong. Draw 1 of the same spec, without that
+import, decoded correctly with json.Unmarshal and passed.
+
+Second measurement on the same draw, from tonight's convergence finding: this draw DID write
+TestMalformedJSON, absent from the two before it. So that name is intermittent, not dead —
+which retracts the conclusion that file was heading toward. See the update in
+logs/FINDING-two-instruments-agreeing-from-opposite-ends.txt.
+
+A NOTE ON HOW THESE TWO VERDICTS WERE OBTAINED
+The grader used for them was wrong three separate ways within an hour, each found by running
+it on real input rather than on its own fixtures: it addressed sites by text rather than by
+occurrence, it read a non-compiling mutant as CAUGHT, and it scoped the test run to the
+mutated file's package — where the defending test does not live — producing "ok [no tests to
+run]" and a SURVIVED verdict for both closures. Two of those manufacture a CAUGHT and one
+manufactures a SURVIVED, so plausibility could not have caught them. All three are pinned.
+
+SESSION TALLY: 33 closure sites graded, 33 held. Remaining: shortener (in flight).
