@@ -4308,6 +4308,97 @@ _BANG_ON_NONBOOL_RE = re.compile(
 )
 
 
+_BAD_FORMAT_VERB_RE = re.compile(
+    r"^(\S+\.go):(\d+):\d+: .*?format %(\S) has unknown verb", re.M
+)
+# A valid verb, with the flag/width/precision Go allows in front of it.
+_GOOD_VERB_RE = re.compile(r"%[+\-# 0]*\d*(?:\.\d+)?[vTtbcdoqxXUeEfFgGsp]")
+
+
+def _fix_bad_format_verb(
+    written: dict[str, str], error_output: str
+) -> dict[str, str]:
+    """``t.Errorf("Decode(%) = %v", code, err)`` — a verb letter was dropped, so
+    ``%)`` is not a directive and ``go vet`` fails the build.
+
+    Seen live: shortener's spec shows ``t.Fatalf("Decode(%q): %v", ...)`` and a
+    draw copied it as ``Decode(%)``. Two fix rounds and zero model calls later it
+    was still there — vet names the file, the line and the offending verb, and the
+    loop could not repair one missing character.
+
+    TWO READINGS, and they are told apart by ARITY rather than guessed:
+      - a DROPPED VERB   ``"Decode(%) = %v"`` with 2 args -> the ``%)`` was meant
+        to consume one, so it becomes ``%v)``.
+      - a LITERAL PERCENT ``"100%) done"`` with 0 args -> nothing was dropped and
+        the percent needs escaping, so it becomes ``%%)``.
+    If the argument count cannot be read confidently the gate does NOTHING. A
+    repair that guesses here would turn a build error into a silently wrong
+    message, which is strictly worse than the error it replaces.
+
+    Only fires when the unknown verb is NOT alphanumeric. ``%z`` is a different
+    mistake — the model chose a verb that does not exist — and inserting a ``v``
+    in front of it would produce ``%vz``, printing a stray letter forever.
+    Line-preserving."""
+    changed: dict[str, str] = {}
+
+    def resolve(path: str) -> str | None:
+        path = path.lstrip("./")
+        if path in written:
+            return path
+        cand = [p for p in written if p.endswith(path)]
+        return cand[0] if len(cand) == 1 else None
+
+    for m in _BAD_FORMAT_VERB_RE.finditer(error_output):
+        path, lineno, verb = resolve(m.group(1)), int(m.group(2)), m.group(3)
+        if not path or verb.isalnum():
+            continue
+        code = changed.get(path, written[path])
+        lines = code.splitlines()
+        if lineno > len(lines):
+            continue
+        line = lines[lineno - 1]
+        bad = "%" + verb
+        if bad not in line:
+            continue
+        # The format string is the first double-quoted literal on the line.
+        lit = re.search(r'"((?:[^"\\]|\\.)*)"', line)
+        if not lit:
+            continue
+        fmt = lit.group(1)
+        # Arguments after the literal, split on top-level commas.
+        rest = line[lit.end():]
+        depth, args, cur = 0, [], ""
+        for ch in rest:
+            if ch in "([{":
+                depth += 1
+            elif ch in ")]}":
+                if depth == 0:
+                    break
+                depth -= 1
+            if ch == "," and depth == 0:
+                if cur.strip():
+                    args.append(cur.strip())
+                cur = ""
+            else:
+                cur += ch
+        if cur.strip().rstrip(",").strip():
+            args.append(cur.strip())
+        args = [a for a in args if a]
+        verbs = len(_GOOD_VERB_RE.findall(fmt.replace("%%", "")))
+        if len(args) == verbs + 1:
+            new_line = line.replace(bad, "%v" + verb, 1)
+            why = "a verb letter was dropped"
+        elif len(args) == verbs:
+            new_line = line.replace(bad, "%%" + verb, 1)
+            why = "the percent is literal and needs escaping"
+        else:
+            continue  # cannot tell — leave the build error, which is honest
+        lines[lineno - 1] = new_line
+        changed[path] = "\n".join(lines) + ("\n" if code.endswith("\n") else "")
+        _log(f"  {path}:{lineno}: `{bad}` is not a format verb — {why}")
+    return changed
+
+
 def _fix_negated_comparison(
     written: dict[str, str], error_output: str
 ) -> dict[str, str]:
@@ -4467,6 +4558,7 @@ def _run_deterministic_gates(
     inplace.update(_fix_self_qualified_package({**written, **inplace}, output))
     inplace.update(_fix_external_test_package({**written, **inplace}, output))
     inplace.update(_fix_negated_comparison({**written, **inplace}, output))
+    inplace.update(_fix_bad_format_verb({**written, **inplace}, output))
     if inplace:
         return inplace
 
