@@ -105,3 +105,32 @@ exact test was written last time and defended nothing".
 Unverified. The next taskapipro draw answers it, and the answer is interesting either way:
 if the reason works, spec reasoning is a per-entry cost that has to be paid in each entry;
 if it does not, then a quantity that must be exact needs a different mechanism entirely.
+
+
+CAN THIS BE AUDITED? MEASURED, AND THE ANSWER IS NOT YET
+
+The obvious follow-up is a check for tests whose justification is a POINTER — "for the same
+reason", "as above", "identical to the task version". Ran it over all 25 specs: 10 hits, and
+the two shortest, read in full, are both fine.
+
+    taskflow TestProjectGetReturns200 (60 chars, "for the same reason") — the cross-reference
+    is to WHY it needs its own test, and the test itself is fully specified: "POST a project
+    FIRST, GET /projects/{id}, assert ONE thing: rec.Code == http.StatusOK. Decode nothing."
+    taskapi TestDeleteProjectMissing ("exactly as above") — refers to test SETUP structure,
+    not to an invariant's justification.
+
+And the check cannot separate the failure from the success it sits next to: the projects
+CLAMP test cross-references too ("the task test of the same name") and HELD, because it also
+states its own measured reason. Cross-referencing is not the defect. Cross-referencing
+INSTEAD OF is.
+
+So the generic scan has poor precision and its yield here is zero. What actually distinguishes
+the one that failed is narrower: a test whose assertion is a COUNT, where a smaller setup
+produces a number that is ALSO correct. "POST ONE project, assert 1" is right for a list test
+and blind for a page-size test, and only the second reading needs three items.
+
+I am not building that detector from one instance. Twice tonight a tool generalised from a
+single case reported confidently about the wrong population — the probe classifier's
+hardcoded name list and the route auditor's three drafts — and this would be the same move.
+Recorded so the next occurrence has a first data point to join, rather than a tool built on
+this one.
