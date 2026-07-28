@@ -1,0 +1,70 @@
+FINDING — all four draws' fix-round cost was TEST-side, and two of three causes were mine
+=========================================================================================
+2026-07-28. Counted from the four run logs of _run_queue_0728.sh. Base model at :8080, no
+fleet, identical flags across all four.
+
+    draw                rounds  model fix-calls   what consumed them
+    usersapi                 2               0    nothing — GREEN
+    shortener                2               0    an assertion the spec did not ask for,
+                                                  then a malformed format string written BY
+                                                  a fix round (in flight at time of writing)
+    taskapi                  6              24    TestHealthz compared a raw JSON body
+                                                  against `ok`
+    taskapipro               7              10    TestValidateRejectsZeroDefaultPageSize
+                                                  demanded a guard the impl entry never
+                                                  promised
+
+NOT ONE ROUND was spent on an implementation defect. Every round in every draw went to a
+TEST that was wrong, or to a test demanding something the implementation had never been
+asked for. In taskapi's case I checked directly while the loop was running: writeJSON was
+untouched and still encoding correctly after the loop had widened into three production
+files looking for the fault.
+
+This SHARPENS what I had already recorded. The existing note says the cost is "in the fix
+loop, and free when the gate chain can solve it" — measured as 0 vs 84 calls across the N=5
+Chain runs. True, and it does not say WHERE the defect is. Tonight it is unambiguous:
+
+    The expensive failures were not the model writing bad code. They were the model
+    writing a bad TEST, or a correct implementation being asked to satisfy an
+    impossible one.
+
+AND TWO OF THE THREE CAUSES WERE MINE
+
+  taskapipro — I added TestValidateRejectsZeroDefaultPageSize to the test entry yesterday
+  and never added the matching guard to the implementation entry. Three earlier draws
+  inferred it; this one read literally and burned its whole budget. That is a spec I made
+  unsatisfiable, and _promise_gap.py now finds the shape.
+
+  taskapi — my empty-list closure introduced `strings` and a raw-body assertion into
+  router_test.go, and the neighbouring healthz test copied the idiom into a place where it
+  is wrong. Draw 1 of the same spec, without that import, decoded with json.Unmarshal and
+  passed. Recorded in FINDING-the-idiom-spread-not-the-prose.txt.
+
+  shortener — not mine. The spec says "GET /r/+created.Code EXACTLY ONCE (this is what
+  increments Hits)": a setup step, not an assertion point. The model asserted on it anyway
+  and expected the wrong code, since 301 is exactly what the spec promises the redirect
+  returns.
+
+THE COMMON SHAPE, and it is the practical output of this file
+
+All three are ASSERTIONS THAT SHOULD NOT EXIST — one demanded by a spec entry that no
+implementation entry promised, one copied from a neighbour, one invented on a setup step.
+None of the three was an assertion the spec asked for and the model got wrong.
+
+    A spec's job is not only to name the assertions it wants. It has to leave no room for
+    the ones it does not.
+
+That is why taskapi's healthz entry now says "assert the status code and NOTHING ELSE, do
+not touch the body" instead of the previous wording, which warned about the exact trap and
+then permitted the check. Explaining a trap while allowing the action is not a constraint.
+
+WHAT THIS DOES NOT SAY
+
+Four draws is four draws, and three of them are HTTP specs of similar shape. usersapi cost
+nothing and it is the smallest. This is not evidence that implementations are reliable in
+general — it is evidence about where the cost went on ONE night, in a session whose edits
+were all test-side to begin with, which is a selection effect I should not pretend away:
+I spent the day editing test entries, so test entries are where the damage appeared.
+
+The number worth watching next is whether the two repaired specs (taskapipro's promise,
+taskapi's healthz) come back cheap on their next draw. taskapipro draw 4 is already queued.
