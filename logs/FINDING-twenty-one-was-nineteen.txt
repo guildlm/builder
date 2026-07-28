@@ -1,0 +1,102 @@
+FINDING — the capstone's twenty-one was nineteen, and the tool could not have said so
+=====================================================================================
+2026-07-28. Frozen tree: generated/taskapipro-v4. Model-free.
+Corrects: logs/FINDING-forty-eight-candidates-twenty-one-holes.txt.
+
+WHAT I PUBLISHED YESTERDAY
+
+  21 REAL HOLES
+     5   clamp VALUE untested    taskapipro x4 (api layer), taskflow x1 (parser)
+     ... (5 Chain, 4 mirrors, 2 config, 2 bitset, 3 singles)
+
+  "So 44% of the survivor list is real. The number to carry is not 48 and not 16; it is 21,
+   and it took a probe, a coverage run or a code-read PER ROW to get there."
+
+Per row. The four taskapipro clamp rows did not get one. They were SURVIVED, shape 6b had
+been written precisely because clamp VALUES were a systematic blind spot, and I counted
+them — which is the mistake the same document devotes a section to naming.
+
+WHAT THE PROBES SAY
+
+Eight probes, one per SITE rather than one per row, because each of those two files writes
+the same assignment twice — once as the strconv error fallback, once as the negative clamp —
+and they are reached by different requests:
+
+    site                                        verdict            reached by
+    tasks.go     limit  = 0  (err fallback)     INERT-OR-WEAK      GET /tasks
+    tasks.go     limit  = 0  (negative clamp)   INERT-OR-WEAK      GET /tasks?limit=-1
+    tasks.go     offset = 0  (err fallback)     DEFENDED-ALREADY   GET /tasks      (TestList)
+    tasks.go     offset = 0  (negative clamp)   OBSERVABLE  <-     GET /tasks?offset=-1
+    projects.go  limit  = 0  (err fallback)     INERT-OR-WEAK
+    projects.go  limit  = 0  (negative clamp)   INERT-OR-WEAK
+    projects.go  offset = 0  (err fallback)     DEFENDED-ALREADY   (TestProjectList)
+    projects.go  offset = 0  (negative clamp)   OBSERVABLE  <-
+
+So of the four rows: TWO are real holes, TWO are inert, and in both real rows one of the two
+sites was already defended — the row conflated a defended site with an undefended one and
+reported the pair as SURVIVED.
+
+    5 clamp VALUE holes -> 3.   21 real holes -> 19.
+
+WHY LIMIT IS INERT AND OFFSET IS NOT
+
+Both wrong values are 7777. The asymmetry is one layer down, in paginate:
+
+    if offset >= len(items)                     { return []T{} }
+    if limit <= 0 || limit > len(items)-offset  { limit = len(items) - offset }
+
+A wrong LIMIT of 7777 hits the second guard and comes back as len-offset — the same number
+a limit of 0 produces through the FIRST half of the same condition. Two routes to one value;
+no response can differ. A wrong OFFSET of 7777 hits the first guard and returns empty, which
+any count assertion sees.
+
+This is the third variant of one thing: a guard behind a guard. taskflow's empty list needed
+BOTH the store's make() and paginate's []T{} broken before anything changed. Here the second
+guard is not redundant, it is ABSORBING — it maps every wrong value to the right one. Same
+consequence for a single-site mutation: structurally invisible.
+
+THE TOOL COULD NOT HAVE REPORTED THESE — TWICE OVER
+
+First, addressing. A string needle in the probe registry means "flip the boundary operator on
+that line", and a clamp body has no operator: `limit = 0` is an assignment. The registry
+needed a VALUE mutator with per-occurrence selection before the question could be asked at
+all. Without it the eight sites are four rows, and four rows cannot show a 2/2 split.
+
+Second, and worse: the OBSERVABLE / DEFENDED-ALREADY split was decided by a HARDCODED LIST of
+probe names —
+
+    if any(name in note for name in ("TestChain", "TestValidateRejectsZero", "TestPaginate",
+                                     "TestClearOutOfRange", ...)):
+        return "OBSERVABLE"
+    return "DEFENDED-ALREADY"
+
+Every name on it was one of mine, so it was correct the day it was written and structurally
+incapable of staying correct. The ninth probe, added today, is called
+TestClampValueIsObservable. It matched nothing. Both real holes above were first reported
+DEFENDED-ALREADY — "the artifact's own suite sees this", about a test the artifact does not
+contain — and I nearly filed that as "the rows were stale, nothing to close".
+
+A stale allowlist fails toward NOTHING TO SEE HERE, which is the direction that ends an
+investigation. This is the third time the same shape has cost something in this repo:
+_corpus_state's writer list went stale the first time it was tested (four new drivers
+invisible), and _hole_hunt's self-test dispatched at module level and ran another tool's
+fixtures. The rule those two already paid for: a tool must DERIVE what it knows about
+itself. The classifier now reads the probe's own function names out of the probe source.
+
+Pinned: a fifth self-test case whose probe is named TestNameNoAllowlistKnows. Verified by
+reverting ONLY the classifier and keeping the pin — the old code fails it with the exact
+misclassification found in the live data. (The first attempt at that check stashed both the
+fix and the pin and passed trivially, which measures nothing.)
+
+WHAT THIS DOES NOT CHANGE
+
+Nothing about the closures already graded. The negative-offset clamps in both files are the
+two sites this week's spec edits target, and they are exactly the two that are real: draw 2
+closed tasks.go and draw 3 is generating the projects.go twin now. The correction removes two
+rows I should never have counted; it does not remove a closure, and no graded CAUGHT verdict
+moves.
+
+The honest sentence: the capstone's method section says a hole must pass three tests —
+applied, observable, reachable — and that checking only the first reports 48 while checking
+all three reports 21. Four rows in its own final table were never put through the second one.
+The method was right. I stopped applying it one row short of the table it produced.

@@ -80,6 +80,34 @@ def nil_slice(occurrence: int = 0):
     return mut
 
 
+def clamp_value(needle: str, occurrence: int = 0, new: str = "7777"):
+    """`limit = 0` -> `limit = 7777`: change what a clamp ASSIGNS, not what it tests.
+
+    A string needle in this registry means "flip the boundary operator on that line", and a
+    clamp body has no operator to flip — `limit = 0` is an assignment. That is exactly why
+    the sixth mutation shape grew a 6b: inverting a clamp's CONDITION is inert by
+    construction, because the body throws away the value it just compared against, and the
+    inert filter was hiding the one thing about a clamp that IS breakable — the value it
+    puts there instead.
+
+    Selected by occurrence, because every one of these handlers writes the same assignment
+    twice: once as the strconv error fallback, once as the negative clamp. They are reached
+    by DIFFERENT requests (no query parameter vs a negative one), so a per-site verdict is
+    the only kind worth having.
+    """
+    def mut(text: str):
+        seen = 0
+        for i, ln in enumerate(text.splitlines()):
+            if needle not in ln or ln.strip().startswith("//"):
+                continue
+            if seen != occurrence:
+                seen += 1
+                continue
+            return replace_at(i, ln, ln.replace(needle, needle.rsplit("=", 1)[0] + "= " + new, 1))(text)
+        return None
+    return mut
+
+
 def flip_site(needle: str, occurrence: int = 0):
     """Flip the boundary operator on the line holding `needle`, by INDEX not by text.
 
@@ -185,6 +213,72 @@ func TestPaginateAtOffsetEqualToLength(probe *testing.T) {{
 '''
 
 
+def clamp_value_probe(route: str, body: str, query: str) -> str:
+    """Three items in, `route` out — does changing what the clamp ASSIGNS change the answer?
+
+    Written to settle a number I published. The capstone counted four taskapipro clamp-VALUE
+    holes among its twenty-one, one row per (file, variable): tasks.go limit, tasks.go
+    offset, projects.go limit, projects.go offset. Every one of the four is SURVIVED, and
+    SURVIVED is where that count stopped — which is the exact mistake the same document
+    spends a section warning about.
+
+    The two variables are not symmetric, and the reason is one layer down in paginate:
+
+        if offset >= len(items)                        { return []T{} }
+        if limit <= 0 || limit > len(items)-offset     { limit = len(items) - offset }
+
+    A wrong LIMIT of 7777 hits the second guard and comes back as len-offset — the same
+    number a limit of 0 produces through the FIRST half of the same condition. Both routes
+    to the same value, so no response can differ. A wrong OFFSET of 7777 hits the first
+    guard and returns empty, which any count assertion sees.
+
+    So the probe is the same shape for all four and the verdicts should split 2/2. If they
+    do, the honest count is nineteen, not twenty-one, and two of the rows I called real are
+    the INERT category the same document defined.
+    """
+    return f'''package api
+
+import (
+	"bytes"
+	"encoding/json"
+	"io"
+	"log/slog"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+
+	"guildlm.dev/taskapipro/internal/service"
+	"guildlm.dev/taskapipro/internal/store"
+)
+
+func TestClampValueIsObservable(probe *testing.T) {{
+	s := store.NewMemStore()
+	h := NewRouter(service.NewTaskService(s), service.NewProjectService(s),
+		slog.New(slog.NewTextHandler(io.Discard, nil)))
+	for _, b := range []string{{{body}}} {{
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest("POST", "{route}", bytes.NewBufferString(b)))
+		if rec.Code != http.StatusCreated {{
+			probe.Fatalf("setup POST = %d, want 201 (body %s)", rec.Code, rec.Body.String())
+		}}
+	}}
+	rec := httptest.NewRecorder()
+	h.ServeHTTP(rec, httptest.NewRequest("GET", "{route}{query}", nil))
+	var got []map[string]any
+	if err := json.NewDecoder(rec.Body).Decode(&got); err != nil {{
+		probe.Fatalf("decode: %v", err)
+	}}
+	if len(got) != 3 {{
+		probe.Fatalf("GET {route}{query} returned %d items, want 3", len(got))
+	}}
+}}
+'''
+
+
+TASKS3 = '`{"id":"1","title":"a","status":"todo"}`, `{"id":"2","title":"b","status":"todo"}`, ' \
+         '`{"id":"3","title":"c","status":"todo"}`'
+PROJECTS3 = '`{"id":"1","name":"a"}`, `{"id":"2","name":"b"}`, `{"id":"3","name":"c"}`'
+
 BITSET_PROBE = '''package bitset
 
 import "testing"
@@ -273,6 +367,36 @@ PROBES = [
      "zz_probe_test.go", BITSET_PROBE),
     ("bitset    Test>=len", "bitset-v4", "bitset.go", "if wordIndex >= len(b.words)", 1,
      "zz_probe_test.go", BITSET_PROBE),
+    # THE FOUR CLAMP-VALUE ROWS THE CAPSTONE COUNTED AS REAL, asked the question it did not
+    # ask them. Each needle occurs TWICE per file — the strconv error fallback, then the
+    # negative clamp — so occurrence 0 is exercised by a request with NO query parameter and
+    # occurrence 1 by one that sends a negative. Both are probed: a row is inert only if
+    # NEITHER site is observable.
+    ("taskapipro tasks limit=0 (err fallback)", "taskapipro-v4", "internal/api/tasks.go",
+     clamp_value("limit = 0", 0), 0, "internal/api/zz_probe_test.go",
+     clamp_value_probe("/tasks", TASKS3, "")),
+    ("taskapipro tasks limit=0 (negative clamp)", "taskapipro-v4", "internal/api/tasks.go",
+     clamp_value("limit = 0", 1), 0, "internal/api/zz_probe_test.go",
+     clamp_value_probe("/tasks", TASKS3, "?limit=-1")),
+    ("taskapipro tasks offset=0 (err fallback)", "taskapipro-v4", "internal/api/tasks.go",
+     clamp_value("offset = 0", 0), 0, "internal/api/zz_probe_test.go",
+     clamp_value_probe("/tasks", TASKS3, "")),
+    ("taskapipro tasks offset=0 (negative clamp)", "taskapipro-v4", "internal/api/tasks.go",
+     clamp_value("offset = 0", 1), 0, "internal/api/zz_probe_test.go",
+     clamp_value_probe("/tasks", TASKS3, "?offset=-1")),
+    ("taskapipro projects limit=0 (err fallback)", "taskapipro-v4", "internal/api/projects.go",
+     clamp_value("limit = 0", 0), 0, "internal/api/zz_probe_test.go",
+     clamp_value_probe("/projects", PROJECTS3, "")),
+    ("taskapipro projects limit=0 (negative clamp)", "taskapipro-v4", "internal/api/projects.go",
+     clamp_value("limit = 0", 1), 0, "internal/api/zz_probe_test.go",
+     clamp_value_probe("/projects", PROJECTS3, "?limit=-1")),
+    ("taskapipro projects offset=0 (err fallback)", "taskapipro-v4", "internal/api/projects.go",
+     clamp_value("offset = 0", 0), 0, "internal/api/zz_probe_test.go",
+     clamp_value_probe("/projects", PROJECTS3, "")),
+    ("taskapipro projects offset=0 (negative clamp)", "taskapipro-v4", "internal/api/projects.go",
+     clamp_value("offset = 0", 1), 0, "internal/api/zz_probe_test.go",
+     clamp_value_probe("/projects", PROJECTS3, "?offset=-1")),
+
     ("expreval  consumeOperator", "expreval-v4", "eval.go", "if p.pos >= len(p.input) {", 0,
      "zz_probe_test.go", EXPREVAL_PROBE),
     ("ledger    dot<0", "ledger-v4", "internal/money/money.go", "if dot < 0", 0,
@@ -440,10 +564,21 @@ def judge(art: pathlib.Path, rel: str, needle: str, occ: int,
         return v, note
     if v == "SURVIVED":
         return "INERT-OR-WEAK", "probe passes on both — no input this probe tries tells them apart"
-    if any(name in note for name in
-           ("TestChain", "TestValidateRejectsZero", "TestPaginate", "TestClearOutOfRange",
-            "TestTestOutOfRange", "TestOperatorPosition", "TestParseRejects",
-            "TestEmptyListMarshals")):
+    # WHOSE TEST WENT RED? That is the entire OBSERVABLE / DEFENDED-ALREADY distinction, and
+    # it used to be decided by a hardcoded list of the probe names I had written so far.
+    # Every name on it was one of mine, so the list was correct the day it was written and
+    # structurally incapable of staying correct: the NINTH probe, added today, was named
+    # TestClampValueIsObservable, matched nothing, and both of the real holes it found were
+    # reported DEFENDED-ALREADY — "the artifact's own suite sees this", about a test the
+    # artifact does not contain. A stale allowlist fails toward "nothing to see here", which
+    # is the direction that ends the investigation.
+    #
+    # Third time this exact shape has cost something here: _corpus_state's writer list went
+    # stale the first time it was tested, and _hole_hunt's self-test dispatched at module
+    # level and ran the wrong fixtures. The rule those two already paid for is that a tool
+    # must DERIVE what it knows about itself, so the answer comes from the probe source.
+    mine = set(re.findall(r"func (Test\w+)\(", probe_src))
+    if any(name in note for name in mine):
         return "OBSERVABLE", note
     return "DEFENDED-ALREADY", note + " — the artifact's own suite sees this; the SURVIVED row is stale"
 
@@ -465,6 +600,9 @@ _OWN_SUITE = ('package t\n\nimport "testing"\n\nfunc TestOwn(t *testing.T) {\n'
               '\tif !AtLeastTen(10) {\n\t\tt.Fatalf("AtLeastTen(10) = false, want true")\n\t}\n}\n')
 _WEAK_PROBE = ('package t\n\nimport "testing"\n\nfunc TestChainBoundary(probe *testing.T) {\n'
                '\tif !AtLeastTen(11) {\n\t\tprobe.Fatalf("AtLeastTen(11) = false, want true")\n\t}\n}\n')
+# Same probe as _OBS_PROBE, named something no allowlist could have anticipated.
+_UNLISTED_PROBE = ('package t\n\nimport "testing"\n\nfunc TestNameNoAllowlistKnows(probe *testing.T) {\n'
+                   '\tif !AtLeastTen(10) {\n\t\tprobe.Fatalf("AtLeastTen(10) = false, want true")\n\t}\n}\n')
 
 
 def self_test() -> int:
@@ -482,6 +620,15 @@ def self_test() -> int:
         ("PROBE-RED", _OBS, _BAD_PROBE, "n >= 10", "t_test.go",
          'package t\n\nimport "testing"\n\nfunc TestOther(t *testing.T) {\n\t_ = AtLeastTen(3)\n}\n'),
         ("DEFENDED-ALREADY", _OBS, _WEAK_PROBE, "n >= 10", "t_test.go", _OWN_SUITE),
+        # THE FIFTH, and the only one the old classifier failed: a probe whose NAME is not
+        # one the tool has seen before. Every case above happens to use TestChainBoundary,
+        # which matched the hardcoded "TestChain" prefix, so all four passed against a
+        # classifier that could only ever recognise probes written before it. This one is
+        # named nothing in particular on purpose — it must still be reported OBSERVABLE,
+        # because who wrote the failing test is a fact about the probe source, not about a
+        # list somebody remembered to update.
+        ("OBSERVABLE", _OBS, _UNLISTED_PROBE, "n >= 10", "t_test.go",
+         'package t\n\nimport "testing"\n\nfunc TestOther(t *testing.T) {\n\t_ = AtLeastTen(3)\n}\n'),
     ]
     failures = []
     for want, impl, probe, needle, suite_name, suite in cases:
