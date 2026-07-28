@@ -110,6 +110,25 @@ grep -E "^RESULT " "$GUILDLM_SWEEP_LOG" | sort
 
 cat <<'NEXT'
 
+THIS REDRAW ALSO VERIFIES TWO PENDING SPEC FIXES — do not draw them separately.
+
+Both were edited after their last draw and neither has been verified. A v5 redraw is a fresh
+draw from the current spec, which is exactly the verification they need, so running
+individual draws first would spend an hour to learn what this run reports anyway:
+
+  taskapipro  projects_test.go — the paging twin that POSTed ONE project and asserted 1,
+              a witness that cannot fail. The entry now carries its OWN measured reason
+              rather than a cross-reference. Check: does the projects paging test POST
+              THREE, and do the three paging sites in projects.go flip to CAUGHT?
+              THE INTERESTING ANSWER IS EITHER WAY. If the reason works, spec reasoning is
+              a per-test cost payable at every test. If it does not, an exact quantity needs
+              a mechanism other than prose.
+
+  shortener   TestStatsCountsOneHit asserted on a SETUP step and expected something other
+              than 301, which is what the spec promises. The entry now forbids asserting on
+              that request at all. Check: does the redirect step come back unasserted, and
+              does the suite go green without the fix loop spending rounds on it?
+
 NEXT — the measurement this redraw exists for:
   .venv/bin/python _hole_hunt.py --gen=v5      # writes logs/hole-hunt-rows-v5.tsv
   .venv/bin/python _redraw_diff.py logs/hole-hunt-rows.tsv logs/hole-hunt-rows-v5.tsv
