@@ -1,5 +1,6 @@
-FINDING — the capstone comparison is blind to five closures made this week
-==========================================================================
+FINDING — the capstone is blind to NINE closure sites, and the newest fix is what
+blinded it to four of them
+=================================================================================
 2026-07-29, written BEFORE the v4-vs-v5 diff, deliberately, so it cannot become an
 explanation offered after a number.
 
@@ -50,3 +51,48 @@ of them, and that those five were graded separately.
 
 A comparison that omits five of the things being compared is not wrong if it SAYS so. It is
 wrong if the omission is discovered afterwards, and it is worthless if nobody looks.
+
+
+CORRECTION, SAME HOUR — IT IS NINE SITES, NOT FIVE, AND THE FOURTH CAUSE IS THE MOST
+INTERESTING ONE
+
+I audited my own list against the shapes instead of trusting it, and shape 6b is NUMERIC
+ONLY:
+
+    CLAMP_ASSIGN = re.compile(r"^(\s*)(\w+)\s*=\s*(\d+)\s*$")
+
+    limit = 100                 MATCHES
+    offset = 0                  MATCHES
+    limit = h.defaultPageSize   NOT MATCHED
+    limit = h.maxPageSize       NOT MATCHED
+
+So taskapipro's config-wiring closure — four sites, `limit = h.defaultPageSize` and
+`limit = h.maxPageSize` across tasks.go and projects.go — is invisible to the sweep too.
+Nine sites, not five.
+
+AND THE REASON IS THE FIX ITSELF. The whole point of that closure was replacing hardcoded
+literals with configured FIELDS. `limit = 100` was matched by shape 6b. `limit =
+h.defaultPageSize` is not. The edit that made the corpus better moved the site out of the
+instrument's reach, in the same stroke.
+
+    Closing a hole by replacing a literal with a field takes the site out of the shape that
+    would have graded it. The corpus improves and the instrument goes blinder, in one edit,
+    and nothing announces it.
+
+That is a new failure mode for this campaign and worse than the others, because it is
+SELF-INFLICTED BY SUCCESS. Every other blind spot tonight was a tool that had always been
+wrong. This one was a tool that was right until the code it measures was improved.
+
+I had already met this exact limitation once, three hours ago, and did not generalise it: when
+writing _grade_next.sh I noticed the 0728 grader's regex "could not see the sites the next
+edit creates" and added `h\.\w+` to MY grader. I never asked whether the SWEEP had the same
+regex. It does. Same blindness, two tools, one fixed.
+
+NOT FIXING shape 6b NOW, for the reason already established for nil-slice: v4 is swept, so a
+widened shape yields v5 rows with no v4 counterpart and _redraw_diff files them as drift
+rather than as verdict changes. Widen it before the NEXT pair of sweeps, and re-sweep both
+generations together or the comparison is not one.
+
+The four wiring sites were already graded by hand on taskapipro-chain4 (tasks CAUGHT x2,
+projects SURVIVED x3 — the twin whose witness could not fail). They go into
+RESULT-sweep-invisible-closures.txt with the rest.
