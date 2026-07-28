@@ -32,11 +32,23 @@ and they are reached by different requests:
     projects.go  offset = 0  (err fallback)     DEFENDED-ALREADY   (TestProjectList)
     projects.go  offset = 0  (negative clamp)   OBSERVABLE  <-
 
-So of the four rows: TWO are real holes, TWO are inert, and in both real rows one of the two
-sites was already defended — the row conflated a defended site with an undefended one and
-reported the pair as SURVIVED.
+So of the four rows: TWO are real holes and TWO are inert.
 
     5 clamp VALUE holes -> 3.   21 real holes -> 19.
+
+CORRECTION TO MY OWN FIRST DRAFT OF THIS FILE — the rows do NOT conflate two sites.
+I wrote that they did, reasoning from the count: eight sites, four rows. Then I read shape
+6b's selection instead of inferring it. clamp_value_row is reached ONLY from a boundary line
+the inert filter has just rejected — that is, from `if limit < 0 { limit = 0 }`, whose
+condition is a comparison the body then assigns. `if err != nil { limit = 0 }` has no
+comparison at all, is never a boundary hit, and was never a row.
+
+So the four rows address exactly the four NEGATIVE-CLAMP sites, one row per site, and the
+sweep is per-site and disciplined. The four err-fallback probes above are context I added,
+not rows anybody miscounted. The 21 -> 19 correction stands on the two INERT verdicts alone;
+the conflation story was mine, and it was wrong for the ordinary reason — I counted rows
+against sites and stopped there, on the very page where I am correcting somebody for
+counting SURVIVED against holes and stopping there.
 
 WHY LIMIT IS INERT AND OFFSET IS NOT
 
@@ -58,9 +70,13 @@ consequence for a single-site mutation: structurally invisible.
 THE TOOL COULD NOT HAVE REPORTED THESE — TWICE OVER
 
 First, addressing. A string needle in the probe registry means "flip the boundary operator on
-that line", and a clamp body has no operator: `limit = 0` is an assignment. The registry
-needed a VALUE mutator with per-occurrence selection before the question could be asked at
-all. Without it the eight sites are four rows, and four rows cannot show a 2/2 split.
+that line", and a clamp body has no operator: `limit = 0` is an assignment. So the ONE tool
+built to ask "could any test have seen this" was, for the entire clamp family, unable to
+express the mutation the family is named after. Shape 6b could produce the rows; nothing
+could interrogate them. The registry needed a VALUE mutator with per-occurrence selection
+before the question could be asked at all — and per-occurrence matters even though the rows
+turned out to be per-site, because the probe has to reach PAST the rows to the err-fallback
+sites to establish that the split is about limit-vs-offset and not about which site.
 
 Second, and worse: the OBSERVABLE / DEFENDED-ALREADY split was decided by a HARDCODED LIST of
 probe names —

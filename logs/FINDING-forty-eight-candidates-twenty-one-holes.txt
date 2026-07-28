@@ -22,9 +22,9 @@ THE ADJUDICATION — all 48, none left as "candidate"
                      taskapipro clamp-VALUE rows are INERT: a wrong `limit` is
                      absorbed by paginate's own `limit > len-offset` guard, which
                      maps every wrong value to the right one. Probed per SITE, the
-                     four rows are eight sites and split 2 real / 2 inert / 2
-                     already-defended / 2 inert. These four never got the per-row
-                     check this document's own method section requires.
+                     four rows are the four NEGATIVE-CLAMP sites, one row per
+                     site, and they split 2 real / 2 inert. These four never got
+                     the per-row check this document's own method section requires.
      5   Chain applies every middleware   taskflow, usersapi, taskapi, taskapipro, workapi
      5   clamp VALUE untested             taskapipro x4 (api layer), taskflow x1 (parser)
      4   400 mirrors                      tasks-api: invalid id on Get/Update/Delete,
