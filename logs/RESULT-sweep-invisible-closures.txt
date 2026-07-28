@@ -21,7 +21,9 @@ running the closure's OWN test.
                       Resolve Lock -> RLock: WARNING: DATA RACE, test fails.
     tasks-api-v5      TestListEmptyIsEmptyArray            nil-slice   CAUGHT
                       store.go `out := make([]Task, 0, len(s.tasks))` -> `var out []Task`.
-    usersapi-v5       TestListEmptyIsEmptyArray            nil-slice   pending draw
+    usersapi-v5       TestListEmptyIsEmptyArray            nil-slice   CAUGHT
+                      store.go `out := make([]User, 0, len(s.users))` -> `var out []User`.
+                      Fresh v5 draw, GREEN, and all spec-named tests present.
     taskapi-v5        TestListEmptyIsEmptyArray            nil-slice   pending draw
     taskapi-v5        TestProjectListEmptyIsEmptyArray     nil-slice   pending draw
 
@@ -35,7 +37,7 @@ running the closure's OWN test.
                       The projects entry now carries its own measured reason and taskapipro's
                       -v5 draw is the unverified retest.
 
-6 of 9 verified, both CAUGHT on an INDEPENDENT draw from the repaired spec — which is the
+7 of 9 verified, both CAUGHT on an INDEPENDENT draw from the repaired spec — which is the
 strong form of the claim. The grades recorded earlier this week were taken on the draws made
 FOR those closures; these are fresh trees that had no reason to reproduce them except that
 the spec asks.
