@@ -54,3 +54,20 @@ unmutated code, which measures nothing. Caught it because a closure that "passes
 expected a race is the shape of a mutation that never landed.
 
 SESSION TALLY: 34 closure sites graded, 34 held.
+
+
+SURVIVED ITS OWN REDRAW (2026-07-29, shortener-v5, first spec of the v5 sweep)
+
+The grade above was taken on the draw made FOR the closure, which is the weaker claim: an
+edit taking on the run it was written for. shortener-v5 is an independent draw from the
+repaired spec, GREEN, zero fix rounds — and it reproduces:
+
+    test written                            yes
+    Resolve holds the full s.mu.Lock()      yes
+    mutated to RLock -> WARNING: DATA RACE  yes
+
+Measured NOW rather than in the post-sweep pass, for a specific reason: `-race` is not a
+mutation shape. The sweep has six shapes and NONE can express "took a read lock where a write
+lock was needed" — recorded when the race was found. So `_hole_hunt --gen=v5` will say nothing
+about this closure, ever. Every other closure gets re-graded by the sweep for free; this is
+the only one that has to be asked by hand, and a fresh green tree was sitting there to ask.
