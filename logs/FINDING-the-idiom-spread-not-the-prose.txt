@@ -1,0 +1,83 @@
+FINDING — my closure taught the file an idiom, and the idiom broke the test next door
+=====================================================================================
+2026-07-28 late. taskapi draw 2 (generated/taskapi-chain2), caught live in its fix loop.
+Two draws of the same spec, one edit between them, and the mechanism is visible in the diff.
+
+WHAT HAPPENED
+
+taskapi draw 2 spent rounds 2 and 3 of its fix budget on ONE failing test:
+
+    router_test.go:195: Healthz: got "\"ok\"\n", want ok
+
+The handler is correct. `writeJSON(w, http.StatusOK, "ok")` encodes a bare JSON string, so
+the raw bytes are `"ok"` with quotes and a newline. The TEST is wrong.
+
+THE TWO DRAWS, SIDE BY SIDE
+
+draw 1 (taskapi-chain) — the file does NOT import strings anywhere:
+
+    var status string
+    json.Unmarshal(w.Body.Bytes(), &status)
+    if status != "ok" { ... }                      // decodes. correct. green.
+
+draw 2 (taskapi-chain2) — the file imports strings, and BOTH assertions use it:
+
+    L137  if strings.TrimSpace(rec.Body.String()) != "[]" { ... }   // MY closure. correct.
+    L194  if strings.TrimSpace(rec.Body.String()) != "ok" { ... }   // healthz. WRONG.
+
+The only change to that spec entry between the draws is mine: TestListEmptyIsEmptyArray,
+which asserts the RAW body is exactly "[]" and therefore requires `strings`.
+
+    My edit put an import and an assertion IDIOM into the file, and the idiom propagated to
+    a neighbouring test where it does not hold — because `[]` really is the raw body of an
+    empty array, while `ok` is not the raw body of a JSON string.
+
+WHY THIS IS SHARPER THAN "SPEC EDITS ARE GLOBAL PERTURBATIONS"
+
+That rule is already in this project's notes, and I have already paid for it twice: a spec
+fix that deleted a test six files upstream, and a test I added that made the model route an
+argument through the very clamp under test, opening a hole one layer down.
+
+Both of those were read as the PROSE leaking — an instruction in one entry changing behaviour
+in another. This case is different and more mechanical. The prose did not leak. What leaked
+is what the generated FILE now looks like: a new import at the top and a new assertion shape
+in the middle, and the model wrote the rest of the file to match its neighbours.
+
+    The perturbation vector is not the sentence. It is the CODE the sentence produces —
+    an import and an idiom, which the next test in the same file copies.
+
+That is a much more predictable hazard than "edits perturb things", and it has an actual
+check: after a closure introduces a NEW assertion idiom or a NEW import into a test file,
+read the neighbouring tests in THAT FILE for the idiom appearing where it does not hold.
+
+WHAT IT COST, AND WHAT IT DID NOT
+
+Cost: two fix rounds, and the loop widened into internal/api/response.go, middleware.go and
+tasks.go looking for the fault.
+
+Did NOT cost: the implementation. I checked while the loop was still running — writeJSON is
+untouched and still encodes properly, and the healthz handler still calls it. Presented with
+a wrong test and a right handler, the fix loop widened into three production files and did
+not break any of them to make the test pass. That is worth recording as a positive: the loop
+did not take the bait, in the one situation where taking it would be invisible afterwards.
+
+ALREADY FIXED, FOR A REASON THAT GOT BETTER
+
+An hour before this failure I had already tightened that entry, for the weaker reason that
+the old wording ("if you check it at all, decode it into a string") warns about a trap and
+then permits the check. It now says: assert the status code and NOTHING ELSE, do not touch
+the body.
+
+That fix is now doubly justified. An optional assertion is a risk on its own; an optional
+assertion in a file whose OTHER tests have just been taught a raw-body idiom is a loaded one.
+The entry withdraws the option rather than explaining it better — and this is the evidence
+that explaining it better would not have worked, because draw 2's model had the explanation
+in front of it and copied its neighbour instead.
+
+CONSEQUENCE FOR GRADING THIS DRAW
+
+The empty-list mutation sites are in internal/store/memory.go (L51, L96) but the assertions
+that catch them live in internal/api. If TestHealthz keeps the api package red, a
+whole-suite grade returns BASELINE-RED for both closures. The honest fallback is a
+`-run` scoped to the two closure tests, stated as the narrower claim it is — the same
+caveat already recorded for taskapipro's package-scoped grade tonight.
