@@ -32,10 +32,25 @@ import sys
 import tempfile
 
 
-def run_test(root: pathlib.Path, pkg: str, names: str) -> tuple[bool, str]:
-    r = subprocess.run(["go", "test", pkg, "-run", f"^({names})$", "-count=1"],
+def run_test(root: pathlib.Path, names: str) -> tuple[bool, bool, str]:
+    """(passed, actually_ran, output) over the WHOLE module, filtered to `names`.
+
+    NOT the mutated file's package. The first version scoped the run to the package holding
+    the mutated line, and the defending test routinely lives somewhere else: taskapi's
+    empty-list closure mutates internal/store/memory.go and is defended by a test in
+    internal/api. `go test ./internal/store -run ^TestListEmptyIsEmptyArray$` reports
+    "ok [no tests to run]" — a pass, from zero tests — and BOTH closures came back SURVIVED
+    on the strength of it.
+
+    So the run is module-wide with a -run filter, and "did anything actually run" is returned
+    separately, because a gate that never fires is not a gate: a vacuous pass is exactly what
+    a wrong package name produces, and it is indistinguishable from a real one by exit code.
+    """
+    r = subprocess.run(["go", "test", "./...", "-run", f"^({names})$", "-count=1", "-v"],
                        cwd=root, capture_output=True, text=True)
-    return r.returncode == 0, (r.stdout + r.stderr)
+    out = r.stdout + r.stderr
+    ran = any(line.startswith("=== RUN") for line in out.splitlines())
+    return r.returncode == 0, ran, out
 
 
 def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str,
@@ -61,8 +76,6 @@ def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str,
         src = art / rel
         if not src.exists():
             return "SKIP", f"{rel} not found"
-    pkg = "./" + str(src.parent.relative_to(root)) if src.parent != root else "."
-
     with tempfile.TemporaryDirectory() as td:
         base = pathlib.Path(td) / "t"
         shutil.copytree(root, base)
@@ -74,7 +87,10 @@ def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str,
                                f"does not exist — nothing was mutated, and a row about an "
                                f"unapplied mutation is not a measurement")
 
-        ok, out = run_test(base, pkg, names)
+        ok, ran, out = run_test(base, names)
+        if not ran:
+            return "NOTESTS", (f"{names} matched NO test in this module — nothing ran, and a "
+                               f"pass from zero tests is not evidence. Check the name.")
         if not ok:
             return "PROBE-RED", (f"{names} FAILS on the unmutated tree — the test is wrong, "
                                  f"not the code:\n" + out.strip()[-400:])
@@ -85,8 +101,20 @@ def grade(art: pathlib.Path, rel: str, old: str, new: str, names: str,
             h, sep, tail = tail.partition(old)
             head += h + (sep if _ < occurrence else "")
         target.write_text(head + new + tail)
-        ok, out = run_test(base, pkg, names)
+        ok, ran, out = run_test(base, names)
         where = f"occurrence {occurrence} of {n_sites}"
+        # A MUTANT THAT DOES NOT COMPILE IS NOT A CAUGHT MUTANT. `go test` exits non-zero
+        # for a build error exactly as it does for a failing assertion, and this tool read
+        # both as "the test noticed". Caught on its second real input: replacing the RHS of
+        # `out := make([]T, 0, n)` with `var out []T` yields `out := var out []T`, which is
+        # not Go — and it was reported CAUGHT, which would have let me record a closure as
+        # holding on the strength of a syntax error.
+        if not ok and ("[build failed]" in out or "syntax error" in out
+                       or "cannot use" in out or "undefined:" in out
+                       or "declared and not used" in out or "expected " in out):
+            return "BROKEN-MUTANT", (
+                f"the mutant does not COMPILE, so nothing was tested — this is a defect in "
+                f"the mutation, not a verdict about the site:\n" + out.strip()[-400:])
         if ok:
             return "SURVIVED", (f"{names} still passes with {old!r} -> {new!r} at {where}: "
                                 f"it does not defend THAT site"
@@ -149,6 +177,24 @@ def self_test() -> int:
         v, _ = grade(art, "t.go", "return 0", "return 7777", "TestB", 9)
         if v != "NOAPPLY":
             fails.append(f"an occurrence that does not exist is NOAPPLY: {v}")
+
+    # A MUTANT THAT DOES NOT COMPILE must never read as CAUGHT.
+    with tempfile.TemporaryDirectory() as td:
+        art = build(td, GOOD, TESTS)
+        v, _ = grade(art, "t.go", "return 0", "return =% 0", "TestMine")
+        if v != "BROKEN-MUTANT":
+            fails.append(f"a mutant that does not compile is a broken mutation, not a caught "
+                         f"one — go test exits non-zero for both: {v}")
+
+    # A NAME THAT MATCHES NOTHING must not read as a pass. This is how both taskapi
+    # closures came back SURVIVED: the run was scoped to the mutated file's package, the
+    # defending test lived in another one, `go test` said "ok [no tests to run]", and a
+    # vacuous pass is indistinguishable from a real one by exit code.
+    with tempfile.TemporaryDirectory() as td:
+        art = build(td, GOOD, TESTS)
+        v, _ = grade(art, "t.go", "return 0", "return 7777", "TestNoSuchName")
+        if v != "NOTESTS":
+            fails.append(f"a test name matching nothing must be NOTESTS, never a verdict: {v}")
 
     for f in fails:
         print(f"  FAIL: {f}")
