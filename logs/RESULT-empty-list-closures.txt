@@ -1,0 +1,64 @@
+RESULT — the empty-list closures (usersapi landed, taskapi in flight)
+=====================================================================
+2026-07-28. Queue: _run_queue_0728.sh. Prediction: logs/PREDICTION-mirror-and-empty-list.txt.
+Base model at :8080, no fleet, same flags as every -v4 tree.
+
+usersapi draw 2 — GREEN, 546s-class run, CLOSURE HELD
+-----------------------------------------------------
+    store.go L67   make([]User, 0, len(s.users)) -> var out []User    CAUGHT
+                                                   (SURVIVED before the edit)
+
+The whole point of the shape: that one `make` is the only thing between this endpoint and
+`null`, there is no second guard behind it, and every length check passes either way. It is
+now defended.
+
+PREDICTIONS, scored:
+  - test written, mutation flips to CAUGHT          [high]        ✓
+  - tree GREEN                                       [high]        ✓
+  - it asserts the RAW STRING rather than decoding   [EVEN ODDS]   ✓
+
+That third one is the one worth recording. I gave it even odds because the entry spends five
+lines arguing why a decoded length check cannot see the difference, and prose that explains
+why a WEAKER assertion is insufficient has a mixed record here. It wrote:
+
+    if strings.TrimSpace(w.Body.String()) != "[]" { ... }
+
+which is exactly the assertion, and the reason the mutation is caught at all — a decode into
+[]User would have passed on both `[]` and `null`.
+
+WHERE IT DID NOT FOLLOW THE SPEC, recorded because it went my way
+  The entry says "as this test's ONLY assertion". The generated test has TWO: a 200 status
+  check that Fatalfs first, then the body check. Benign here — a precondition that fatals
+  cannot mask the assertion after it — but "ONLY" was not obeyed literally, and that is a
+  datapoint about how strictly that word is read. It is the same word carrying the weight in
+  four other closures this week, and this is the first evidence it is treated as emphasis
+  rather than as a constraint.
+
+  Test count came out at exactly ELEVEN, the number the entry states.
+
+ALSO IN THIS DRAW
+  The corpus's empty-list finding is refined, not just closed. I had recorded "the corpus
+  never GETs an empty list". usersapi always did — TestContentTypeJSON GETs /users on a fresh
+  store and asserts the HEADER. The request was there the whole time; only the assertion
+  could not see the body.
+
+taskapipro draw 3 — the clamp closure, graded separately
+--------------------------------------------------------
+See logs/RESULT-taskapipro-projects-clamp.txt. projects.go's negative-offset clamp moved
+SURVIVED -> CAUGHT and both tasks.go sites stayed CAUGHT. The tree is RED on
+internal/config for an unrelated reason (a promise the implementation entry never made),
+so that grade is package-scoped and says so.
+
+taskapi — IN FLIGHT
+-------------------
+Two closures, tasks and projects, both `make([]T, 0, ...)` in internal/store/memory.go.
+This is the first mirror in the campaign specified BEFORE either half was found open, and
+the prediction I most want an answer to is whether writing the twin up front costs anything.
+If exactly one comes back CAUGHT, that is the result worth having.
+
+Free second measurement on the same draw, from tonight's convergence finding: does this draw
+write TestMalformedJSON? The spec has named it since 2026-07-11 and neither taskapi-v4 nor
+taskapi-chain contains it. Absent in a third independent draw would mean the sentence is not
+taking and earns a rewrite rather than a repetition.
+
+SESSION TALLY: 31 closure sites graded, 31 held.
