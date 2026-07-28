@@ -1,0 +1,73 @@
+PREDICTION — taskapipro draw 4 and workapi, written BEFORE either ran
+=====================================================================
+2026-07-28 late. Queue: _run_queue_next.sh, to launch after _run_queue_0728.sh drains.
+Base model at :8080, no fleet, identical flags to every -v4 tree and every chain draw.
+
+1. taskapipro draw 4 — THE CONFIG WIRING, and the first edit of a different KIND
+
+Every closure in this campaign has been "add a named test". This one asks the spec to make
+the model WIRE A VALUE THROUGH THREE LAYERS — config -> router -> both handlers — and then
+defend it. Five entries changed, a constructor signature changed in four files, one new test
+helper, four new tests. It is the largest edit of the campaign by a wide margin.
+
+  a. The two ints reach both handlers and are used instead of literals.
+     [confidence: MODERATE, and this is the prediction I care about]
+     Reasoning FOR: the entries are explicit, name the exact two lines, and the router entry
+     spells out the signature. Reasoning AGAINST: nothing in this corpus has ever asked for
+     a signature change across four files in one draw, and the model has already shown it
+     will read one entry literally and ignore what another implies — that is exactly what
+     cost draw 3 its seven fix rounds.
+
+  b. The model passes config.Config instead of two ints, despite the sentence forbidding it.
+     [confidence: this is the SPECIFIC failure I expect if anything goes wrong]
+     "Wire the config through" has an obvious shape and the entry is arguing against it. The
+     corpus's record on prose that argues against an obvious shape is mixed: the "assert the
+     raw body, not a decoded value" argument worked, the "don't route the argument through
+     parsePage" argument worked on the second try. But both were about a TEST. This one is
+     about production structure.
+
+  c. All four paging tests written, and the two mutations (limit = h.defaultPageSize -> 7777,
+     limit = h.maxPageSize -> 7777) CAUGHT on BOTH handlers.
+     [confidence: HIGH IF the wiring lands, near-zero if it does not]
+
+  d. _dead_config.py reports ZERO dead fields on the new tree.
+     [confidence: follows from (a); this is the real verdict and no mutation gives it]
+     The tool that found the gap has to go quiet on the tree that fixed it. If (a) lands and
+     this still reports the fields dead, the tool is wrong and that matters more than the
+     closure.
+
+  e. internal/config is GREEN — draw 3 burned seven rounds because config_test.go demanded a
+     guard config.go was never asked for, and the entry now names all three.
+     [confidence: HIGH. Three of four earlier draws inferred the guard with no help at all;
+     with it stated outright, failure would be surprising.]
+
+  f. Tree GREEN first attempt. [confidence: LOW-MODERATE — this is a big edit and taskapipro
+     took 2 fix rounds on a much smaller one, then 7 on the last]
+
+  THE HYPOTHESIS THIS ACTUALLY TESTS: "edit-count is a cost" currently has NO supporting
+  evidence in this repo — the N=5 Chain run found that the two specs carrying TWO edits gave
+  the best results. This is by far the biggest edit yet. If it fails on size rather than on
+  content, that is the first real evidence for a hypothesis I recorded as unsupported.
+
+2. workapi — Delete's own 404, the third instance of one mirror
+
+  Found today by _reachability, not by a mutation: the writeJSON(w, StatusNotFound, nil)
+  inside Delete is executed ZERO times by the whole suite, while Get's identical line is
+  executed. The spec's TestDeleteTask asserts its 404 from the GET that follows a SUCCESSFUL
+  delete. Identical to taskflow's, which I closed on Monday, and to taskapipro's, closed
+  tonight.
+
+  PREDICTION: TestDeleteMissingReturns404 is written and the mutation
+  StatusNotFound->StatusBadRequest on the Delete site flips to CAUGHT.
+  [confidence: HIGH — 30 of 30 own-named closures have held, this is a one-test edit in an
+  entry that already names seven, and the identical closure has now worked twice]
+
+  PREDICTION: the site is no longer COLD when _reachability is re-run.
+  [confidence: HIGH, and it is the cheaper check — one coverage run, no mutation]
+
+WHAT WOULD MAKE ME WRONG IN THE MOST USEFUL WAY
+  If workapi's one-line closure holds and taskapipro's five-entry wiring does not, the two
+  results together say something no single run can: that what closes a hole is the NAMING,
+  and that asking the same spec to also restructure production code is a separate and harder
+  request that should be made in its own draw. That would be a real finding about how to
+  spend an edit, and I would rather have it than a clean sweep.
