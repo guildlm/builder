@@ -1,0 +1,54 @@
+FINDING — the fix loop widens inside the failing test's package, and the defect is one layer down
+=================================================================================================
+2026-07-29. taskapi-v5, observed live across three fix rounds. Outcome not yet known; the
+observation does not depend on it.
+
+THE SITUATION
+
+Two tests fail:
+
+    router_test.go:129    ListEmptyIsEmptyArray:        got "null\n", want []
+    projects_test.go:117  ProjectListEmptyIsEmptyArray: got "null\n", want []
+
+Both live in internal/api. The CAUSE lives in internal/store:
+
+    func (s *MemStore) ListTasks() []models.Task {
+        var tasks []models.Task          <- nil accumulator; empty list marshals as null
+        for _, t := range s.tasks { tasks = append(tasks, t) }
+
+The loop's response, twice:
+
+    widening fix targets to package impl in internal/api (persistent runtime failure)
+
+and the files it has touched, across three rounds:
+
+    internal/api/middleware.go   internal/api/projects.go   internal/api/projects_test.go
+    internal/api/response.go     internal/api/router.go     internal/api/router_test.go
+    internal/api/tasks.go
+
+Seven files, all of them in internal/api. internal/store/memory.go — where the line is — has
+not been opened. It still reads `var tasks []models.Task` after three rounds.
+
+THE MECHANISM
+
+"Widen to package impl" resolves the package from the FAILING TEST, which is correct for the
+common case and blind for this one: a handler test can fail because of a store, and the store
+is a different package by construction in every clean-architecture spec in this corpus. The
+heuristic follows the symptom's package, not the dependency edge the symptom points down.
+
+    A test can only fail in the package it lives in. That says nothing about where the
+    defect is, and in a layered project it is usually somewhere else.
+
+WHY IT IS WORTH RECORDING SEPARATELY FROM THE OUTCOME
+
+If the run ends GREEN, the loop found some way to compensate at the API layer — and a
+compensating fix at the wrong layer is its own finding, because the store still returns nil
+to every other caller. If it ends RED, the budget was spent searching a package that could
+not contain the answer. Both are worth knowing and neither is visible from the RESULT line.
+
+WHAT WOULD FIX IT, stated as a candidate rather than a change
+Widening could follow the IMPORT GRAPH from the failing package downward — internal/api
+imports internal/store, so store is one hop away and reachable. That is a builder change, not
+a spec change, and it is not being made tonight: the v5 sweep is running against the current
+builder, and changing the generator mid-sweep makes every remaining draw incomparable to the
+nine already landed.
