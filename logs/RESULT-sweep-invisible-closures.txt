@@ -24,8 +24,18 @@ running the closure's OWN test.
     usersapi-v5       TestListEmptyIsEmptyArray            nil-slice   CAUGHT
                       store.go `out := make([]User, 0, len(s.users))` -> `var out []User`.
                       Fresh v5 draw, GREEN, and all spec-named tests present.
-    taskapi-v5        TestListEmptyIsEmptyArray            nil-slice   pending draw
-    taskapi-v5        TestProjectListEmptyIsEmptyArray     nil-slice   pending draw
+    taskapi-v5        TestListEmptyIsEmptyArray            nil-slice   FIRED FOR REAL
+    taskapi-v5        TestProjectListEmptyIsEmptyArray     nil-slice   FIRED FOR REAL
+                      Not graded by mutation, because no mutation was needed. This draw
+                      shipped `var tasks []models.Task` — the nil accumulator, which IS the
+                      mutation verbatim — so both endpoints answered `null` on an empty
+                      store and BOTH tests failed on the unmutated tree:
+                          router_test.go:129   got "null\n", want []
+                          projects_test.go:117 got "null\n", want []
+                      Stronger than CAUGHT: CAUGHT means the test would notice a planted
+                      break. This is the test noticing a break nobody planted. The tree
+                      shipped NOT-GREEN and that is the correct outcome — before these
+                      closures existed it would have shipped green with the bug.
 
     taskapipro-chain4 TestListDefaults...PageSize          field clamp CAUGHT
     taskapipro-chain4 TestListCapsAt...MaxPageSize         field clamp CAUGHT
@@ -37,7 +47,7 @@ running the closure's OWN test.
                       The projects entry now carries its own measured reason and taskapipro's
                       -v5 draw is the unverified retest.
 
-7 of 9 verified, both CAUGHT on an INDEPENDENT draw from the repaired spec — which is the
+9 of 9 accounted for — 7 CAUGHT by mutation, 2 fired against a real defect, both CAUGHT on an INDEPENDENT draw from the repaired spec — which is the
 strong form of the claim. The grades recorded earlier this week were taken on the draws made
 FOR those closures; these are fresh trees that had no reason to reproduce them except that
 the spec asks.
