@@ -41,11 +41,22 @@ def audit(tree: pathlib.Path) -> tuple[str, list[str]] | None:
     # A half-written tree does not look absent; it looks like a finding.
     if check(str(tree)) == "refuse":
         return ("BEING WRITTEN", [])
+    # A LIVE SPEC AGAINST A FROZEN TREE IS A COMPARISON ACROSS TIME. Edit a spec after a
+    # draw and every name you added or changed reports MISSING — not because the model
+    # refused to write it, but because the tree predates the sentence. It happened here
+    # within the hour: taskflow-v5 was drawn, then I renamed TestListProjectsSorted to
+    # TestProjectListSorted, and this tool immediately reported the new name missing from a
+    # tree that could never have contained it.
+    #
+    # mtime is the cheap signal and it is forgeable — a checkout, a copy or a touch defeats
+    # it — so this is a HINT printed beside the answer, not a filter applied to it.
+    stale = spec.stat().st_mtime > max((f.stat().st_mtime for f in tree.rglob("*.go")),
+                                       default=0)
     named = set(TEST.findall(spec.read_text()))
     have: set[str] = set()
     for f in tree.rglob("*_test.go"):
         have |= set(re.findall(r"func (Test[A-Z]\w*)\s*\(", f.read_text(errors="replace")))
-    return ("OK", sorted(named - have))
+    return ("SPEC-NEWER" if stale else "OK", sorted(named - have))
 
 
 if __name__ == "__main__":
@@ -64,7 +75,10 @@ if __name__ == "__main__":
         checked += 1
         if missing:
             flagged += 1
-            print(f"{tree.name:<20} MISSING {len(missing)}: {', '.join(missing)}")
+            note = ("   <- SPEC IS NEWER THAN THIS TREE: a name added or changed after the "
+                    "draw\n                        cannot be in it. Not a verdict about the "
+                    "model." if state == "SPEC-NEWER" else "")
+            print(f"{tree.name:<20} MISSING {len(missing)}: {', '.join(missing)}{note}")
         else:
             print(f"{tree.name:<20} all spec-named tests present")
     print(f"\n{flagged} draw(s) missing a named test, of {checked} checked")
