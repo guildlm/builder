@@ -1,0 +1,60 @@
+FINDING — the dropped test is the only name in its file that breaks the file's naming pattern
+=============================================================================================
+2026-07-29. taskflow-v5, drawn during the v5 redraw. GREEN, 2 fix rounds, 0 model fix-calls.
+Found by _named_present.py, the per-draw audit written an hour earlier.
+
+THE TEST THAT HAS NEVER BEEN WRITTEN
+
+taskflow's projects_test.go entry opens "ELEVEN test functions, all of them:" and the FIRST
+name after that sentence is TestListProjectsSorted. The model wrote TEN. The one it dropped
+is that first one — again.
+
+This is the original motivating case for _spec_count_audit. That tool exists because
+TestListProjectsSorted was described ABOVE the count sentence and went unwritten three draws
+running, and the repair was to move it INSIDE the enumeration. It is inside now. It is first
+in the list. The count is right. IT IS STILL NOT WRITTEN.
+
+    A repair the campaign has relied on — "name it inside the enumerated list" — is measured
+    here as not sufficient, on the very test it was invented for.
+
+THE PATTERN, and it is exact
+
+What the draw wrote, in order:
+
+    TestProjectCreateGet      TestProjectGetReturns200   TestProjectCreateInvalid
+    TestProjectGetMissing     TestProjectList            TestProjectListReturns200
+    TestProjectMalformedJSON  TestProjectCreateDuplicate TestProjectDelete
+    TestProjectDeleteMissing
+
+Ten names, every one beginning TestProject. The missing one is TestListProjectsSorted — the
+only name in that file that does NOT.
+
+    The file has a naming convention. The one instruction that violates it is the one that
+    goes missing, four draws running, through a positional fix that should have worked.
+
+HYPOTHESIS, stated as one because n=1 on the mechanism
+
+The model writes a FILE, not a list of instructions, and a file has a shape. Ten
+TestProject* functions establish that shape by the third of them. A name that does not fit
+reads as belonging elsewhere — and there IS an elsewhere: TestListSorted, the tasks-file test
+this entry explicitly cross-references two lines later. TestListProjectsSorted looks like it
+belongs to the file it is named after.
+
+That predicts a cheap fix with a sharp test: rename it TestProjectListSorted. Same test, same
+assertions, same position, same entry — only the name changed to match its neighbours. If it
+gets written, the mechanism is naming shape and not position, count, or emphasis. If it still
+does not, the hypothesis is dead and something else is at work.
+
+DONE — the rename is applied to specs/taskflow.yaml. Recorded here BEFORE the retest, because
+this file's whole subject is a repair that looked obviously right and was not.
+
+ATTRIBUTION NOTE: this edit lands AFTER taskflow-v5 was drawn, so taskflow-v5 remains
+attributable to the pre-edit spec and the v4-vs-v5 capstone is unaffected. The retest is
+whatever draws taskflow next.
+
+WHAT IT SAYS ABOUT THE CAMPAIGN'S CENTRAL RULE
+"An invariant with its own named test holds" is 40-of-40 when the test gets WRITTEN. This is
+the third distinct way a named invariant fails before it can hold, and the one with no
+runtime instrument: a test that was never written lowers no coverage number and survives no
+mutation. The other two — the assertion evaporating, the witness unable to discriminate —
+both leave something to measure. This leaves nothing, and only a per-draw name check sees it.
