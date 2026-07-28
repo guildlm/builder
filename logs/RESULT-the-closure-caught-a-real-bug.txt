@@ -1,0 +1,47 @@
+RESULT — the empty-list closure caught the bug in the wild, not in a mutation
+=============================================================================
+2026-07-29. taskapi-v5, during the v5 redraw. Caught live in its fix loop.
+
+    projects_test.go:117: ProjectListEmptyIsEmptyArray: got "null\n", want []
+    router_test.go:129:   ListEmptyIsEmptyArray:        got "null\n", want []
+
+This draw built its list with a nil accumulator, so GET /tasks and GET /projects on an empty
+store answer `null` instead of `[]`. Both closure tests failed. The fix loop is now repairing
+the implementation.
+
+WHY THIS IS STRONGER EVIDENCE THAN EVERY GRADE RECORDED THIS WEEK
+
+Every closure verdict in this campaign — 40 of them — comes from a MUTATION: take a correct
+artifact, break one line, ask whether the suite notices. That is a synthetic question. It
+establishes that the test COULD catch the bug, given the bug.
+
+This is the other thing:
+
+    The model produced the defect on its own, unprompted, in a fresh draw from the repaired
+    spec — and the test caught it.
+
+Before this closure existed, that draw ships GREEN. `null` decodes into a []Task of length
+zero exactly as `[]` does, so every existing length check passes; the only assertion that can
+tell them apart is one on the RAW body, and until 2026-07-28 no test in this corpus made one.
+The endpoint would have gone out returning null to every client that iterates it.
+
+THE TWO HALVES OF THE THESIS, NOW BOTH MEASURED
+
+    "a green suite is not a defended contract"   — measured all week by mutation
+    "and the defence catches real bugs"          — measured here, by a draw that made one
+
+The second is the one a mutation programme cannot produce for itself, because it needs a
+defect nobody planted. It arrived on the ninth spec of a 22-spec redraw, roughly seven hours
+after the closure was written.
+
+BOTH TWINS FIRED, which is the other thing worth noting. This is the mirror specified BEFORE
+either half was found open — tasks and projects, written together on the reasoning that
+projects.go has its own store call and a request to /tasks never executes it. The draw broke
+BOTH accumulators and BOTH tests caught it. Had only the tasks test existed, the projects
+endpoint would have shipped returning null with the suite green.
+
+WHAT HAPPENS NEXT DOES NOT CHANGE THIS
+The fix loop will probably repair the accumulator and the tree will go green. That is the
+system working: the test forced the repair. If instead the loop "repairs" the TEST, that is a
+different and much worse finding, and it will be recorded as one. Either way the measurement
+above already happened.
