@@ -59,3 +59,30 @@ WHAT WAS DONE
 ⚠️ THE REAL COST IS TIME. --all-sites runs a full build, vet and test -race -count=4 per
 row, on 23 trees. _resweep_v4.sh warns "EXPECT HOURS" in capitals. The four-minute run was
 fast precisely because it was doing a twentieth of the work.
+
+
+THE RERUN IS VERIFIED CORRECT (12:52) — checked, not assumed
+=============================================================
+The all-sites signature is multiple rows sharing one (artifact, file, shape). Counted on both
+runs:
+
+    WITH --all-sites (the rerun)          up to 4 rows per (artifact, file, shape)
+        4  taskflow-v5   tasks_handler.go     StatusInternalServerError->StatusBadGateway
+        4  taskflow-v5   projects_handler.go  StatusInternalServerError->StatusBadGateway
+        4  taskapipro-v5 internal/api/tasks.go  same shape
+    WITHOUT (the bad run)                 exactly 1, everywhere. No key repeats at all.
+
+Exactly the difference _resweep_v4.sh's comment describes. The flag is taking effect and the
+rerun will produce a file the baseline can be diffed against.
+
+    Verified by looking for the signature rather than by trusting that passing a flag makes
+    it work. That check cost one command and is the same class of check that caught the
+    original error.
+
+AND A PREVIEW WORTH NOTING: taskflow-v5 shows FOUR SURVIVED rows on
+StatusInternalServerError->StatusBadGateway in tasks_handler.go and four more in
+projects_handler.go. That is the 500-else class — the one _resweep_report calls out as
+dominating the survivor set — and it is exactly the multiplicity the bad run would have
+collapsed to one row per file. Sweeping without --all-sites would have hidden seven of those
+eight sites, which is the concrete form of "shrink the baseline for a second, unrelated
+reason".
