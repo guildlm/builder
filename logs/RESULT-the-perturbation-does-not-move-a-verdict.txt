@@ -11,6 +11,13 @@ Predicted A at 75%.
     Six sites each, same shapes, same order, same verdicts. Branch C — a changed site count —
     is excluded too: 6 and 6.
 
+    HOW THAT WAS CHECKED, because the first check did not establish it. A raw `diff` of the
+    two row blocks reported all six lines as differing — the artifact names are `jsoncodec-ctl`
+    and `jsoncodec-grow`, one character apart, so stripping the prefix left different column
+    padding and every line differed in whitespace. The `&& echo "IDENTICAL"` correctly did not
+    fire, which is the only reason it was not written up on a check that had failed. Re-done by
+    splitting each row into fields and comparing tuples: 6 rows each, field-for-field equal.
+
     SO TWELVE INERT LINES REWROTE THE ONLY IMPLEMENTATION FILE AND CHANGED NOTHING THE SUITE
     DEFENDS.
 
