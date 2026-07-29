@@ -1,0 +1,65 @@
+RESULT — the inert draw follows v5's repair trajectory to the line and column
+==============================================================================
+
+17:58 on 29 July. Graded by `_grade_trajectory_prediction.py`, which was written and committed
+while the draw was in round 2 with zero round-3 markers in its log.
+
+    ✓ P1  85%  round 3 reports "too many arguments in call to h.svc.List" in projects.go
+    ✓ P2  70%  the PAIR is 71:55 and 50:2 — the +12-line arm, not chain5's 77:55 and 56:2
+    ✓ P3  65%  round 4 reports "declared and not used: status" in projects.go
+    — P4  80%  NOT-GREEN — VOID, the draw is still running
+    ✓ P5  75%  round 3's only fix target is projects.go, no widening
+
+    4 hit · 0 miss · 1 void
+
+THE DISCRIMINATOR ANSWERED
+    chain5 (PRE-edit, no added lines)   77:55  and  56:2
+    v5 x2  (POST-edit, +12 REAL lines)  71:55  and  50:2
+    inert  (PRE-edit, +12 INERT lines)  71:55  and  50:2   <- tracks the ADDED LINES
+
+The inert draw carries one property from each arm: chain5's base text, v5's twelve extra lines.
+Both defect sites land on v5's numbers. Two independent sites, one constant six-line offset
+between the arms, and the inert draw sits on the +12 side of it at both.
+
+    SO THE TWELVE LINES DO NOT MERELY CAUSE THE FIRST DEFECTS — THEY DETERMINE THE WHOLE RUN.
+    Four rounds of generation and repair reproduce v5's trajectory to the column while the
+    prose in those twelve lines is about something else entirely.
+
+WHAT THIS ADDS TO BRANCH A
+Branch A (17:36) established that the CONTENT of the twelve lines is irrelevant to the round-1
+import defect. This extends it two ways: the irrelevance holds through four rounds rather than
+one, and it holds for defects the REPAIR LOOP produces, not only ones the generator wrote.
+Round 3's defect is the mirrored `status` argument that round 2's widening manufactures — a
+defect of the loop, and even that lands on the same line.
+
+⚠️ THE SERVER IS STILL NOT SEPARATED, and this result does not help with that. Every draw
+carrying these numbers ran on process 4439. chain5, the arm with different numbers, also ran on
+4439 — which is what makes the LINE comparison informative while the PRESENCE comparison for
+imports is not. The queued `_pristine_pre_edit_draw.sh` remains the draw that settles it.
+
+⚠️ N=1 AGAINST A TWO-DRAW REFERENCE. One inert draw matching two v5 draws. Striking, and not a
+mechanism. The honest follow-up is a second inert draw with a third body of prose, which is
+not authorised here.
+
+⚠️ P4 IS STILL OPEN. The draw is in its fix rounds. If it converges GREEN, P4 is a MISS and
+something genuinely differs from v5 — worth watching rather than assuming.
+
+
+METHOD NOTE — I CONTAMINATED A CORPUS ARTIFACT AND THE FILE-SET MATCH CAUGHT IT
+================================================================================
+While checking whether taskflow-v4 was green I ran `go build ./... && go test ./...` INSIDE
+generated/taskflow-v4. `go build` writes its binary to the working directory, so it left an
+8.2 MB executable named `taskflow` in a tracked corpus artifact.
+
+    It was caught minutes later because the census's new file-set matcher stopped finding
+    taskflow's log: the tree had 16 files and every candidate log generated 15. An ad-hoc
+    script run BEFORE the contamination had matched; the census run AFTER it did not, and the
+    disagreement between two runs of the same question is what exposed it.
+
+    Removed. The tree is back to 15 files and the match is restored.
+
+THE LESSON IS ALREADY IN THIS REPO AND I DID NOT APPLY IT. `_teeth_suite.verdict_for` copies a
+tree to a tempdir before touching it, and BOTH `_escalation_surface.py` and `_gate_audit.py`
+carry an explicit `# drop stray compiled binaries` cleanup — three tools that already know
+building in place pollutes an artifact. A greenness check is a measurement, and measurements go
+on a copy.

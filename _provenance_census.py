@@ -86,23 +86,60 @@ def tree_mtime(tree: pathlib.Path) -> tuple[float | None, bool]:
     return max(gos), restored
 
 
+GENLINE = re.compile(r"^\[guildlm-build\] generate (\S+) \(\d+/(\d+)\)", re.M)
+
+
+def match_by_fileset(artifact: str, gen: str, tree: pathlib.Path) -> tuple[pathlib.Path | None, str]:
+    """Fallback when time fails: which candidate log GENERATED this exact set of files?
+
+    A build log names every file it wrote. Specs are edited over a corpus's life, so the file
+    set is a fingerprint of the SPEC VERSION — and where a spec gained or lost a file, that
+    fingerprint separates draws that timestamps cannot.
+
+    MEASURED REACH, so nobody expects more of it than it gives: run against the seven
+    artifacts whose v4 trees carry a single-second mtime, it disambiguates exactly ONE.
+    taskflow-v4 has 15 files and only one of its 19 candidate logs generated 15 — the rest
+    produced 12, 13 or 14. For the other six the file set is identical across every draw, so
+    this returns nothing at all. One in seven is worth having because taskflow carries 47 of
+    the capstone's 140 live rows; it is not a general rescue.
+
+    ⚠️ AND IT IS A CANDIDATE, NOT A PROOF, which is why the match method is printed on every
+    row. taskflow-v4's bytes carry an mtime NINE HOURS after the log it matches closed, and
+    what performed that write is unidentified. The file set says which spec version produced
+    the tree; it cannot say which run wrote those bytes.
+    """
+    files = {str(p.relative_to(tree)) for p in tree.rglob("*") if p.is_file()}
+    hits = []
+    for cand in sorted(LOGS.glob(f"ab-{artifact}-{gen}-*.log")):
+        gen_set = {m.group(1) for m in GENLINE.finditer(cand.read_text(errors="ignore"))}
+        if gen_set and gen_set == files:
+            hits.append(cand)
+    if len(hits) == 1:
+        return hits[0], "FILE-SET (candidate, not proof)"
+    if len(hits) > 1:
+        return None, f"file set matches {len(hits)} logs — identifies nothing"
+    return None, "no log generated this file set"
+
+
 def match_log(artifact: str, gen: str, tree: pathlib.Path) -> tuple[pathlib.Path | None, float, str]:
     """The build log whose close is nearest the tree's last .go write. Gap never hidden."""
     t, restored = tree_mtime(tree)
     if t is None:
         return None, float("inf"), "no .go files"
-    if restored:
-        return None, float("inf"), "RESTORED — every .go file shares one mtime"
-    best, best_gap = None, float("inf")
-    for cand in LOGS.glob(f"ab-{artifact}-{gen}-*.log"):
-        gap = abs(cand.stat().st_mtime - t)
-        if gap < best_gap:
-            best, best_gap = cand, gap
-    if best is None:
-        return None, float("inf"), "no ab-log for this artifact and generation"
-    if best_gap > GAP_LIMIT:
-        return None, best_gap, f"nearest log is {best_gap / 3600:.1f}h away"
-    return best, best_gap, ""
+    if not restored:
+        best, best_gap = None, float("inf")
+        for cand in LOGS.glob(f"ab-{artifact}-{gen}-*.log"):
+            gap = abs(cand.stat().st_mtime - t)
+            if gap < best_gap:
+                best, best_gap = cand, gap
+        if best is not None and best_gap <= GAP_LIMIT:
+            return best, best_gap, ""
+    # Time failed — either the tree was written in one second, or no log is near it.
+    fs, why = match_by_fileset(artifact, gen, tree)
+    if fs is not None:
+        return fs, float("nan"), why
+    reason = "RESTORED — every .go file shares one mtime" if restored else "no log near in time"
+    return None, float("inf"), f"{reason}; and {why}"
 
 
 def analyse(text: str) -> dict:
@@ -200,13 +237,22 @@ def main(argv: list[str]) -> int:
                 rows[art][gen] = None
                 continue
             a = analyse(log.read_text(errors="ignore"))
+            a["match"] = why or "time"
             rows[art][gen] = a
             outcome = ("converged(det)" if a["deterministic_only"] else
                        "converged" if a["converged"] else
                        "EXHAUSTED" if a["exhausted"] else "?")
-            print(f"{art:<22} {gen:<4} {log.name:<30} {gap:>6.0f} {a['model']:>6} "
+            gapstr = "  n/a" if gap != gap else f"{gap:>6.0f}"
+            print(f"{art:<22} {gen:<4} {log.name:<30} {gapstr} {a['model']:>6} "
                   f"{a['model_tests']:>7} {a['deterministic']:>5} {a['drained']:>6} "
                   f"{a['rounds']:>5}  {outcome}")
+            if a["match"] != "time":
+                print(f"{'':27}matched by {a['match']}")
+            if a["model_files"]:
+                # PER-FILE, because artifact-level is the wrong grain for a ROW: what can move
+                # a mutation verdict on middleware.go is a rewrite of middleware.go. Grading
+                # the capstone's flips this way took them from 2-of-8 clean to 6-of-8.
+                print(f"{'':27}model-rewrote: {', '.join(a['model_files'])}")
 
     print("\nPROVENANCE VERDICT PER ARTIFACT — can a v4-vs-v5 row difference be read as the DRAW's?")
     both_clean = mismatched = both_dirty = unknown = 0
