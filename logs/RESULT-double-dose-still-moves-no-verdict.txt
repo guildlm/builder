@@ -1,0 +1,45 @@
+RESULT — BRANCH B. Double the dose, more code rewritten, still not one verdict moved
+=====================================================================================
+
+22:05 on 29 July. jsoncodec's spec + 12 inert lines in BOTH .go entries = +24, against
+generated/jsoncodec-ctl on the same server. Predicted B 45% · C 35% · A 20%.
+
+    OUTCOME    compile/test passed — FIRST-TRY GREEN, 0 fix rounds (so branch C is out)
+    FILES      CODE  event.go        817 vs 751 bytes
+               IDENTICAL event_test.go  853 vs 853
+    VERDICTS   6 of 6 identical — SURVIVED, SURVIVED, CAUGHT, CAUGHT, CAUGHT, CAUGHT
+
+    AND THE CODE CHANGE IS LARGER THAN AT +12: 817 -> 751 here against 817 -> 779 before.
+    More prose, more rewriting, and the same six verdicts.
+
+TWO DOSES ON ONE ARTIFACT, NO VERDICT MOVEMENT
+    jsoncodec +12   green · event.go rewritten (-38 bytes) · 0 of 6 verdicts moved
+    jsoncodec +24   green · event.go rewritten (-66 bytes) · 0 of 6 verdicts moved
+
+    So perturbation reaching a mutation verdict is starting to look genuinely rare rather
+    than merely untested. That BOUNDS the artefact reading of the capstone: growth rewrites
+    code reliably, and rewriting code does not reliably move what the suite defends.
+
+⚠️ AND IT IS STILL ONE ARTIFACT WITH A NARROW ROW SET, exactly as pre-registered. All six rows
+are json-tag renames in one file; the capstone's flip-bearing specs are 16-21 files with four
+to six distinct shapes across several files. A null here bounds the worry for small, narrow
+artifacts and says little about those. Two doses on one spec is not a dose-response curve.
+
+AN OBSERVATION WORTH RECORDING, NOT A FINDING
+event_test.go's entry RECEIVED twelve of the twenty-four lines, and its output is BYTE-IDENTICAL
+to the control's. event.go's entry also received twelve, and its output changed. The same
+asymmetry appeared at +12, where the lines went into event_test.go's entry alone and event.go
+was the file that changed.
+
+    Twice now, in this spec, the perturbation has landed on a file whose entry it did not
+    change while sparing the one it did.
+
+    ⚠️ IT DOES NOT HOLD GENERALLY. ratelimit's +48 arm changed three files whose entries had
+    received lines (bucket.go, registry.go, ratelimit_test.go) as well as one that had not
+    (middleware.go). So this is a jsoncodec observation, not a rule, and it is recorded as one.
+
+WHERE THIS LEAVES OPEN ITEM 1
+Still open, and now better specified. What is missing is not another small artifact — it is a
+LARGE one, with several files and varied mutation shapes, at a dose that perturbs without
+killing. taskflow is the obvious candidate: 16 files, it survived +12 with four CODE
+differences, and it has never been swept in that condition. NOT RUN.
