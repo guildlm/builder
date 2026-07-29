@@ -12,6 +12,37 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 SPEC="${1:?usage: _chain_run.sh <spec>}"
+
+# TWO BUILDS SHARE ONE GPU EXACTLY ONCE, and this script had no guard at all until 29 July.
+#
+# Every other runner in this repo refuses while a generation is in flight — _sweep_v5.sh,
+# _sweep_v5_finish.sh, _sweep_v5_ledger.sh, _redraw_taskapipro_once.sh. This one, which is
+# the script most likely to be run BY HAND in the middle of something else, did not. It sat
+# in a written next-step queue ("./_chain_run.sh taskflow, after the sweep drains") where a
+# single mistimed paste would have started a second guildlm-build beside a running sweep.
+#
+# Found by pre-flighting a queued step rather than by it going wrong, which is the only
+# cheap way to find this class of thing.
+#
+# MATCH THE EXECUTABLE PATH, not a string a command line can contain: `pgrep -f
+# "guildlm-build main"` also matches the shells that merely mention it, including this
+# repo's own waiters, and that guard has already refused on a machine with nothing running.
+if pgrep -f "\.venv/bin/guildlm-build" > /dev/null; then
+  echo "REFUSING: a generation is in flight. Two builds share one GPU exactly once."
+  echo "Wait for it to print its completion line, then re-run."
+  exit 3
+fi
+# And refuse while a SCHEDULER is up, even between its jobs — a queue spends real minutes
+# between generations running `go test -race`, and in that window no guildlm-build exists
+# while the corpus is very much still being written. `grep -v "^$$ "` drops this process's
+# own line; without it the guard matches itself, since _chain_run.sh is in the pattern.
+_SCHED=$(pgrep -fl '_sweep_v5.*\.sh|_run_queue.*\.sh|_rebuild_corpus\.sh|_chain_run\.sh' | grep -v "^$$ " || true)
+if [[ -n "$_SCHED" ]]; then
+  echo "REFUSING: another scheduler is running — sequence these by hand, do not race them:"
+  echo "$_SCHED" | sed 's/^/  /'
+  exit 3
+fi
+
 # NEVER OVERWRITE A PREVIOUS DRAW. This script opens with `rm -rf "$OUT"`, generated/ is
 # gitignored, and every landed draw is the evidence behind a graded RESULT — deleting one is
 # the corpus-deletion shape with a smaller blast radius. Special-casing taskflow worked once
