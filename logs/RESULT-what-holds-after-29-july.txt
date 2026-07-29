@@ -1,0 +1,131 @@
+RESULT — what actually holds after 29 July, with the retractions folded in
+===========================================================================
+
+Written 16:35. The day produced 33 tracked evidence files and several claims that were
+qualified, narrowed or withdrawn within hours of being made. This is the state AFTER those
+corrections, so a later reader does not have to reconstruct it from the order the files were
+written in.
+
+Anything not listed here either did not survive or was never claimed.
+
+
+I. THE CAMPAIGN'S CAPSTONE
+--------------------------
+    314 v4 rows · 307 v5 rows · 295 comparable · 140 LIVE IN BOTH
+    CAUGHT -> SURVIVED    2      (published as 3; one was an ordinal artefact)
+    SURVIVED -> CAUGHT    6      (published as 12; six were ordinal artefacts)
+    177 of 314 rows dead — five artifacts do not compile
+
+REDRAW DRIFT IS WORTH ABOUT 6 UP AND 2 DOWN at this corpus size. That is the number the
+campaign never had, and it is the baseline every future closure claim must beat. Ten of the
+twelve originally-reported gains sat in artifacts nobody edited, so the gains were never
+attributable to closures even before the artefact correction.
+
+⚠️ 56% of the baseline was unanswerable. Whatever the flips say, the repaired specs produced
+five red trees out of twenty-three.
+
+
+II. THE ONE CLEAN DURABILITY RESULT
+------------------------------------
+workapi's Delete-404 closure: byte-identical to chain2 where it was graded CAUGHT days
+earlier, byte-identical to its own as-drawn snapshot through seven fix rounds, ran and passed
+four times, and CAUGHT under a function-scoped mutation.
+
+That is the strong form and it is the only closure that has it. Its artifact had no spec edit
+between draws, which — see IV — turns out to be why.
+
+
+III. NAME SHAPE, FULLY SEPARATED
+---------------------------------
+    name                     breaks convention   collides   written?
+    TestListProjectsSorted         yes             yes        NO — 5 draws
+    TestProjectListSorted          no              no         YES — first try
+    TestSortedProjectList          YES             NO         YES — first try
+
+RULE: do not give a test a name whose prefix points at a group where a test of that
+description already exists. Convention-breaking ALONE is survivable. The first two names
+differ in both properties, which is why the third draw was needed.
+
+Two other name results, unexplained: ledger truncated ErrInsufficientFunds to
+ErrInsufficient — the longest name in a list of five — and would not repair it across six
+rounds. taskapi reproduced eleven names verbatim and dropped the twelfth, the outlier.
+
+
+IV. THE LARGEST FINDING, AND IT RELOCATES MOST OF THE MORNING
+--------------------------------------------------------------
+15e25f3 added twelve lines to taskapipro's PROJECTS entry, intending to fix two tests.
+
+    did NOT fix the projects twins       1,1 -> 1,2, still 0/2 discriminating
+    BROKE the tasks twins                3,3 -> 1,2, 2/2 -> 0/2
+    BROKE the imports in three files     0 errors -> 4
+    the tree never compiled              7 rounds, both post-edit draws
+    the capstone lost taskapipro         62 of 314 rows, 20%
+
+Evidence: round-1 logs across four draws — chain4 PRE 0 errors, chain5 PRE 0, v5 POST 4,
+v5-2nd POST 4 — with the server held fixed across the last three. chain4, pre-edit, converged
+GREEN in one round.
+
+    THEREFORE: "the control arm regressed in its own redraw", "setup counts are not durable",
+    "quantities do not survive" were all measuring a SPEC EDIT, not a redraw. The
+    measurements were correct; their subject was wrong.
+
+What survives of that morning's work: a redraw faithfully REPRODUCES whatever the spec
+produces — v5 and v5-2nd agree to the character, including the fix loop's own mistakes. That
+is a durability finding. "Quantities degrade across redraws" is not.
+
+
+V. TWO PIPELINE DEFECTS, MEASURED
+----------------------------------
+THE LOOP REPAIRS THE WRONG SIDE. chain5's failure names projects_test.go:162 — a test that
+seeds one item and asserts two — and the loop spent seven rounds editing internal/api
+handlers. No handler makes a store of one item return two.
+
+THE WIDENED REPAIR MANUFACTURES DEFECTS. The mirrored `status` argument appears in chain5
+with the edit reverted, so it belongs to the loop, not the spec. Rounds 3-5 oscillate between
+it and its own half-repair until the budget dies.
+
+AND THE TRIGGER IS WHICH BROKEN SHAPE A WITNESS TAKES:
+    cannot-FAIL (asserts 1)  passes silently, ships, artifact survives   <- chain4
+    cannot-PASS (asserts 2)  fails loudly, triggers widening, tree dies  <- chain5
+Neither shape is fixed. Only one takes the artifact down.
+
+A REPEATED ERROR SURFACE IS A PERFECT PREDICTOR: 127 detections, 0 recoveries. The builder
+already computes it and only acts past the flat budget. The four-word fix is NOT licensed by
+that number — it was measured with a different signature — and logging was added so the next
+corpus can answer it properly.
+
+
+VI. WHAT WAS RETRACTED OR NARROWED
+-----------------------------------
+  * "12 gained, 3 lost"                  -> 6 and 2. Nine flips sat in groups whose site
+                                            count changed; ordinals cannot align there.
+  * "the repair worked on the assertion" -> unidentifiable. Mirroring explains it equally.
+  * "setup enumeration pins the count"   -> falsified by taskapi.yaml:125, a bare "two tasks"
+                                            that landed correctly.
+  * "the transfer-unit law"              -> falsified as stated. Text in a sibling entry
+                                            reaches a test's SETUP and three files' IMPORTS.
+                                            Survives only for ASSERTIONS.
+  * "the server is exonerated"           -> for the tasks seed counts only. The projects
+                                            assertion moved across days on an unchanged spec.
+  * "prose cannot buy a setup count"     -> it bought the tasks count for two draws. It never
+                                            bought the projects count, across four.
+  * "setup counts are not stable"        -> stable within a condition, to the item. The
+                                            instability is BETWEEN conditions.
+
+Four predictions resolved VOID, all for one reason: the machinery never reached the question.
+That is a fact about the pipeline and it is now a standing rule — put the "nothing happens"
+branch in the prediction set.
+
+
+VII. INSTRUMENTS: WHAT IS TRUSTWORTHY NOW
+------------------------------------------
+Fixed today, each with a self-test covering the exact failure: _redraw_diff (generation
+keying, site-count warning, live-in-both), _stall_audit (set membership, non-consecutive
+recurrence, ok-lines), _twin_witness (gofmt trailing comma), _reachability (--gen=),
+_resweep_report (generation keying + its first self-test), _chain_run.sh (in-flight guard).
+
+Five silent-ignore .gitignore holes closed, including the capstone's own output and
+reachability-rows.tsv, which the tool had been claiming was tracked since it was written.
+
+⚠️ SEVEN RUNNERS STILL HAVE NO IN-FLIGHT GUARD, _ab_run_v5.sh first among them. And no guard
+anywhere covers a mutation sweep competing with a generation for CPU.
