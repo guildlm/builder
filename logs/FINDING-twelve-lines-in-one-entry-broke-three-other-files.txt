@@ -1,0 +1,62 @@
+FINDING — the twelve-line projects-entry edit also caused the import-path defect
+=================================================================================
+
+15:58 on 29 July. This explains a defect recorded as UNEXPLAINED at 10:02 and confirmed as
+"deterministic and unexplained" at 13:52, and it makes the cross-entry effect far larger
+than the seed counts alone.
+
+THE EVIDENCE IS THE ROUND-1 LOGS, NOT THE TREES
+Round 1's error output describes the AS-DRAWN state, before any repair. Trees on disk are
+post-fix and comparing them is the population error I have now made three times today, so
+this is read from logs only:
+
+    draw       spec              server     import-path errors in round 1
+    chain4     PRE-edit          28 Jul     0
+    chain5     PRE-edit          29 Jul     0
+    v5 (1st)   post-edit         29 Jul     4
+    v5 (2nd)   post-edit         29 Jul     4
+
+Four draws, two spec states, and the import defect tracks the SPEC, not the day and not the
+server. Both post-edit draws produce it; neither pre-edit draw does — including chain5, drawn
+today on the same process as both v5 draws.
+
+    Adding twelve lines to the PROJECTS entry caused internal/api/tasks.go,
+    internal/api/projects.go and internal/api/router.go to drop the module prefix from
+    their imports.
+
+WHAT THAT EDIT WAS FOR, AND WHAT IT COST
+15e25f3 added twelve lines of measured reasoning to the projects paging entry, explaining why
+POSTing one project cannot discriminate a page size. Its intent was to fix two tests. Its
+measured effects:
+
+    it did NOT fix the projects twins        1,1 -> 1,2, still 0 of 2 discriminating
+    it BROKE the tasks twins                 3,3 -> 1,2, 2 of 2 discriminating -> 0 of 2
+    it BROKE the imports in three files      0 errors -> 4 errors
+    the tree therefore did not compile       both post-edit draws, seven rounds each
+    the capstone lost taskapipro entirely    62 of 314 baseline rows BASELINE-RED, 20%
+
+    A twelve-line addition to one spec entry, intended to close one hole, closed none,
+    opened three, and cost the campaign's capstone a fifth of its comparable rows.
+
+THIS IS THE UNEXPLAINED DEFECT, EXPLAINED
+FINDING-the-control-arm-regressed-in-its-own-redraw.txt (10:02, extended 13:52) records the
+import split as reproducing exactly across two draws with no mechanism: the spec names the
+full module path in only go.mod's and store.go's entries, in neither of the files that get it
+right, so the transfer-unit law did not cover it. The hypothesis on the table at 13:56 was the
+SENTENCE FORM — a standalone import sentence versus a parenthetical aside.
+
+    That hypothesis is now unnecessary. The api entries did not change between pre- and
+    post-edit; the PROJECTS entry did. Sentence form is constant across all four draws and
+    cannot explain a difference that tracks the edit.
+
+⚠️ WHAT THIS DOES NOT ESTABLISH. Not a mechanism — only that the edit is upstream of the
+defect. Twelve lines added to one entry change the whole prompt context for every later file,
+and which property of those twelve lines matters (length, position, the words themselves, the
+fact that they discuss imports-adjacent concepts at all) is untested. The separating draws are
+cheap and obvious: add twelve lines of UNRELATED text to the projects entry and see whether
+the imports break anyway.
+
+⚠️ AND IT SHARPENS THE TRANSFER-UNIT FALSIFICATION. That law said text elsewhere does not
+reach a test. It does not merely reach a test's SETUP, as recorded at 15:42 — it reaches the
+IMPORT STATEMENTS OF THREE IMPLEMENTATION FILES. The blast radius of one entry is the whole
+artifact, and nothing in the campaign's model of specs predicted that.
