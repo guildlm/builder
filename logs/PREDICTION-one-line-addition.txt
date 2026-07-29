@@ -1,0 +1,46 @@
+PREDICTION — a ONE-LINE ADDITION: is the variable LENGTH, or the number of lines?
+=================================================================================
+
+23:02 on 29 July, before the draw. The decisive test named at 22:58.
+
+WHAT THE SERIES SAYS SO FAR, on taskflow, all against the same control condition:
+    +1 SUBSTITUTION (rename, 21 chars -> 21 chars)   CODE 1 — the TARGET only, no collateral
+    +3 ADDITION                                      CODE 8 · PROSE 2 · IDENTICAL 5
+    +12 ADDITION                                     CODE 6 · PROSE 4 · IDENTICAL 5
+
+Two hypotheses fit all three points equally:
+    LENGTH   any change to the spec's length re-rolls unrelated files; a same-length
+             substitution does not. Dose is irrelevant, which is why 3 beat 12.
+    FLOOR    one line is too little to matter whatever you do with it, and the effect starts
+             somewhere between 1 and 3.
+
+A ONE-LINE ADDITION separates them. It is +1 like the rename, and it ADDS like the others.
+
+THE DRAW: taskflow's HEAD spec + line 10 of specs/_inert_twelve_lines.txt — a single complete
+sentence, same prose family as every other arm — appended to the projects_test.go entry, the
+same entry the +3 and +12 arms used. Control is generated/taskflow-chain6, snapshotted, so the
+comparison is as-drawn on both sides.
+
+BRANCHES
+  A  >=1 CODE difference in a file the line does not mention
+     -> LENGTH is the variable. There is no safe ADDITION at any size, and the rename's null
+        was about equal length, not about being small. The practical rule becomes: substitute
+        freely, never append without re-measuring.
+  B  0 CODE differences outside the target
+     -> there IS a floor. One line is safe however it is made, and the effect begins between
+        1 and 3 lines. That partially rehabilitates "small edits are safe" — with the floor
+        measured at one line, which is a very thin budget.
+
+PREDICT A 70% · B 30%.
+A because +3 moved EIGHT of fifteen files. An effect that large at three lines is unlikely to
+vanish entirely at one. B because the rename really did produce nothing, and a floor at exactly
+one line is not absurd — one line may not shift enough context to change a decision.
+
+⚠️ EITHER WAY THIS IS A HYPOTHESIS TEST, NOT A MEASUREMENT OF A CURVE. Four single draws
+(+1 substitution, +1 addition, +3, +12) on one spec. Same-condition variance on taskflow is
+zero (chain5 vs chain6, 12 of 12 identical), so each arm's differences are real; the SHAPE
+across arms rests on one draw each.
+
+⚠️ AND B WOULD NOT MAKE SMALL EDITS SAFE IN PRACTICE. A closure is rarely one line. The
+campaign's real edits were 43-73 lines. A floor at one line would be a fact about the mechanism,
+not permission.
