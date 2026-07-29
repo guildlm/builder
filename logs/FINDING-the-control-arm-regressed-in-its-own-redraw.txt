@@ -82,3 +82,46 @@ EVIDENCE PRESERVED
 The as-drawn file is copied to scratch before any fix round touched it, and the two facts
 that matter are transcribed above verbatim: router arguments correct, POST counts 1 and 2,
 assertions 2 and 2. Re-derivable after the fact only from this note.
+
+
+ADDENDUM — THE TREE ALSO DOES NOT COMPILE, AND THAT COMPETES FOR THE FIX BUDGET
+==============================================================================
+Checked on a COPY of the tree, not the live one, while generation continued.
+
+TWO COMPILE-BLOCKING DEFECTS, both found before the fix loop started:
+
+1. IMPORT PATH, three files. go.mod declares `module guildlm.dev/taskapipro` and the spec
+   sets `go_module: guildlm.dev/taskapipro` on line 3. But every file in internal/api uses
+   the UNPREFIXED path:
+
+       internal/api/projects.go   "taskapipro/internal/models"      WRONG
+       internal/api/router.go     "taskapipro/internal/service"     WRONG
+       internal/api/tasks.go      "taskapipro/internal/models"      WRONG
+       internal/service/service.go "guildlm.dev/taskapipro/internal/models"   right
+
+2. UNDEFINED VARIABLE, in Twin B itself. TestListCapsAtTheConfiguredMaxPageSize declares
+   w1 and w2, then assigns `w = httptest.NewRecorder()` — w is never declared in that
+   function and there is no package-level w. Straight compile error, inside the very test
+   whose witness cannot fail.
+
+THE TRANSFER-UNIT LAW DOES NOT EXPLAIN DEFECT 1, AND SAYING SO IS THE POINT.
+The tempting story is that the entries stating the import path produce the right one. The
+spec names the full path in exactly two entries — go.mod (line 17) and
+internal/store/store.go (line 118) — and in neither of the files that got it right. Nothing
+told internal/service/service.go the path and it wrote it correctly; nothing told the three
+api files and they wrote it wrong. A law that covers four measurements does not cover this
+one, and forcing it to would cost more than the law is worth. Recorded as unexplained.
+
+WHY IT MATTERS FOR THE PREDICTION ABOVE
+--max-fix-rounds is 5. Two compile errors across four files have to clear BEFORE any test
+runs at all, so the rounds that would repair Twin A's witness may be spent on imports and
+an undeclared variable. That is a THIRD outcome my binary prediction did not list:
+
+    (c) the loop exhausts its rounds on compile errors and the tree ships NOT-GREEN with
+        both twins exactly as drawn — Twin A still unable to pass, Twin B still unable to
+        fail, and neither ever evaluated.
+
+If (c) happens the prediction is not graded, because the experiment it was about never ran.
+That is a genuine miss in how the prediction was written: it assumed the fix loop would
+reach the assertion, and a prediction should name the conditions under which it is void.
+The 65% stands for the case where Twin A is actually edited.
