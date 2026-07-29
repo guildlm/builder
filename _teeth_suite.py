@@ -720,7 +720,8 @@ def self_test() -> int:
     if failures:
         return 1
     print("OK — a defended invariant is CAUGHT, a vacuous one SURVIVES, a red baseline "
-          "voids the verdict, and a tree with no tests is NOTESTS rather than undefended")
+          "voids the verdict, a tree with no tests is NOTESTS rather than undefended, and a "
+          "mutant the compiler REJECTS is MUTANT-BROKEN rather than credited to the tests")
     return 0
 
 
