@@ -1,0 +1,35 @@
+NOTE — the builder is an EDITABLE install, so editing src/ splits the corpus mid-campaign
+=========================================================================================
+
+Written 29 July while taskapipro-v5 was at file 20 of 21, because today's main result
+points straight at a change that must not be made yet.
+
+THE MECHANISM
+    .venv/bin/guildlm-build  ->  `from src.builder import app`
+    site-packages/__editable__.guildlm_builder-0.1.0.pth
+
+An editable install. src/ IS the running generator. A process already started keeps the
+modules it imported, so an edit cannot corrupt a draw in flight — but every draw after it
+runs different code.
+
+WHY THIS IS LIVE RIGHT NOW
+RESULT-prose-bought-the-assertion-and-not-the-setup.txt concludes that an exact quantity
+has no working prose mechanism, and names the fix: a Phase-1 gate that counts a witness's
+setup calls against its asserted bound, in the shape of _fix_bad_format_verb. That is the
+right next build and it is the wrong thing to do today.
+
+Three draws are still owed on the CURRENT generator: workapi, ledger, taskflow. Specs 1-20
+of the v5 corpus were drawn with it. Landing a gate now means the corpus is 20 specs of one
+builder and 3 of another, and every v4-vs-v5 row for those three carries a confound that is
+invisible in the rows and unrecoverable afterwards. It is the same error as changing the
+spec and the server in one run, with a longer blast radius, because a Phase-1 gate acts on
+EVERY file of every subsequent draw rather than one entry of one spec.
+
+CHECKED, NOT ASSUMED: `git log --since 09:00 --name-only | grep -c '^src/'` returns 0. Every
+edit today is an analysis tool (_redraw_diff, _reachability), a runner (_sweep_v5_finish,
+_sweep_v5_ledger), or a log. The generator is untouched and the corpus is homogeneous.
+
+THE RULE
+    No src/ edit until the RESULT count reads 23 and the taskflow chain draw has landed.
+    After that the gate is the first thing to build, and its own before/after needs a
+    matched pair of draws — which is another reason not to spend the current corpus on it.
