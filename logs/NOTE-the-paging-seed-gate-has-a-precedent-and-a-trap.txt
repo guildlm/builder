@@ -65,3 +65,44 @@ SEQUENCING
 2. Build the gate with its six tests and a refuse-by-default rewrite.
 3. Its before/after needs a MATCHED PAIR of draws — one more reason not to spend the
    current corpus on it.
+
+
+⚠️ THE GATE'S MOTIVATION IS NARROWER THAN WHEN THIS WAS WRITTEN (16:27)
+=======================================================================
+This note was written at 10:12 on the strength of "prose demonstrably does not buy the setup
+count". Four draws of taskapipro now say that claim was too broad.
+
+    draw      spec    tasks seeds   projects seeds
+    chain4    PRE     3, 3          1, 1
+    chain5    PRE     3, 3          1, 1
+    v5 1st    POST    1, 2          1, 2
+    v5 2nd    POST    1, 2          1, 2
+
+PROSE DID BUY THE TASKS SETUP COUNT. The tasks entry says "POST THREE tasks" and both
+pre-edit draws produced three. It stopped working only after twelve lines were added to a
+DIFFERENT entry — which is a fact about cross-entry interference, not about prose failing.
+
+PROSE NEVER BOUGHT THE PROJECTS SETUP COUNT. One item in all four draws, including the two
+that carry 15e25f3's twelve lines of measured reasoning explaining exactly why one item
+cannot discriminate. That entry argues the case at length and is ignored, consistently,
+across two spec states and two servers.
+
+SO THE GATE IS STILL MOTIVATED, AND FOR A NARROWER REASON
+Not "prose cannot secure a setup count" — it can, and did, for tasks. The surviving claim is:
+
+    A specific entry has failed to secure its setup count across four draws, and adding ten
+    lines of measured reasoning to it did not help. Where prose has been tried at length and
+    failed, a gate is the remaining instrument.
+
+That is the same standard _fix_drained_body's docstring sets — "six escalating versions of
+the prompt default failed to stop it... A nudge is not a gate" — and the projects entry now
+has its own version of that history.
+
+⚠️ AND ONE THING THE GATE WOULD HAVE MADE WORSE. Had it existed on 28 July it would have
+rewritten the projects test to seed three, the tree would have gone green, and the twelve-line
+edit would still have broken the imports and the tasks twins — with no red tree to notice it.
+The gate fixes a witness; it does not fix a spec entry whose blast radius is the whole
+artifact, and a green tree would have hidden that entirely.
+
+    Build the gate for the witness. Do not expect it to protect against what 15e25f3 did,
+    and do not let a green tree stand in for the check that would have caught it.
