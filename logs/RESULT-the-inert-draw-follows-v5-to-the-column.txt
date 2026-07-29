@@ -215,3 +215,39 @@ helper, the service.go statement, the two test files, and the 6-line defect offs
 the PRESENCE comparison (chain5 vs v5), not the content one. The open question was never "do
 twelve lines matter"; it is whether their effect is the spec's or the server's, and only a
 draw in an untried condition answers that.
+
+
+FINAL (18:15) — the draw completed. 5 of 5 predictions HIT.
+============================================================
+    ✓ P1  85%  round 3, too many arguments in projects.go
+    ✓ P2  70%  the pair 71:55 + 50:2 — the +12-line arm
+    ✓ P3  65%  round 4, declared and not used: status
+    ✓ P4  80%  exhausted 7 fix rounds (6 budgeted), still failing — RESULT NOT-GREEN
+    ✓ P5  75%  round 3 targets projects.go alone
+
+    5 hit · 0 miss · 0 void.  And all six rounds are string-for-string identical to v5's.
+
+⚠️ THE RUNNER PRINTED ITS SUPERSEDED VERDICT, EXACTLY AS FLAGGED. Its closing lines read
+"BRANCH A — the imports broke with INERT twelve lines. Length/position is SUFFICIENT; the
+content of the real twelve lines is not the cause." The first sentence is right. The second
+overreaches in precisely the way recorded at 17:28 — length/position is NOT established while
+every DEFECT draw ran on server 4439 and the only measured FINE ran elsewhere. The verdict
+used is the grader's, not the runner's, as pre-registered.
+
+⚠️ AND THE FINAL TREE IS NOT-GREEN, which does NOT weaken anything above. GREEN/NOT-GREEN was
+never the outcome variable; it was predicted, and it landed. The comparisons that carry the
+findings are round-1 output and the untouched-file diffs, both of which precede every repair.
+
+FIRST DATA FROM THE SURFACE-HASH LOGGING ADDED THIS AFTERNOON
+The stall instrumentation put into src/builder.py at 14:40 produced its first observations:
+
+    error surface a07b813e  (surface seen before)
+    error surface 68b735fe  (surface seen before)
+    error surface 76d1510e  (surface seen before)
+    error surface repeats — stopping extension rounds
+
+Three repeats under the BUILDER's own `_error_signature` — the definition the four-word stall
+fix would act on, and the one my 127-for-0 evidence could not speak to because it was measured
+with a different signature. This is one draw, so it is the first row of that corpus and not the
+corpus. It does show the instrument works and that repeats under the real signature are not
+rare.
