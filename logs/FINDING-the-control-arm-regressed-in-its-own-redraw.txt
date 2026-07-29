@@ -195,3 +195,39 @@ line 168 — one line, and not in either twin.
 
     The experiment that grades (a) against (b) has not started yet. Round 1 was spent
     reaching the starting line.
+
+
+CHECKPOINT 3 (~10:29) — THE WIDENING TOUCHED THE IMPLEMENTATION AND SPARED THE SITES
+=====================================================================================
+Round 2 widened past the tests: "fixing internal/api/tasks.go (widened in)",
+"...middleware.go (widened in)". That is the regime where a fix round can destroy the thing
+being measured, so it was checked rather than assumed.
+
+CHANGED vs the as-drawn snapshot:  projects.go (15 lines), tasks.go (16), router.go (3)
+UNCHANGED:                          middleware.go, response.go
+
+Every change in projects.go is an import or an error sentinel:
+
+    "taskapipro/internal/models"      ->  "guildlm.dev/taskapipro/internal/models"
+    h.svc.Create(...)                 ->  _, err := h.svc.Create(...)
+    errors.Is(err, service.ErrExists) ->  errors.Is(err, store.ErrExists)
+    errors.Is(err, service.ErrNotFound) -> errors.Is(err, store.ErrNotFound)
+
+THE FOUR PAGING SITES ARE UNTOUCHED — limit = h.defaultPageSize (x2), limit = h.maxPageSize,
+offset = 0 (x2), all still present and still field assignments. The closure targets survived
+a rewrite of their own file.
+
+And both durability instruments still agree after it:
+    _dead_config    0 of 6 fields dead   (unchanged from before the widening)
+    _twin_witness   0 of 4 discriminate  (unchanged — seeds 1,2,1,2)
+
+So the config closure has now survived a redraw AND an implementation rewrite within that
+redraw, while the paging witnesses have survived neither. That strengthens
+FINDING-structural-closures-survive-redraws-quantities-do-not.txt with a second, harsher
+test the structural closure passed and the quantity closure was never in a position to take.
+
+⚠️ WHY THIS HAD TO BE CHECKED AND NOT ASSUMED. A fix round that rewrites projects.go could
+have replaced `limit = h.defaultPageSize` with a literal, or restructured the clamp into a
+helper — either of which removes the site the closure is graded on, silently, while every
+number in this file kept reporting on something that no longer exists. The check costs one
+diff. Not doing it is how a measurement outlives its subject.
