@@ -258,3 +258,29 @@ edits, because less can have drifted. And the baseline it is measured against wa
     Expectation restated: ledger's 8 survivors stay survivors and its 22 CAUGHT stay CAUGHT.
     Any movement is redraw drift and is the number to quote whenever someone asks how much
     of a closure result could have happened by itself.
+
+
+THE CONTROL PREDICTION IS CHECKABLE (12:26) — all four shapes are ones the sweep produces
+==========================================================================================
+Verified before relying on it. ledger's four response.go survivors are each a shape the
+sweep generates corpus-wide, not one-off rows from some other source:
+
+    StatusConflict->StatusBadRequest              status swap, a standard shape
+    StatusUnprocessableEntity->StatusBadRequest   status swap
+    StatusInternalServerError->StatusBadGateway   42 occurrences across the corpus
+    drop Content-Type                             11 occurrences across the corpus
+
+And the code they attach to is present in the fresh draw — response.go's six mappings and the
+Header().Set were confirmed at 12:20. So the sweep will find the same sites and produce the
+same four rows, and the prediction "they stay SURVIVED" has something to be wrong about.
+
+    A control that cannot produce a comparable row is not a control. Checked rather than
+    assumed, because a prediction about rows that never appear is unfalsifiable and would
+    have looked confirmed either way.
+
+For reference, the corpus-wide shape distribution the v5 sweep will use:
+    44 json tag renamed · 42 StatusInternalServerError->StatusBadGateway ·
+    39 StatusOK->StatusAccepted · 30 StatusBadRequest->StatusNotFound ·
+    23 StatusNotFound->StatusBadRequest · 16 boundary >= -> > · 15 boundary < -> <= ·
+    13 StatusCreated->StatusOK · 11 reverse sort by ID · 11 drop Content-Type ·
+    11 %w -> %v (ErrInvalid) · 9 StatusNoContent->StatusOK
