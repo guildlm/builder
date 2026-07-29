@@ -1,0 +1,63 @@
+RESULT — BRANCH A. Twelve inert lines perturb a THREE-FILE spec the campaign never touched
+============================================================================================
+
+20:46 on 29 July. Two jsoncodec draws back to back on server 4439 — control and +12 inert
+lines — because jsoncodec-v5 predates that process and one draw would have confounded the
+lines with the server. Predicted A at 55%.
+
+    untouched in both: 2 · CODE 1 · IDENTICAL 1
+
+    CODE   event.go   817 vs 779 bytes
+
+event.go is jsoncodec's ONLY implementation file. The twelve lines went into the
+event_test.go entry. So the entire non-test surface of the project was perturbed, and the
+file the lines were added to was not the file that changed in code.
+
+BOTH DRAWS WERE FIRST-TRY GREEN — ZERO FIX ROUNDS
+    jsoncodec-ctl    compile/test passed
+    jsoncodec-grow   compile/test passed
+
+No repair ran on either side. There is no post-repair caveat to make here: both trees are
+pure generation, and the difference is entirely what the model wrote.
+
+WHAT CHANGED
+    control                          +12 lines
+    func (e *Event) UnmarshalJSON    func (e *Event) UnmarshalJSON
+        type Alias Event                 (absent)
+        var wire struct{...}             var wire struct{...}
+        json.Unmarshal(b, &wire)         json.Unmarshal(b, &wire)
+
+The control declares `type Alias Event` AND NEVER USES IT — it unmarshals into the anonymous
+`wire` struct instead. Go does not reject an unused type, so it compiles and the suite passes.
+The +12 draw simply does not emit the dead declaration.
+
+    THE PERTURBED VERSION IS THE BETTER ONE. Again. This is the third instance today:
+      taskflow   the +12 draw added `var _ Store = (*store)(nil)`, a compile-time assertion
+                 the control lacks
+      taskapipro the control carried a getenv helper the +12 draw did without
+      jsoncodec  the control carried a dead type declaration the +12 draw did without
+
+    So the finding is NOT that adding lines damages the output. It is that adding lines
+    RE-DECIDES design questions in files the entry never mentions, and the re-decision can
+    land either way. That is worse for attribution, not better: a change that improves things
+    is exactly as confounding as one that breaks them.
+
+⚠️ BRANCH B'S HYPOTHESIS IS DEAD. The pre-registered argument against A was surface: taskflow's
+perturbation touched four files and taskapipro's three, while jsoncodec has ONE implementation
+file — "if the mechanism is the model re-deciding a design question elsewhere, a three-file
+project may not have an elsewhere". It has an elsewhere, and one file was enough. The effect
+does not need a project of any size.
+
+WHAT THIS DOES TO THE CAPSTONE
+jsoncodec's spec grew by ZERO lines during the campaign and it is one of the eight artifacts
+that produced no flips. This draw shows that had it been edited — by twelve lines of prose
+that close nothing — its only implementation file would have been rewritten.
+
+    So "all eight flips are in specs that grew" is no longer just a correlation across
+    artifacts nobody chose. Spec growth alone, with no closure and no history of editing,
+    changes generated code in a spec that never showed drift.
+
+⚠️ AND PERTURBING A FILE IS STILL NOT FLIPPING A VERDICT. jsoncodec has 6 live mutation rows.
+Whether this change moves any of them is a targeted sweep of both arms, which is NOT run. That
+is the step that would turn the artefact reading of the capstone from concrete to measured.
+Recorded, with the specific rows available to test it.
