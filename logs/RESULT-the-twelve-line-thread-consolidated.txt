@@ -1,127 +1,172 @@
-RESULT — the twelve-line investigation, consolidated
+RESULT — the spec-growth investigation, consolidated
 =====================================================
 
-18:30 on 29 July. This thread now spans six files and three retractions. Written so a reader
-does not have to reconstruct it from the order things were discovered in, and so the OPEN
-questions are separable from the settled ones.
+Rewritten 21:52 on 29 July, replacing a version patched four times that no longer held the main
+results. This thread began as "did a twelve-line spec edit break taskapipro's imports?" and
+ended somewhere else. Written so the settled parts are separable from the open ones.
 
-THE ORIGINAL CLAIM (15:58): adding twelve lines to taskapipro's projects test entry caused
-three implementation files to lose their module prefix, broke the paging twins, and cost the
-capstone 62 rows.
-
-
-WHAT IS ESTABLISHED
-====================
-
-1. THE CONTENT OF THE TWELVE LINES IS IRRELEVANT TO EVERYTHING MEASURABLE.
-   Twelve lines of prose about naming a variable `t` produce the same result as twelve lines
-   about page sizes and store contents:
-     · the same round-1 import defect, byte for byte
-     · the same defect at the same line AND column in rounds 3 and 4
-     · all six fix rounds identical — the same error STRINGS and the same files repaired in
-       the same order
-     · the generated code identical bar one comment's word order and one Fatalf message
-   Basis: the inert control arm (drawn 16:41-18:15) against both v5 draws.
-
-2. THEIR PRESENCE CHANGES GENERATED CODE IN FILES THE ENTRY NEVER MENTIONS.
-   On one denominator — the seven files untouched in all four draws:
-     v5 draw1 vs draw2   differ by nothing           0 of 7
-     inert vs v5         differ by CONTENT           1 of 7   a comment
-     chain5 vs v5        differ by PRESENCE          4 of 7   3 CODE + 1 PROSE
-   chain5 carries an entire `getenv` helper in internal/config/config.go that v5 does not, and
-   service.go differs in a statement body. ⚠️ Refined 19:30: of the four, THREE are genuine
-   code differences (config.go, service.go, models_test.go) and one — middleware_chain_test.go
-   — differs only in comments or strings. An earlier version said all four were code.
-
-3. AND THAT EXPLAINS THE DEFECT LINE NUMBERS RATHER THAN CORRELATING WITH THEM.
-   chain5's mirrored-argument defect sits at projects.go 77:55 and its half-repair at 56:2.
-   Both v5 draws and the inert draw put them at 71:55 and 50:2 — a constant six-line offset,
-   because the arms contain different code above both sites. The inert draw matches v5 to the
-   column because it IS v5's code.
-
-4. SAMPLING VARIANCE IN THIS CONDITION IS ZERO, which is what makes 1, 2 and 3 readable at
-   all. Two v5 draws four hours apart on one server: 8 of 8 untouched files identical.
+THE ORIGINAL CLAIM, 15:58: adding twelve lines to taskapipro's projects test entry caused three
+implementation files to lose their module prefix, broke the paging twins, and cost the capstone
+62 rows.
 
 
-5. IT IS THE SPEC, NOT THE SERVER (answered 19:21). The pristine pre-edit draw on 4439 wrote CORRECT
-   prefixed imports (all 5, read from .pre-fix.json), against UNPREFIXED in both +12 draws and
-   the inert arm on the same server. Server held fixed, spec the only difference. The draw ALSO
-   graded UNMEASURED on compiler output — chain5's masking, reproduced exactly as predicted at
-   18:10 — so the snapshot is the only reason it answered. And it reproduces chain5 on all 7
-   untouched files, which fills chain5's hole in the table.
-   See RESULT-the-twelve-lines-cause-the-import-defect.txt.
-   ⚠️ The STUB-FILE regression is NOT this: chain5 and the pre-edit draw both leave
-   internal/store/memory.go empty, so that stays open and separate.
+I. THE FLOOR EVERYTHING ELSE RESTS ON — SAMPLING VARIANCE IS ZERO
+==================================================================
+Five same-condition pairs, one server, three to five hours apart each:
+
+    taskapipro  +12 arm      v5 draw1 vs draw2       8 of 8 identical
+    taskapipro  pre-edit     chain5 vs preedit       7 of 7 identical
+    taskflow    control      chain5 vs chain6       12 of 12 identical
+    ratelimit   +48 arm      dose vs dose2           6 of 6 identical, ALL 5 ROUNDS identical
+    jsoncodec   —            drawn once per arm
+
+    Thirty-three files, not one byte different. The ratelimit pair is the only TREATMENT pair
+    and it matters: until 21:42 zero-variance was established for controls only, leaving open
+    that a perturbed spec might simply draw noisily. It does not.
+
+    THEREFORE every difference below is a difference BETWEEN conditions, never within one.
+    That is what makes n=1 arms readable at all.
+
+⚠️ NOT UNIVERSAL. `_iso-workapi-without` diverged in 1 of 3 draws — one group in five. The
+zero is a property of the conditions measured, not a law.
 
 
-6. ✅ THE DOSE EFFECT GENERALISES (answered 19:57). taskflow + the same twelve inert lines
-   against its own control, same server: 12 comparable files, CODE 4 · PROSE 4 · IDENTICAL 4.
-   Four IMPLEMENTATION files wrote different programs, and the file the lines were added to
-   (projects_test.go) differs only in PROSE. So a second spec, on a BETTER denominator than
-   taskapipro's seven, shows the same thing. The layout defence is closed: taskflow is
-   single-package and the effect appears anyway.
-   See RESULT-the-dose-effect-generalises.txt.
+II. CONTENT IS IRRELEVANT; PRESENCE IS NOT
+===========================================
+CONTENT: twelve lines about naming a variable `t` give the same result as twelve about page
+sizes and store contents —
+    · the same round-1 import defect, byte for byte
+    · the same defect at the same line AND column in rounds 3 and 4
+    · all six fix rounds identical: same error STRINGS, same files repaired in the same order
+    · the code identical bar one comment's word order and one Fatalf message
+
+PRESENCE: on the seven files untouched in all four taskapipro draws —
+    v5 draw1 vs draw2   differ by nothing           0 of 7
+    inert vs v5         differ by CONTENT           1 of 7   PROSE
+    chain5 vs v5        differ by PRESENCE          4 of 7   3 CODE + 1 PROSE
+
+    Replicated on an independent control arm (19:35): preedit vs v5 gives the SAME three CODE
+    files at the SAME byte sizes, and preedit vs inert gives those three again. Change the
+    control arm: same three files. Change the treatment's prose entirely: same three files.
+    Only the prose files move.
+
+IT EXPLAINS THE LINE NUMBERS rather than correlating with them: chain5's mirrored-argument
+defect sits at projects.go 77:55 and its half-repair at 56:2; both v5 draws and the inert draw
+put them at 71:55 and 50:2 — a constant six-line offset, because the arms hold different code
+above both sites.
 
 
-WHAT IS SUGGESTIVE AND NOT ESTABLISHED
+III. IT IS THE SPEC, NOT THE SERVER
+====================================
+The import defect had no control until the pristine pre-edit draw (19:21), read from
+`.pre-fix.json` because compiler output could not answer it — chain5's round 1 died in
+internal/store before internal/api was ever built.
+
+    preedit  PRE-edit, no lines   4439    CORRECT (all 5 imports prefixed)
+    v5 x2    +12 REAL lines       4439    UNPREFIXED
+    inert    +12 INERT lines      4439    UNPREFIXED
+    chain4   PRE-edit, no lines   other   CORRECT
+
+Server fixed across the middle rows; the only difference is whether twelve lines were added.
+The draw ALSO graded UNMEASURED on compiler output — chain5's masking reproduced exactly as
+predicted — so the snapshot is the sole reason it answered.
+
+
+IV. THE EFFECT GENERALISES, AND SCALES
 =======================================
+    spec        edit               comparable   result                       variance floor
+    taskflow    ONE-LINE rename       12         CODE 1 — the TARGET            0 of 12
+    taskflow    +12 INERT lines       12         CODE 4 · PROSE 4 — none targeted
+    taskapipro  +12 lines              7         CODE 3 · PROSE 1 — none targeted  0/8, 0/7
+    jsoncodec   +12 INERT lines        2         CODE 1 of 1 impl file
+    ratelimit   +48 INERT lines        6         CODE 4 · PROSE 1 — incl. an UNTOUCHED file
 
-6b. A ONE-LINE EDIT IS SURGICAL WHERE TWELVE ADDED LINES ARE NOT.
-   Both arms re-measured 19:37 with the same instrument (_untouched_diff.py), so the contrast
-   is not an artefact of two hand-rolled comparisons:
+    A one-line edit reaches exactly its target and nothing else. Twelve reach files they never
+    mention — in a 21-file spec, a 16-file spec, and a THREE-file spec, which killed the
+    "needs a big project" hypothesis outright.
 
-     taskflow, ONE-LINE rename   12 untouched · CODE 1 · IDENTICAL 11
-     taskapipro, +12 lines        7 untouched · CODE 3 · PROSE 1 · IDENTICAL 3
+AND AT THE CAMPAIGN'S REAL DOSE IT KILLS THE ARTIFACT (21:20, replicated 21:42)
+    ratelimit-ctl    0 fix rounds · compile/test passed        FIRST-TRY GREEN
+    ratelimit-dose   exhausted 6 rounds, still failing         NOT-GREEN
+    ratelimit-dose2  byte-identical, same 5 rounds, same end   NOT-GREEN
 
-   AND THE DISTINCTION IS TARGETED-VERSUS-COLLATERAL, not just the count. taskflow's single
-   CODE difference IS the change that was asked for — projects_test.go, the renamed function,
-   same byte length on both sides. taskapipro's three are config.go, service.go and
-   models_test.go, and the twelve lines live in the projects TEST entry: NONE of the three is
-   the file they were added to. The tool cannot compute that difference — it does not know what
-   was targeted — so it is read off the spec diff by hand.
-   ⚠️ DIFFERENT SPECS. taskflow for the one-line arm, taskapipro for the twelve-line arm. A
-   one-line change to taskapipro has never been drawn and neither has a twelve-line addition to
-   taskflow. Suggestive of a dose relationship; not a measurement of one.
-   ⚠️ THE SETTLING EXPERIMENT IS CHEAP: twelve inert lines into a taskflow entry. taskflow
-   converges in one round.
+    48 inert lines — the tracked block at the end of four entries, inside the campaign's real
+    43-73 range — turned a first-try-green spec into one that burns its whole fix budget. Both
+    dose trees COMPILE; they fail the spec's own token-bucket capacity tests.
 
-
-WHAT IS STILL OPEN
-===================
-
-7. ✅ ANSWERED 19:40 — THE STUB REGRESSION IS THE SERVER, NOT THE SPEC. It is AS-DRAWN
-   (preedit's snapshot has memory.go at 14B before any repair, with the impl already in
-   store.go), and it splits cleanly: four draws on process 4439 all stub, two draws on other
-   servers nine days apart both correct and byte-identical to each other. The four 4439 draws
-   span BOTH spec states, so the twelve lines are exonerated completely.
-   ⚠️ Server and day are not separated — 4439 started 09:29 on 29 July.
-   THE MIRROR IMAGE of the import defect: that one tracks the spec, this one the server. Both
-   were one undifferentiated story at 15:58.
-
-7b. (was) THE STUB-FILE REGRESSION. All three 29-July taskapipro draws leave
-   internal/store/memory.go as a bare `package store` while the spec assigns it the
-   goroutine-safe MemStore, and ledger-v5 and workapi-v5 do the same. The v4 draws (19 July)
-   do not. NOT the twelve lines — chain5 and the pre-edit draw both produce it — so it is the
-   spec-or-server question all over again, on a different symptom, and it has no controlled
-   pair yet. See FINDING-three-v5-trees-left-the-store-impl-file-empty.txt.
-
-8. WHAT HAPPENED IN THE TWELVE REPAIRED FILES. Every cross-draw comparison above excludes
-   projects.go, projects_test.go and ten others, because the loop rewrote them and nothing
-   persisted the as-drawn state. That is fixed going forward, not backward.
+⚠️ THE PERTURBATION IS NOT DAMAGE. Three times it produced the BETTER artifact: taskflow's +12
+arm added `var _ Store = (*store)(nil)`; taskapipro's control carried a getenv helper the +12
+arm did without; jsoncodec's control carried a dead `type Alias Event`. Adding lines RE-DECIDES
+design questions in unmentioned files, and the re-decision lands either way. An improvement is
+exactly as confounding as a regression.
 
 
-WHAT WAS RETRACTED, AND WHY IT MATTERS FOR READING THE REST
-============================================================
-  * "the loop repairs the wrong side"          rounds 1 and 2 targeted projects_test.go
+V. WHAT THIS DOES TO THE CAMPAIGN'S OWN HEADLINE
+=================================================
+"Redraw drift is worth about 6 up and 2 down" was measured across a corpus whose flip-bearing
+specs the campaign had itself rewritten:
+
+    specs that grew >=40 lines   6 artifacts · 107 live rows · 8 flips   7.5%
+    specs that grew  <40 lines   8 artifacts ·  33 live rows · 0 flips   0.0%
+
+    All eight flips are in specs that grew 43-73 lines; none in the 33 rows whose specs were
+    untouched. With the spec held constant the observed drift is zero, which is what every
+    pair in section I shows.
+
+    SO SIX-UP-AND-TWO-DOWN IS NOT REDRAW DRIFT. It is spec-edit drift, and the baseline for
+    what a redraw moves on its own should be closer to zero.
+
+⚠️ CONFOUNDED BEYOND REPAIR FROM THIS DATA. The specs grew BECAUSE closures were added, so
+"grew" and "the campaign worked on it" are the same set. A taskflow flip may be the closure
+taking effect or 73 added lines perturbing an unrelated file. THE CAMPAIGN CANNOT DISTINGUISH
+ITS SUCCESSES FROM ITS OWN PERTURBATION.
+
+⚠️ BUT PERTURBING A FILE IS NOT FLIPPING A VERDICT, and the one direct test came back NULL:
+twelve lines rewrote jsoncodec's only implementation file and left all six of its mutation
+verdicts exactly where they were. So the artefact reading is plausible and UNPROVEN. The
+ratelimit arm could not answer it — the artifact died, so every row went BASELINE-RED.
+
+
+VI. TWO NEIGHBOURING FINDINGS, NOT ABOUT THE TWELVE LINES
+==========================================================
+THE STUB REGRESSION TRACKS THE SERVER. Six draws on process 4439 across THREE specs leave
+`internal/store/memory.go` as a bare `package store`; four draws on other processes are correct
+AND byte-identical to each other. The four 4439 taskapipro draws span both spec states, so the
+lines are exonerated. It is AS-DRAWN, and narrowly it is the interface/impl split collapsing
+rather than "empty files".
+    ⚠️ server and day are not separated: 4439 started 09:29 on 29 July.
+
+THE SPEC ASKED FOR A STRUCT AND EVERY DRAW BUILT AN INTERFACE. taskflow's store entry says "A
+Store STRUCT"; every draw for weeks declares `type Store interface` and puts the maps in a
+second type the spec never mentions. All converged GREEN. `_shape_conformance.py`: 51 checked,
+2 flagged, no false positives.
+
+
+VII. STILL OPEN
+================
+  1. Whether growth moves a VERDICT at a dose that does not kill the artifact. jsoncodec at 12
+     lines: no. ratelimit at 48: unmeasurable. The gap is a mid-dose artifact that stays green.
+  2. Monotonicity. One, twelve and forty-eight lines are measured; nothing between.
+  3. The as-drawn contents of the twelve taskapipro files the loop repaired — fixed going
+     forward by `.pre-fix.json`, not backward.
+  4. Server versus day for the stub regression. Separating them needs a restart, which would
+     cost the control every experiment today depends on.
+
+
+VIII. WHAT WAS RETRACTED, AND THE ONE ERROR BEHIND MOST OF IT
+==============================================================
+  * "the loop repairs the wrong side"           rounds 1 and 2 targeted projects_test.go
   * "the edit broke the tasks twins 3,3 -> 1,2" post-repair tree vs near-as-drawn tree
   * "chain5 genuinely lacks undefined: w"       it lacks it AT ROUND 2, after four fixes
-  * "generation is deterministic"               one group in four breaks it
+  * "generation is deterministic"               one group in five breaks it
+  * "chain5 vs v5 differ in 4 REAL CODE files"  three CODE, one PROSE
+  * "nothing globs generated/ broadly"          _cross_draw does
 
-All four are the same error: a quantity read off a generated tree is a POST-REPAIR quantity.
-Points 1-4 avoid it by comparing only files no draw repaired, and point 5 avoids it by
-reading the snapshot. That constraint is why the established list is short.
+The first three are one error: A QUANTITY READ OFF A GENERATED TREE IS A POST-REPAIR QUANTITY.
+Sections I-IV avoid it by comparing only files no draw repaired, or by reading `.pre-fix.json`.
+That constraint is why the established list is as short as it is.
 
-⚠️ AND ONE STRUCTURAL POINT WORTH KEEPING. The cleanest comparison in the whole investigation —
+⚠️ AND ONE STRUCTURAL POINT WORTH KEEPING. The cleanest comparison in the investigation —
 chain5 versus v5, differing in exactly one thing — sat on disk from 16:20 and was not made
 until 18:09, because chain5 was filed as "the control that came back masked". A draw that
 cannot answer ONE question was treated as if it could answer none.
