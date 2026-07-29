@@ -2,7 +2,10 @@
 """Did this draw have the unprefixed-import defect — and if the count is 0, was it MEASURED?
 
     python _grade_import_defect.py logs/ab-taskapipro-v5-07290930.log
+    python _grade_import_defect.py --pkg=internal/store logs/taskapipro-chain-07291509.log
     python _grade_import_defect.py --self-test
+
+Exits 1 if ANY arm is UNMEASURED, so a masked draw cannot be scored by accident in a pipeline.
 
 WHY A SEPARATE TOOL, AND WHY THE SECOND QUESTION EXISTS
 The four-draw table behind "the twelve-line spec edit caused the import defect" counts
@@ -50,7 +53,11 @@ ROUND2 = re.compile(r"compile/test FAILED, fix round 2/")
 END = re.compile(r"^\[guildlm-build\]\s+(deterministic fix|fixing |rebuilt a request|"
                  r"widening fix targets|error surface)")
 IMPORT_ERR = re.compile(r"is not in std|could not import")
-API = re.compile(r"internal/api")
+# THE PACKAGE WHOSE IMPORTS ARE THE SUBJECT. Hardcoding taskapipro's layout into a tool that
+# prints general-sounding verdicts is how a future run gets a confident answer about the wrong
+# package: for an artifact with no internal/api, EVERY zero would read as UNMEASURED.
+# Overridable, and the verdict text names the package it actually checked.
+PKG = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--pkg=")), "internal/api")
 
 
 def round1_block(text: str) -> list[str] | None:
@@ -79,13 +86,13 @@ def grade(text: str) -> dict:
         return {"verdict": "DEFECT", "errors": len(errs), "measured": True,
                 "files": files,
                 "why": f"{len(errs)} import-path error line(s) in round 1"}
-    if any(API.search(ln) for ln in block):
+    if any(PKG in ln for ln in block):
         return {"verdict": "FINE", "errors": 0, "measured": True,
-                "why": "internal/api appears in round 1 with non-import errors — it compiled "
-                       "far enough to resolve its imports"}
+                "why": f"{PKG} appears in round 1 with non-import errors — it compiled "
+                       f"far enough to resolve its imports"}
     return {"verdict": "UNMEASURED", "errors": 0, "measured": False,
-            "why": "round 1 failed elsewhere and internal/api never appears — its imports "
-                   "were never evaluated. This arm cannot be scored."}
+            "why": f"round 1 failed elsewhere and {PKG} never appears — its imports "
+                   f"were never evaluated. This arm cannot be scored."}
 
 
 def self_test() -> int:
@@ -135,10 +142,10 @@ if __name__ == "__main__":
     if "--self-test" in sys.argv:
         raise SystemExit(self_test())
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    unknown = [a for a in sys.argv[1:] if a.startswith("-")]
+    unknown = [a for a in sys.argv[1:] if a.startswith("-") and not a.startswith("--pkg=")]
     if unknown:
-        raise SystemExit(f"REFUSING: unknown flag(s) {' '.join(unknown)}. Takes --self-test "
-                         f"or a list of build logs.")
+        raise SystemExit(f"REFUSING: unknown flag(s) {' '.join(unknown)}. Takes --self-test, "
+                         f"--pkg=<path>, or a list of build logs.")
     if not args:
         raise SystemExit(__doc__)
     rc = 0

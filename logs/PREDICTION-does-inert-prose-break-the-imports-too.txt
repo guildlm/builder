@@ -82,6 +82,30 @@ share now stated: A 60% · B 25% · C 15%.
 Graded by `_grade_import_defect.py`, whose self-test's decisive case is that the two
 zero-count arms must receive different verdicts.
 
+⚠️⚠️ THE RUNNER'S OWN INLINE VERDICT IS SUPERSEDED AND WRONG IN TWO OF FOUR CASES. DO NOT
+RECORD IT. _inert_prose_draw.sh was written at 16:41, before the masking problem was known,
+and it will print a branch line when it finishes. Both of its zero-paths are defective in
+exactly the ways the refinement above fixes:
+
+    _inert_prose_draw.sh:144   no round-1 marker      -> prints "BRANCH C — INCONCLUSIVE"
+                               ACTUALLY: the tree compiled, so imports resolved. BRANCH B,
+                               measured. The strongest possible clean result, scored as no
+                               result at all.
+    _inert_prose_draw.sh:162   IMP_LINES == 0         -> prints "BRANCH B — imports are CLEAN"
+                               ACTUALLY: clean ONLY IF internal/api was reached. If a different
+                               package failed first this is BRANCH C, UNMEASURED — which is
+                               precisely where chain5 landed and would have been scored B.
+
+It is not edited because it is RUNNING, and bash re-reads a live script from a byte offset —
+splicing into one mid-execution can feed a half-line into the middle of a command. The script
+still does the two things that matter and cannot be redone later: it derived and verified the
+variant spec, and it captured the log. The grading is the part that is cheap to redo and it
+gets redone with the right instrument.
+
+    THE PROCEDURE WHEN IT FINISHES: run
+        .venv/bin/python _grade_import_defect.py logs/inert-taskapipro-07291641.log
+    and record ITS verdict. Ignore the branch line the runner prints above it.
+
 Weak either way and stated weakly on purpose. For A: the mechanism most available is that
 twelve lines shift the prompt context for every file generated after them, and nothing in the
 real twelve lines names an import path — neither the words `guildlm.dev/taskapipro` nor any
