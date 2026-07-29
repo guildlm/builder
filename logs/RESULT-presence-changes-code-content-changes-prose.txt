@@ -14,14 +14,19 @@ an artefact of what happened to be compared. Redone (18:12) on the files untouch
 logs — one denominator, seven files, every byte as-drawn in every arm:
 
     v5 draw1 vs draw2     nothing                   0 of 7 differ
-    inert vs v5           the 12 lines' CONTENT     1 of 7 differ   models.go, the comment
-    chain5 vs v5          the 12 lines' PRESENCE    4 of 7 differ   config.go, service.go,
-                                                                    models_test.go,
-                                                                    middleware_chain_test.go
+    inert vs v5           the 12 lines' CONTENT     1 of 7 differ   PROSE (a comment)
+    chain5 vs v5          the 12 lines' PRESENCE    4 of 7 differ   3 CODE + 1 PROSE
 
     The gradient is 0 / 1 / 4 on an identical file set. Stricter than the version above and
-    the conclusion is unchanged. Note also that two of the four are TEST files, so presence
-    reaches tests as well as implementation.
+    the conclusion is unchanged.
+
+⚠️ REFINED 19:30, once the comparison became a tool with a comment-and-string blanker
+(_untouched_diff.py). Of chain5-vs-v5's four differing files, THREE are genuine code
+differences and ONE — internal/api/middleware_chain_test.go — differs only inside comments or
+string literals. An earlier version of this file called all four "REAL CODE"; that was three
+of four. The three are config.go (the whole getenv helper), service.go (a statement body) and
+models_test.go, so one of the two TEST files stays a code difference and the other does not.
+The gradient 0 / 1-prose / 3-code is if anything cleaner than the version it corrects.
 
 A gradient, and the middle row is the control that makes the other two mean something:
 sampling variance in this condition is ZERO, so both of the other differences are real.

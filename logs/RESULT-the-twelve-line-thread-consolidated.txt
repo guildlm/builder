@@ -27,9 +27,11 @@ WHAT IS ESTABLISHED
    On one denominator — the seven files untouched in all four draws:
      v5 draw1 vs draw2   differ by nothing           0 of 7
      inert vs v5         differ by CONTENT           1 of 7   a comment
-     chain5 vs v5        differ by PRESENCE          4 of 7   REAL CODE
+     chain5 vs v5        differ by PRESENCE          4 of 7   3 CODE + 1 PROSE
    chain5 carries an entire `getenv` helper in internal/config/config.go that v5 does not, and
-   service.go differs in a statement body. Two of the four are TEST files.
+   service.go differs in a statement body. ⚠️ Refined 19:30: of the four, THREE are genuine
+   code differences (config.go, service.go, models_test.go) and one — middleware_chain_test.go
+   — differs only in comments or strings. An earlier version said all four were code.
 
 3. AND THAT EXPLAINS THE DEFECT LINE NUMBERS RATHER THAN CORRELATING WITH THEM.
    chain5's mirrored-argument defect sits at projects.go 77:55 and its half-repair at 56:2.
