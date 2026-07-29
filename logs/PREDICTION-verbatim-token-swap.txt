@@ -1,0 +1,47 @@
+PREDICTION — the copies-vs-interprets hypothesis, tested directly
+=================================================================
+
+00:18 on 30 July, before the draw. The hypothesis written at 00:03 to fit all seven taskflow
+arms: the edit is SAFE when it changes something the model COPIES VERBATIM, and PERTURBS when
+it changes something the model INTERPRETS.
+
+    safe so far   two word-order swaps of a TEST NAME — copied into the output
+    perturbs      an equal-length PROSE swap, and additions of 1, 3 and 12 lines — all
+                  guidance the model must interpret
+
+    The two classes have so far been confounded with "is it an identifier". This tests the
+    hypothesis on a NON-NAME token that the model nonetheless copies verbatim.
+
+THE EDIT: `{"id":"1","title":"a",...}` -> `{"id":"1","title":"z",...}` in taskflow.yaml:198.
+    · one character to one character, so the spec's byte count is unchanged
+    · inside a block the spec introduces with "Write EXACTLY this, and decode nothing else:" —
+      the model's job is to reproduce it, not to reason about it
+    · SEMANTICALLY INERT, checked: no assertion anywhere in the spec references the title
+      value. The surrounding assertions read rec.Code and len(all), never the title.
+    · one occurrence
+    · NOT a name, NOT prose — it is literal test input data
+    · control is snapshotted chain6; graded as-drawn with _untouched_diff.py
+
+BRANCHES
+  A  0 CODE differences outside taskflow_test.go
+     -> the hypothesis SURVIVES. The safe class is "things the model copies", not "identifiers"
+        and not "short edits". That is a mechanism, and it predicts which future spec edits are
+        free: literal fixtures, expected values, names.
+  B  >=1 CODE difference elsewhere
+     -> the hypothesis DIES. The safe class is narrower still — perhaps only test names, or
+        perhaps nothing is reliably safe and the two rename nulls were luck twice. Either way
+        "copies vs interprets" would be a story that fit seven points and failed its first
+        real test.
+
+PREDICT A 60% · B 40%.
+A because the mechanism is the only story that fits all seven arms, and because this token is
+about as purely copied as the spec gets — a fenced literal with an explicit instruction to
+reproduce it.
+B because I have now been wrong twice in this series about what would be safe: at 23:38 I wrote
+that byte count was the variable and it was falsified in 25 minutes. The prior on my own
+mechanism stories in this thread is not good.
+
+⚠️ AND A IS THE RESULT THAT LICENSES SOMETHING, WHICH MEANS IT DESERVES MORE SUSPICION THAN B.
+A would say "you may freely change fixtures and expected values" — an operation people do
+constantly. If A lands I should REPLICATE it before writing it as a rule, because that is
+exactly the mistake made at 23:38: two arms agreeing became a rule, and the rule was wrong.
