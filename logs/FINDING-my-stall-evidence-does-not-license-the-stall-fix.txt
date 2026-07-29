@@ -1,0 +1,63 @@
+FINDING — the 127-for-0 evidence is about MY signature, not the one the fix would act on
+=========================================================================================
+
+14:42 on 29 July. Went to make the change I have proposed four times today — delete
+`rnd > max_fix_rounds and` from the builder's repeat guard — and read the signature function
+first. The change is not licensed by my evidence, and the gap is the same shape as everything
+else caught today.
+
+THE TWO SIGNATURES ARE DIFFERENT OBJECTS
+
+    builder:  _SIG_NOISE_RE = re.compile(r"0x[0-9a-f]+|goroutine \d+|\d+\.\d+s|\+0x[0-9a-f]+")
+              _error_signature(output) = _SIG_NOISE_RE.sub("?", output)
+
+              The WHOLE check output, with only addresses, goroutine ids, timings and stack
+              offsets blanked. `ok pkg 0.413s` and `ok pkg 0.303s` normalize to the same
+              string — but the ok lines THEMSELVES are part of the signature.
+
+    mine:     the set of `!`-prefixed ERROR lines, minus package headers, [no test files],
+              and (since 11:49) `ok` lines entirely.
+
+Mine is a set of error lines. The builder's is a whole-output string. They are not
+comparable, and a repeat under one does not imply a repeat under the other.
+
+DIRECTION OF THE DIFFERENCE, and it matters
+The builder's is BROADER — it includes passing packages. A package turning green changes its
+surface, so the builder sees "new surface" and grants an extension where I would report a
+stall. That is arguably CORRECT for the builder: a package turning green is progress, even if
+the failing one has not moved.
+
+    So the builder's guard fires LESS often than mine would. My 127-for-0 is not an
+    overstatement of the fix's safety; it is a measurement of a DIFFERENT quantity that
+    happens to point the same way.
+
+AND I CANNOT VALIDATE IT FROM THE LOGS
+_error_signature is computed over the FULL check output. The logs record only the `!`-prefixed
+subset — `_log` prints a filtered view. So the builder's historical signatures are not
+recoverable from any log on disk, and there is no way to count in-budget repeats under the
+builder's own definition without instrumenting a run.
+
+    I proposed a change four times today on evidence that cannot be applied to it. The
+    proposal was never wrong — it was never CHECKED, and I did not notice because the two
+    signatures share a name and a purpose.
+
+WHAT THE CHANGE WOULD ACTUALLY DO, stated honestly
+Removing the guard makes the loop stop when the ENTIRE check output repeats modulo addresses
+and timings. That is a stricter condition than my stall audit's and a genuinely strong signal:
+if the whole output is identical, nothing anywhere changed. It is very likely safe. "Very
+likely" is not the standard this repo has been holding all day.
+
+THE WORK THIS NEEDS, and it is small
+  1. Log the signature itself — one `_log(f"  surface {hash(sig)&0xffff:04x}")` per round —
+     so historical runs become countable and the question becomes answerable from logs.
+  2. Draw a corpus with it. Count in-budget repeats under the BUILDER's signature.
+  3. If that count also shows zero recoveries, delete the four words with evidence that
+     matches the target.
+
+Step 1 is a src/ change and src/ is now unfrozen, so this is available. It is also exactly
+the change that makes the NEXT person's version of this question cheap, which is the same
+argument as printing "matched N, probed M" and "9 flips in groups whose size changed".
+
+⚠️ WHAT I AM NOT DOING: deleting the four words today. The stall behaviour is real, cost 43+
+rounds today by my count, and the fix is probably right. It stays unmade until the count is
+taken against the signature the guard uses.
