@@ -1,0 +1,71 @@
+FINDING — the spec named five sentinels, the draw wrote four verbatim and shortened the fifth
+==============================================================================================
+
+Caught 12:36 on 29 July from ledger-v5's fix round 2, which failed on:
+
+    internal/api/response.go:30:29: undefined: models.ErrInsufficientFunds
+
+THE SPEC ASKS FOR (internal/models/models.go entry, line 125):
+
+    "Sentinel errors, all matchable with errors.Is:
+     ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced, ErrInsufficientFunds."
+
+THE DRAW WROTE:
+
+    ErrInvalid      = errors.New("invalid")
+    ErrNotFound     = errors.New("not found")
+    ErrExists       = errors.New("already exists")
+    ErrUnbalanced   = errors.New("unbalanced")
+    ErrInsufficient = errors.New("insufficient funds")          <- NOT ErrInsufficientFunds
+
+Four of five verbatim. The fifth shortened. And the STRING is right — "insufficient funds" —
+so the concept survived and only the identifier lost its tail.
+
+response.go, generated later, used the SPEC'S name: `errors.Is(err, models.ErrInsufficientFunds)`.
+So the two files disagree because one abbreviated and the other did not, and the package does
+not compile.
+
+    The spec was correct and consistent. Both entries name ErrInsufficientFunds — the
+    declaring entry at line 125 and the using entry at line 350. This is not an
+    entry-locality gap. It is a name that was not reproduced.
+
+IT IS THE LONGEST NAME IN THE LIST, AND THAT IS THE SECOND INSTANCE TODAY
+
+    ErrExists              9
+    ErrInvalid            10
+    ErrNotFound           11
+    ErrUnbalanced         13
+    ErrInsufficientFunds  20   <- shortened to ErrInsufficient (15)
+
+taskflow's missing test was the one name breaking its file's TestProject* convention.
+ledger's mangled sentinel is the one name breaking its list's length profile. Two different
+artifacts, two different name-outliers, two different failures — one dropped, one truncated.
+
+    The outlier in a list of names is the one that does not come back intact.
+
+⚠️ A HYPOTHESIS I AM LABELLING AS ONE. The declarations are gofmt-aligned, and the alignment
+column is set by the LONGEST name:
+
+    ErrInsufficient = ...        column 16
+    ErrInsufficientFunds = ...   would force column 21 and re-pad all four siblings
+
+So writing the full name costs a rewrite of every line above it. That is a tidy story for why
+the longest name is the one that shrinks, and it is a story, not a measurement. It predicts
+something checkable: a spec whose sentinel list has TWO long names should mangle both, or
+neither, depending on which sets the column. Untested.
+
+WHAT IT QUALIFIES
+FINDING-structural-closures-survive-redraws-quantities-do-not.txt says presence of a named
+thing is the durable class. That holds for what it measured — spec-named TESTS, 0 of 174
+missing. This is a spec-named DECLARATION, and it came back with a different name.
+
+    Presence is durable ONLY IF THE NAME IS REPRODUCED. The law measured tests, whose names
+    are short and conventional. A twenty-character identifier is a different population and
+    this is one data point in it.
+
+⚠️ AND IT COST A ROUND, LOUDLY, WHICH IS THE GOOD CASE. The compiler caught it immediately —
+`undefined: models.ErrInsufficientFunds` — and the loop widened to internal/models by NAME:
+"widening fix targets to internal/models — undefined models.ErrInsufficientFunds (missing
+from its package)". A name that is used somewhere is a presence the compiler can check. Had
+the sentinel been declared and never referenced, nothing would have objected and the mapping
+in response.go would simply never fire for that case.
