@@ -286,3 +286,45 @@ changing nothing else. Paging semantics still do not force three, so:
     count becomes 3  -> (b) survives, (c) is not necessary
     count stays 1    -> (b) is dead and (c) is the live explanation
 Either way one draw settles it, and it is cheaper than the gate.
+
+
+THE CORPUS IS EXHAUSTED FOR THIS QUESTION (11:21) — STOPPING HERE ON PURPOSE
+============================================================================
+Checked logstats as a falsification target for semantic forcing: its TestConsume asks for
+"five entries" and the count is not obviously forced by what the test means. The draw wrote
+all five correctly.
+
+It is not a counterexample. The spec TRANSCRIBES them — "use EXACTLY this fixture (do not
+invent your own lines or recompute the expectations — transcribe them)" followed by line1
+through line5 verbatim. That is enumeration in its strongest form, the same as lrucache's
+literal code. It supports (b) and says nothing about (c).
+
+WHERE THE EVIDENCE ACTUALLY STANDS, and it is not a conclusion
+
+    instance                     enumerated?  semantically forced?  count right?
+    ---------------------------  -----------  --------------------  ------------
+    lrucache eviction            yes (code)   yes (>capacity)       YES
+    ratelimit bucket             yes (code)   yes (>burst)          YES
+    logstats consume             yes (verbatim) no                  YES
+    taskflow ListSorted          yes (ids)    yes (sortedness)      YES
+    taskapipro ListLimit         yes (ids)    yes (sortedness)      YES
+    taskapi ListSorted           NO           yes (sortedness)      YES
+    taskapipro paging x4         NO           NO                    NO
+
+Every correct instance has AT LEAST ONE of the two properties. The only failures have
+NEITHER. Which is consistent with (b), with (c), and with "either one suffices" — and the
+corpus contains no instance that is enumerated-but-not-forced-and-wrong, or
+forced-but-not-enumerated-and-wrong, which are the cells that would separate them.
+
+    Seven instances, two properties, and the failing cell is the one where both are absent.
+    That is the most the existing corpus can say, and I have now told three different
+    stories about it in ninety minutes.
+
+STOPPING. Two of today's three stories were retracted within the hour — assertion shape, then
+setup enumeration — each time by evidence that was already on disk and that I had not looked
+for until after committing. A fourth reading of the same seven rows is not worth more than
+the first three were.
+
+THE ONE DRAW THAT SETTLES IT, unchanged and now precisely motivated: add ONLY ids to
+taskapipro's paging entries. That fills the empty cell — enumerated, NOT semantically forced
+— and it is the only cell that distinguishes (b) from (c). Everything else is re-reading.
