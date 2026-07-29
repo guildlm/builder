@@ -1,0 +1,53 @@
+RESULT — BRANCH A. A same-length substitution is safe, on a second arm
+=======================================================================
+
+23:38 on 29 July. TestCreateDuplicate -> TestDuplicateCreate in specs/taskflow.yaml — both 19
+characters, spec byte count 22410 before and after, in the taskflow_test.go entry rather than
+the projects_test.go entry the original rename used. Against snapshotted chain6, as-drawn on
+both sides. Predicted A 60% · B 40%.
+
+    CODE 1 · IDENTICAL 13 · PROSE 1
+
+    CODE   taskflow_test.go   8594 vs 8594   <- the TARGET, and the SAME byte count
+    PROSE  projects_test.go   5326 vs 5326   <- comments/strings only, same length too
+
+    COLLATERAL: NONE. And the rename landed — TestDuplicateCreate is in the drawn file, so
+    this is not a null from the edit being ignored.
+
+THE COMPLETE SERIES, five arms, one spec, all as-drawn where snapshots allow
+    same-length SUBSTITUTION  (rename, 21 -> 21)   CODE 1, target only, NO collateral
+    same-length SUBSTITUTION  (rename, 19 -> 19)   CODE 1, target only, NO collateral
+    +1  ADDITION                                   CODE 3, target + 2 collateral
+    +3  ADDITION                                   CODE 8
+    +12 ADDITION                                   CODE 6
+
+    TWO substitution arms, in two different entries, on two different test names: no collateral
+    either time. THREE addition arms, the smallest being a single line: collateral every time.
+
+    LENGTH IS THE VARIABLE, and it now rests on five arms rather than a contrast between one
+    and three. The good news survived the test designed to kill it.
+
+WHAT THE RULE IS, AS MEASURED
+    · A substitution that preserves the spec's byte count — a rename, a reword of equal
+      length — leaves the rest of the program alone. Measured twice.
+    · ANY addition, down to one line, re-decides files the edit does not mention. Measured
+      three times, and not monotonically: three lines perturbed more files than twelve.
+    · There is no size budget. There is a KIND budget.
+
+FOR THE CAMPAIGN. Its closure edits ADDED 43-73 lines per spec, so they are all in the
+perturbing class, and its before/after comparisons cannot separate the closure from the
+re-decision. But the pure renames it made — including the taskflow rename that produced this
+thread's cleanest single-variable result — are in the SAFE class, and those measurements stand.
+
+    That is a usable split, and it is the first thing today that tells the campaign which of
+    its own results to keep.
+
+⚠️ WHAT IS STILL THIN. Both substitution arms are word-order swaps of a TEST NAME. A same-length
+reword of ordinary PROSE has not been tried, and neither has a same-length change that alters
+meaning (the swaps preserve it). "Preserves byte count" may be standing in for "preserves
+meaning and structure", and those come apart easily — `sorted by ID` -> `sorted by id` is the
+same length and means something different.
+
+⚠️ AND FIVE SINGLE DRAWS ON ONE SPEC. Same-condition variance on taskflow is zero (chain5 vs
+chain6, 12 of 12 identical), so each arm's result is real. The SHAPE across arms is five points,
+each from one draw.
