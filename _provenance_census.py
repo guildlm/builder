@@ -72,10 +72,12 @@ def tree_mtime(tree: pathlib.Path) -> tuple[float | None, bool]:
 
     2. A ZERO SPREAD MEANS THE TREE WAS COPIED, NOT DRAWN. A draw writes files one at a time,
        seconds apart — every genuinely-drawn tree in this corpus has a spread of 43-879s.
-       Eleven v4 trees have EVERY .go file on the same second, which is a wholesale restore
-       and makes their timestamp say when they were copied, not when they were built. Their
-       provenance is unrecoverable by time and the tool must say RESTORED rather than pick
-       whichever log happens to sit nearest a copy operation.
+       Eleven v4 trees have EVERY .go file on the same second, and four different specs
+       share the SAME second (07-27 02:01:08) — which no set of four independent generations
+       produces. So one operation wrote them and their timestamp says when that happened, not
+       when they were built. WHAT the operation was is NOT established: nothing in this repo
+       copies into generated/<spec>-v4. The label is RESTORED because that is the shape;
+       treat it as "single-second write, draw undatable", not as a known history.
     """
     gos = [f.stat().st_mtime for f in tree.rglob("*.go") if f.is_file()]
     if not gos:

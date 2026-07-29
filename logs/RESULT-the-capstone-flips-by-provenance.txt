@@ -52,17 +52,27 @@ defended in the same draw is precisely the confound, and the two cannot be separ
 outside. The row is not evidence that a redraw gained a defence; it is equally evidence that
 the fix loop wrote a better test.
 
-⚠️ 11 OF THE v4 BASELINE TREES WERE RESTORED WHOLESALE
-Every .go file in them carries one identical mtime — demo-small, jsonapi, logstats, numkit,
-ratelimit, taskflow, tasks-api, usersapi, workapi, workerpool, plantedred. A draw writes files
-seconds apart; every genuinely-drawn tree here has a spread of 43-879s. So those trees were
-copied into place, their timestamps say when they were copied, and their build logs cannot be
-identified by time at all.
+⚠️ 11 OF THE v4 BASELINE TREES HAVE A SINGLE-SECOND MTIME, AND THEIR DRAW CANNOT BE DATED
+Every .go file in them shares one identical timestamp to the second — demo-small, jsonapi,
+logstats, numkit, ratelimit, taskflow, tasks-api, usersapi, workapi, workerpool, plantedred.
+A draw writes files seconds apart; every genuinely-drawn tree here has a spread of 43-879s.
+And FOUR DIFFERENT SPECS — demo-small, logstats, numkit, workerpool — share the exact same
+second, 07-27 02:01:08, which no set of four independent generations produces.
 
-    That is a standing corpus fact, not a bug in the census: the v4 half of the baseline is
-    partly unauditable, and it will stay that way unless a draw records its own log path into
-    the tree. Doing that is one line at generation time and would make every future census
-    exact. NOT DONE TODAY — src/ is holding still while a control draw runs.
+    MEASURED: one operation wrote each of those trees, and one operation wrote four of them
+    together. No ab-run log sits anywhere near those times, so time cannot identify their
+    draw, and that is the operational consequence.
+
+    NOT MEASURED, and an earlier version of this file asserted it: WHAT that operation was.
+    Nothing in this repo copies into generated/<spec>-v4 — every `cp -r` found goes the other
+    way, out of a v4 tree into a `_`-prefixed keep directory. So the write came from outside
+    the repo's scripts or from one no longer present, and "restored wholesale" was an
+    inference stated as a finding. The distinction matters because the mechanism is what
+    would say whether the CONTENT is still the drawn content.
+
+    Either way the v4 half of the baseline is partly unauditable, and stays that way unless a
+    draw records its own provenance into the tree — which is what <out>/.pre-fix.json would
+    do. NOT DONE TODAY: src/ is holding still while a control draw runs.
 
 ⚠️ WHAT THIS DOES NOT SAY. It does not retract the capstone. Six-up-and-two-down remains the
 best available estimate of redraw drift and the argument for it is unchanged. It says the
