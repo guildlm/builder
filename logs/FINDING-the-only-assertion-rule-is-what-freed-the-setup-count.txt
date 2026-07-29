@@ -87,3 +87,53 @@ were checked BECAUSE the law predicted them, not gathered to support it — but 
 still only two confirmations, and neither is a paging test. The prediction that makes this
 falsifiable: rewrite the taskapipro entry as above, redraw, and the seeds should become 3.
 If they do not, the assertion shape is not what governs the setup and this is wrong.
+
+
+ADDENDUM (10:47) — THE BOUNDARY: "ONLY ASSERTION" IS HARMFUL ONLY WHEN THERE IS A SETUP
+========================================================================================
+Found while preparing the workapi check, and it makes this finding usable instead of
+alarming.
+
+workapi's Delete-404 entry carries THE SAME PHRASE:
+
+    "TestDeleteMissingReturns404 — on a FRESH router, DELETE /tasks/nope with a valid
+     token — an id nobody created — and assert, AS THIS TEST'S ONLY ASSERTION, that the
+     code is 404."
+
+and that closure was CAUGHT on workapi-chain2. The draw wrote exactly what was asked: fresh
+router, one DELETE, an auth header, one status assertion, nothing else.
+
+WHY THE SAME PHRASE IS SAFE HERE
+There is no setup quantity to free. The test seeds NOTHING — "an id nobody created" is the
+whole precondition, and a fresh router satisfies it. A bare assertion cannot leave a seed
+count unconstrained when the correct seed count is zero.
+
+    taskapipro paging   ONLY-assertion + a bare COUNT over a SEEDED collection  -> drifted
+    workapi Delete-404  ONLY-assertion + a STATUS on an EMPTY store             -> CAUGHT
+
+THE RULE IS NARROWER THAN THIS FILE FIRST STATED
+Not "never write ONLY assertion" — it is a good rule and it fixed a real shortener defect.
+The failure mode is specific:
+
+    An ONLY-assertion instruction is dangerous exactly when the assertion is a COUNT (or
+    any aggregate) over a collection the test must SEED, because then the assertion is the
+    only thing that could have pinned the seeding, and forbidding everything else unpins it.
+
+Where the assertion is a status code, an error value, or anything on an empty store, the
+phrase costs nothing and buys the focus it was written for.
+
+AND IT PREDICTS THE WORKAPI RESULT FOR A REASON
+FINDING-structural-closures-survive-redraws-quantities-do-not.txt puts Delete-404 in the
+structural class and predicts it holds. This says the same thing from the spec side: there
+is no quantity in that entry to lose. Two independent routes to the same prediction, which
+is why the registered 85% is the least uncertain number in the pending list.
+
+WHAT TO CHECK WHEN workapi-v5 LANDS
+    func TestDeleteMissingReturns404  — present, in internal/api/router_test.go
+    fresh router, no seeding
+    req.Header.Set("Authorization", "Bearer secret")   <- the drained-body gate rebuilds
+                                                          requests and freshreq.go REPLAYS
+                                                          mutations for exactly this reason;
+                                                          a rebuilt request that lost the
+                                                          header fails 401, not 404
+    assert rec.Code == http.StatusNotFound, and nothing else
