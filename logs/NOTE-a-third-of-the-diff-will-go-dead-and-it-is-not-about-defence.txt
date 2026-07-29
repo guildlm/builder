@@ -90,3 +90,55 @@ predate the sweep, and taskflow's rename is the exception above.
 ⚠️ AND IT SAYS NOTHING ABOUT ledger, workapi OR THE taskapipro REDRAW, which are not drawn
 yet. Re-run this check after the corpus completes; a spec edited between now and then would
 be invisible to the run above.
+
+
+UPDATE (12:07) — IT IS 46%, NOT 35%, AND THE REASON IS A SCOPING CHOICE
+=======================================================================
+This note pre-registered an upper bound of 110 of 314 rows (35%) going dead, on the
+assumption that the red artifacts would be taskapi, expreval and taskapipro. workapi then
+also shipped NOT-GREEN:
+
+    taskapi-v4        40
+    expreval-v4        8
+    taskapipro-v4     62
+    workapi-v4        36
+    ------------------------
+    TOTAL            146 of 314 = 46%
+
+The pre-registered bound was too low because I bounded the SPECS I expected to fail, not the
+mechanism. workapi failing was not in the scenario, and it should have been — its prediction
+of NOT-GREEN was registered at 95% an hour before this note's update, by me.
+
+AND WORKAPI'S 36 ROWS ARE DEAD FOR A REASON THAT IS NOT ABOUT WORKAPI
+_teeth_suite runs the baseline as:
+
+    _GO_TEST = ["go", "test", "-count=1", "-timeout", "60s", "./..."]
+
+The WHOLE MODULE. workapi-v5's internal/api compiles and passes — it reported `ok` in every
+round that reached the test phase — while internal/service has a scope error. `./...` fails,
+so every probe in the artifact returns BASELINE-RED, including probes on the package that is
+perfectly green.
+
+    A single broken package poisons every row in the artifact. 36 gradeable rows are
+    reported as ungradeable because a sibling package does not compile.
+
+THE FIX IS OBVIOUS AND MUST NOT BE MADE NOW
+Scoping the baseline to the package under test would recover those rows — it is exactly what
+_grade_workapi_delete404.sh does with `go test ./internal/api/`, which is why that grade is
+still obtainable while these rows are not.
+
+But the tracked 314-row v4 baseline was measured with the whole-module rule. Changing the
+rule before the v4-vs-v5 diff would compare rows taken under two different definitions of
+"gradeable", and the diff would show a large recovery that is entirely instrument. That is
+the shape already recorded twice in this repo — the glob-vs-rglob fix that added 144 rows,
+and the standing instruction not to widen shape 6b between v4 and v5.
+
+    Widen the instrument between a pair of sweeps and the next diff measures the widening.
+
+QUEUED, in the same batch as shape 6b and the nil-slice shape: scope the baseline per
+package, then sweep BOTH generations with the new rule.
+
+WHAT TO REPORT FROM THE DIFF, unchanged in principle and sharper in number: rows LIVE IN
+BOTH sweeps first, with the four red artifacts named and 146 stated as the dead count. A
+"comparable" figure that silently includes 146 BASELINE-RED rows would describe a corpus
+half of which was not measured.
