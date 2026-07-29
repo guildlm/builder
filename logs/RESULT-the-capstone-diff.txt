@@ -95,3 +95,61 @@ FIVE RED TREES OUT OF TWENTY-THREE. 56% of the tracked baseline could not be re-
 taskapipro and workapi failed on defects the fix loop itself introduced or could not clear;
 ledger failed on a truncated identifier the model would not repair across six rounds. A
 corpus that cannot compile cannot be graded, and no flip count above changes that sentence.
+
+
+================================================================================
+CORRECTION (13:10) — SIX OF THE TWELVE GAINS AND ONE OF THE THREE LOSSES ARE
+ORDINAL ARTEFACTS. THE HONEST NUMBERS ARE 6 GAINED, 2 LOST.
+================================================================================
+
+Went to look at the three losses individually and found the first one was not a loss at all.
+
+    taskflow  pagination.go  boundary <= -> <
+        v4 has ONE such site   (line 39, inside Paginate)          CAUGHT
+        v5 has TWO             (line 15 in ParsePage, 42 in Paginate)  SURVIVED, CAUGHT
+
+_redraw_diff keys by (artifact, file, shape, ORDINAL). v5 grew a new site EARLIER in the
+file, so ordinal 0 in v4 is Paginate's line and ordinal 0 in v5 is ParsePage's new line. The
+diff compared two different sites and called it a defence lost. Paginate's site is CAUGHT in
+both draws. Nothing was lost; a new undefended site appeared.
+
+    A site inserted EARLIER does not show up as "only in one sweep". It shifts every later
+    ordinal by one and manufactures a spurious flip. The docstring anticipates sites being
+    added or removed and expects the surplus to surface as unmatched — which is true only
+    when the surplus is at the END.
+
+SO I CHECKED EVERY LIVE FLIP FOR A SITE-COUNT MISMATCH IN ITS GROUP:
+
+    9 of 170 live flips sit in a group whose count changed between draws
+
+    SURVIVED->CAUGHT   bitset     bitset.go     boundary < -> <=       v4=1 v5=2
+    SURVIVED->CAUGHT   bitset     bitset.go     boundary >= -> >       v4=2 v5=3
+    SURVIVED->CAUGHT   tasks-api  handlers.go   StatusBadRequest->..   v4=8 v5=7   (x4 rows)
+    CAUGHT->SURVIVED   taskflow   pagination.go boundary <= -> <       v4=1 v5=2
+    + 2 more in dead-verdict flips (ledger, taskapipro), which change nothing
+
+THE REVISED HEADLINE
+
+                        as reported 12:59    after removing mismatched groups
+    SURVIVED -> CAUGHT        12                        6
+    CAUGHT   -> SURVIVED       3                        2
+
+Six gains, two losses. The DIRECTION is unchanged and the ratio is similar, but the
+magnitudes halve, and "12 up / 3 down" as a drift baseline becomes "6 up / 2 down" —
+which is the number future closure claims must beat.
+
+WHAT SURVIVES UNCHANGED
+  * 140 live-in-both, 163 BASELINE-RED, five red artifacts, 56% of the baseline unanswerable
+  * CAUGHT->SURVIVED is small either way, and none of the two genuine losses is in an
+    artifact that received a closure this week
+  * the gains still cannot be attributed to closures — the six survivors include shortener's
+    two, and shortener IS a closed artifact, but four are in untouched ones
+
+⚠️ AND THE TOOL SHOULD SAY THIS ITSELF. A flip whose group changed size is not a verdict
+change and _redraw_diff currently reports it as one. Adding the check is a REPORTING change —
+it does not alter keys or comparisons — so it is safe to make now, unlike widening a mutation
+shape. Doing that next.
+
+I published "12 gained, 3 lost" at 12:59 and corrected it at 13:10 by looking at the rows
+one at a time. The aggregate was available immediately; the artefact was only visible per
+row.
