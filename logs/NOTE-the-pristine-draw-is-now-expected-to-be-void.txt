@@ -1,0 +1,58 @@
+NOTE — the queued pristine pre-edit draw is now expected to answer NOTHING, and why
+=====================================================================================
+
+18:10 on 29 July. `_pristine_pre_edit_draw.sh` was written, tested and staged at 17:37 to
+settle whether the round-1 import defect tracks the twelve added lines or the server. Before
+firing it, its premise deserves the same scrutiny everything else got today. It does not
+survive.
+
+THE ARGUMENT, in three measured steps
+  1. The pristine draw's condition is: pre-edit spec, no added lines, server 4439, standard
+     flags.
+  2. chain5's condition is: pre-edit spec, no added lines, server 4439, standard flags.
+     THE SAME CONDITION. chain5 ran with the twelve-line edit reverted in the WORKING TREE —
+     git log shows HEAD at 15e25f3 during that run, which is why this is easy to miss.
+  3. Generation in a fixed condition is byte-identical here: the two v5 draws, same spec and
+     server FOUR HOURS APART, produced 8 of 8 untouched files identical and a round-for-round
+     identical trajectory down to `projects.go:71:55`.
+
+    THEREFORE the pristine draw is expected to reproduce chain5. And chain5's round 1 died in
+    internal/store with `undefined: Task`, so internal/api was never built and its imports
+    were never evaluated — the UNMEASURED verdict.
+
+    A draw that reproduces chain5 reproduces chain5's masking. It would spend an hour of GPU
+    to return the same non-answer.
+
+⚠️ THE PROBABILITY IS NOT 1, AND THE EXCEPTION IS RECORDED. Determinism is NOT universal — see
+the 18:04 correction: `_iso-workapi-without-3` restructured its store implementation across
+files where two sibling draws agreed. One group in four. So there is a real chance the pristine
+draw diverges from chain5 and happens to compile internal/api in round 1, which would answer
+the question outright. Call it 1 in 4 on the evidence available, against 3 in 4 that it returns
+UNMEASURED.
+
+    An hour of GPU for a 1-in-4 shot at a question that has a cheaper exact answer is a bad
+    trade, and the cheaper answer is below.
+
+WHAT ACTUALLY ANSWERS IT
+The import question is "did the model WRITE the unprefixed path?" — a question about the
+as-drawn tree, not about whether the compiler happened to reach that package. Reading
+`<out>/.pre-fix.json` answers it directly, with no compilation and no draw:
+
+    grep the as-drawn projects.go for `"taskapipro/internal/` versus `"guildlm.dev/taskapipro/`
+
+Three lines at the head of `_fix_loop`, scoped since 17:13, blocked only on src/ holding still
+while a control draw runs. It answers this question exactly rather than probabilistically, and
+it is the THIRD distinct question today that would have been answered outright by it:
+
+    1. the as-drawn twin seed/assertion counts, retracted at 16:48 for lacking it
+    2. the as-drawn contents of the 12 repaired files, excluded from every comparison since
+    3. this one
+
+DECISION: DO NOT RUN THE PRISTINE DRAW YET. Land the snapshot line first, then take ONE draw
+in whatever condition is still open after the snapshot has answered what it can. The script
+stays staged and its guards stay valid; nothing about it is wrong except its expected value.
+
+⚠️ AND IF IT IS RUN ANYWAY, RUN IT AS A DETERMINISM TEST, not as the import experiment — with
+the prediction stated first: it reproduces chain5's tree and trajectory, and grades UNMEASURED.
+That is a real prediction with a real falsifier, and it is the only thing this draw is
+currently well-powered to test.
