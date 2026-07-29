@@ -63,3 +63,46 @@ tree to a tempdir before touching it, and BOTH `_escalation_surface.py` and `_ga
 carry an explicit `# drop stray compiled binaries` cleanup — three tools that already know
 building in place pollutes an artifact. A greenness check is a measurement, and measurements go
 on a copy.
+
+
+WHY THE LINES MATCH: THE GENERATED CODE IS THE SAME (18:01)
+============================================================
+The trajectory matching to the column suggested the obvious question — how different are the
+two trees actually? It can be asked cleanly for the files NEITHER draw ever repaired, because
+those are as-drawn on both sides.
+
+    20 common .go files · 12 touched by a fix in one draw or the other · 8 never touched
+    6 of the 8 are BYTE-IDENTICAL
+    2 differ, and both differences are COSMETIC:
+
+        internal/models/models.go        1 byte
+          - // Project is a domain entity representing a project with an ID and name.
+          + // Project is a domain entity representing a project with a name and ID.
+
+        internal/config/config_test.go   35 bytes
+          - t.Fatalf("Validate returned an error for valid config: %v", err)
+          + t.Fatalf("Validate: %v", err)
+
+    A COMMENT and an ERROR-MESSAGE STRING. Across all eight files, not one line of CODE
+    differs — no identifier, no expression, no statement, no import.
+
+    THAT IS WHY THE DEFECTS LAND ON THE SAME LINES: THE CODE IS THE SAME CODE.
+
+The two specs differ by twelve lines of entirely unrelated prose in the projects test entry —
+one arguing about page sizes and store contents, the other about naming a variable `t`. What
+that difference buys, in the files it did not repair, is one reworded comment and one shortened
+Fatalf string.
+
+    SO "THE CONTENT IS IRRELEVANT" CAN BE STATED MUCH MORE SHARPLY THAN AT 17:36. It is not
+    that the content fails to change the DEFECTS; it barely changes the OUTPUT AT ALL, and
+    where it does, it changes prose rather than code.
+
+⚠️ THE 12 REPAIRED FILES ARE NOT IN THIS COMPARISON, and they are the interesting ones —
+projects.go, projects_test.go, router_test.go among them. Their as-drawn contents are not
+recoverable, for the reason recorded twice today: nothing persists the pre-fix tree. This is
+the third distinct question this week that `<out>/.pre-fix.json` would answer outright.
+
+⚠️ AND IT DOES NOT TOUCH THE SERVER QUESTION. Both trees were drawn on process 4439. Two draws
+on one server producing near-identical code is equally consistent with "the server state
+dominates" and with "the spec dominates and the content of twelve lines does not". Only the
+pristine pre-edit draw separates those.
