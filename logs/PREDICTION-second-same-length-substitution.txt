@@ -1,0 +1,44 @@
+PREDICTION — is a same-length substitution really safe, or was the rename luck?
+================================================================================
+
+23:20 on 29 July, before the draw. The weakest link named at 23:16.
+
+WHERE IT SITS. Four arms on taskflow say LENGTH is the variable:
+    +1 SUBSTITUTION (21 -> 21 chars)   CODE 1, the TARGET only, NO collateral
+    +1 ADDITION                        CODE 3, target + 2 collateral
+    +3 ADDITION                        CODE 8
+    +12 ADDITION                       CODE 6
+
+    "Any addition perturbs" now rests on THREE arms. "A same-length substitution does not"
+    rests on ONE — the rename — and it is the only good news in the whole thread. A single
+    arm carrying the only reassuring claim is exactly the thing to test.
+
+THE DRAW: substitute TestCreateDuplicate -> TestDuplicateCreate in specs/taskflow.yaml.
+    · both 19 characters, so the spec's length does not change
+    · a word-order swap, the SAME manipulation as the original rename
+      (TestProjectListSorted -> TestSortedProjectList, also a word-order swap, also 21 -> 21)
+    · in the taskflow_test.go entry — a DIFFERENT entry from the original, which was in
+      projects_test.go
+    · one occurrence, and no existing name begins TestDuplicate, so it cannot collide the way
+      TestListProjectsSorted did when it went unwritten for five draws
+    · control is generated/taskflow-chain6, snapshotted, so as-drawn on both sides
+    · the diff will be +1/-1, not +N/-0
+
+BRANCHES, graded as-drawn. The TARGET file must change — the name lives in it — so the question
+is COLLATERAL only.
+  A  0 CODE differences outside taskflow_test.go
+     -> same-length substitution is safe, replicated on a second arm in a second entry. The
+        practical rule stands: rename and reword freely at equal length, never append.
+  B  >=1 CODE difference outside taskflow_test.go
+     -> NO edit is safe. The rename's null was luck, "length is the variable" collapses to
+        "editing the spec at all re-rolls the program", and the only defence anywhere is to
+        re-measure after every change.
+
+PREDICT A 60% · B 40%.
+A because the rename really did produce nothing, on a spec whose same-condition variance is
+zero, so it was not noise. B because ONE arm is one arm, and every other manipulation tried
+today has perturbed — the prior from this thread is that things perturb.
+
+⚠️ B IS THE MORE CONSEQUENTIAL OUTCOME AND I SHOULD SAY SO BEFORE SEEING IT. A leaves a usable
+rule. B removes the last safe operation and means the campaign's every spec touch — including
+pure renames, of which it made several — invalidated its own baseline. I would rather know.
