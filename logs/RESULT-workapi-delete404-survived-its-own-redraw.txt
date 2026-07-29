@@ -136,3 +136,40 @@ The stall audit says the same thing from the corpus: 30 of 279 logs stalled, so 
 do converge. taskapipro was the bad case, and the interesting question — which this run may
 answer — is whether widening into implementation files is what turns a normal run into that
 one. workapi has not widened yet.
+
+
+THE SITE MOVED, AND THE TEXT IS AMBIGUOUS (11:41) — how the grade must be taken
+================================================================================
+The caveat written an hour ago said to re-read the branch after the fix loop rather than
+trusting the recorded line number. It was right, twice over.
+
+MOVED: the ErrNotFound branch inside Delete was at tasks.go:91 as drawn; after round 1's
+deterministic fixes it is at line 93. The sentinel also changed, service.ErrNotFound ->
+store.ErrNotFound, the same repair taskapipro received.
+
+AMBIGUOUS, WHICH IS WORSE: tasks.go now contains TWO identical lines.
+
+    line 78   inside Get(...)      writeJSON(w, http.StatusNotFound, nil)
+    line 93   inside Delete(...)   writeJSON(w, http.StatusNotFound, nil)
+
+Character-for-character the same. A text-matching mutation — which is how
+_grade_clamp_sites.sh works, and how every hand-grade in this campaign has worked — would
+hit BOTH, or hit Get's and report a verdict about Delete's.
+
+    A mutation that lands on the wrong branch still produces a clean CAUGHT or SURVIVED.
+    Get's 404 is exercised by TestGetTask, so mutating it and running
+    TestDeleteMissingReturns404 would report SURVIVED — a false negative that looks
+    exactly like a failed closure.
+
+HOW THE GRADE MUST BE TAKEN, and this is the instruction, not a note:
+  * locate the branch by CONTAINING FUNCTION, not by line number and not by text
+  * mutate only within `func (h *TaskHandler) Delete`
+  * verify the unmutated baseline PASSES first, as _grade_clamp_sites.sh does — Delete-404
+    is expected green here, unlike taskapipro's Twin A, so a red baseline means something
+    else broke and the grade is void
+  * a sed on the file is WRONG for this artifact. Scope to the function or extract it first.
+
+This is the third distinct way a grade could have come out clean and meant nothing today:
+a static instrument disagreeing with mutation (registered as a prediction), a witness that
+cannot pass being read as CAUGHT (guarded in the grader), and now a mutation landing on a
+twin line in a different function. All three produce well-formed verdicts.
