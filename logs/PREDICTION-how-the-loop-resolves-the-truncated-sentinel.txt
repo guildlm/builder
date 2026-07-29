@@ -93,3 +93,50 @@ explicit spec and an explicit compiler error.
 THE PREDICTION STANDS UNRESOLVED, with two rounds left. If it exhausts without repair, the
 outcome is a FOURTH branch I did not list — no repair at all, tree ships red on this — and
 that would make the prediction VOID rather than wrong, since none of the three was chosen.
+
+
+GRADED 12:43 — VOID. The fourth branch happened.
+=================================================
+    RESULT ledger: NOT-GREEN ❌ (build=1 vet=1 test=1)
+    error surface repeats — stopping extension rounds
+    exhausted 6 fix rounds (5 budgeted), still failing
+
+    models.go:16    ErrInsufficient = errors.New("insufficient funds")
+    response.go:30  case errors.Is(err, models.ErrInsufficientFunds):
+
+Unchanged. Six rounds, models.go handed to the model as a widened target in rounds 1, 2 and
+4, and the sentinel was never renamed. None of (a) rename, (b) change the use, or (c) add a
+second sentinel was chosen.
+
+  PREDICT (a) rename            55%   not chosen
+  PREDICT (c) second sentinel   25%   not chosen
+  PREDICT (b) change the use    20%   not chosen
+  ACTUAL: no repair at all — the branch I added at 12:39, after noticing the three were
+          not exhaustive, and before the run finished.
+
+VOID, not wrong. The prediction assumed the loop would pick one of three repairs; it picked
+none. Adding the fourth branch mid-run does not make this a hit — I did not assign it a
+probability and would not have thought of it before round 3 forced the question.
+
+    Third prediction today to go void rather than resolve. The pattern is consistent and
+    worth naming: my prediction sets keep omitting "nothing happens". taskapipro's
+    (a)-vs-(b) assumed the loop would reach the assertion; this one assumed it would reach a
+    repair. Both times the null branch was the outcome.
+
+THE GOOD NEWS IS WHICH BRANCH IT WAS NOT. Branch (c) — adding a second sentinel so both exist
+— was the one that ships GREEN with a broken 422 mapping and no test to notice. That did not
+happen. The tree is red and loudly so, which is the correct outcome for a contract the draw
+could not satisfy: a compile error is a defect that announces itself, and this campaign has
+spent all day on the other kind.
+
+    A red tree with an honest error beats a green tree with a silent one, and that is not
+    a consolation — it is the whole thesis.
+
+126-FOR-0 HOLDS AT 127. _stall_audit flagged STALLED from round 3; three rounds were spent
+after that on an error that never moved; the builder's own detector fired at round 6, after
+the budget. Same shape as workapi, same cost.
+
+⚠️ CONSEQUENCE FOR THE CAPSTONE: ledger ships NOT-GREEN, so its 31 rows sweep as BASELINE-RED
+and the dead count rises from 146 to 177 of 314 — 56%. The control arm I was counting on is
+dead on arrival. See the note in the dead-rows file; this is the fifth red artifact and it
+takes the answerable denominator below half.
