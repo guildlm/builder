@@ -1,0 +1,59 @@
+PREDICTION — did the server process or the projects-entry edit move the tasks seed counts?
+===========================================================================================
+
+Registered 15:09 on 29 July. Spec reverted, draw not yet launched.
+
+THE OBSERVATION THIS EXPLAINS
+Byte-identical tasks-twin entry text, three draws:
+
+    28 Jul 23:06  chain4              seeds 3, 3
+    29 Jul 09:30  taskapipro-v5       seeds 1, 2
+    29 Jul 13:27  taskapipro-v5 (2nd) seeds 1, 2
+
+Perfectly stable within today, different from the 28th. Two things changed between:
+
+  (a) THE SERVER PROCESS — chain4 ran on the 28 July mlx_lm.server; both of today's draws
+      on the one started 09:29 after the reboot.
+  (b) THE PROJECTS ENTRY — 15e25f3, 28 Jul 23:20, fourteen minutes AFTER chain4 was drawn,
+      added twelve lines of measured reasoning to the PROJECTS paging entry.
+
+THE EXPERIMENT: revert (b) alone and draw on today's server.
+
+    Verified before launching: 15e25f3 touches the tasks entry ZERO times. All twelve
+    added lines are in the projects entry. So the TASKS twins are a readout from an entry
+    that has never been edited in either direction, and the only manipulated variable is
+    twelve lines in a sibling entry.
+
+PREDICT: the tasks twins come back seeds 1, 2 — unchanged.                        ~55%
+         (i.e. the SERVER PROCESS is the cause, not the projects edit)
+
+Barely over even, and registered because I cannot argue myself past it.
+
+FOR the server: a restart is a coarse, plausible source of behaviour change, and the caveat
+was written at 09:30 before any of this was known — NOTE-v5-drawn-across-two-server-
+processes.txt, which judged the confound "weak but not zero". Being right about the existence
+of a confound is not evidence about its size, but it is the older hypothesis.
+
+FOR the projects edit: the convergence. On chain4 the arms DISAGREED, tasks 3,3 and projects
+1,1. Today they AGREE at 1,2 and 1,2. Something made two files match that previously did not,
+and mirroring is a within-spec mechanism while a server restart is not. That is the stronger
+argument and it is why this is 55 and not 70.
+
+    tasks back to 3, 3  -> the projects edit was moving them. A twelve-line addition to one
+                           entry changed the SETUP COUNT of a test in a different entry,
+                           which would be the largest cross-entry effect this campaign has
+                           measured and would qualify the transfer-unit law badly.
+    tasks stay 1, 2     -> the server process is the candidate, and every cross-day
+                           comparison in this campaign inherits a confound nobody priced.
+
+⚠️ EITHER ANSWER IS EXPENSIVE. One says spec entries interfere at a distance; the other says
+a week of cross-day measurements share an unmeasured variable. There is no comfortable branch,
+which is a reason to trust the design rather than the result.
+
+VOID IF: the draw does not reach internal/api/router_test.go (file 17 of 21). It does not need
+to compile — the twins are read from source, as they were on both previous draws.
+
+⚠️ THE SPEC IS REVERTED ON DISK. It MUST be restored after this draw:
+       git checkout specs/taskapipro.yaml
+   A copy of the current version is at scratch/taskapipro.yaml.CURRENT. Leaving the revert in
+   place would silently undo a measured spec repair.
