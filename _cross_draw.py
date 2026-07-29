@@ -68,6 +68,11 @@ def draws() -> dict[str, list[pathlib.Path]]:
         # If `prev` were ever added to that suffix list to "tidy up the grouping", preserved
         # trees would merge into the real spec group and get cross-tested against the draws
         # that superseded them, which is exactly the comparison nobody wants.
+        # ANCHORED, and the first verification of it was wrong in the repo's favourite
+        # way: `"prev" in name` reports True for `expreval-v4` — "ex-PREV-al" — so a
+        # substring check "found" a preserved tree in a corpus that had none. Right
+        # about its query, wrong about the world. Verified instead by planting a real
+        # `-prev1` tree and confirming the group excludes it.
         if re.search(r"-prev\d+$", d.name):
             continue
         stem = re.sub(r"-(v\d+|chain\d*|witness|empty\d*|mirrors|ct|gated|min)$", "", d.name)
