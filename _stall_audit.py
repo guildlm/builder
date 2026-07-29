@@ -63,10 +63,32 @@ def rounds(path: pathlib.Path) -> list[tuple[int, int, frozenset[str]]]:
 
 
 def stall_from(rs: list[tuple[int, int, frozenset[str]]]) -> int | None:
-    """First round whose signature repeats the previous one, or None."""
-    for i in range(1, len(rs)):
-        if rs[i][2] and rs[i][2] == rs[i - 1][2]:
-            return rs[i][0]
+    """First round whose signature repeats ANY earlier round's, or None.
+
+    SET MEMBERSHIP, NOT CONSECUTIVE COMPARISON — and the first version of this got it wrong.
+    The builder's own check is `if sig in seen_surfaces`, a set over every round so far, and
+    it is right: an error that comes back after two rounds of something else is as dead as
+    one that repeats immediately, because the loop has demonstrably been in that state and
+    left it without fixing it.
+
+    Caught live on taskapipro-v5, which this tool called "progress":
+
+        round 2   vet: internal/api/projects_test.go:183:2: undefined: w
+        round 3   too many arguments in call to h.svc.List
+        round 4   declared and not used: status
+        round 5   vet: internal/api/projects_test.go:183:2: undefined: w   <- round 2, again
+
+    Consecutive comparison sees rounds 3 and 4 in between and reports progress. The run had
+    in fact returned to a state it had already failed to leave. Comparing only to the
+    previous round answers "did the last fix change anything", which is a different and much
+    weaker question than "has this loop been here before".
+    """
+    seen: set[frozenset[str]] = set()
+    for n, _budget, sig in rs:
+        if sig and sig in seen:
+            return n
+        if sig:
+            seen.add(sig)
     return None
 
 
@@ -91,6 +113,17 @@ def self_test() -> int:
     p2 = log(R.format(1) + E.format("boom A") + R.format(2) + E.format("boom B"))
     if stall_from(rounds(p2)) is not None:
         fails.append("different failures each round must not be flagged as a stall")
+    # NON-CONSECUTIVE RECURRENCE — the case the first version of this tool missed, taken
+    # verbatim from taskapipro-v5: round 2's failure returns at round 5 with two different
+    # failures in between, and the tool called the whole run "progress".
+    p2b = log(R.format(1) + E.format("boom A")
+              + R.format(2) + E.format("undefined: w")
+              + R.format(3) + E.format("too many arguments")
+              + R.format(4) + E.format("declared and not used")
+              + R.format(5) + E.format("undefined: w"))
+    if stall_from(rounds(p2b)) != 5:
+        fails.append(f"a failure returning after two other rounds is a stall at round 5, "
+                     f"got {stall_from(rounds(p2b))}")
     # ORDER MUST NOT MATTER. Same two errors, swapped, is the same failure.
     p3 = log(R.format(1) + E.format("x") + E.format("y")
              + R.format(2) + E.format("y") + E.format("x"))

@@ -165,3 +165,45 @@ before/after, which is cheap here because the historical logs ARE the before.
 ⚠️ AND THE 9% FIGURE ABOVE NEEDS ITS DENOMINATOR SAID OUT LOUD: 25 stalled logs of 279 with
 at least one fix round, 69 rounds of 787 run. The 43 recoverable rounds are the subset where
 both detectors fired and is the honest number for what the change would have saved.
+
+
+CORRECTION 2 (10:39) — MY DETECTOR WAS WEAKER THAN THE BUILDER'S, AND THE LIVE RUN PROVED IT
+=============================================================================================
+_stall_audit compared each round to the PREVIOUS one. The builder compares against a SET of
+every surface seen so far: `if rnd > max_fix_rounds and sig in seen_surfaces`. I copied the
+idea and not the criterion, and taskapipro-v5 caught me while it ran:
+
+    round 2   vet: internal/api/projects_test.go:183:2: undefined: w
+    round 3   too many arguments in call to h.svc.List        (the mirrored status arg)
+    round 4   declared and not used: status                   (the half-repair of round 3)
+    round 5   vet: internal/api/projects_test.go:183:2: undefined: w   <- round 2, verbatim
+
+My tool reported "progress" on that. The run had returned to a state it had already failed
+to leave, with two rounds of self-inflicted churn in between.
+
+    Comparing to the previous round answers "did the last fix change anything".
+    Comparing to every prior round answers "has this loop been here before".
+    Only the second is the question, and the builder had it right.
+
+Fixed to set membership, with the taskapipro sequence planted verbatim in the self-test.
+
+RE-MEASURED, and the earlier numbers in this file were an UNDERCOUNT:
+
+                        consecutive (wrong)    set (correct)
+    logs with rounds            279                279
+    STALLED logs                 25                 30
+    wasted rounds                69                 74
+
+Roughly 17% of stalled runs were invisible to the weaker criterion — every one of them a run
+whose failure came back after an intermission. The 43-round figure for what an early abort
+would have saved is likewise a floor, not a total.
+
+AND IT CONFIRMS THE REPAIR-REGRESS CYCLE WITH A SECOND OCCURRENCE. The `undefined: w` defect
+in projects_test.go has now been repaired by the deterministic gate and reintroduced by the
+model fix TWICE in one run, at rounds 2 and 5 — two of six rounds, on one line, in one file.
+FINDING-the-model-fix-reintroduces-what-the-gate-just-repaired.txt was one observation; this
+is the second, in the same run, at a measured cost of two rounds.
+
+    Written while it was still running, which is the only reason the intermission was
+    visible at all — a finished log looks the same either way unless you compare the
+    right pairs of rounds.
