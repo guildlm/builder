@@ -80,7 +80,16 @@ WHAT IS SUGGESTIVE AND NOT ESTABLISHED
 WHAT IS STILL OPEN
 ===================
 
-7. THE STUB-FILE REGRESSION. All three 29-July taskapipro draws leave
+7. ✅ ANSWERED 19:40 — THE STUB REGRESSION IS THE SERVER, NOT THE SPEC. It is AS-DRAWN
+   (preedit's snapshot has memory.go at 14B before any repair, with the impl already in
+   store.go), and it splits cleanly: four draws on process 4439 all stub, two draws on other
+   servers nine days apart both correct and byte-identical to each other. The four 4439 draws
+   span BOTH spec states, so the twelve lines are exonerated completely.
+   ⚠️ Server and day are not separated — 4439 started 09:29 on 29 July.
+   THE MIRROR IMAGE of the import defect: that one tracks the spec, this one the server. Both
+   were one undifferentiated story at 15:58.
+
+7b. (was) THE STUB-FILE REGRESSION. All three 29-July taskapipro draws leave
    internal/store/memory.go as a bare `package store` while the spec assigns it the
    goroutine-safe MemStore, and ledger-v5 and workapi-v5 do the same. The v4 draws (19 July)
    do not. NOT the twelve lines — chain5 and the pre-edit draw both produce it — so it is the

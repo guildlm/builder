@@ -52,3 +52,45 @@ reaches for rather than a one-off.
 INSTRUMENT: `_stub_files.py`, with a self-test that keeps the false-positive direction closed —
 a short file with any real declaration, an import, or a var block must NOT be flagged, because
 this is not a "file is small" check. Three hits corpus-wide, exit 1.
+
+
+ANSWERED 19:40 — THE STUB IS AS-DRAWN, AND IT TRACKS THE SERVER, NOT THE SPEC
+==============================================================================
+Two questions closed with the pristine draw's snapshot and one table.
+
+1. IT IS GENERATED, NOT A REPAIR ARTEFACT. taskapipro-preedit's `.pre-fix.json` — the model's
+   output before the first check — already has it:
+
+       AS-DRAWN  internal/store/memory.go     14B   ['package store']
+       AS-DRAWN  internal/store/store.go    2649B   (already carrying the implementation)
+
+   The fix loop did not empty memory.go. The model wrote it empty and put the implementation
+   in store.go. That distinction mattered: a loop that DELETES an assigned implementation
+   would be a far more alarming defect than a model that misfiles one.
+
+2. IT TRACKS THE SERVER OR THE DAY — AND DEFINITELY NOT THE SPEC.
+
+       tree                  server        store.go   memory.go   verdict
+       taskapipro-v4         07-19/other     1114B      2309B     correct
+       taskapipro-chain4     07-28/other     1114B      2309B     correct
+       taskapipro-chain5     07-29/4439      2832B        14B     STUB
+       taskapipro-v5         07-29/4439      2832B        14B     STUB
+       taskapipro-inert      07-29/4439      2832B        14B     STUB
+       taskapipro-preedit    07-29/4439      2832B        14B     STUB
+
+   Four draws on process 4439 all stub. Two draws on other servers, nine days apart, both
+   correct AND byte-identical to each other. The four 4439 draws span BOTH spec states —
+   chain5 and preedit are pre-edit, v5 and inert are +12 — so the twelve lines are exonerated
+   completely, and so is every other spec difference among them.
+
+⚠️ SERVER AND DAY ARE NOT SEPARATED. Process 4439 started 09:29 on 29 July, so every 4439 draw
+is also a 29-July draw and every other-server draw is 19 or 28 July. This says the cause is
+not the spec; it does not say whether it is the server process, the machine's state, or
+something about that date. Separating them needs a restart, which would also cost the control
+that every other experiment today depends on.
+
+    THE MIRROR IMAGE OF THE IMPORT DEFECT, and that is what makes the pair worth stating:
+        IMPORT DEFECT   tracks the SPEC (twelve lines) · server exonerated  (19:21)
+        STUB REGRESSION tracks the SERVER/day          · spec exonerated    (19:40)
+    Both were, at 15:58, part of one undifferentiated story about a twelve-line edit. They
+    have opposite causes and only measurement separated them.
