@@ -111,3 +111,26 @@ draws). It BROKE the tasks twins, which were 3,3 and correct before it.
     and every measurement of it until now read that as "quantities are not durable".
 
 ⚠️ RESTORE THE SPEC. Doing that now: git checkout specs/taskapipro.yaml
+
+
+DID RESTORING THE SPEC MID-DRAW CORRUPT THE EXPERIMENT? NO — checked (15:44)
+============================================================================
+I restored specs/taskapipro.yaml at 15:43 while chain5 was still generating, at file 18 of
+21. That raises a real question: is chain5 a mix of two specs, with router_test.go from the
+reverted text and projects_test.go from the restored text?
+
+    It is not. `Spec.from_yaml` is called exactly ONCE, at src/builder.py:6079, before any
+    generation begins. The whole spec is parsed into a frozen dataclass at startup, so the
+    file on disk is irrelevant from that moment on.
+
+chain5 was therefore generated end-to-end from the REVERTED spec, consistently, and the
+readout taken from router_test.go at 15:42 is clean — as is every other file in that tree.
+
+Worth checking rather than assuming: the alternative would have made the tree internally
+inconsistent and the result unusable, and the difference between those two worlds is one
+`grep` for how often the loader runs. It is the same question as "does bash re-read a running
+script" from this morning — where the answer went the OTHER way and the file genuinely must
+not be touched.
+
+    Two mid-run edits today, two different answers. Python parses its input once and holds
+    it; bash reads its script by byte offset as it goes. Neither is guessable from the other.
