@@ -274,7 +274,7 @@ files:
       httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
       is a one-shot reader). Each function asserts ONE outcome.
       ELEVEN test functions, all of them:
-      TestProjectListSorted: POST THREE projects with ids OUT OF ORDER — first "3",
+      TestSortedProjectList: POST THREE projects with ids OUT OF ORDER — first "3",
       then "1", then "2" (each valid, its own fresh request body) — then GET /projects
       and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
       back ASCENDING by INDEX: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3".

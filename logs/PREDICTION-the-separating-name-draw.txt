@@ -1,0 +1,52 @@
+PREDICTION — does a convention-breaking name that does NOT collide get written?
+================================================================================
+
+Registered 14:48 on 29 July, spec edited, draw not yet launched.
+
+THE THREE NAMES, and what each one does
+
+    TestListProjectsSorted   breaks the file's TestProject* convention   AND collides:
+                             TestListSorted already exists in the sibling file, so a
+                             TestList* prefix points at the TASKS group where a test of
+                             that description already lives.
+                             -> DROPPED from 5 consecutive draws.
+
+    TestProjectListSorted    conforms to the convention, no collision.
+                             -> WRITTEN on the first draw that asked (chain4, 13:22),
+                                tree GREEN, test runs and passes.
+
+    TestSortedProjectList    BREAKS the convention — the file's other ten names all begin
+                             TestProject — but does NOT collide: no TestSorted* exists
+                             anywhere in the spec or in taskflow_test.go, and TestSorted
+                             is not a prefix that names any group.
+                             -> ?
+
+That third name is the separator. The first two differ in BOTH properties at once, which is
+why chain4 could not tell them apart. This one holds collision fixed at zero and varies only
+convention-breaking.
+
+PREDICT: TestSortedProjectList IS written.                                        ~60%
+
+Leaning that way because the collision account has a mechanism and the convention account
+does not. "The model enumerates TestProject* names and this one is not among them" explains
+an omission only if the model is pattern-matching prefixes; "this name points at a group
+where a test of that description already exists, so it looks like a duplicate" explains WHY
+dropping it is locally reasonable. A mechanism beats a pattern.
+
+Only 60 because the two stories have been indistinguishable for five draws and I have been
+wrong about naming twice today already — the ledger sentinel truncated for a reason I still
+cannot name, and the taskapipro import split has no explanation at all.
+
+  WRITTEN  -> collision was the cause. Convention-breaking alone is survivable, and the
+              practical rule becomes "do not give a test a name that already describes a
+              different test", which is narrower and more useful than "keep names uniform".
+  DROPPED  -> convention-breaking is sufficient on its own. The rule becomes "match the
+              file's naming pattern", and the collision account is unnecessary.
+
+VOID IF: the tree fails to build for unrelated reasons, or the draw is interrupted. Read the
+FILE, not the RESULT line — presence is the question and a red tree can still answer it, as
+workapi showed this morning.
+
+⚠️ THE SPEC IS NOW EDITED, so this rename replaces the one graded at 13:22. That result is
+preserved in generated/taskflow-chain4 and in RESULT-the-rename-worked.txt; the tree is not
+overwritten because _chain_run.sh walks to the first free -chainN name.
