@@ -1,0 +1,60 @@
+PREDICTION — will the inert draw follow v5's repair trajectory to the LINE NUMBER?
+===================================================================================
+
+17:49 on 29 July, written while the inert draw is inside round 2 and BEFORE its round-3 marker
+exists (verified: 0 round-3 markers in the log at time of writing).
+
+WHAT IS ALREADY KNOWN, and it is what makes this worth asking
+The two post-edit draws are identical round for round, and not approximately:
+
+    ROUND 1  projects.go:7:2 and 8:2 unprefixed imports  -> fixes router_test.go, projects_test.go
+    ROUND 2  internal/api build failure                  -> both test files, THEN widens into
+                                                            response/middleware/tasks/projects/router
+    ROUND 3  projects.go:71:55 too many arguments in call to h.svc.List   -> projects.go
+    ROUND 4  projects.go:50:2  declared and not used: status              -> projects.go
+    ROUND 5  widens again, same seven targets
+    ROUND 6  ...then exhausted, NOT-GREEN
+
+Two independent generations and two independent seven-round repair sequences landing on the
+same line and column, twice. The inert draw has matched rounds 1 and 2 exactly so far.
+
+THE DISCRIMINATOR, and it is a good one
+The SAME defect appears in chain5 at a DIFFERENT line:
+
+    chain5 (PRE-edit, NO added lines)   projects.go:77:55  too many arguments
+    v5 x2  (POST-edit, +12 REAL lines)  projects.go:71:55  too many arguments
+
+The inert draw is PRE-edit base WITH +12 lines — it has one property from each arm. So the
+line number says which property determines the trajectory:
+
+    71:55  -> the trajectory tracks the +12 LINES. Consistent with everything else today:
+              the added lines dominate and their content does not matter.
+    77:55  -> the trajectory tracks the PRE-EDIT BASE TEXT. The added lines would then be
+              causing the round-1 defects without controlling what happens afterwards, which
+              would split "the lines cause defects" from "the lines determine the run".
+    neither -> a third line. The trajectory is not determined by either property alone, and
+              the "deterministic end to end" claim is about post-edit draws specifically
+              rather than about the pipeline.
+
+PREDICTIONS, in order of what they are worth
+  1. Round 3 exists and reports "too many arguments in call to h.svc.List" in projects.go.
+     85%. Round 2 has already widened into the same five impl files, and that widening is
+     what manufactured this defect in both v5 draws and in chain5.
+  2. Its line is 71:55 rather than 77:55.  70%.
+  3. Round 4 reports "declared and not used: status" in projects.go.  65%. Conditional on
+     (1); it is the half-repair of (1) in all three prior draws.
+  4. The draw ends NOT-GREEN having exhausted its rounds.  80%.
+  5. Round 3's target is projects.go alone, no widening.  75%.
+
+⚠️ WHAT WOULD MAKE ME WRONG IN AN INTERESTING WAY. If round 3 shows the same defect at 77:55,
+predictions 1 and 3 can still hold while 2 fails, and that is the single most informative
+outcome available here — it would mean the twelve lines govern what the model writes FIRST but
+not where the repair loop ends up, and nothing measured today distinguishes those.
+
+⚠️ AND THIS IS NOT A TEST OF THE TWELVE-LINE FINDING. It is a test of how far determinism goes.
+A miss costs the twelve-line attribution nothing: that rests on round-1 output, which is
+already recorded for every arm.
+
+⚠️ N=1 EITHER WAY. One draw against a two-draw reference. A match is a striking coincidence
+rather than proof of a mechanism, and the honest follow-up to a match is a second inert draw,
+which is not authorised here.
