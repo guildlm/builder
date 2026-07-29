@@ -67,3 +67,34 @@ those five:
 ledger died at zero growth, so there are other routes. And one ratelimit pair is one pair.
 The honest claim is that spec growth at the campaign's real dose is SUFFICIENT to kill a
 first-try-green artifact, demonstrated once, not that it killed any particular one.
+
+
+REPLICATED 21:42 — the failure is deterministic, and treatment variance is zero too
+====================================================================================
+The 21:20 result was n=1 in a condition never drawn twice, so the dose spec was drawn again,
+unchanged, on the same server. Predicted A (byte-identical, NOT-GREEN again) at 80%.
+
+    as-drawn snapshots      6 of 6 .go files IDENTICAL
+    fix-loop trajectory     all 5 rounds identical — same errors, same fix targets
+    outcome                 exhausted 6 fix rounds (5 budgeted), still failing
+
+    ratelimit-dose and ratelimit-dose2 are the same draw twice over.
+
+THIS IS THE FIRST TREATMENT PAIR ANYONE HAS MEASURED. Every variance pair before it was a
+CONTROL condition — taskapipro's +12 arm and pre-edit arm, taskflow's control, jsoncodec drawn
+once each. So "same condition gives the same bytes" was established for four controls and zero
+treatments, and the possibility that a perturbed spec draws NOISILY was open. It does not:
+zero variance holds in the treatment condition as well.
+
+    So the green-to-red result is not a coin flip. Branch C — the one that would have retracted
+    today's most dramatic claim — is excluded.
+
+⚠️ ONE PRECISION THE FIRST WRITE-UP LACKED: BOTH DOSE TREES COMPILE.
+    ratelimit-dose   go build ./...  succeeds
+    ratelimit-dose2  go build ./...  succeeds
+
+The artifact is not broken in the compiler's sense. It fails its OWN TESTS — the token-bucket
+capacity assertions at ratelimit_test.go:35 and :54 — and six rounds could not repair that. So
+the BASELINE-RED verdicts come from a FAILING SUITE, not from a tree that will not build, and
+"48 inert lines broke the artifact" should be read as "produced an implementation that fails
+the spec's own tests", which is the more interesting failure of the two.
