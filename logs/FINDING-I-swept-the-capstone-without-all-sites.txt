@@ -1,0 +1,61 @@
+FINDING — I ran the capstone sweep with the wrong flags, and the row count caught it
+=====================================================================================
+
+12:48 on 29 July. Caught before any diff was run and before any number was published.
+
+WHAT I RAN
+
+    .venv/bin/python _hole_hunt.py --gen=v5
+
+WHAT THE BASELINE WAS TAKEN WITH — _resweep_v4.sh line 70
+
+    .venv/bin/python _hole_hunt.py --all-sites
+
+and its own comment, four lines above it, says exactly why:
+
+    "--all-sites because the recorded sweep used it: the tracked file holds several rows per
+     (artifact, file, shape), which the default one-site-per-file walk cannot produce.
+     Sweeping without it would shrink the baseline for a second, unrelated reason."
+
+Without ALL_SITES the walk probes `sites[:1]` — the first site per shape per file. My run
+produced 56 rows against the baseline's 314.
+
+DIFFING THOSE TWO WOULD HAVE BEEN A DISASTER OF THE FAMILIAR KIND: an all-sites baseline
+against a first-site-only sweep, reporting a vast count of vanished rows, none of it about
+defence. Same shape as the three instrument mismatches I spent today guarding OTHER tools
+against — glob-vs-rglob, generation-keying, whole-module baseline. I walked into it by not
+checking which flags the baseline was taken with.
+
+WHAT CAUGHT IT WAS THE NUMBER, NOT VIGILANCE
+56 against 314 is too large a gap to be a result. And the summary named the cause outright,
+in output I had never read closely before:
+
+    error wrapping   matched  30   probed   7   <- 23 NOT PROBED
+    json field tag   matched  37   probed   8   <- 29 NOT PROBED
+    boundary compare matched  40   probed  10   <- 30 NOT PROBED
+
+The tool reports its own sampling honestly, on every run, in three lines. It was telling me
+the whole time.
+
+    A tool that says "matched 40, probed 10" is not hiding anything. I read the verdict
+    lines and skipped the census above them, which is the same failure as reading a log's
+    round headers and missing how the run ended — twice today already.
+
+AND THE SPEED SHOULD HAVE BEEN A TELL. I predicted 20-30 minutes from the v4 resweep's
+20 minutes. It finished in four. I noticed the number was small and went looking, but I had
+already written "sweep done" in a status line before asking why it was fast. A run that
+finishes in a fifth of the predicted time has done a fifth of the work, and that inference
+was available a minute earlier than I made it.
+
+WHAT WAS DONE
+  * the 56-row file is MOVED to scratch, not deleted, under the name
+    hole-hunt-rows-v5-WRONG-no-all-sites.tsv, so the mistake stays inspectable
+  * the sweep is relaunched as `--all-sites --gen=v5`
+  * no diff was run, no flip count exists, nothing was published from the bad file
+  * PREDICTION-the-capstone-headline.txt stands unchanged — it was registered against the
+    baseline's numbers, not against the bad sweep, and its 95-130 live-in-both range was
+    computed from the 137-row green-side budget
+
+⚠️ THE REAL COST IS TIME. --all-sites runs a full build, vet and test -race -count=4 per
+row, on 23 trees. _resweep_v4.sh warns "EXPECT HOURS" in capitals. The four-minute run was
+fast precisely because it was doing a twentieth of the work.
