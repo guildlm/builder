@@ -20,7 +20,7 @@ collateral — in a third entry. Predicted A 55% · B 45%. B LANDED.
 
 THE NINE ARMS, FINAL
     test-NAME swap (21 -> 21)      CODE 1, target only      ⚠️ NOT A NULL — UNRESOLVED (01:37)
-    test-NAME swap (19 -> 19)      CODE 1, target only      ⚠️ NOT A NULL — UNRESOLVED (01:37)
+    test-NAME swap (19 -> 19)      CODE 1, target only      ✅ RESOLVED 01:59: a REAL null
       Both rows were graded at FILE level by an ad-hoc snippet. A ratelimit name swap produced
       the identical row — "CODE 1, target only" — and at FUNCTION level it has collateral: a
       different test gained nine assertion lines while the renamed test's body stayed identical.

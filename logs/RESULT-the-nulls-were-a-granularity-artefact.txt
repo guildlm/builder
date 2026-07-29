@@ -107,8 +107,12 @@ THE DISTRIBUTION AS IT NOW STANDS — 10 arms, 8 perturb, 2 unresolved
     +1 / +3 / +12 lines        taskflow    perturbs
     +48 lines                  ratelimit   artifact KILLED, replicated
 
-    NOT ONE CONFIRMED NULL REMAINS. The cross-spec question the arm was fired to answer is
-    answered in passing: the effect is not a taskflow artefact.
+    ⚠️ "NOT ONE CONFIRMED NULL REMAINS" WAS FALSIFIED AT 01:59 BY THE NEXT ARM. The 19 -> 19
+    row redrew as a CONFIRMED null — RENAME-ONLY, no program changed in any of sixteen files —
+    which also means it REPLICATES rather than overturns its own file-level row. One of the two
+    UNRESOLVED rows is now resolved, as a null. The cross-spec claim stands: the effect is not
+    a taskflow artefact, and the two 19 -> 19 arms on different specs disagree with each other.
+    See RESULT-the-first-confirmed-null-and-a-prose-echo.txt.
 
 ON THE PREDICTION, AND ON THE PREDICTOR
 The pre-registration shaded toward B against the base rate, explicitly to correct a measured
@@ -130,6 +134,6 @@ arm is a clean forward edit from HEAD, so it is redrawing now as generated/taskf
 against chain6, and it will be graded at function level with the rename declared.
 
     PREDICTION, pre-registered here before it lands: function-level collateral appears, 70%.
-    Grounds: ratelimit's file-level null became a function-level hit on the same manipulation,
-    and eight of ten arms perturb. If it comes back clean at FUNCTION level with the target's
-    body unchanged, that is the first confirmed null of the whole series and it would matter.
+    ✗ WRONG (01:59). It came back RENAME-ONLY: zero collateral functions, clean residue, no
+    program changed anywhere. It IS the first confirmed null of the series — and the edit still
+    propagated off-target as PROSE, rewording an error message in a file it never mentions.

@@ -1,0 +1,96 @@
+RESULT — the first CONFIRMED null of the series, and it falsifies my own claim from 40 min ago
+==============================================================================================
+
+01:59 on 30 July. The 19->19 arm redrawn, graded at code level with the rename neutralised.
+
+    ✗ PREDICTED at 01:37: function-level collateral appears, 70%. WRONG.
+    ✗ AND IT FALSIFIES THE 01:37 RESULT'S OWN HEADLINE, which said in capitals
+      "NOT ONE CONFIRMED NULL REMAINS". One does now. It is this arm.
+
+THE ARM
+    spec      taskflow HEAD + TestCreateDuplicate -> TestDuplicateCreate, 19 -> 19 chars
+    guard     22410 bytes before == 22410 after; 1 substitution, 0 left behind
+    control   generated/taskflow-chain6, HEAD spec, server 4439, snapshotted
+    draw      generated/taskflow-name4, converged after fix round 1 — and one of those four
+              fix lines was a MODEL fix ("verified fix: candidate 1 turns the project green"),
+              so the tree on disk is genuinely spoiled and the snapshot is doing real work
+
+THE VERDICT
+    16 common files (15 .go + go.mod) · CODE 1 · PROSE 1 · IDENTICAL 14
+    function level: 0 of 17 funcs differ in the target · 0 of 11 in the other · residue clean
+    ✅ RENAME-ONLY — neutralise the declared rename and the one CODE file is code-identical.
+
+    NO PROGRAM CHANGED ANYWHERE. Not a function body, not a signature, not an import, not a
+    type declaration, in any of sixteen files. This is the strongest null the instrument can
+    report, and it is the first one the series has.
+
+WHAT ACTUALLY DIFFERS — four lines, and two of them are the interesting ones
+    taskflow_test.go   (8594 -> 8594 chars, the TARGET)
+      - func TestCreateDuplicate(t *testing.T) {
+      + func TestDuplicateCreate(t *testing.T) {          <- the instructed edit
+      - t.Fatalf("create duplicate: got %d", rec.Code)
+      + t.Fatalf("duplicate create: got %d", rec.Code)    <- the message follows the name
+
+    projects_test.go   (5326 -> 5326 chars) — A FILE THE EDIT NEVER MENTIONS
+      - t.Fatalf("create duplicate: got %d", rec.Code)
+      + t.Fatalf("duplicate create: got %d", rec.Code)
+
+⚠️ SO THE EDIT DID PROPAGATE OFF-TARGET — AS WORDING, NOT AS PROGRAM. A word-order swap in one
+test's name in one file caused an error-message string in a DIFFERENT file to swap its word
+order to match. The model tracked the rename across a file boundary and applied it to prose it
+was never asked to touch. Nothing it did changed behaviour.
+
+    That is a third category the series had no name for. "CODE" and "PROSE" were built to
+    separate a different program from different wording; this is different wording that is
+    CAUSED BY and SEMANTICALLY TRACKS the edit. The instrument now prints it on its own line
+    rather than filing it under "no difference".
+
+THE DISTRIBUTION — 11 arms, and the two 19->19 arms DISAGREE WITH EACH OTHER
+    spec        edit                        verdict
+    taskflow    test-NAME (19 -> 19)        ✅ RENAME-ONLY null + prose echo off-target  <- NEW
+    ratelimit   test-NAME (19 -> 19)        HIT — 1 collateral function, 9 assertion lines
+    taskflow    test-NAME (16 -> 16)        HIT — 8 collateral functions
+    taskflow    test-NAME (21 -> 21)        UNRESOLVED (file-level only; baked into HEAD at
+                                            11520cc, redrawable only in reverse)
+    taskflow    PROSE swap (10 -> 10)       HIT
+    taskflow    VERBATIM fixture, 1 char    HIT
+    taskflow    +1 / +3 / +12 lines         HIT / HIT / HIT
+    ratelimit   +48 lines                   artifact KILLED, replicated
+
+    TWO ARMS, SAME MANIPULATION, SAME LENGTH, DIFFERENT SPECS, OPPOSITE RESULTS. Whatever
+    decides this, it is not the kind of edit, not its size, not its length, and not the spec's
+    identity alone — ratelimit gave a hit on a 19-char swap and taskflow gave a clean null on
+    one. Eight of eleven perturb. Nothing found so far predicts WHICH.
+
+    And this arm REPLICATES the original 19->19 row rather than overturning it: that row read
+    "CODE 1, target only" at file level, and at code level with the rename neutralised it is a
+    genuine null. So of the two rows marked UNRESOLVED at 01:37, one is now resolved AS A NULL.
+
+WHAT I GOT WRONG, IN ORDER, IN NINETY MINUTES
+    23:38  "LENGTH is the variable"                     falsified 00:03
+    00:03  "COPIED verbatim vs INTERPRETED"             falsified 00:39
+    00:46  "the CATEGORY is real, p=0.036"              falsified 01:04
+    01:04  "nothing is reliably safe"                   stands, but weaker than it sounded
+    01:37  "NOT ONE CONFIRMED NULL REMAINS"             falsified 01:59, by the next arm
+    01:37  "function-level collateral appears, 70%"     wrong
+
+    ⚠️ THE PATTERN IN MY ERRORS HAS NOW REVERSED, WHICH IS WORTH MORE THAN EITHER DIRECTION.
+    Three predictions erred toward expecting SAFETY. I diagnosed that as a signed bias and
+    corrected for it at 01:22. The next two predictions erred toward expecting PERTURBATION.
+    So the "bias" was not a bias — it was noise, and I built a correction for a pattern that
+    was not there, which promptly produced errors of the opposite sign.
+
+    THE LESSON IS NOT "shade the other way". It is that with n around 3 per class I cannot
+    distinguish a bias from noise, and inventing a correction from that sample is the same
+    error as inventing a mechanism from it. Stop shading. Predict the base rate and say so.
+
+⚠️ WHAT THIS DOES NOT RESTORE. "Renames are safe, so those measurements stand" — withdrawn at
+01:04 — stays withdrawn. One confirmed null out of three graded name swaps is not a safe class;
+the other two are a hit and an unresolved. A campaign measurement that a rename sat between
+still cannot be trusted, because the rename perturbs one time in two among arms we can grade.
+
+THE HONEST POSITION, weaker and more accurate than any headline so far
+    Most spec edits re-roll the program (8 of 11). At least one edit provably does not (this
+    one). No property yet identified — length, kind, category, token type, spec — predicts
+    which. Any measurement spanning a spec edit must be re-taken rather than reasoned about,
+    not because every edit perturbs, but because there is no way to tell in advance which will.

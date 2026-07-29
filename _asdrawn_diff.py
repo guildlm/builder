@@ -110,6 +110,20 @@ def functions(src: str) -> dict[str, str]:
     return {n: src[s:e] for n, s, e in spans(src)}
 
 
+def neutralise(text: str, renames: dict[str, str]) -> str:
+    """code_only(text) with every declared rename collapsed to one placeholder on both sides.
+
+    ONE copy, used by both the function pass and the RENAME-ONLY verdict. Two copies of this
+    would drift, and it decides whether an arm counts as a null.
+
+    Longest name first, so a rename target that is a PREFIX of another (TestGet / TestGetAll)
+    cannot be half-substituted into a spurious difference.
+    """
+    for i, (old, new) in enumerate(sorted(renames.items(), key=lambda kv: -len(kv[0]))):
+        text = text.replace(old, f"__R{i}__").replace(new, f"__R{i}__")
+    return code_only(text)
+
+
 def residue(src: str) -> str:
     """Everything OUTSIDE every top-level func: package clause, imports, type and var decls.
 
@@ -240,6 +254,18 @@ def self_test() -> int:
     if not fdq["renamed_body_changed"]:
         fails.append("a rename that ALSO changes the body must report renamed_body_changed")
 
+    # The shared neutraliser: one copy, used by the function pass AND the RENAME-ONLY verdict.
+    R = {"TestGet": "TestFetch"}
+    if neutralise("func TestGet() {}", R) != neutralise("func TestFetch() {}", R):
+        fails.append("a declared rename must neutralise to the same text on both sides")
+    # The prefix trap this helper's ordering exists to avoid: TestGet is a prefix of TestGetAll,
+    # so substituting the short name first would corrupt the long one into a false difference.
+    R2 = {"TestGet": "TestFetch", "TestGetAll": "TestFetchAll"}
+    if neutralise("func TestGetAll() {}", R2) != neutralise("func TestFetchAll() {}", R2):
+        fails.append("a rename target that is a PREFIX of another must not be half-substituted")
+    if neutralise("func TestGet() {}", R) == neutralise("func TestOther() {}", R):
+        fails.append("an UNRELATED name must still differ after neutralising")
+
     # Without the rename map the same pair must show as one-sided rather than silently matched.
     fd2 = func_diff(src_a, src_b, {})
     if fd2["only_a"] != ["TestOld"] or fd2["only_b"] != ["TestNew"]:
@@ -277,17 +303,11 @@ def func_diff(a: str, b: str, renames: dict[str, str]) -> dict:
     """
     fa, fb = functions(a), functions(b)
 
+    # The span includes the SIGNATURE, so without neutralising a pure rename would always read
+    # as "changed" and the distinction the finding rests on — the name moved, the body did not —
+    # would be unreportable.
     def neutral(text: str) -> str:
-        """Collapse every declared rename to one placeholder on both sides.
-
-        Necessary because the span includes the SIGNATURE, so without this a pure rename would
-        always read as "changed" and the distinction the whole finding rests on — the name moved
-        but the body did not — would be unreportable. Longest name first so no rename target is
-        a prefix of another and gets half-substituted.
-        """
-        for i, (old, new) in enumerate(sorted(renames.items(), key=lambda kv: -len(kv[0]))):
-            text = text.replace(old, f"__RENAMED{i}__").replace(new, f"__RENAMED{i}__")
-        return code_only(text)
+        return neutralise(text, renames)
 
     changed, only_a = [], []
     for name, body in fa.items():
@@ -405,6 +425,31 @@ def main(argv: list[str]) -> int:
             print("  ⚠ THE FILE-LEVEL VERDICT WAS A FALSE NULL. Every differing file is the")
             print("    target, so file granularity reports COLLATERAL 0, but a function the")
             print("    edit never mentions wrote different code. Report the function count.")
+    # RENAME-ONLY. A declared rename IS a code difference by any honest classifier, so a pure
+    # rename shows up as "CODE 1, the target" and looks like a landed edit with no collateral.
+    # Neutralising the rename separates "the edit, and nothing else" from "the edit, and more".
+    if renames and diff_code:
+        survivors = [f for f in diff_code
+                     if neutralise(snaps[A][f], renames) != neutralise(snaps[B][f], renames)]
+        if not survivors:
+            print(f"\n  ✅ RENAME-ONLY: every CODE difference IS the declared rename. Neutralise "
+                  f"it and all {len(diff_code)} file(s) are code-identical.")
+            print("     No program changed anywhere. This is a CONFIRMED null at code level — "
+                  "the strongest null this")
+            print("     tool can report, and distinct from a file-level null, which only says "
+                  "no other FILE moved.")
+        else:
+            print(f"\n  the rename does NOT account for everything: {len(survivors)} file(s) "
+                  f"still differ in code after neutralising it — {survivors}")
+    # A prose difference in a file the edit does not name is not a program change, but it is not
+    # nothing either: it is the edit propagating as WORDING. Worth its own line, because the
+    # series' CODE/PROSE split otherwise files it under "no difference".
+    prose_elsewhere = [f for f, k in r["rows"] if k == "PROSE" and f != target]
+    if prose_elsewhere:
+        print(f"  ⚠ PROSE-ONLY difference in {len(prose_elsewhere)} file(s) the edit does not "
+              f"name: {prose_elsewhere}")
+        print("    No code changed there, but the wording did — the edit propagated as text. "
+              "Not collateral; not nothing.")
     if counts.get("CODE"):
         print("  CODE means the two draws wrote different PROGRAMS, not different wording.")
     elif counts.get("PROSE"):
