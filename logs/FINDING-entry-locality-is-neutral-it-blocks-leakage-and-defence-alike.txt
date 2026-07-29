@@ -63,3 +63,46 @@ have to be drift, and drift on a site whose contract no test names would be luck
 ⚠️ NOT A NEW MECHANISM, AND NOT COUNTED AS A NEW INSTANCE. This is the transfer-unit law
 applied to a case I had not looked at, with the sign reversed. Its value is the sign
 reversal — a law that only ever explains good outcomes is not being tested.
+
+
+THE LOOP CLOSED (12:20) — the implementation is PERFECT, which is the point
+===========================================================================
+ledger-v5's response.go landed while this was being written. Every mapping the spec entry
+names is present and correct:
+
+    ErrNotFound            -> http.StatusNotFound              404  ✓
+    ErrExists              -> http.StatusConflict              409  ✓
+    ErrInvalid             -> http.StatusBadRequest            400  ✓
+    ErrUnbalanced          -> http.StatusUnprocessableEntity   422  ✓
+    ErrInsufficientFunds   -> http.StatusUnprocessableEntity   422  ✓
+    default                -> http.StatusInternalServerError   500  ✓
+    writeJSON              -> Header().Set("Content-Type", "application/json")  ✓
+
+Six of six mappings and the header, drawn from a spec entry unchanged since 17 July, on a
+model that has never seen a test for any of them.
+
+    The implementation entry works. It has always worked. That is exactly why the four
+    survivors are a TEST-side gap and not a spec-comprehension gap — the model understood
+    the contract well enough to implement all of it, and no test entry ever asked it to
+    check any of it.
+
+This is the cleanest form of the campaign's founding observation I have seen today:
+
+    a correct implementation, a complete written contract, a green suite, and four
+    invariants that nothing would notice being broken.
+
+And it is not a model failure at any point. The model built what it was told to build and
+tested what it was told to test. The gap is entirely in which entry the contract was written
+into — which is a spec-authoring fact, not a capability fact, and is therefore fixable by
+adding one test entry rather than by any change to prompting, sampling or gates.
+
+⚠️ THE FIX IS NOT FREE, AND TODAY SAYS WHY. Adding "assert 409 on a duplicate, 422 on an
+unbalanced transaction, 500 on an unknown error, and Content-Type on every response" to a
+test entry would be a PRESENCE-class request — four named assertions — which is the class
+that survives redraws (FINDING-structural-closures-survive-redraws-quantities-do-not.txt).
+So it should hold. But it is also four more assertions in an entry, and the
+ONLY-assertion rule exists because a draw once asserted on a setup step and went red against
+a correct handler. Those two rules point in opposite directions here and the boundary
+recorded at 11:47 says which wins: the ONLY-assertion rule is dangerous when the assertion
+is a COUNT over something seeded, and harmless otherwise. These are status codes on
+responses, so it is the harmless case.
