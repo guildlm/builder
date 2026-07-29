@@ -1,0 +1,74 @@
+RESULT — a SECOND defect tracks the twelve lines, and for this one the server IS controlled
+=============================================================================================
+
+17:44 on 29 July, read live out of the inert draw's round 2. This is the first fully-controlled
+spec attribution of the day: both arms of the confound that has dogged the twelve-line finding
+since 15:58 are closed, on a different defect from the one everyone was watching.
+
+THE DEFECT
+    vet: internal/api/projects_test.go:183:2: undefined: w
+
+Same file, same LINE, same COLUMN in every draw that has it. A file with an undefined symbol
+cannot compile, so its presence or absence is unambiguous and needs no interpretation.
+
+THE FULL DESIGN, and every cell is measured
+    draw       projects entry        server        undefined: w
+    chain4     PRE-edit, no lines    other / 28th   NO
+    chain5     PRE-edit, no lines    4439           NO      <- SAME-SERVER CONTROL
+    v5 (1st)   +12 REAL lines        4439           YES
+    v5 (2nd)   +12 REAL lines        4439           YES
+    inert      +12 INERT lines       4439           YES
+
+BOTH CONFOUNDS ARE CLOSED, by different pairs:
+
+    SERVER — chain5 vs inert. Same server process (pid 4439), same day, same base spec, both
+             pre-edit. They differ ONLY in whether twelve lines were added. chain5 has no
+             defect; inert has it.
+
+    CONTENT — v5 vs inert. Same insertion point, same line count, same indentation, and
+             completely different prose: the real twelve lines argue about page sizes and
+             store contents, the inert twelve argue about naming a variable `t`. Both produce
+             the defect, at the same line and column.
+
+    THEREFORE: adding twelve lines to the projects entry causes a defect in projects_test.go,
+    and WHAT THE LINES SAY IS IRRELEVANT. Not the server, not the words.
+
+WHY chain5 IS A VALID CONTROL, checked rather than assumed
+An absent error is not automatically evidence of absence — that is the trap that cost the
+import table one of its arms this afternoon. Here it holds, and for a reason specific to this
+defect: chain5's projects_test.go COMPILED AND RAN. Its round-2 failures are RUNTIME assertion
+failures inside that very file —
+
+    projects_test.go:162: ProjectListDefaultsToTheConfiguredPageSize: response = [{1 p1}], want 2 items
+    projects_test.go:186: ProjectListCapsAtTheConfiguredMaxPageSize:  response = [{1 p1}], want 2 items
+
+— and a file carrying `undefined: w` cannot produce a runtime assertion failure, because it
+never builds. So chain5 genuinely lacks the defect. chain4 converged green, which says the
+same thing more strongly.
+
+    That is the check the import table needed and did not get. The difference is not luck: a
+    COMPILE error is masked by an earlier package failing, but a RUNTIME failure in the file
+    itself proves the file compiled.
+
+⚠️ WHAT THIS DOES AND DOES NOT SAY ABOUT THE IMPORT DEFECT
+It does not transfer directly. The import defect's own same-server control is still missing,
+because chain5's round 1 died in internal/store and its imports were never evaluated. What it
+does is make the same explanation much more plausible for the import defect: twelve lines in
+that entry demonstrably cause AT LEAST ONE content-independent defect with the server held
+fixed, so "twelve lines cause defects downstream" is no longer a hypothesis but a measured
+mechanism looking for its second instance.
+
+    The queued draw settles it and now does double duty. _pristine_pre_edit_draw.sh draws the
+    UNMODIFIED pre-edit spec on 4439. It supplies the import defect's missing control AND a
+    third control point for this one.
+
+⚠️ N, STATED PLAINLY. Two control draws, three treatment draws, one spec. The line-and-column
+match across three treatment draws with two different bodies of prose is a sharp coincidence
+and the cleanest signal in it, but this is one spec and one entry. Nothing here says anything
+about other specs, and the twelve-line count is not shown to be a threshold — eleven lines,
+or one, have never been tried.
+
+⚠️ AND IT WAS FOUND BY WATCHING, NOT BY DESIGN. The inert draw was built to answer the import
+question. This defect turned up in its round-2 output while waiting, and chain5 happened to
+constitute the control. Worth saying because the design that produced the day's cleanest
+attribution was not the designed one.

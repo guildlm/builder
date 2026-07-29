@@ -84,7 +84,17 @@ IV. THE LARGEST FINDING, AND IT RELOCATES MOST OF THE MORNING
     tree whose two test files were model-rewritten in rounds 1, 2 and 5 and never compiled
     (v5). Not the same kind of measurement; the difference is not attributable to the edit.
 
-⚠️ AND THE CONTROL ARM LANDED AT 17:36, BRANCH A. Twelve lines of INERT prose — reasoning for
+✅ AND AT 17:44 A SECOND DEFECT GOT A FULLY CONTROLLED ATTRIBUTION — the first of the day.
+`vet: internal/api/projects_test.go:183:2: undefined: w`, same line and column, appears in all
+three +12-line draws and in NEITHER draw without them. chain5 closes the SERVER arm (same
+process 4439, same base spec, differs only by the twelve lines) and the inert draw closes the
+CONTENT arm (same position and length, completely different prose). chain5 is a valid control
+because its projects_test.go COMPILED AND RAN — its failures are runtime assertions inside that
+file, which a file carrying `undefined: w` could never produce. So: twelve lines in that entry
+cause a downstream defect, and what they say is irrelevant. See
+RESULT-twelve-lines-cause-a-defect-with-the-server-controlled.txt.
+
+⚠️ THE CONTROL ARM LANDED AT 17:36, BRANCH A. Twelve lines of INERT prose — reasoning for
 a variable-naming rule, mentioning nothing the defect touches — produce the SAME defect,
 byte-for-byte: same file, same two packages, same count. So the CONTENT of the twelve lines is
 ruled out. What is NOT ruled out is the SERVER: all three DEFECT draws ran on process 4439 and
