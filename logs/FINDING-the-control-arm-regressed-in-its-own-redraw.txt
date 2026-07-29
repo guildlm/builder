@@ -276,3 +276,43 @@ twins run, both fail, and the loop gets exactly one round to react — which is 
 possible version of the experiment and still counts. Read the twins after the RESULT line
 either way; a NOT-GREEN verdict is compatible with the twins being touched and with their
 never having been seen, and only the diff distinguishes those.
+
+
+THE IMPORT-PATH DEFECT REPRODUCES (13:52) — as-drawn against as-drawn
+======================================================================
+The one permitted taskapipro redraw reached internal/api/tasks.go. Comparing AS-DRAWN to
+AS-DRAWN — the 09:59 snapshot against the file just written:
+
+    draw 1, as drawn    internal/api/tasks.go     "taskapipro/internal/models"       WRONG
+    draw 2, as drawn    internal/api/tasks.go     "taskapipro/internal/models"       WRONG
+    both draws          internal/service/service.go  "guildlm.dev/taskapipro/..."    right
+
+Identical defect, identical file, two independent draws two and a half hours apart.
+
+    The unprefixed import in internal/api is STABLE, not sampling noise. And the correct
+    prefix in internal/service is stable too. The split is reproducible.
+
+⚠️ I ALMOST COMPARED THE WRONG THING. My first check read draw 1's PRESERVED tree —
+generated/taskapipro-v5-red-evidence — which is the POST-FIX state after seven rounds, where
+the deterministic gate had already repaired the path to "guildlm.dev/taskapipro/internal/...".
+That comparison said "draw 1 right, draw 2 wrong" and would have been reported as a
+REGRESSION. It is the as-drawn snapshot that makes the comparison honest, and the only reason
+one exists is that I took it at 09:59 specifically because the fix loop does not preserve what
+it repairs.
+
+    Comparing a fresh draw against a repaired tree measures the repair, not the draw. Same
+    shape as the day's other population errors, and caught only because the snapshot existed.
+
+WHAT IT MEANS FOR THE EXPLANATION I DO NOT HAVE
+Recorded at 10:02: the transfer-unit law does NOT explain this defect. The spec names the
+full module path in exactly two entries — go.mod (line 17) and internal/store/store.go
+(line 118) — and in NEITHER of the files that get it right. service.go was never told and
+writes it correctly; the api files were never told and write it wrong.
+
+A one-off would not have been worth explaining. A defect that reproduces exactly across two
+independent draws is, and it now has a clean experimental handle: same spec, same model, two
+draws, one file right and three files wrong, every time.
+
+⚠️ BOUNDED: one file of the three confirmed so far. projects.go and router.go are files 15
+and 16 and have not been written. If either comes back CORRECT in draw 2, the defect is
+partial rather than package-wide and this note needs revising.
