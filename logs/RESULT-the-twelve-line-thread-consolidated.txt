@@ -41,10 +41,21 @@ WHAT IS ESTABLISHED
    all. Two v5 draws four hours apart on one server: 8 of 8 untouched files identical.
 
 
+5. IT IS THE SPEC, NOT THE SERVER (answered 19:21). The pristine pre-edit draw on 4439 wrote CORRECT
+   prefixed imports (all 5, read from .pre-fix.json), against UNPREFIXED in both +12 draws and
+   the inert arm on the same server. Server held fixed, spec the only difference. The draw ALSO
+   graded UNMEASURED on compiler output — chain5's masking, reproduced exactly as predicted at
+   18:10 — so the snapshot is the only reason it answered. And it reproduces chain5 on all 7
+   untouched files, which fills chain5's hole in the table.
+   See RESULT-the-twelve-lines-cause-the-import-defect.txt.
+   ⚠️ The STUB-FILE regression is NOT this: chain5 and the pre-edit draw both leave
+   internal/store/memory.go empty, so that stays open and separate.
+
+
 WHAT IS SUGGESTIVE AND NOT ESTABLISHED
 =======================================
 
-5. A ONE-LINE EDIT IS SURGICAL WHERE TWELVE ADDED LINES ARE NOT.
+6. A ONE-LINE EDIT IS SURGICAL WHERE TWELVE ADDED LINES ARE NOT.
    taskflow's rename (11520cc), draws either side on the same server: 11 of 12 untouched files
    identical, and the twelfth is the file the rename is about, differing by exactly the renamed
    function.
@@ -58,25 +69,14 @@ WHAT IS SUGGESTIVE AND NOT ESTABLISHED
 WHAT IS STILL OPEN
 ===================
 
-6. ✅ ANSWERED 19:21 — IT IS THE SPEC. The pristine pre-edit draw on 4439 wrote CORRECT
-   prefixed imports (all 5, read from .pre-fix.json), against UNPREFIXED in both +12 draws and
-   the inert arm on the same server. Server held fixed, spec the only difference. The draw ALSO
-   graded UNMEASURED on compiler output — chain5's masking, reproduced exactly as predicted at
-   18:10 — so the snapshot is the only reason it answered. And it reproduces chain5 on all 7
-   untouched files, which fills chain5's hole in the table.
-   See RESULT-the-twelve-lines-cause-the-import-defect.txt.
-   ⚠️ The STUB-FILE regression is NOT this: chain5 and the pre-edit draw both leave
-   internal/store/memory.go empty, so that stays open and separate.
+7. THE STUB-FILE REGRESSION. All three 29-July taskapipro draws leave
+   internal/store/memory.go as a bare `package store` while the spec assigns it the
+   goroutine-safe MemStore, and ledger-v5 and workapi-v5 do the same. The v4 draws (19 July)
+   do not. NOT the twelve lines — chain5 and the pre-edit draw both produce it — so it is the
+   spec-or-server question all over again, on a different symptom, and it has no controlled
+   pair yet. See FINDING-three-v5-trees-left-the-store-impl-file-empty.txt.
 
-6b. (superseded) WHETHER IT IS THE SPEC OR THE SERVER. Every draw that has ever shown the import defect ran
-   on process 4439; the only measured clean pre-edit arm (chain4) ran on another server on
-   another day. "Twelve lines cause it" and "this server writes this code" fit every row.
-   ⚠️ THE DRAW IN FLIGHT ANSWERS THIS. The pristine pre-edit draw on 4439, graded from
-   `.pre-fix.json` rather than from compiler output — which is what makes it answerable at all,
-   since chain5's round 1 died in internal/store before internal/api was ever built.
-   Prediction registered at 18:20: CORRECT at 70%.
-
-7. WHAT HAPPENED IN THE TWELVE REPAIRED FILES. Every cross-draw comparison above excludes
+8. WHAT HAPPENED IN THE TWELVE REPAIRED FILES. Every cross-draw comparison above excludes
    projects.go, projects_test.go and ten others, because the loop rewrote them and nothing
    persisted the as-drawn state. That is fixed going forward, not backward.
 
@@ -89,7 +89,7 @@ WHAT WAS RETRACTED, AND WHY IT MATTERS FOR READING THE REST
   * "generation is deterministic"               one group in four breaks it
 
 All four are the same error: a quantity read off a generated tree is a POST-REPAIR quantity.
-Points 1-4 above avoid it by comparing only files no draw repaired, and point 6 avoids it by
+Points 1-4 avoid it by comparing only files no draw repaired, and point 5 avoids it by
 reading the snapshot. That constraint is why the established list is short.
 
 ⚠️ AND ONE STRUCTURAL POINT WORTH KEEPING. The cleanest comparison in the whole investigation —
