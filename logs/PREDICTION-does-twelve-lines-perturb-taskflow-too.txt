@@ -45,3 +45,28 @@ PREDICT A, 60%. Weakly, and the weakness is the point of running it.
 makes a single control defensible for that spec; taskflow has never had two same-condition
 draws compared, so its sampling variance is UNMEASURED. If the dose draw differs from chain5
 in ways that look like noise, that reading cannot be excluded.
+
+
+NOTED 19:53, BEFORE THE RESULT — this arm is BETTER POWERED than the one it tests
+==================================================================================
+Counted how many files each draw's fix loop touched, which sets the denominator of the
+untouched-file comparison:
+
+    taskflow control (chain5)        3 files touched   -> ~12 comparable
+    taskapipro chain5               13 files touched   ->   7 comparable
+    taskapipro v5 (2nd)             12 files touched
+    taskapipro preedit              13 files touched
+
+taskflow converges in one fix round; taskapipro burns seven. So the taskapipro result that
+this experiment is testing rests on SEVEN as-drawn files, and this one will rest on roughly
+TWELVE.
+
+    That cuts both ways and both are worth saying in advance:
+      · a CODE difference here is seen against a larger as-drawn surface than the finding it
+        replicates, so branch A would be the better-evidenced of the two;
+      · but a NULL here is also a stronger null — twelve files identical is harder to get by
+        luck than seven — which makes branch B correspondingly harder to explain away as
+        "not enough surface to see it".
+
+    It does NOT rescue branch B from the layout confound recorded at 19:32 and reinforced at
+    19:46. More comparable files does not give taskflow the other packages it does not have.
