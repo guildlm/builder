@@ -1,0 +1,65 @@
+NOTE — a spec-symbol placement audit: prototyped, measured, DECLINED
+=====================================================================
+
+18:36 on 29 July. The stub-file finding is the extreme case of a more general defect: the
+symbol exists but in the wrong file. MemStore was not missing from taskapipro-v5 — it was in
+store.go instead of memory.go. So the general audit suggests itself: for each spec file entry,
+do the symbols it names get declared in THAT file?
+
+Prototyped against specs/taskapipro.yaml and generated/taskapipro-v5. It does not work, and
+the numbers say why rather than a hunch.
+
+39 ROWS FLAGGED. THREE ARE REAL.
+    real:  MemStore, NewMemStore, ErrExists — declared in store.go, spec assigns memory.go
+    noise: everything else, in two distinct classes
+
+    CLASS 1 — MENTIONED IS NOT DECLARED. A spec entry names the symbols a file USES, not only
+    the ones it declares. internal/api/tasks.go's purpose mentions ErrExists because the
+    handler maps that error to a status; it is not supposed to declare it. Same for every
+    `NewTaskService` in a test entry, every `NewRouter` in main.go's entry. Correct behaviour,
+    flagged as a defect.
+
+    CLASS 2 — STDLIB. `NewJSONHandler` and `NewTextHandler` are slog constructors. The spec
+    names them because main.go must call them. They are declared nowhere in the tree because
+    they are not the tree's to declare.
+
+AND THE DETECTOR HAD ITS OWN FALSE NEGATIVES. It reported ErrNotFound as declared NOWHERE. It
+is declared, in store.go line 13, inside a `var ( ... )` block — the regex wanted `var` on the
+same line. So the prototype was wrong in both directions at once.
+
+    A CHECK THAT FIRES 39 TIMES TO SURFACE 3 IS A CHECK THAT GETS IGNORED, and an ignored
+    check is worse than no check: it occupies the slot where a working one would go. The repo
+    already argues this in _defect_partition ("a check that flags those is a check that gets
+    ignored") and it applies to itself here.
+
+WHAT WOULD MAKE IT WORK, if anyone returns to it: the spec's prose does distinguish declaring
+from using — "Exported sentinels var ErrNotFound and var ErrExists (errors.New)", "MemStore
+struct ... built by NewMemStore()" — but extracting that reliably from prose is the whole
+problem, not a detail of it. The cheap and correct version is what already exists:
+`_stub_files.py`, which asks the narrow question (does this file declare ANYTHING?) and gets
+three true positives and no noise.
+
+DECLINED. Recorded so the next attempt starts from the measurement rather than the idea.
+
+
+⚠️ AND A HABIT WORTH NAMING, because it happened TWICE in five minutes
+=======================================================================
+Both times I wrote a shell line of the form:
+
+    <command>
+    echo "  (no output above = genuinely absent)"
+
+That echo prints unconditionally. It is not a measurement — it is a caption asserting what the
+command found, written before the command ran, and it says the same thing whether the command
+found nothing, found plenty, or failed outright. Both times the command had in fact ERRORED —
+zsh aborting on an unquoted `--include=*.go` — and both times the caption confidently reported
+absence.
+
+    The first instance of this exact shape is already written up at 17:16, where a multi-glob
+    `ls` aborted on its first failed pattern and a `|| echo "no snapshot trees"` fallback
+    printed a conclusion the method could not support. That one happened to be right. These
+    two were wrong.
+
+    THE RULE: never caption a command with what you expect it to show. Print the count, or
+    branch on the exit status. `echo "found: $(cmd | wc -l)"` cannot lie about an empty result;
+    `echo "(empty = absent)"` always says absent.
