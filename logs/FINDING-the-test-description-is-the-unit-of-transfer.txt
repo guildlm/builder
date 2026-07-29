@@ -1,0 +1,88 @@
+FINDING — the unit of spec-to-test transfer is the INDIVIDUAL TEST'S DESCRIPTION
+================================================================================
+
+Measured 29 July from four draws already on disk, while taskapipro-v5 was at file 17 of 21.
+No new runs. It closes the last unverified item from the 28th and unifies four results that
+had been recorded as separate rules.
+
+THE PENDING ITEM, NOW ANSWERED: taskapi healthz body-assertion WITHDRAWN
+------------------------------------------------------------------------
+PENDING-verifications.txt called this "THE CLEAN TEST of prohibition-vs-value", because
+unlike shortener the entry does not tell the model what the body contains. It landed and
+the withdrawal WORKED. taskapi-v5/internal/api/router_test.go:
+
+    func TestHealthz(t *testing.T) {
+        h := newRouter()
+        ...
+        if rec.Code != http.StatusOK { t.Errorf("Healthz: want 200, got %d", rec.Code) }
+    }
+
+Status code only. No body assertion. The spec's test entry (line 222) says "assert the
+STATUS CODE is 200, and assert NOTHING" and that is exactly what was written.
+
+AND THE VALUE WAS AVAILABLE. specs/taskapi.yaml line 182 says `"GET /healthz" -> 200 "ok"`
+— the body IS in the spec. But line 182 is inside the `internal/api/router.go` entry
+(175-184) and the prohibition is inside the `internal/api/router_test.go` entry (185-236).
+Different entries. The value did not travel; the prohibition held.
+
+THE CONTRAST, MEASURED ON THE SAME NIGHT
+-----------------------------------------
+shortener's TestStatsCountsOneHit forbids the same thing THREE ways — "Do NOT assert
+anything about it — not its status, not its Location header, not its body" — and then
+justifies the ban in a sentence that states the answer: "a draw asserted on that step and
+expected something other than 301, and 301 is exactly what this service's redirect
+returns."
+
+shortener-v5 asserted on the setup step anyway, with the right value:
+
+    if rec2.Code != http.StatusMovedPermanently {   // 301
+
+Prohibition dropped. Value used. Same night, same model, opposite outcome — and the ONLY
+structural difference is whether the value appeared in the test's own description.
+
+THE LAW THAT COVERS ALL FOUR
+-----------------------------
+    A test is written from ITS OWN description. Text elsewhere — a sibling entry, the
+    implementation file's entry, a cross-reference, three sentences up — does not reach
+    it. And WITHIN that description, a concrete value outranks an instruction about what
+    not to do.
+
+Every result this week is an instance:
+
+  taskapi healthz     prohibition alone in the test's description        -> HELD
+  shortener stats     prohibition + the value, same description         -> value won
+  taskapipro tasks    reason in the test's own description              -> CAUGHT
+  taskapipro projects reason only via cross-reference to the twin       -> SURVIVED x3
+
+The last two are the sharpest, because they are in the SAME ENTRY three sentences apart:
+the clamp test carried its own reason and was CAUGHT while the paging test carried only an
+instruction and SURVIVED. So the unit is not the entry and not the file — it is the
+individual test's description. The note from the 28th said "proximity does not carry"; this
+is the same law from the other side, and it explains a prohibition and a justification with
+one rule instead of two.
+
+THE PRACTICAL CONSEQUENCES, IN ORDER OF USEFULNESS
+---------------------------------------------------
+1. NEVER STATE THE CORRECT VALUE IN A SENTENCE THAT FORBIDS ASSERTING IT. The sentence is
+   read for the value. If a step must not be asserted, say so and say nothing else about
+   what it returns — taskapi proves the bare prohibition works.
+2. A REASON MUST BE REPEATED PER TEST. It is a per-test cost, payable at every test, and
+   cross-referencing the twin does not discharge it. Verbose, and cheaper than a SURVIVED.
+3. THE VALUE MAY LIVE ELSEWHERE SAFELY. taskapi documents the healthz body in the
+   implementation entry and the test still did not assert it, so a spec does not have to
+   choose between documenting behaviour and forbidding an assertion — it has to keep them
+   in different entries.
+
+WHAT THIS DOES NOT EXPLAIN
+---------------------------
+PRESENCE. taskflow's projects-sorted test has a reason in its own description and is still
+not written — the law above governs what a test that gets written CONTAINS, not whether it
+appears. See FINDING-presence-and-discrimination-are-different-failures.txt; the
+name-collision account there is the candidate for the other half, and its retest is queued.
+
+⚠️ BOUND: four instances, one model, one night. The shortener/taskapi pair is a clean
+controlled contrast; the taskapipro pair is cleaner still, being same-entry. But three of
+the four are HTTP handler suites in the same corpus and none is a replication at N>1 of the
+same sentence. The rule earns its confidence from covering four independent outcomes with
+one mechanism, not from repetition — and taskapipro-v5, landing within the hour, is the
+first genuine retest of consequence 2.
