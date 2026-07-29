@@ -46,3 +46,40 @@ be made, and the change is still queued behind the draws, unmade.
 VOID CONDITION: if the run is killed, the machine sleeps again, or the sweep is interrupted,
 this is void rather than wrong — the same condition I failed to state on the taskapipro
 prediction and have stated on every one since.
+
+
+GRADED 12:03 — ALL THREE CONFIRMED
+===================================
+    RESULT workapi: NOT-GREEN ❌ (build=0 vet=1 test=1)
+    error surface repeats — stopping extension rounds
+    exhausted 7 fix rounds (6 budgeted), still failing
+
+  PREDICT workapi ships NOT-GREEN                      95%   CONFIRMED
+  PREDICT rounds 5 and 6 repeat `undefined: fake`      85%   CONFIRMED — and rounds 2,3,4
+                                                             too: five consecutive rounds
+                                                             at the identical line:col 165:9
+  PREDICT internal/api reports `ok` every round        90%   CONFIRMED — 4 of 4 rounds that
+                                                             reached the test phase
+
+THE 125-FOR-0 CLAIM NOW HAS ITS FIRST PROSPECTIVE CASE, and it held. A repeated error
+surface predicted failure forward, not just backward. 126 for 0.
+
+That is one out-of-sample point, not a validation. It is worth exactly what one prediction
+is worth, and its value is that it was registered at round 4 with two rounds unrun rather
+than fitted afterwards.
+
+FOUR WASTED ROUNDS, and they are the concrete cost of the guard's scoping. _stall_audit
+flags the stall from round 3; the builder's own detector fired at round 7, after the budget.
+Rounds 3, 4, 5 and 6 each ran a full compile/test cycle plus best-of-N model calls on a file
+that — measured at round 5 — the fix was rewriting byte-identically.
+
+THE CAMPAIGN'S ACTUAL RESULT FROM THIS ARTIFACT IS UNTOUCHED BY ALL OF THAT.
+internal/api reported `ok` in every round that reached it, so TestDeleteMissingReturns404
+ran and passed FOUR times on a fresh draw. The tree is red because of a scope error in
+internal/service, a package the closure does not live in and does not depend on.
+
+    taskapipro shipped NOT-GREEN and its experiment went VOID because internal/api never
+    compiled. workapi ships NOT-GREEN and its experiment is INTACT, because the failure is
+    in a different package. Same verdict word, opposite consequence — which is why the
+    grader targets ./internal/api/ and not ./... , and why "NOT-GREEN" is never the answer
+    to "did the closure hold".
