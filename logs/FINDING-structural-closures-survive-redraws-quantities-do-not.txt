@@ -124,3 +124,43 @@ widened round wrote a fourth. The measured sites survived it — all four paging
 all six config fields are still present and still wired, checked after the rewrite — but
 that is luck this time, not a guarantee, and it is the second round in a row where the
 check was necessary rather than ceremonial.
+
+
+A POSITIVE INSTANCE (11:10) — A SPEC PREEMPTING AN UNREACHABLE STATE, AND IT WORKED
+===================================================================================
+Found while checking workapi's auth token for the Delete-404 verification. Not sought.
+
+specs/workapi.yaml warns about mode 3 — the failure that is invisible to every runtime
+instrument, because the line the test targets cannot be reached at all:
+
+    "TestValidateEmptyAuthToken — build a Config VALUE DIRECTLY with a field-named literal
+     ... Do NOT call Load() here, and do NOT try to reach this state by setting AUTH_TOKEN
+     to "": Load treats an EMPTY env var as UNSET and substitutes the default "secret", so
+     an empty AuthToken is UNREACHABLE through Load by construction — the token would come
+     back "secret", Validate would correctly return nil, and the test would FAIL AGAINST A
+     CORRECT IMPLEMENTATION."
+
+workapi-v5 wrote it exactly as instructed:
+
+    func TestValidateEmptyAuthToken(t *testing.T) {
+        ... AuthToken: "",        // a Config value built directly
+        ...                       // Validate() called on the value, Load() never touched
+
+THE ENTRY IS THE SAME SHAPE AS THE FAILED PAGING ONE — long, reasoned, naming the wrong
+approach and explaining precisely why it fails. Here it worked. The difference is what it
+was asking for: a CONSTRUCTOR CHOICE (build the value directly, do not call Load), which is
+structural — the test either calls Load or it does not, and which it calls is visible in the
+source and load-bearing for whether the test compiles into the shape asked for.
+
+    Reason bought the structural choice here, exactly as it bought the router arguments in
+    taskapipro and failed to buy the seed count. Three instances now, same direction.
+
+AND IT IS THE RIGHT WAY TO HANDLE MODE 3. The alternative repairs are worse: making the
+state reachable would mean weakening Load's empty-means-unset behaviour, which is correct;
+dropping the test would leave Validate's contract undefended. Testing the contract at the
+level the contract is about — a Config value, not an environment — keeps both. The spec says
+so in one sentence: "Validate's contract is about a Config value; test it on a Config value."
+
+⚠️ NOT A CLOSURE, AND NOT COUNTED AS ONE. Nothing was mutated here and no grade was taken.
+This is a spec instruction being followed, observed in passing, which is weaker evidence
+than a mutation verdict and is recorded as such.
