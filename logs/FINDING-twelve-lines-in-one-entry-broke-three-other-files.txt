@@ -159,7 +159,7 @@ repairing the implementation. Both are the machinery being confidently wrong abo
 of a failure to touch, and both are invisible in the RESULT line.
 
 
-CORRECTION (16:52) — the loop DID edit the test, and the chain4/chain5 comparison is confounded
+CORRECTION (16:45) — the loop DID edit the test, and the chain4/chain5 comparison is confounded
 ================================================================================================
 Went to design the second separating draw, read chain5's per-round fix targets for the first
 time, and three sentences above are wrong. Both errors come from the same shortcut: I read the
@@ -240,7 +240,7 @@ audited witnesses create a POST they never serve, which is the only direction th
 inflate. The counting basis tracks bodies-available, which is the right quantity.
 
 
-SECOND CORRECTION (17:01) — the TWIN QUANTITIES in this file are post-repair, not as-drawn
+SECOND CORRECTION (16:48) — the TWIN QUANTITIES in this file are post-repair, not as-drawn
 ===========================================================================================
 Same check, applied to the v5 logs instead of chain5's, and it reaches the headline table at
 the top of this file. Per-round targets:

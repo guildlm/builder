@@ -24,7 +24,7 @@ attributable to closures even before the artefact correction.
 ⚠️ 56% of the baseline was unanswerable. Whatever the flips say, the repaired specs produced
 five red trees out of twenty-three.
 
-⚠️ AND OF THE 8 SURVIVING FLIPS, ONLY 2 HAVE CLEAN PROVENANCE ON BOTH SIDES (17:24). Five have
+⚠️ AND OF THE 8 SURVIVING FLIPS, ONLY 2 HAVE CLEAN PROVENANCE ON BOTH SIDES (16:55). Five have
 an as-drawn v5 tree and a v4 tree whose build log cannot be identified — 11 of the v4 baseline
 trees were restored wholesale and carry one uniform mtime. One (usersapi) is unattributable
 outright: that draw's single model rewrite was of a test file, and its only flip is a defence
@@ -66,7 +66,7 @@ IV. THE LARGEST FINDING, AND IT RELOCATES MOST OF THE MORNING
     the tree never compiled              7 rounds, both draws    MEASURED, an outcome
     the capstone lost taskapipro         62 of 314 rows, 20%     MEASURED, a consequence
 
-    ⚠️ WITHDRAWN 17:01, both twin-quantity rows:
+    ⚠️ WITHDRAWN 16:48, both twin-quantity rows:
     ~~did NOT fix the projects twins     1,1 -> 1,2~~
     ~~BROKE the tasks twins              3,3 -> 1,2, 2/2 -> 0/2~~
     Those compare a tree that took ONE deterministic fix and converged (chain4) against a
@@ -105,7 +105,7 @@ running now was designed the same way for the same reason.
 
 V. TWO PIPELINE DEFECTS, MEASURED
 ----------------------------------
-⚠️ CORRECTED 16:52 — an earlier version of this section said "the loop repairs the wrong
+⚠️ CORRECTED 16:45 — an earlier version of this section said "the loop repairs the wrong
 side" and that it "spent seven rounds editing internal/api handlers". Both are withdrawn. The
 per-round fix targets say otherwise and are quoted in full in
 FINDING-twelve-lines-in-one-entry-broke-three-other-files.txt.
@@ -158,14 +158,14 @@ VI. WHAT WAS RETRACTED OR NARROWED
   * "setup counts are not stable"        -> stable within a condition, to the item. The
                                             instability is BETWEEN conditions.
 
-  * "the loop repairs the wrong side"    -> withdrawn 16:52. Rounds 1 and 2 targeted
+  * "the loop repairs the wrong side"    -> withdrawn 16:45. Rounds 1 and 2 targeted
                                             projects_test.go. Read the round headers, never
                                             the per-round targets.
   * "the day flipped the witness shape"  -> confounded. chain5's twins were first observed
                                             AFTER a round-1 rewrite of that file; chain4's
                                             were not. Not a comparison of two draws.
 
-  * "the edit broke the tasks twins"     -> withdrawn 17:01. Post-repair tree (3 model
+  * "the edit broke the tasks twins"     -> withdrawn 16:48. Post-repair tree (3 model
                                             rewrites) vs near-as-drawn tree. THE ROOT CAUSE
                                             OF BOTH OF TODAY'S RETRACTIONS: any quantity read
                                             from a generated tree is a POST-REPAIR quantity

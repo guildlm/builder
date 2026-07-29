@@ -1,7 +1,7 @@
 RESULT — how many of the capstone's flips are attributable to the REDRAW at all
 ================================================================================
 
-17:24 on 29 July. Two claims were retracted in the previous hour for the same reason: a
+16:54 on 29 July. Two claims were retracted in the previous hour for the same reason: a
 quantity read off a tree that the fix loop had rewritten, compared against one it had not.
 That failure is not specific to those two claims. The capstone compares 140 live-in-both rows
 across v4 and v5 trees, and NOTHING in that comparison knew how much repair either side had

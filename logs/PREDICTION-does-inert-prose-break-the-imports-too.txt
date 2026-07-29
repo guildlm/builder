@@ -2,7 +2,7 @@ PREDICTION — is the import break caused by the CONTENT of those twelve lines, 
 lines being there at all?
 ===============================================================================================
 
-Written 16:44 on 29 July, BEFORE the draw. The question is the one
+Written 16:40 on 29 July, BEFORE the draw. The question is the one
 FINDING-twelve-lines-in-one-entry-broke-three-other-files.txt left open in its own words:
 
     "which property of those twelve lines matters (length, position, the words themselves,
