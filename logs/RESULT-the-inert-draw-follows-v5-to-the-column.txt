@@ -120,6 +120,14 @@ taskapipro-v5 (draw 2, 13:27), same spec, same server 4439, same flags.
 
     SAMPLING VARIATION IS NOT SMALL HERE. IT IS ZERO.
 
+    ⚠️ AND IT IS ZERO IN BOTH CONDITIONS, measured 20:06 once a second pre-edit arm existed:
+        +12 condition   v5 draw1 (09:30) vs v5 draw2 (13:27)   8 of 8 identical, 3h57 apart
+        PRE-EDIT cond.  chain5 (15:09) vs preedit (18:22)      7 of 7 identical, 3h13 apart
+    Two conditions, two independent pairs, ~3.5 hours apart each, fifteen files between them
+    and not one byte different. The zero is not a property of the +12 arm that happened to be
+    measured first; it belongs to the spec-and-server pair. So every difference reported here
+    is a difference BETWEEN conditions and never within one.
+
 So the reading inverts. Those two cosmetic differences are not noise that survived a small
 sample — they are a REAL, ATTRIBUTABLE EFFECT of the twelve lines' content, and they are the
 only effect it has:
