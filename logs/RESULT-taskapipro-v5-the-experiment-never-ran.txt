@@ -1,0 +1,97 @@
+RESULT — taskapipro-v5 landed NOT-GREEN, and the experiment it carried never ran
+=================================================================================
+
+Landed 10:53 on 29 July. RESULT taskapipro: NOT-GREEN (build=1 vet=1 test=1) — it does not
+compile, so no test in internal/api executed at any point in seven rounds.
+
+WHERE THE SEVEN ROUNDS WENT, and the origin of each defect
+
+  1  taskapipro/internal/models is not in std            GENERATION  unprefixed import
+  2  undefined: w  (projects_test.go:183)                GENERATION  as-drawn had `w =`
+  3  too many arguments in call to h.svc.List            SELF        widened round mirrored
+                                                                     tasks.go into projects.go
+                                                                     with a status argument
+                                                                     ProjectService lacks
+  4  declared and not used: status                       SELF        round 3, half-repaired
+  5  undefined: w  AGAIN                                 SELF        model reverted the
+                                                                     gate's round-2 repair
+  6  too many arguments in call to h.svc.List  AGAIN     SELF        back to round 3
+  7  (extension round) error surface repeats -> stop
+
+    Two rounds on defects the draw shipped. Five on defects the loop shipped.
+    It ended on the defect it created at round 3 and never cleared, oscillating between
+    that and its own half-repair.
+
+THE TWINS WERE NEVER TOUCHED — verified by hashing the function bodies against the
+as-drawn snapshot, not by eye:
+
+    TestListDefaultsToTheConfiguredPageSize          UNCHANGED
+    TestListCapsAtTheConfiguredMaxPageSize           UNCHANGED
+    TestProjectListDefaultsToTheConfiguredPageSize   UNCHANGED
+    TestProjectListCapsAtTheConfiguredMaxPageSize    changed by ONE character: `req =` -> `req :=`
+
+That single edit is the deterministic gate's compile fix, not a repair of the witness. All
+four are semantically as drawn. _twin_witness: 0 of 4 discriminate, seeds 1,2,1,2.
+
+
+GRADING EVERY OPEN PREDICTION
+------------------------------
+1. "the projects paging test POSTs THREE and asserts EXACTLY 2"   70%   WRONG (graded 10:03)
+2. "the three paging sites flip SURVIVED -> CAUGHT"               60%   WRONG (graded 10:03)
+3. "the fix loop repairs Twin A by changing the literal, not
+    by adding POSTs"                                              65%   VOID
+
+   VOID, not wrong. Twin A was never repaired, never read, never run. I named three
+   mechanisms for this outcome in turn — budget exhaustion, then recurrence, then crowd-out
+   — and CROWD-OUT is what happened: the loop generated build failures faster than it
+   cleared them and never reached the layer where an assertion could fail. The prediction
+   assumed the loop would get to the test. Stating the void condition up front, which I did
+   only after the second revision, is what made this gradeable as void rather than argued
+   about afterwards.
+
+4. "all four clamp sites grade SURVIVED under mutation"           90%   ALSO VOID
+
+   The tree does not build, so _grade_clamp_sites.sh will read a failing baseline for every
+   site and report INCONCLUSIVE x4. That is the grader working as designed — it was written
+   before the result specifically so a failing baseline could not be miscounted as CAUGHT —
+   but it means this tree cannot answer the question. The prediction needs a tree that
+   compiles.
+
+5. "up to 35% of the capstone diff goes dead"                     PRE-REGISTERED, CONFIRMED
+
+   taskapipro-v5 red makes it certain: taskapi 40 + expreval 8 + taskapipro 62 = 110 of 314
+   baseline rows will be BASELINE-RED in the v5 sweep. The upper bound I registered at 10:45
+   is now the actual figure, not a scenario.
+
+
+AN INDEPENDENT CONFIRMATION OF THIS MORNING'S CORPUS MEASUREMENT
+-----------------------------------------------------------------
+I measured across 279 historical logs that the in-budget repeat signal precedes the
+builder's own detector by a mean of 2.1 rounds. On this run, fresh and unseen when that
+number was computed:
+
+    _stall_audit (set membership, in-budget)   STALLED from round 5
+    builder's own "error surface repeats"      fired at round 7
+
+A gap of exactly 2. One run is not a validation, but it is the first out-of-sample point and
+it landed on the mean.
+
+
+WHAT SURVIVED, AND IT IS NOT NOTHING
+-------------------------------------
+    _dead_config     0 of 6 config fields dead — through a redraw AND four rounds of
+                     implementation rewriting, including three that rewrote projects.go
+    paging SITES     all four field assignments still present in projects.go
+
+The structural closure held everything the quantity closure lost, in the same tree, in the
+same run, under harsher conditions than the original claim was tested against. See
+FINDING-structural-closures-survive-redraws-quantities-do-not.txt.
+
+⚠️ WHAT THIS TREE CANNOT BE USED FOR. It is red, so it contributes only BASELINE-RED rows to
+the capstone diff, and no mutation grade taken on it means anything. Every claim above is
+read off the SOURCE — what the model wrote and what the loop did to it — which is the right
+evidence for those questions and is not evidence about behaviour.
+
+⚠️ AND DO NOT REPAIR IT BY HAND. The same rule as taskapi: patching the tree to green
+destroys the record of what the draw and the loop actually produced, which is the only thing
+this artifact is now good for.
