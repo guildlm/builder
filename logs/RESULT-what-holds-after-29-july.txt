@@ -24,6 +24,13 @@ attributable to closures even before the artefact correction.
 ⚠️ 56% of the baseline was unanswerable. Whatever the flips say, the repaired specs produced
 five red trees out of twenty-three.
 
+⚠️ AND OF THE 8 SURVIVING FLIPS, ONLY 2 HAVE CLEAN PROVENANCE ON BOTH SIDES (17:24). Five have
+an as-drawn v5 tree and a v4 tree whose build log cannot be identified — 11 of the v4 baseline
+trees were restored wholesale and carry one uniform mtime. One (usersapi) is unattributable
+outright: that draw's single model rewrite was of a test file, and its only flip is a defence
+gained. Six-up-two-down stands as the best available estimate; it rests on two fully controlled
+rows. See RESULT-the-capstone-flips-by-provenance.txt.
+
 
 II. THE ONE CLEAN DURABILITY RESULT
 ------------------------------------

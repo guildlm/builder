@@ -1,0 +1,82 @@
+RESULT — how many of the capstone's flips are attributable to the REDRAW at all
+================================================================================
+
+17:24 on 29 July. Two claims were retracted in the previous hour for the same reason: a
+quantity read off a tree that the fix loop had rewritten, compared against one it had not.
+That failure is not specific to those two claims. The capstone compares 140 live-in-both rows
+across v4 and v5 trees, and NOTHING in that comparison knew how much repair either side had
+absorbed. This measures it for every artifact at once.
+
+    A sweep's verdict ABOUT AN ARTIFACT is unaffected — the shipped tree is the deliverable
+    and how it got there does not matter. What is affected is reading a v4-vs-v5 DIFFERENCE
+    as a fact about the SPEC, which is exactly what the campaign's headline does.
+
+WHAT SPOILS PROVENANCE, and what does not
+    `fixing <file>`                   a MODEL rewrite — assertions, seeding, names. SPOILS.
+    `deterministic fix in <file>`     goimports-class. Does not touch assertions. Does not spoil.
+    `rebuilt a request ... (drained)`  replaces a request; counted separately because it
+                                      changes how many items land without moving an assertion.
+
+CORPUS-WIDE (_provenance_census.py, 23 artifacts with both generations)
+
+    8  CLEAN BOTH      no model rewrite either side — differences are the draw's
+    8  MISMATCHED      one side model-rewritten, the other not. THE RETRACTED SHAPE.
+    7  PARTIAL         v5 clean, v4 log unmatchable
+
+THE HEADLINE, QUALIFIED — the 6 gained / 2 lost after the ordinal correction
+
+    flip                                                    artifact    provenance
+    GAINED  shortener  handlers.go  StatusBadRequest->404    shortener   CLEAN BOTH
+    GAINED  shortener  handlers.go  404->StatusBadRequest    shortener   CLEAN BOTH
+    GAINED  taskflow   middleware.go  boundary >= -> >       taskflow    v5 clean, v4 unverified
+    GAINED  taskflow   pagination.go  clamp offset 0 -> 7777 taskflow    v5 clean, v4 unverified
+    GAINED  taskflow   tasks_handler.go  404->BadRequest     taskflow    v5 clean, v4 unverified
+    GAINED  usersapi   middleware.go  boundary >= -> >       usersapi    ⚠ UNATTRIBUTABLE
+    LOST    taskflow   store.go  reverse sort by ID          taskflow    v5 clean, v4 unverified
+    LOST    tasks-api  handlers.go  404->StatusBadRequest    tasks-api   v5 clean, v4 unverified
+
+    2 of 8 flips have clean provenance on BOTH sides.
+    5 have an as-drawn v5 tree and an unverifiable v4 tree.
+    1 cannot be attributed to the redraw at all.
+
+THE ONE THAT CANNOT, AND IT IS THE WORST-LOOKING CASE
+usersapi's v5 draw took exactly one model rewrite, and it was of a TEST FILE:
+
+    compile/test FAILED, fix round 1/5
+      fixing users_test.go
+    converged to green after fix round 1
+
+That draw's only capstone flip is a DEFENCE GAINED — middleware.go `boundary >= -> >`, SURVIVED
+in v4 and CAUGHT in v5. A model rewriting a test file and a previously-undefended site becoming
+defended in the same draw is precisely the confound, and the two cannot be separated from
+outside. The row is not evidence that a redraw gained a defence; it is equally evidence that
+the fix loop wrote a better test.
+
+⚠️ 11 OF THE v4 BASELINE TREES WERE RESTORED WHOLESALE
+Every .go file in them carries one identical mtime — demo-small, jsonapi, logstats, numkit,
+ratelimit, taskflow, tasks-api, usersapi, workapi, workerpool, plantedred. A draw writes files
+seconds apart; every genuinely-drawn tree here has a spread of 43-879s. So those trees were
+copied into place, their timestamps say when they were copied, and their build logs cannot be
+identified by time at all.
+
+    That is a standing corpus fact, not a bug in the census: the v4 half of the baseline is
+    partly unauditable, and it will stay that way unless a draw records its own log path into
+    the tree. Doing that is one line at generation time and would make every future census
+    exact. NOT DONE TODAY — src/ is holding still while a control draw runs.
+
+⚠️ WHAT THIS DOES NOT SAY. It does not retract the capstone. Six-up-and-two-down remains the
+best available estimate of redraw drift and the argument for it is unchanged. It says the
+estimate rests on eight rows of which two are fully controlled, and that a future campaign
+wanting a defensible drift figure must match provenance BEFORE comparing, not discover it
+afterwards. The instrument now exists: _provenance_census.py, and _twin_witness --log=.
+
+METHOD NOTES, because two matcher bugs were found and fixed while building this
+  * Keying on the newest FILE dated taskapipro-v4 and ledger-v4 a week after their draws —
+    their go.mod alone was rewritten 07-26 15:19 by a later corpus fix. Keying on the newest
+    .go file matches both exactly. That bug silently lost the campaign's namesake artifact.
+  * A zero mtime spread means COPIED, not drawn, and the tool now says RESTORED rather than
+    picking whichever log sits nearest a copy operation. Before that it reported 12 artifacts
+    UNKNOWN, which was the symptom that led here.
+  * One-sided evidence is still evidence: if the v5 tree was model-rewritten, the difference
+    is unattributable whatever the v4 log says. Reporting those as UNKNOWN threw away four
+    verdicts the evidence supported.
