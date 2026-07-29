@@ -132,3 +132,43 @@ of one.
 to a taskflow entry and redraw. taskflow converges in one round, so it costs far less GPU than
 taskapipro, and it would say whether bulk-added prose is collateral in a second spec or only
 in the one where it was first seen. NOT AUTHORISED HERE, and recorded so it is not lost.
+
+
+REPLICATED 19:35 WITH AN INDEPENDENT CONTROL ARM
+=================================================
+The pristine pre-edit draw (18:22-19:20) is a SECOND pre-edit arm on the same server, drawn
+five hours after chain5. Running the same comparison against it costs nothing and replicates
+the result exactly:
+
+    preedit vs v5     (pre-edit vs +12 REAL)    CODE 3 · PROSE 1 · IDENTICAL 3
+    chain5  vs v5     (pre-edit vs +12 REAL)    CODE 3 · PROSE 1 · IDENTICAL 3
+
+Not merely the same counts — THE SAME FILES AT THE SAME BYTE SIZES:
+    CODE   internal/config/config.go        2278 vs 2386
+    CODE   internal/models/models_test.go   1232 vs 1244
+    CODE   internal/service/service.go      3721 vs 3548
+    PROSE  internal/api/middleware_chain_test.go  787 vs 780
+
+AND THE THIRD PAIRING CLOSES IT
+    preedit vs inert  (pre-edit vs +12 INERT)   CODE 3 · PROSE 2 · IDENTICAL 2
+
+The same three CODE files, again. The only thing that separates the two +12 arms from each
+other is one extra PROSE file — internal/models/models.go, the comment whose word order
+differs — which is exactly the inert-vs-v5 difference measured at 18:00.
+
+    SO THE THREE CODE FILES ARE CAUSED BY PRESENCE, ON THREE INDEPENDENT PAIRINGS:
+        chain5  vs v5     pre-edit vs +12 real
+        preedit vs v5     pre-edit vs +12 real, different control draw
+        preedit vs inert  pre-edit vs +12 inert, different treatment draw
+    Change the control arm: same three files. Change the treatment arm's prose: same three
+    files. Only the prose files move.
+
+THE COMPLETE STRUCTURE, as measured
+    pre-edit arms   chain5, preedit        identical to each other, 7 of 7
+    +12 real arms   v5 draw1, v5 draw2     identical to each other, 8 of 8
+    +12 inert arm   inert                  differs from +12 real in PROSE only
+    pre-edit vs +12                        three CODE files, the same three every time
+
+⚠️ IT IS STILL ONE SPEC AND ONE ENTRY. Three pairings share two of their four trees, so this
+is replication of the COMPARISON rather than four independent draws of the phenomenon. The
+taskflow dose draw running now is the first test of whether any of it generalises.
