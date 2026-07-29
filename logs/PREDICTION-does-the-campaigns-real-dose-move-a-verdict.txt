@@ -1,0 +1,49 @@
+PREDICTION — at the campaign's REAL dose, does spec growth move a mutation verdict?
+====================================================================================
+
+20:58 on 29 July, before the draws. The last open question in this thread, and the one the
+20:53 result named: jsoncodec got TWELVE lines and moved no verdict, while the specs whose
+growth coincided with the capstone's flips grew 43 to 73.
+
+THE DESIGN
+    artifact   ratelimit — spec NEVER edited by the campaign (0 net lines), 5 live rows
+               across FOUR distinct mutation shapes, 7 spec files. The most varied row set
+               among the untouched specs; jsoncodec's six rows were all one shape in one file.
+    dose       48 lines: the SAME tracked twelve-line inert block, inserted into FOUR entries.
+               That is squarely in the campaign's 43-73 range, and spreading it across entries
+               mirrors how the campaign actually grew specs — closures added in several places,
+               not one paragraph in one entry.
+    placement  the four entries are bucket.go, registry.go, main.go and ratelimit_test.go.
+               NOT api.go and NOT middleware.go — the two files that carry every measured row.
+               So the added lines describe no file with a verdict, and any verdict change is
+               unambiguously COLLATERAL.
+    control    ratelimit redrawn unmodified on the same server, back to back. ratelimit-v5 was
+               drawn 00:43, before process 4439 started, so it cannot serve as the control.
+
+BRANCHES
+  A  >=1 of the 5 verdicts differs between arms
+     -> spec growth at the campaign's real dose moves mutation verdicts. The capstone's
+        6-up/2-down is, in substantial part, an artefact of the campaign growing its own specs,
+        and the 20:53 null was a dose artefact.
+  B  no verdict differs, but api.go or middleware.go differ in CODE
+     -> growth reaches the files that carry verdicts and still does not move them. Combined
+        with jsoncodec, that is two doses and two artifacts saying perturbation rarely
+        propagates to an invariant, which substantially rescues the capstone's headline.
+  C  no CODE difference anywhere
+     -> the effect does not reproduce at this dose or on this spec, which would contradict
+        four prior measurements and should be treated as a reason to distrust this arm rather
+        than as a result.
+
+PREDICT  A 35% · B 50% · C 15%.
+  A is plausible because four times the dose across four entries is a much larger intervention
+  than anything tested, and because ratelimit's rows include status-code and header-drop
+  shapes that live in exactly the kind of handler code the perturbation has been rewriting.
+  B is the single most likely outcome because a verdict only moves if the perturbation lands
+  on the specific line a mutation targets, and the added lines describe neither file.
+  C is low but not negligible: ratelimit converged in 0 fix rounds in its v5 draw, and a spec
+  that lands first-try green may be one the model has a very settled shape for.
+
+⚠️ WHAT I WILL NOT DO WITH BRANCH B. It is the outcome I expect and the one that most helps
+the campaign's headline, and that is exactly why it needs stating in advance: B at one more
+dose and one more artifact is still TWO data points. It bounds the worry; it does not close
+it, and it must not be written up as though the capstone were vindicated.
