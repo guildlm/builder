@@ -70,3 +70,57 @@ are supporting evidence from other artifacts, not replications of the contrast i
 but the fix loop is still editing test files. Config fields and their readers are not what
 the loop is touching, so the 0-of-6 is stable; if a later round rewrites main.go this must
 be re-read.
+
+
+ADDENDUM (10:35) — MIRRORING IS THE MECHANISM, AND STRUCTURE IS WHAT MAKES IT VISIBLE
+======================================================================================
+Round 3 of the taskapipro-v5 fix loop produced a compile error that turns this law from a
+correlation into a mechanism, by showing the same copying behaviour where the compiler CAN
+object.
+
+    internal/api/projects.go:71:55: too many arguments in call to h.svc.List
+        have (context.Context, int, int, string)
+        want (context.Context, int, int)
+
+The two services genuinely differ — tasks filters by status, projects does not:
+
+    TaskService.List(ctx, limit, offset int, status string)
+    ProjectService.List(ctx, limit, offset int)
+
+and tasks.go line 71 is:      h.svc.List(r.Context(), limit, offset, status)
+and projects.go line 71 is:   h.svc.List(r.Context(), limit, offset, status)
+
+The same call, at the SAME LINE NUMBER, in both files. The fix loop made projects.go mirror
+tasks.go line for line, carrying across a parameter the projects service does not have.
+
+MIRRORING IS NOT A GENERATION ARTEFACT. It was already measured in generation — taskapi's
+empty-list twins character-identical, taskapipro's four paging twins identical including
+their seed counts and their undeclared-w defect. Here it is again in REPAIR, a different
+phase with a different prompt and a different objective. The pipeline copies the sibling
+file at every stage that writes one.
+
+AND THAT IS WHY THE STRUCTURAL/QUANTITY SPLIT HOLDS
+
+    mirrored thing        who objects        outcome
+    --------------------  -----------------  -------------------------------------------
+    a SIGNATURE           the compiler       loud, caught in the same round, repaired
+    an ASSERTION          the compiler/test  loud if it does not compile or does not pass
+    a SEED COUNT          nobody             silent, shipped, 0 of 4 witnesses
+
+Same mechanism, three visibilities. The law is not that quantities are copied more carelessly
+than structure — they are copied the SAME WAY, by the same mirroring. The difference is
+entirely in whether anything downstream is in a position to complain. A mirrored signature
+gets one compile error and one fix round. A mirrored seed count gets a green suite.
+
+    Mirroring is the cause. Structure is not protection against it — structure is what
+    makes its failures announce themselves.
+
+This is a better statement of the law than the one at the top of this file, and it was
+available only because the fix loop happened to mirror something the compiler could see.
+
+⚠️ IT ALSO MEANS THE FIX LOOP CAN INTRODUCE DEFECTS WHILE WIDENED. Round 3's error did not
+exist in the as-drawn tree; projects.go called List with three arguments and compiled. A
+widened round wrote a fourth. The measured sites survived it — all four paging sites and
+all six config fields are still present and still wired, checked after the rewrite — but
+that is luck this time, not a guarantee, and it is the second round in a row where the
+check was necessary rather than ceremonial.
