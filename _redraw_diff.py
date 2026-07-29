@@ -136,8 +136,24 @@ def render(res: dict, old: dict, new: dict) -> str:
                f"(same artifact+file+shape in both)")
     out.append(f"      {len(res['gone'])} site(s) only in the old sweep, "
                f"{len(res['fresh'])} only in the new — moved, added or lost, NOT verdict changes")
+    # LIVE IN BOTH is the real denominator, and it is not `comparable`.
+    #
+    # A row is comparable when the same site exists in both sweeps. It is ANSWERABLE only
+    # when neither side is DEAD — a BASELINE-RED row records that the artifact would not
+    # compile, so no mutation on it could have been caught by anything. CAUGHT -> SURVIVED,
+    # the one transition that can retract a claim, is observable ONLY on rows live in both.
+    #
+    # For the v4-vs-v5 capstone this is not a rounding detail. Four artifacts ship red —
+    # taskapi, expreval, taskapipro, workapi — carrying 146 of the 314 baseline rows, 46%.
+    # Reporting "N flips of 314 comparable" would describe a corpus half of which was never
+    # measured. Printing this line first is the whole point; the number after it is only
+    # meaningful against it.
+    both_live = [k for k in res["comparable"] if old[k] not in DEAD and new[k] not in DEAD]
+    out.append(f"      {len(both_live)} row(s) LIVE IN BOTH — the only rows where a verdict "
+               f"change is observable at all")
     out.append(f"flips: {len(res['flips'])} of {len(res['comparable'])} comparable "
-               f"({len(res['live_flips'])} involving a live verdict)")
+               f"({len(res['live_flips'])} involving a live verdict, "
+               f"{len(both_live)} answerable)")
     if res["transitions"]:
         out.append("")
         for (o, n), c in sorted(res["transitions"].items(), key=lambda kv: -kv[1]):
