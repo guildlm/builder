@@ -83,6 +83,7 @@ def claim_stamps(text: str) -> set[tuple[int, int]]:
     for i in rules:
         region.update(range(max(0, i - 2), min(len(lines), i + 4)))
     out = set()
+    rule_at = set(rules)
     for i in sorted(region):
         # A HEADER CLAIM STARTS A PARAGRAPH. The last false positive was a line WRAP:
         #     "...it was born 07-16\n12:10 at 612c4f3. My inference was false."
@@ -92,10 +93,22 @@ def claim_stamps(text: str) -> set[tuple[int, int]]:
         # "CORRECTION (16:45)" — opens a paragraph.
         if i and lines[i - 1].strip() and not RULE.match(lines[i - 1].strip()):
             continue
-        for rx in (STAMP, HEADING_STAMP):
-            m = rx.match(lines[i])
-            if m:
-                out.add((int(m.group(1)), int(m.group(2))))
+        m = STAMP.match(lines[i])
+        if m:
+            out.add((int(m.group(1)), int(m.group(2))))
+            continue
+        # A PARENTHESISED HEADING ONLY COUNTS IF IT IS ACTUALLY A HEADING — i.e. underlined by
+        # a ==== or ---- rule on the next line. Without that, this pattern also swallows a
+        # heading that CITES another event's time:
+        #     CORRECTION (16:45) — ...        <- this block was written at 16:45   CLAIM
+        #     ====================
+        #     THE CAMPAIGN'S HEADLINE (16:35): "..."   <- the HEADLINE was written then  CITE
+        # Both start a paragraph and both sit in a claim region, so position alone cannot
+        # separate them. The underline can, and it matches what this repo actually does: every
+        # correction block written today is followed by a rule.
+        m = HEADING_STAMP.match(lines[i])
+        if m and (i + 1) in rule_at:
+            out.add((int(m.group(1)), int(m.group(2))))
     return out
 
 
@@ -178,6 +191,14 @@ def self_test() -> int:
                 "================================================\n")
     if claim_stamps(appended) != {(9, 0), (16, 45)}:
         fails.append(f"an appended correction heading is a claim; got {claim_stamps(appended)}")
+    # A HEADING THAT CITES ANOTHER EVENT'S TIME IS NOT A CLAIM. It looks identical to a
+    # correction heading except that it is not underlined by a rule.
+    citing = ("t\n=======\n\nWritten 09:00.\n\n"
+              "THE CAMPAIGN'S HEADLINE (16:35): \"redraw drift is worth six up\"\n"
+              "and two down, which is the number the campaign never had.\n")
+    if (16, 35) in claim_stamps(citing):
+        fails.append("a heading citing ANOTHER event's time is not a claim about this file — "
+                     "the discriminator is the ==== underline, not the parentheses")
     table = ("t\n=======\n\nWritten 09:00.\n\nrows\n----------\n"
              "  sweep (00:51, process A): 82.9%  NOT-GREEN\n")
     if (0, 51) in claim_stamps(table):
@@ -201,8 +222,8 @@ def self_test() -> int:
     for f in fails:
         print(f"  FAIL: {f}")
     print("self-test: " + ("FAILED" if fails else
-                           "ok — header claims separated from cross-references, run labels and\n"
-                           "           line wraps; nearest-commit used"))
+                           "ok — header claims separated from cross-references, run\n"
+                           "           labels, line wraps and CITING headings; nearest-commit used"))
     return 1 if fails else 0
 
 
