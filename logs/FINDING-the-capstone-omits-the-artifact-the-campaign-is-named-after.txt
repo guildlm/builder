@@ -1,0 +1,58 @@
+FINDING — the v5 sweep does not draw ledger, and ledger is 10% of the baseline
+==============================================================================
+
+Found while profiling the v4 baseline to precompute the comparable denominator, which
+_sweep_v5.sh's own NEXT block calls the headline. Found BEFORE the diff was read, which is
+the only reason it is a finding rather than a correction.
+
+THE NUMBERS
+    logs/hole-hunt-rows.tsv    314 rows across 17 artifacts
+    _sweep_v5.sh SPECS         22 specs
+    overlap                    16 artifacts
+
+    in the v4 baseline, NOT drawn in v5:  ledger            (31 rows)
+    drawn in v5, absent from v4 baseline: demo-small, eventbus, genericset,
+                                          lrucache, walkv, workerpool
+
+ledger is the FIFTH LARGEST artifact in the tracked baseline — 31 rows, ahead of tasks-api,
+usersapi and shortener — and it is not in the sweep list. specs/ledger.yaml exists, is
+24,813 bytes, the third largest spec in the repo, and was last touched 17 July.
+
+WHY THIS IS NOT A ROUNDING ERROR
+ledger is the artifact this entire programme is named after. TEETH.md opens on it: "a
+ledger that drops every credit". _mutant_check.sh carries it as a canonical mutation
+("every credit silently dropped (double-entry ledger loses money)"). It has its own
+PREDICTION file. It is the founding example of a suite that goes green while the invariant
+is undefended — and the capstone experiment meant to measure whether the corpus improved
+does not draw it.
+
+WHAT WOULD HAVE HAPPENED IF THIS WERE FOUND AFTER THE DIFF
+_redraw_diff reports "N sites only in the old sweep" as a single number, described in its
+own docstring as "a site that moved, appeared or vanished — which is a finding of its own
+and not a verdict change". Thirty-one of those would have been ledger, and nothing in the
+output distinguishes "this site moved to another file" from "this artifact was never
+drawn". The comparable denominator would have read ~10% low, the honest-looking sentence
+"31 sites present only in the old sweep" would have been printed, and the reason would have
+been invisible. That sentence would have been TRUE and its SUBJECT would not have been what
+it appeared to be — the sixth instance of the shape this session has been about, and the
+first one caught before it did any damage rather than after.
+
+THE OTHER TWO NON-DRAWN SPECS ARE CORRECTLY EXCLUDED
+tasks-api-min and tasks-api-noshadownudge are ablation variants of tasks-api, built to vary
+one spec feature at a time. Neither has any row in the v4 baseline, so neither can affect a
+v4-vs-v5 comparison. Only ledger is an omission.
+
+ACTION TAKEN
+ledger is drawn as -v5 after workapi, by _sweep_v5_ledger.sh, before _hole_hunt.py --gen=v5
+runs. This RECOVERS 31 comparable rows rather than documenting their loss. It costs one
+draw against a GPU that is already running unattended.
+
+⚠️ CAVEAT IT INHERITS: like taskapipro and workapi, ledger-v5 is drawn against the second
+server process (see NOTE-v5-drawn-across-two-server-processes.txt). Three of the corpus's
+23 artifacts now carry that condition instead of two.
+
+⚠️ WHAT THIS DOES NOT FIX: the six artifacts drawn in v5 with no v4 counterpart
+(demo-small, eventbus, genericset, lrucache, walkv, workerpool) stay uncomparable, and
+correctly so — they are new to the corpus, not moved. They will show up as "only in the new
+sweep" and that is the accurate description. Do not read their row count as growth in
+holes; read it as growth in the corpus.
