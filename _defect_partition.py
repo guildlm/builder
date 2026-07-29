@@ -193,6 +193,14 @@ def main() -> int:
     in_any_ctrl = set.union(*(got[l][0] for l in ctrl))
     only_treat = sorted(in_all_treat - in_any_ctrl)
 
+    # PRINT THE INTERSECTION SIZE, because "0 found" and "0 possible" are different sentences.
+    # The reverse-direction test below reported a clean null while searching an EMPTY set:
+    # chain4 and chain5 share NO defects at all, so nothing could ever have been found. That is
+    # the 0-out-of-0 shape this repo keeps catching in its own gates — a null result is only a
+    # result if the search space was non-empty, and the only way a reader can tell is if the
+    # tool says how big it was.
+    print(f"\nSEARCH SPACE   treatment-intersection {len(in_all_treat)} defect(s) · "
+          f"control-intersection {len(set.intersection(*(got[l][0] for l in ctrl)))} defect(s)")
     print(f"\nDEFECTS IN EVERY TREATMENT DRAW AND NO CONTROL DRAW  ({len(only_treat)})")
     by_round0 = {}
     for label, name in {**CONTROL, **TREATMENT}.items():
@@ -258,7 +266,13 @@ def main() -> int:
     for d in only_ctrl:
         print(f"   {d}")
     if not only_ctrl:
-        print("   none")
+        if not in_all_ctrl:
+            print("   VACUOUS — the two controls share NO defects at all, so this direction")
+            print("   searched an empty set. It is not evidence that the twelve lines never")
+            print("   suppress a defect; it is evidence that chain4 (1 round) and chain5")
+            print("   (6 rounds) have nothing in common to test with.")
+        else:
+            print("   none")
 
     print("\n⚠️ ROUND DEPTH IS NOT EQUAL, so 'absent from a control' is weaker than it looks:")
     print("   chain4 converged after round 1 and had ONE chance to exhibit anything.")

@@ -58,3 +58,28 @@ already recorded for every arm.
 ⚠️ N=1 EITHER WAY. One draw against a two-draw reference. A match is a striking coincidence
 rather than proof of a mechanism, and the honest follow-up to a match is a second inert draw,
 which is not authorised here.
+
+
+ADDED 17:52, STILL BEFORE ROUND 3 EXISTS (verified: 0 round-3 markers) — a second discriminator
+================================================================================================
+Found while checking something else: the mirrored-argument defect and its half-repair BOTH sit
+exactly six lines apart between the arms.
+
+    chain5 (PRE-edit, no lines)   projects.go:77:55  too many arguments
+                                  projects.go:56:2   declared and not used: status
+    v5 x2  (+12 lines)            projects.go:71:55  too many arguments
+                                  projects.go:50:2   declared and not used: status
+
+Two independent defect sites, the same constant 6-line offset. So the generated projects.go
+differs between the arms by a fixed amount above both sites — the +12-line arm's file is six
+lines shorter at that point, in both v5 draws.
+
+    That makes the discriminator a PAIR rather than a single number, and a pair is much harder
+    to hit by coincidence:
+        71:55 AND 50:2   -> the trajectory tracks the added LINES
+        77:55 AND 56:2   -> it tracks the PRE-EDIT BASE TEXT
+        a split, or other numbers -> neither property alone determines it
+
+No probability is revised. Prediction 2 (71:55, 70%) now carries prediction 3's line number
+with it, so the two are not independent and should be graded as one outcome rather than two.
+Recording that BEFORE the data rather than deciding after it how to count them.
