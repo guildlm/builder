@@ -30,6 +30,7 @@ report the same wrong number in the same confident format.
 """
 from __future__ import annotations
 
+import json
 import pathlib
 import re
 import sys
@@ -172,6 +173,66 @@ def verdict(seeded: int, bound: int) -> str:
     return "DISCRIMINATES"
 
 
+def audit_sources(files: dict) -> list[tuple]:
+    """The same audit over {relative_path: source} instead of a directory.
+
+    EXISTS SO THE PRE-REPAIR SNAPSHOT CAN BE AUDITED. `<out>/.pre-fix.json` holds exactly this
+    mapping — every file as the model wrote it, before the fix loop touched anything. Reading
+    a tree can only ever answer "what did the LOOP leave behind"; two claims were retracted on
+    29 July for not distinguishing that from "what did the DRAW produce".
+    """
+    rows = []
+    for rel in sorted(files):
+        if not rel.endswith("_test.go"):
+            continue
+        text = files[rel]
+        for name, body in bodies(text):
+            r = ROUTER.search(body)
+            a = ASSERT_LEN.search(body)
+            if not (r and a):
+                continue
+            dflt, mx = int(r.group(1)), int(r.group(2))
+            bound = int(a.group(2))
+            probing_cap = "limit=" in body
+            knob = mx if probing_cap else dflt
+            note = "" if knob == bound else f"  ⚠ asserts {bound} but the knob is {knob}"
+            rows.append((rel, name, dflt, mx, seeds(body), bound,
+                         verdict(seeds(body), bound), note))
+    return rows
+
+
+def compare_as_drawn(post: list[tuple], ad: list[tuple]) -> list[tuple[str, str]]:
+    """Witnesses whose seed/assert numbers the FIX LOOP moved, as (name, description).
+
+    THE WHOLE POINT OF THE SNAPSHOT, in one function. Empty means the tree's numbers ARE the
+    draw's numbers and can be reported as such. Non-empty means they are not, and every
+    comparison that treats them as the draw's is the error retracted twice on 29 July.
+
+    A witness present as-drawn and ABSENT afterwards is reported too — the loop deleting a
+    test is the drained-body gate's failure mode one layer up, and it is invisible in a
+    verdict list that only walks what survived.
+    """
+    byname = {r[1]: r for r in post}
+    moved = []
+    for rel, name, dflt, mx, sd, bound, v, note in ad:
+        cur = byname.get(name)
+        if cur is None:
+            moved.append((name, f"as-drawn seeds={sd} asserts={bound} ({v}) — "
+                                f"NOT PRESENT after repair"))
+        elif (cur[4], cur[5]) != (sd, bound):
+            moved.append((name, f"as-drawn seeds={sd} asserts={bound} ({v})  ->  "
+                                f"post-repair seeds={cur[4]} asserts={cur[5]} ({cur[6]})"))
+    return moved
+
+
+def as_drawn(tree: pathlib.Path) -> list[tuple] | None:
+    """Audit the pre-repair snapshot, or None if this draw predates it."""
+    snap = tree / ".pre-fix.json"
+    if not snap.is_file():
+        return None
+    return audit_sources(json.loads(snap.read_text()))
+
+
 def audit(tree: pathlib.Path) -> list[tuple]:
     rows = []
     for f in sorted(tree.rglob("*_test.go")):
@@ -235,6 +296,32 @@ def self_test() -> int:
     # has it, and counting commas+1 turns three elements into four.
     if literal_len('\n\t`{"id":"3"}`,\n\t`{"id":"1"}`,\n\t`{"id":"2"}`,\n') != 3:
         fails.append("a gofmt trailing comma must not add a phantom element")
+    # THE SNAPSHOT PATH. audit_sources must agree with audit on the same content, and
+    # compare_as_drawn must flag a moved number and a deleted test — the two ways the loop
+    # can make a tree lie about its draw.
+    src = ('func TestPaging(t *testing.T) {\n'
+           '\th := newRouterWithPaging(2, 100)\n'
+           '\treq1 := httptest.NewRequest("POST", "/x", nil)\n'
+           '\treq2 := httptest.NewRequest("POST", "/x", nil)\n'
+           '\treq3 := httptest.NewRequest("POST", "/x", nil)\n'
+           '\tif len(got) != 2 {\n\t\tt.Errorf("x")\n\t}\n}\n')
+    ad_rows = audit_sources({"api_test.go": src})
+    if len(ad_rows) != 1 or ad_rows[0][4] != 3 or ad_rows[0][6] != "DISCRIMINATES":
+        fails.append(f"audit_sources must audit a dict exactly as audit does; got {ad_rows}")
+    if audit_sources({"api.go": src}):
+        fails.append("only _test.go files are audited")
+    weakened = audit_sources({"api_test.go": src.replace(
+        '\treq2 := httptest.NewRequest("POST", "/x", nil)\n', "").replace(
+        '\treq3 := httptest.NewRequest("POST", "/x", nil)\n', "")})
+    moved = compare_as_drawn(weakened, ad_rows)
+    if len(moved) != 1 or "3" not in moved[0][1]:
+        fails.append(f"a loop that drops two seeds must be flagged with both numbers; {moved}")
+    if compare_as_drawn(ad_rows, ad_rows):
+        fails.append("identical as-drawn and post-repair must report NOTHING — otherwise the "
+                     "warning cries wolf on every clean draw and gets ignored")
+    if len(compare_as_drawn([], ad_rows)) != 1 or "NOT PRESENT" not in compare_as_drawn([], ad_rows)[0][1]:
+        fails.append("a test the loop DELETED must be reported, not silently skipped")
+
     # PROVENANCE — the check that would have stopped two retractions on 29 July.
     log = (
         "[guildlm-build]   deterministic fix in internal/api/router_test.go\n"
@@ -264,8 +351,9 @@ def self_test() -> int:
     for f in fails:
         print(f"  FAIL: {f}")
     print("self-test: " + ("FAILED" if fails else
-                           "ok — loop seeding counted, straight-line counted, "
-                           "and all three verdicts separated"))
+                           "ok — loop seeding counted, straight-line counted, all three "
+                           "verdicts separated, and the snapshot path flags a moved "
+                           "or deleted witness while staying silent on a clean draw"))
     return 1 if fails else 0
 
 
@@ -299,6 +387,22 @@ if __name__ == "__main__":
                 print(f"   {'':14} {pn.strip()}")
         bad = [r for r in rows if r[6] != "DISCRIMINATES"]
         print(f"   -> {len(rows) - len(bad)} of {len(rows)} witnesses can discriminate")
+        # AS-DRAWN, when the draw carries a snapshot. This is the number the retracted claims
+        # needed: what the MODEL wrote, as opposed to what the fix loop left behind.
+        ad = as_drawn(t)
+        if ad is None:
+            print("   (no .pre-fix.json — this draw predates the snapshot, so its AS-DRAWN "
+                  "values are not recoverable)")
+        else:
+            moved = compare_as_drawn(rows, ad)
+            if moved:
+                print("   ⚠ THE FIX LOOP CHANGED THESE WITNESSES — the tree's numbers are NOT "
+                      "the draw's:")
+                for name, msg in moved:
+                    print(f"      {name:<48} {msg}")
+            else:
+                print(f"   as-drawn == post-repair for all {len(ad)} witness(es): the fix loop "
+                      f"did not move these numbers")
     if prov is None:
         # SAY IT EVERY TIME. The two retractions of 29 July both came from comparing a
         # post-repair tree to a near-as-drawn one, and nothing in this tool's output
