@@ -1,0 +1,59 @@
+FINDING — taskflow's spec asks for a Store STRUCT; every draw for weeks built an INTERFACE
+============================================================================================
+
+20:16 on 29 July. Found by closing a gap in the dose result — "which version did the spec ask
+for?" — and the answer was neither.
+
+    specs/taskflow.yaml, store.go entry:
+      "A Store STRUCT holding two maps (tasks map[string]Task, projects map[string]Project)
+       guarded by a single sync.RWMutex, built by NewStore()."
+
+    what every draw actually builds:
+      taskflow-v4     type Store INTERFACE  +  type StoreImpl struct  +  NewStore() *StoreImpl
+      taskflow-v5     type Store INTERFACE  +  type StoreImpl struct  +  NewStore() *StoreImpl
+      taskflow-chain4 same
+      taskflow-chain5 same
+      taskflow-dose   type Store INTERFACE  +  type store     struct  +  NewStore() *store
+
+    Not one produced a `Store` struct. All of them invented an interface under that name and
+    put the maps in a second type the spec never mentions. Every one converged GREEN.
+
+WHY NOTHING CAUGHT IT
+A green suite tests BEHAVIOUR. Whether the maps live in a struct called Store or a struct
+called StoreImpl behind an interface called Store is invisible to it, to `go vet`, and to the
+mutation sweep — which mutates statements, not type declarations. The spec audits in this repo
+check test NAMES and PROMISED GUARDS, not the shape of a declared type. So the draw can
+restructure the package's type design away from the spec and pass everything.
+
+    It is the third instance today of the same blind spot: a stub file that declares nothing
+    (_stub_files.py), a relocated implementation that moves a mutation site to another file,
+    and now a type declared as the wrong KIND. All three compile, test green, and are invisible
+    to every existing instrument.
+
+INSTRUMENT: `_shape_conformance.py`
+Asks the narrow question only — the spec says "<Name> struct", the tree declares
+"type <Name> interface", and does NOT also declare it as a struct.
+
+    51 spec-named structs checked · 2 flagged · both the same real defect · no false positives
+
+That ratio is why this got built when the symbol-placement audit did not. That one (declined
+20 minutes earlier) fired 39 times to surface 3, because a spec entry mentions symbols it
+merely USES. This one cannot: a type is declared once, with a kind.
+
+    Deliberately silent on: a name declared as BOTH (some specs describe an interface and a
+    struct of similar name), a name declared NOWHERE (that is absence, and the compiler
+    catches it), and a struct under a DIFFERENT name (that is the symbol-placement question,
+    not reliably answerable from prose).
+
+    Verified as a real gate: neutering the interface lookup makes its self-test fail.
+
+⚠️ WHETHER THE INTERFACE IS BETTER DESIGN IS NOT THE POINT. An interface plus an
+implementation is arguably the nicer Go, and the dose draw even added `var _ Store =
+(*store)(nil)` to pin it. The finding is that the spec said one thing, every draw did another,
+and no instrument in a repo built entirely around checking generated Go noticed for weeks.
+
+⚠️ AND IT REFRAMES THE DOSE RESULT SLIGHTLY. The twelve lines moved the draw between two
+flavours of a deviation, not between compliance and deviation. That makes the perturbation
+sharper, not softer: it lands precisely where the spec left room. The testable follow-on —
+pin the struct name in the entry and redraw both arms — is recorded in
+RESULT-the-dose-effect-generalises.txt and NOT run.
