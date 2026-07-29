@@ -211,3 +211,66 @@ was the arm nobody edited.
 the corpus that builds a router with an explicit page size, so this instrument has nothing
 else to look at. "0 of 4" is a complete census of the paging witnesses that exist, not a
 sample of a larger population, and it must not be read as a corpus-wide rate.
+
+
+================================================================================
+MAJOR QUALIFICATION (14:01) — THE SEED COUNTS ARE STABLE WITHIN A DAY AND CHANGED
+BETWEEN DAYS. "NOT DURABLE" WAS THE WRONG WORD.
+================================================================================
+
+The one permitted taskapipro redraw reached router_test.go. Its tasks twins, as drawn:
+
+    draw 1 (09:30 today)   TestListDefaults  seeds=1 asserts=2   CANNOT-PASS
+                           TestListCaps      seeds=2 asserts=2   CANNOT-FAIL
+    draw 2 (13:27 today)   TestListDefaults  seeds=1 asserts=2   CANNOT-PASS
+                           TestListCaps      seeds=2 asserts=2   CANNOT-FAIL
+
+IDENTICAL. Two independent draws, four hours apart, same seed counts to the item.
+
+And chain4, drawn 28 July 23:06, had seeds=3 on BOTH twins.
+
+THE SPEC TEXT IS BYTE-IDENTICAL ACROSS ALL THREE. Verified: the entry was introduced by
+eed0365 on 28 July 21:23 — chain4 was drawn 23:06, after it — and `diff` between that
+commit's version and today's reports no difference in the twin block.
+
+    same entry text, three draws:
+        28 Jul 23:06   seeds 3, 3
+        29 Jul 09:30   seeds 1, 2
+        29 Jul 13:27   seeds 1, 2
+
+WHAT I WROTE THIS MORNING AND WHAT IT SHOULD HAVE SAID
+I wrote: "Setup counts are not stable across draws and were not secured by prose." The first
+half is now wrong as stated. Within a day, under identical conditions, they are perfectly
+stable — the same wrong numbers, twice. What actually happened is a SYSTEMATIC shift between
+28 and 29 July, not draw-to-draw noise.
+
+    Two draws agreeing exactly is strong evidence against sampling variance. Something
+    changed between the days, and it is not the spec.
+
+TWO CANDIDATES, AND THIS CORPUS CANNOT SEPARATE THEM
+  (a) THE SERVER PROCESS. chain4 ran on the 28 July mlx_lm.server; both of today's draws ran
+      on the process started 09:29 after the reboot. I flagged exactly this at 09:30 in
+      NOTE-v5-drawn-across-two-server-processes.txt and judged it "weak for the two binary
+      structural questions... but weak is not zero". This is evidence the caveat was real,
+      and that I under-rated it.
+  (b) THE PROJECTS-ENTRY EDIT. 15e25f3, 28 July 23:20 — "the instruction travelled between
+      entries; the reason did not" — added the measured reason to the PROJECTS entry, AFTER
+      chain4 was drawn at 23:06. If the model reads the whole spec, a change to the projects
+      entry can shift what it writes for tasks. That is the mirroring mechanism running
+      backwards, and it is not exotic: today's draws showed projects_test.go and
+      router_test.go carrying identical structure and identical defects.
+
+Both fit every observation. Separating them needs one draw with the projects entry reverted,
+on today's server — one variable, and the answer is which of the two moved the tasks twins.
+
+WHAT SURVIVES UNCHANGED FROM THIS RESULT
+  * prose did not secure the setup count. Three draws, ten lines of reasoning, seeds 3 then
+    1 then 1.
+  * the twins cannot discriminate on either of today's trees: 0 of 4, then 0 of 2 measured
+    so far on draw 2.
+  * predictions 1a and 1b remain WRONG — the projects test POSTs one, and no site can flip.
+
+WHAT DOES NOT SURVIVE
+  * "setup counts are not stable across draws" as an unqualified claim. They are stable
+    across draws that share a day and a server process. The instability is BETWEEN
+    conditions, and the condition that changed has not been identified.
