@@ -50,3 +50,59 @@ workapi showed this morning.
 ⚠️ THE SPEC IS NOW EDITED, so this rename replaces the one graded at 13:22. That result is
 preserved in generated/taskflow-chain4 and in RESULT-the-rename-worked.txt; the tree is not
 overwritten because _chain_run.sh walks to the first free -chainN name.
+
+
+GRADED 15:03 — WRITTEN. Convention-breaking alone is survivable; the collision was the cause.
+==============================================================================================
+
+    generated/taskflow-chain5/projects_test.go — 11 of 11 tests, first name in the file:
+
+    TestSortedProjectList  TestProjectCreateGet  TestProjectGetReturns200
+    TestProjectCreateInvalid  TestProjectGetMissing  TestProjectList
+    TestProjectListReturns200  TestProjectMalformedJSON  TestProjectCreateDuplicate
+    TestProjectDelete  TestProjectDeleteMissing
+
+Registered at 60%. CONFIRMED.
+
+THE THREE-POINT SERIES IS NOW COMPLETE, and it separates the two accounts
+
+    name                    breaks convention   collides   written?
+    TestListProjectsSorted        yes             yes       NO — 5 consecutive draws
+    TestProjectListSorted         no              no        YES — first try
+    TestSortedProjectList         YES             NO        YES — first try
+
+The third row is the one that matters. It breaks the file's convention exactly as the first
+row did — ten siblings named TestProject*, this one not — and it was written anyway. So
+
+    CONVENTION-BREAKING ALONE DOES NOT CAUSE THE DROP. The collision does.
+
+WHAT THE RULE ACTUALLY IS
+Not "keep test names uniform within a file". That is the pattern I first wrote down at 11:04
+and it is now falsified as a cause. The rule is narrower and more useful:
+
+    Do not give a test a name whose prefix points at a group where a test of that
+    description already exists.
+
+TestListProjectsSorted announced itself as a TestList* test — the tasks group, in the sibling
+file — and TestListSorted was already there, asserting the tasks sort. A test that looks like
+one already written is dropped, and dropping it is locally reasonable. TestSortedProjectList
+announces nothing: TestSorted names no group, so it collides with nothing and survives its
+own oddity.
+
+THIS ALSO REVISES THE 13:22 RESULT'S CAVEAT
+RESULT-the-rename-worked.txt says: "DOES NOT distinguish 'breaks the file's convention' from
+'collides with an existing test in the group its prefix names'. Both stories predict this
+outcome... The separating test is a third name that breaks the convention WITHOUT colliding —
+e.g. TestSortedProjectList. One draw, and it is cheap."
+
+That draw is run. It cost 15 minutes and it settled the question the campaign had been
+carrying since 11:04.
+
+⚠️ BOUNDS. One artifact, one file, one draw per name. The three names differ in more than the
+two properties tabulated — length, word order, and which words appear — and this design
+controls only for collision. A name that breaks convention, collides with nothing, AND is
+much longer than its siblings is untested; ledger's truncated sentinel says length is a live
+variable elsewhere.
+
+⚠️ AND PRESENCE IS NOT QUALITY. Eleven names are present. Whether TestSortedProjectList seeds
+three projects and asserts the order is a separate question, and the tree has not finished.
