@@ -122,13 +122,22 @@ All five against the same control condition, as-drawn where snapshots allow:
     IT IS NOT A FLOOR EITHER. One line was the smallest addition available and it still
     reached router.go and taskflow_test.go, neither of which it mentions.
 
-    LENGTH IS THE VARIABLE. The only arms without collateral are the only arms that did not
-    change the spec's byte count.
+⚠️⚠️ "LENGTH IS THE VARIABLE" WAS WRONG, AND WAS FALSIFIED AT 00:03 — 25 minutes after being
+written here. A seventh arm swapped `sync, sort` -> `sort, sync` in the store.go entry: ten
+characters to ten, byte count unchanged, meaning identical. It rewrote SIX files. Byte count is
+not the variable.
 
-THE RULE, AS MEASURED
-    · a substitution preserving the spec's byte count leaves the rest of the program alone
-    · ANY addition, down to one line, re-decides files the edit does not mention
-    · so there is no SIZE budget. There is a KIND budget.
+THE RULE, CORRECTED
+    · a word-order swap of a TEST NAME leaves the rest of the program alone — 2 arms
+    · EVERYTHING ELSE tried perturbs: prose reordering at equal length (6 files), and
+      additions of 1, 3 and 12 lines (3, 8 and 6 files)
+    · so it is not a SIZE budget and not a LENGTH budget
+
+THE HYPOTHESIS THAT NOW FITS ALL SEVEN ARMS: the edit is safe when it changes something the
+model COPIES VERBATIM, and perturbs when it changes something the model INTERPRETS. A test name
+is copied to the output, so there is nothing to reconsider; prose is guidance, and touching any
+of it sends the model back through the interpretation. Seven single draws, so a hypothesis and
+not a law. See RESULT-equal-length-is-not-enough.txt.
 
 ⚠️ WHERE IT IS THIN. Both safe arms are word-order swaps of a TEST NAME, so meaning is
 preserved as well as length. A same-length change that ALTERS meaning is untested —

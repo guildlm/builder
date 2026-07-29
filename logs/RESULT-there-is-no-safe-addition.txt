@@ -23,9 +23,11 @@ THE SERIES, COMPLETE
     reaches files it does not name. The rename's null was never about being small — it was
     about being the SAME LENGTH.
 
-    LENGTH IS THE VARIABLE. A substitution that preserves the spec's length leaves the draw
-    alone; adding anything at all re-decides unrelated files. Four arms, one spec, and the
-    only arm with no collateral is the only arm that did not change the length.
+    ⚠️ "LENGTH IS THE VARIABLE" — WITHDRAWN 00:03 on 30 July. An equal-length PROSE swap
+    (`sync, sort` -> `sort, sync`, byte count unchanged) rewrote SIX files. The safe arm here
+    was safe because it was a TEST-NAME swap, not because it preserved length. This file's
+    core finding — that ANY ADDITION perturbs, down to one line — is unaffected and stands on
+    three arms. See RESULT-equal-length-is-not-enough.txt.
 
 ⚠️ THE ORDERING AMONG ADDITIONS IS STILL NOT MONOTONIC. 1 -> 3 CODE, 3 -> 8 CODE, 12 -> 6 CODE.
 So 1 < 3 and 1 < 12, but 3 > 12. Adding more is not reliably worse; adding ANY is worse than

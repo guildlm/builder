@@ -1,5 +1,10 @@
-RESULT — BRANCH A. A same-length substitution is safe, on a second arm
-=======================================================================
+RESULT — a same-length substitution is safe  ⚠️ SUPERSEDED: only TEST-NAME swaps are
+=====================================================================================
+⚠️ READ THIS FIRST. The generalisation in this file — that preserving the spec's byte count
+leaves the program alone — was FALSIFIED at 00:03 on 30 July by an equal-length PROSE swap
+that rewrote six files. What survives is narrower: a word-order swap of a TEST NAME is
+safe, on the two arms measured here. See RESULT-equal-length-is-not-enough.txt.
+
 
 23:38 on 29 July. TestCreateDuplicate -> TestDuplicateCreate in specs/taskflow.yaml — both 19
 characters, spec byte count 22410 before and after, in the taskflow_test.go entry rather than
