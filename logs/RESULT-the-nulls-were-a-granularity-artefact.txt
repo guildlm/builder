@@ -99,7 +99,7 @@ prints "THE FILE-LEVEL VERDICT WAS A FALSE NULL" rather than leaving a reader to
 
 THE DISTRIBUTION AS IT NOW STANDS — 10 arms, 8 perturb, 2 unresolved
     test-NAME swap (21 -> 21)  taskflow    file-level null · UNRESOLVED at function level
-    test-NAME swap (19 -> 19)  taskflow    file-level null · UNRESOLVED at function level
+    test-NAME swap (19 -> 19)  taskflow    ✅ RESOLVED 01:59 — a REAL null (RENAME-ONLY)
     test-NAME swap (16 -> 16)  taskflow    8 collateral functions
     test-NAME swap (19 -> 19)  ratelimit   1 collateral function   <- NEW, cross-spec
     PROSE swap     (10 -> 10)  taskflow    perturbs
@@ -122,7 +122,13 @@ honest accounting is more interesting than a hit:
     at FILE level, the granularity I pre-registered, A landed and I was wrong;
     at FUNCTION level, the granularity I had not thought to name, B landed and I was right.
 
-The bias correction was sound. The instrument was the thing I failed to pre-register, and it,
+⚠️ "THE BIAS CORRECTION WAS SOUND" IS WITHDRAWN (01:59). The next two predictions erred in the
+OPPOSITE direction — expecting perturbation where there was none. Three errors one way then two
+the other is noise, not a signed bias, and I built a correction for a pattern that was not
+there. With n around 3 per class a bias cannot be distinguished from noise, and inventing a
+correction from that sample is the same error as inventing a mechanism from it.
+
+What survives from this section: the instrument was the thing I failed to pre-register, and it,
 not the prediction, decided what the answer was.
 
 WHAT IS RUNNING — the 19->19 null arm, redrawn
