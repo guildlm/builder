@@ -38,7 +38,23 @@ ERRLINE = re.compile(r"^\[guildlm-build\]     ! (.*)$")
 # Lines that appear in every round regardless of what is wrong. Keeping them would make two
 # genuinely different rounds look similar; dropping them is what makes the comparison about
 # the FAILURE rather than about the report's framing.
-NOISE = re.compile(r"^\?\s|\[no test files\]|^#\s|^# \[")
+# Lines that are not part of the FAILURE, and including them lets progress in one package
+# disguise a stall in another.
+#
+# `ok  guildlm.dev/workapi/internal/api 0.463s` is a package PASSING. It appeared in
+# workapi's round 3 and not its round 2, while the only actionable error —
+# `vet: internal/service/service_test.go:165:9: undefined: fake` — was byte-identical in
+# both. Without this filter the two signatures differ and the run reports "progress" while
+# the same defect sits unfixed for a second round.
+#
+#     Partial progress masks a stall. A multi-package build reports every package every
+#     round, so a surface that includes successes changes whenever ANY package changes,
+#     which is exactly when a stall is least visible.
+#
+# Same for the bare package headers and the [no test files] notes: they are the report's
+# framing, not the failure. The comparison has to be about what is BROKEN or it is a
+# comparison of build output formatting.
+NOISE = re.compile(r"^\?\s|\[no test files\]|^#\s|^# \[|^ok\s")
 
 
 def rounds(path: pathlib.Path) -> list[tuple[int, int, frozenset[str]]]:
@@ -134,6 +150,13 @@ def self_test() -> int:
              + R.format(2) + E.format("?   pkg/x [no test files]") + E.format("real B"))
     if stall_from(rounds(p4)) is not None:
         fails.append("shared noise lines must not make two different rounds look identical")
+    # A PASSING PACKAGE IS NOT PART OF THE FAILURE. workapi round 2 vs round 3: the same
+    # `undefined: fake` in both, but round 3 also printed `ok ... internal/api`. Without
+    # filtering the ok line the signatures differ and a stall reads as progress.
+    p4b = log(R.format(1) + E.format("undefined: fake") + E.format("# pkg/worker")
+              + R.format(2) + E.format("undefined: fake") + E.format("ok  \tpkg/api\t0.4s"))
+    if stall_from(rounds(p4b)) != 2:
+        fails.append("a package turning green must not hide an unchanged failure elsewhere")
     # ...and noise alone must not count as a signature at all.
     p5 = log(R.format(1) + E.format("?   pkg/x [no test files]")
              + R.format(2) + E.format("?   pkg/x [no test files]"))
