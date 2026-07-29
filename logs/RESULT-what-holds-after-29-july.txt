@@ -76,18 +76,35 @@ is a durability finding. "Quantities degrade across redraws" is not.
 
 V. TWO PIPELINE DEFECTS, MEASURED
 ----------------------------------
-THE LOOP REPAIRS THE WRONG SIDE. chain5's failure names projects_test.go:162 — a test that
-seeds one item and asserts two — and the loop spent seven rounds editing internal/api
-handlers. No handler makes a store of one item return two.
+⚠️ CORRECTED 16:52 — an earlier version of this section said "the loop repairs the wrong
+side" and that it "spent seven rounds editing internal/api handlers". Both are withdrawn. The
+per-round fix targets say otherwise and are quoted in full in
+FINDING-twelve-lines-in-one-entry-broke-three-other-files.txt.
+
+THE LOOP REPAIRS THE RIGHT FILE AND CANNOT FIX IT — then widens anyway.
+    round 1   projects_test.go
+    round 2   projects_test.go, THEN response/middleware/tasks/projects/router (widened in)
+    rounds 3-6  projects.go only
+It identified projects_test.go correctly and repaired it twice. Neither number moved: seeds
+stayed 1, the assertion stayed 2, first observation through final tree.
 
 THE WIDENED REPAIR MANUFACTURES DEFECTS. The mirrored `status` argument appears in chain5
-with the edit reverted, so it belongs to the loop, not the spec. Rounds 3-5 oscillate between
-it and its own half-repair until the budget dies.
+with the edit reverted, so it belongs to the loop, not the spec. It was introduced by round
+2's widening and then consumed rounds 3-6 entirely.
 
-AND THE TRIGGER IS WHICH BROKEN SHAPE A WITNESS TAKES:
+    So the original test-side failure got two attempts out of seven, and four rounds went to
+    damage the loop had caused itself. That is worse than misattribution: a loop pointed at
+    the wrong file can be pointed at the right one; this one was already there.
+
+⚠️ THE cannot-FAIL / cannot-PASS TRIGGER IS NOT ESTABLISHED. It read:
     cannot-FAIL (asserts 1)  passes silently, ships, artifact survives   <- chain4
     cannot-PASS (asserts 2)  fails loudly, triggers widening, tree dies  <- chain5
-Neither shape is fixed. Only one takes the artifact down.
+The two shapes are real and the asymmetry between them is real. What is NOT established is
+that a redraw chose between them. chain5's round 1 failed to COMPILE, so its twins were first
+observed in round 2 — after that file had taken a deterministic fix, a drained-body rebuild
+and a model rewrite. chain4 took only a deterministic fix and converged. (1,1) versus (1,2) is
+therefore not a comparison of two draws, and chain5's as-drawn values are not recoverable from
+any log. A within-draw round-1 rewrite explains the difference at least as well.
 
 A REPEATED ERROR SURFACE IS A PERFECT PREDICTOR: 127 detections, 0 recoveries. The builder
 already computes it and only acts past the flat budget. The four-word fix is NOT licensed by
@@ -111,6 +128,13 @@ VI. WHAT WAS RETRACTED OR NARROWED
                                             bought the projects count, across four.
   * "setup counts are not stable"        -> stable within a condition, to the item. The
                                             instability is BETWEEN conditions.
+
+  * "the loop repairs the wrong side"    -> withdrawn 16:52. Rounds 1 and 2 targeted
+                                            projects_test.go. Read the round headers, never
+                                            the per-round targets.
+  * "the day flipped the witness shape"  -> confounded. chain5's twins were first observed
+                                            AFTER a round-1 rewrite of that file; chain4's
+                                            were not. Not a comparison of two draws.
 
 Four predictions resolved VOID, all for one reason: the machinery never reached the question.
 That is a fact about the pipeline and it is now a standing rule — put the "nothing happens"
