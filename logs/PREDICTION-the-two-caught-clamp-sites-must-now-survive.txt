@@ -1,0 +1,52 @@
+PREDICTION — two CAUGHT grades in the invisible-closures file must flip to SURVIVED on v5
+==========================================================================================
+
+Registered 10:32 on 29 July, while taskapipro-v5 is still in fix round 2 and has never been
+mutated. Derived entirely from a STATIC instrument, and gradeable only by a DYNAMIC one,
+which is what makes it worth writing down.
+
+THE CLAIM
+RESULT-sweep-invisible-closures.txt records four taskapipro field-clamp sites, graded by
+mutation on chain4 because the sweep's shapes cannot see a field assignment:
+
+    taskapipro-chain4  TestListDefaultsToTheConfiguredPageSize          CAUGHT
+    taskapipro-chain4  TestListCapsAtTheConfiguredMaxPageSize           CAUGHT
+    taskapipro-chain4  TestProjectListDefaultsToTheConfiguredPageSize   SURVIVED
+    taskapipro-chain4  TestProjectListCapsAtTheConfiguredMaxPageSize    SURVIVED
+
+_twin_witness.py on taskapipro-v5 says 0 of 4 witnesses can discriminate — the two that were
+CAUGHT now seed 1 and 2 items against a bound of 2.
+
+PREDICT: mutating the same four sites on taskapipro-v5 grades ALL FOUR SURVIVED.       ~90%
+
+Specifically the two CAUGHT rows flip. A test that cannot distinguish a correct handler from
+one ignoring the field cannot notice that field being mutated — that is the same proposition
+stated twice, which is why the confidence is high rather than certain.
+
+WHY 90 AND NOT 99 — the two ways this can be wrong, both real
+  * TWIN A CANNOT PASS, which is not the same as cannot-notice. It fails on the unmutated
+    tree too, so a naive grader that only asks "did the test fail?" would call it CAUGHT for
+    the wrong reason. _grade_scoped is scoped to the named test and this repo has already
+    recorded that grader being wrong four times on real data. A CAUGHT here would more
+    likely be a grading artefact than a real defence, and distinguishing those requires
+    reading the baseline run, not the mutant run.
+  * THE FIX LOOP IS STILL RUNNING. It has already widened into projects.go and tasks.go.
+    If a later round repairs the seed counts, the premise evaporates and this prediction is
+    void rather than wrong — the same void condition I failed to state on the last one.
+
+WHAT IT IS ACTUALLY TESTING
+Not taskapipro. _twin_witness is a STATIC reading of three numbers; every verdict this
+campaign trusts comes from running a mutant. If the static instrument says CANNOT-FAIL and
+mutation says CAUGHT, the instrument is wrong and the 0-of-4 headline goes with it. It
+already agreed with mutation four times out of four on chain4 — this is the first time it
+predicts a grade BEFORE that grade exists, which is the only direction that can falsify it.
+
+CONSEQUENCE IF CONFIRMED
+The invisible-closures tally becomes 5 CAUGHT + 2 fired-for-real + 2 LOST, not 7 + 2. That
+is a tracked result file changing under a redraw, which is exactly what the redraw was built
+to produce and the first such change to land.
+
+HOW TO GRADE IT: after the tree lands, on a COPY, mutate each of the four sites in the
+already-recorded way (limit = h.defaultPageSize -> a wrong literal; the clamp removed) and
+run only the named test. Read the UNMUTATED baseline first for each one, because Twin A is
+red before anything is touched.
