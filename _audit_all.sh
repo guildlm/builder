@@ -38,11 +38,22 @@ selftest() {  # <script> — a failed self-test disqualifies that tool's finding
 }
 
 section "SELF-TESTS"
-for t in _spec_count_audit.py _promise_gap.py _dead_config.py _route_coverage.py \
-         _named_test_audit.py _unnamed_tests.py _named_present.py \
-         _mirror_calls_audit.py _registry_drift.py; do
-  [[ -f "$t" ]] && selftest "$t"
-done
+# DISCOVERED, NOT LISTED. This section used to name NINE tools while thirty-three carried a
+# --self-test, and it closed with "all self-tests green" — a banner true of what it checked
+# and false of what it implied. Every instrument behind 29 July's findings was outside it.
+# A hardcoded list was correct when written and went stale in silence, because nobody notices
+# a list that stops growing. _selftest_all.sh globs for the flag instead, so a new tool is
+# covered the moment it exists and a tool that LOSES its self-test shows as a falling count.
+if [[ -x ./_selftest_all.sh ]]; then
+  ./_selftest_all.sh || FAILED=1
+else
+  echo "  _selftest_all.sh missing — falling back to the historical nine, which is NOT full"
+  for t in _spec_count_audit.py _promise_gap.py _dead_config.py _route_coverage.py \
+           _named_test_audit.py _unnamed_tests.py _named_present.py \
+           _mirror_calls_audit.py _registry_drift.py; do
+    [[ -f "$t" ]] && selftest "$t"
+  done
+fi
 
 section "SPEC-INTERNAL — does the spec contradict or shortchange itself?"
 echo "-- stated test count vs enumerated tests, and entries that state two counts"
@@ -84,7 +95,9 @@ section "SUMMARY"
 if (( FAILED )); then
   echo "  ** at least one self-test FAILED — the findings above are not evidence **"
 else
-  echo "  all self-tests green; every finding above is a CANDIDATE, not a verdict."
+  echo "  self-tests green (see the SELF-TESTS section for how many RAN — a --fast run"
+  echo "  skips the go-shelling tools and says so). Every finding above is a CANDIDATE,"
+  echo "  not a verdict."
 fi
 echo "  Not run here (they cost go-test time, minutes to hours):"
 echo "    _hole_hunt.py --all-sites     mutation sweep        -> logs/hole-hunt-rows.tsv"
