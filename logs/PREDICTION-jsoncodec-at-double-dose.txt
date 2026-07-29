@@ -1,0 +1,45 @@
+PREDICTION — jsoncodec at 24 lines: does a surviving artifact move a verdict?
+==============================================================================
+
+21:57 on 29 July, before the draw. Open item 1 from the consolidation: whether spec growth
+moves a mutation VERDICT at a dose that does not kill the artifact.
+
+    jsoncodec +12   GREEN · 6 of 6 verdicts unchanged · but code WAS rewritten
+    ratelimit +48   RED   · verdicts unmeasurable, every row BASELINE-RED
+
+    The gap is a dose that perturbs and survives. jsoncodec survived twelve, so it is the
+    natural place to push.
+
+THE DRAW: jsoncodec's spec + 12 inert lines in BOTH .go entries = +24 lines. The control is
+generated/jsoncodec-ctl, already drawn on 4439 at 20:42 from the unmodified spec, so only one
+new draw is needed. jsoncodec is three files; this costs about two minutes.
+
+BRANCHES
+  A  GREEN and >=1 of the 6 verdicts differs
+     -> spec growth moves mutation verdicts without killing the artifact. Open item 1 answered
+        affirmatively, and the artefact reading of the capstone becomes measured rather than
+        plausible.
+  B  GREEN and 0 verdicts differ
+     -> the null holds at double the dose. Two doses, one artifact, no verdict movement:
+        perturbation reaching a verdict starts to look genuinely rare rather than untested.
+  C  NOT-GREEN
+     -> verdicts unmeasurable again, but it locates the kill threshold for a three-file spec
+        between 12 and 24 lines — which is itself worth knowing, because ratelimit (7 files)
+        survived 0 and died at 48.
+
+PREDICT  B 45% · C 35% · A 20%.
+  B leads because the six rows are all json-tag renames in event.go, and the +12 perturbation
+  there removed an unused type declaration — a change with no route to a struct tag. Doubling
+  the prose does not obviously create one.
+  C is high because a three-file spec has very little slack: ratelimit had seven files and
+  went from first-try-green to exhausted, and jsoncodec has less room to absorb a re-decision.
+  A is the interesting branch and the least likely.
+
+⚠️ B WOULD NOT SHOW THAT GROWTH NEVER MOVES VERDICTS. It would be two doses on ONE artifact
+whose row set is six instances of two shapes in a single file. The capstone's flip-bearing
+specs are 16-21 files with four to six distinct shapes across several files. A null here bounds
+the worry for small, narrow artifacts and says little about those.
+
+⚠️ AND C IS NOT A FAILED RUN. If it dies, that is a dose-response measurement — 12 survives,
+24 does not, on a spec where 48 was never tried. Record it as such rather than as a wasted
+draw.
