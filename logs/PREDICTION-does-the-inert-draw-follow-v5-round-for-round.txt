@@ -83,3 +83,27 @@ lines shorter at that point, in both v5 draws.
 No probability is revised. Prediction 2 (71:55, 70%) now carries prediction 3's line number
 with it, so the two are not independent and should be graded as one outcome rather than two.
 Recording that BEFORE the data rather than deciding after it how to count them.
+
+
+INTERIM (17:55) — round 3 landed; P1 and P5 HIT, P2 still VOID by design
+=========================================================================
+    internal/api/projects.go:71:55: too many arguments in call to h.svc.List
+        have (context.Context, int, int, string)
+        want (context.Context, int, int)
+    round-3 fix target: internal/api/projects.go, alone, no widening
+
+    P1  HIT   the defect is there, in projects.go, in round 3
+    P5  HIT   projects.go alone
+    P2  VOID  needs BOTH sites — round 4 has not happened
+    P3  VOID  no round 4 yet
+    P4  VOID  the draw has not finished
+
+71:55 is the +12-line arm's number; chain5's is 77:55. That is one half of the pair and it
+matches. IT IS NOT SCORED, and the reason is worth stating: the prediction committed in
+advance to grading the pair as ONE outcome, so a matching first half is not a hit. Without the
+grader written beforehand this is exactly where "well, 71:55, that's the prediction confirmed"
+would have gone in — and if round 4 then reported 56:2, the honest verdict would already have
+been published as a hit.
+
+The remaining question is genuinely open: does round 4 report `declared and not used: status`
+at 50:2 (the +12 arm) or 56:2 (the pre-edit base)?
