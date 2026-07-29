@@ -1,0 +1,38 @@
+PREDICTION — does the dose draw's failure reproduce?
+=====================================================
+
+21:24 on 29 July, before the draw. The 21:20 result — 48 inert lines took ratelimit from
+first-try green to exhausted-and-failing — is n=1, and the DOSE condition has never been drawn
+twice. Every variance pair measured today was in a CONTROL condition:
+
+    taskapipro +12 arm      v5 draw1 vs draw2      8 of 8 identical
+    taskapipro pre-edit     chain5 vs preedit      7 of 7 identical
+    taskflow  control       chain5 vs chain6      12 of 12 identical
+    jsoncodec control/dose  drawn once each
+
+So "same condition gives the same bytes" is established for four control pairs and ZERO
+treatment pairs. If the ratelimit red was a coin flip rather than the dose, this is where it
+shows.
+
+THE DRAW: specs/ratelimit-dose.yaml again, unchanged, on 4439, to generated/ratelimit-dose2.
+
+BRANCHES
+  A  byte-identical to ratelimit-dose and NOT-GREEN again
+     -> the failure is the dose, deterministically. The 21:20 result stands as measured.
+  B  differs from ratelimit-dose but still NOT-GREEN
+     -> the dose reliably breaks the spec while the details vary. Weaker than A about
+        determinism, just as strong about the effect.
+  C  GREEN
+     -> the red was a coin flip. The 21:20 headline collapses to "48 lines can break it
+        sometimes", the green-to-red framing is withdrawn, and the campaign implication with it.
+
+PREDICT A 80% · B 12% · C 8%.
+A because four control pairs were byte-identical and nothing suggests treatment draws are
+noisier. C is the one that matters: at 8% it is unlikely, but it is the branch that would
+retract today's most dramatic claim, and it is cheap to check — one 10-minute draw against a
+result I have already written up.
+
+⚠️ I AM RUNNING THIS BECAUSE THE CLAIM IS DRAMATIC, NOT BECAUSE I DOUBT IT. A green-to-red
+result from inert prose is the kind of finding that gets quoted, and it currently rests on a
+single draw whose condition has never been repeated. If it does not reproduce, I would much
+rather find that myself, now, than have it stand in the record.
