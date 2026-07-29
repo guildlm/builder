@@ -193,6 +193,29 @@ _resweep_report (generation keying + its first self-test), _chain_run.sh (in-fli
 Five silent-ignore .gitignore holes closed, including the capstone's own output and
 reachability-rows.tsv, which the tool had been claiming was tracked since it was written.
 
+BUILT AFTER 16:35, each with a self-test and each because a claim had already gone wrong
+without it:
+    _provenance_census.py    how much repair each v4/v5 tree absorbed. 8 clean-both,
+                             8 mismatched, 7 partial. Two matcher bugs fixed while building
+                             it — keying on the newest FILE dated taskapipro-v4 and ledger-v4
+                             a week late, because their go.mod alone was rewritten later.
+    _twin_witness --log=     per-row POST-REPAIR flag, and an unmissable warning when no log
+                             is passed, because a verdict of unknown provenance is not a
+                             verdict about a draw.
+    _check_timestamps.py     written header times vs commit times. 22 files carry one; all
+                             now agree within 45 min. Three rounds of false positives shaped
+                             it: a cross-reference, a run label in a table, and a line WRAP.
+
+AND FOUR DESTRUCTIVE DEFAULTS REMOVED, all in scripts whose comments described the opposite:
+    _post_rebuild_measure.sh   `cp` onto the TRACKED baseline it exists to preserve. Refuses.
+    _sweep_v5_finish.sh        `cat >` onto a tracked note. Writes if absent, leaves alone if
+                               identical, refuses if edited — guarded BEFORE appending the
+                               correction that would have armed it.
+    _ab_run.sh / _ab_run_v5.sh unconditional `rm -rf "$OUT"` — in the two scripts that BUILT
+                               the v4 and v5 corpora. Now move the tree to `-prevN`.
+Two tools then had to learn about `-prevN` (_cross_draw, _dead_config); both glob generated/
+broadly, and the first was harmless only by accident.
+
 ⚠️ THE UNGUARDED-RUNNER COUNT WAS WRONG, AND IT WAS 17, NOT SEVEN. Six invoke guildlm-build
 directly (_ab_run.sh, _ab_run_v5.sh, _taskflow_chain_run.sh, _taskflow_ct_run.sh,
 _taskflow_projsort_run.sh, _tasksapi_ct_run.sh) and eleven more reach a generation through
@@ -203,6 +226,11 @@ exit 3, and the refusal lands BEFORE _ab_run_v5.sh's `rm -rf "$OUT"`, which is t
 made this worth doing rather than noting.
 
 ⚠️ STILL UNGUARDED: no guard anywhere covers a mutation sweep competing with a generation for
-CPU. And _post_rebuild_measure.sh waits on `pgrep -f "guildlm-build main"` — the pattern this
-repo has documented twice as wrong, because it matches shells that merely mention it and it
-wakes in the gap between a queue's jobs.
+CPU. (_post_rebuild_measure.sh's waiter, listed here earlier, was fixed at 17:06 — pattern and
+stale scheduler list both.)
+
+⚠️ AND THE INSTRUMENT THAT DOES NOT EXIST IS THE ONE THAT MATTERS MOST. Nothing captures the
+AS-DRAWN tree. Three comparisons today used a hand-taken in-session snapshot that was never
+persisted, including the strongest clause of the campaign's one clean result — correct as
+made, not re-verifiable. Three lines at the head of _fix_loop fix it permanently; scoped, and
+waiting on the control draw. See NOTE-the-as-drawn-evidence-was-ephemeral.txt.
