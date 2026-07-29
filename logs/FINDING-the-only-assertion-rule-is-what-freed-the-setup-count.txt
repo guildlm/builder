@@ -137,3 +137,43 @@ WHAT TO CHECK WHEN workapi-v5 LANDS
                                                           a rebuilt request that lost the
                                                           header fails 401, not 404
     assert rec.Code == http.StatusNotFound, and nothing else
+
+
+FOURTH DATA POINT (11:04) — ratelimit, and it is the cleanest of them
+=====================================================================
+Checked by reading only, because a mutation sweep during generation steals CPU from the
+critical path (learned the hard way ten minutes earlier).
+
+ratelimit-v5 TestBucket:
+
+    b := NewBucket(2, 1)                          // capacity 2
+    if !b.Allow() || !b.Allow() { ... }           // the first TWO must be true
+    if b.Allow() { t.Errorf("third Allow() should be false") }   // the THIRD must be false
+
+Three calls against a capacity of two. seeds > bound, so it DISCRIMINATES: delete the
+capacity check and the third Allow() returns true and the test fails. TestBucketCapAfterIdle
+does the same again after a refill.
+
+AND THE ASSERTIONS NAME EACH CALL BY POSITION — "the first two", "the third", "after idle:
+1st", "2nd", "3rd". That is the per-item pattern, in a form that does not even involve a
+collection: the ORDINAL is the item. You cannot assert about the third call without making
+three calls.
+
+    the running count
+
+    lrucache   literal setup code, per-key assertions       3 puts / cap 2    CORRECT
+    taskflow   per-item assertions on got[0..2].ID          3 seeds / 3       CORRECT
+    ratelimit  per-ordinal assertions on the 1st/2nd/3rd    3 calls / cap 2   CORRECT
+    taskapipro bare count, "ONLY assertion"                 1 seed  / 2       WRONG
+
+Four quantity-bound witnesses, four artifacts. Every one whose assertion names the
+individual items or ordinals got its count right; the only one that asks for a bare
+aggregate got it wrong. That is now the strongest single pattern in the campaign, and none
+of the three confirmations was drawn to support it — all three were checked because the law
+predicted they would come out this way.
+
+⚠️ STILL ONE FAILING CASE. Three corrects and one wrong is not a rate, and taskapipro is
+also the only one of the four where the spec explicitly FORBIDS additional assertions. The
+pattern and the prohibition are confounded in the only negative instance, which is exactly
+why the falsification test in this file is the right next move: rewrite taskapipro's entry
+to name the items and redraw. If the seeds become 3, the assertion shape is what governs.
