@@ -9,6 +9,20 @@ each restricted to the files NEITHER draw repaired — so every byte compared is
     inert vs v5           the 12 lines' CONTENT     2 of 8 differ        comment + error string
     chain5 vs v5          the 12 lines' PRESENCE    4 of 7 differ        REAL CODE
 
+⚠️ THOSE THREE DENOMINATORS ARE NOT THE SAME FILE SET, which would let the gradient be partly
+an artefact of what happened to be compared. Redone (18:12) on the files untouched in ALL FOUR
+logs — one denominator, seven files, every byte as-drawn in every arm:
+
+    v5 draw1 vs draw2     nothing                   0 of 7 differ
+    inert vs v5           the 12 lines' CONTENT     1 of 7 differ   models.go, the comment
+    chain5 vs v5          the 12 lines' PRESENCE    4 of 7 differ   config.go, service.go,
+                                                                    models_test.go,
+                                                                    middleware_chain_test.go
+
+    The gradient is 0 / 1 / 4 on an identical file set. Stricter than the version above and
+    the conclusion is unchanged. Note also that two of the four are TEST files, so presence
+    reaches tests as well as implementation.
+
 A gradient, and the middle row is the control that makes the other two mean something:
 sampling variance in this condition is ZERO, so both of the other differences are real.
 
