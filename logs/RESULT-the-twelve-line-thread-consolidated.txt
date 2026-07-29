@@ -72,8 +72,8 @@ The draw ALSO graded UNMEASURED on compiler output — chain5's masking reproduc
 predicted — so the snapshot is the sole reason it answered.
 
 
-IV. THE EFFECT GENERALISES, AND SCALES
-=======================================
+IV. THE EFFECT GENERALISES ACROSS SPECS
+========================================
     spec        edit               comparable   result                       variance floor
     taskflow    ONE-LINE rename       12         CODE 1 — the TARGET            0 of 12
     taskflow    +12 INERT lines       12         CODE 4 · PROSE 4 — none targeted
@@ -101,6 +101,43 @@ design questions in unmentioned files, and the re-decision lands either way. An 
 exactly as confounding as a regression.
 
 
+IV-b. AND IT IS ABOUT LENGTH, NOT DOSE — five arms on taskflow
+==============================================================
+All five against the same control condition, as-drawn where snapshots allow:
+
+    same-length SUBSTITUTION  (rename, 21 -> 21 chars)   CODE 1 — the TARGET only, NO collateral
+    same-length SUBSTITUTION  (rename, 19 -> 19 chars)   CODE 1 — the TARGET only, NO collateral
+    +1  ADDITION                                         CODE 3 — target + 2 collateral
+    +3  ADDITION                                         CODE 8
+    +12 ADDITION                                         CODE 6
+
+    TWO substitutions, two entries, two test names: no collateral either time. THREE additions,
+    the smallest a SINGLE LINE: collateral every time.
+
+    IT IS NOT A DOSE. Three lines perturbed EIGHT files where twelve perturbed six, and the
+    perturbed SETS differ rather than nesting — five files move at both, three only at +3, one
+    only at +12. Adding more is not reliably worse; adding ANY is worse than adding none. A
+    step at zero, and noise above it.
+
+    IT IS NOT A FLOOR EITHER. One line was the smallest addition available and it still
+    reached router.go and taskflow_test.go, neither of which it mentions.
+
+    LENGTH IS THE VARIABLE. The only arms without collateral are the only arms that did not
+    change the spec's byte count.
+
+THE RULE, AS MEASURED
+    · a substitution preserving the spec's byte count leaves the rest of the program alone
+    · ANY addition, down to one line, re-decides files the edit does not mention
+    · so there is no SIZE budget. There is a KIND budget.
+
+⚠️ WHERE IT IS THIN. Both safe arms are word-order swaps of a TEST NAME, so meaning is
+preserved as well as length. A same-length change that ALTERS meaning is untested —
+`sorted by ID` -> `sorted by id` is equal length and means something else — so "preserves byte
+count" may be standing in for "preserves meaning and structure". And five single draws on one
+spec: each arm is real because same-condition variance here is zero, but the shape is five
+points from five draws.
+
+
 V. WHAT THIS DOES TO THE CAMPAIGN'S OWN HEADLINE
 =================================================
 "Redraw drift is worth about 6 up and 2 down" was measured across a corpus whose flip-bearing
@@ -115,6 +152,12 @@ specs the campaign had itself rewritten:
 
     SO SIX-UP-AND-TWO-DOWN IS NOT REDRAW DRIFT. It is spec-edit drift, and the baseline for
     what a redraw moves on its own should be closer to zero.
+
+✅ AND IV-b GIVES THE FIRST USABLE SPLIT OF THE CAMPAIGN'S OWN RESULTS. Its closure edits ADDED
+43-73 lines per spec, so all of them are in the perturbing class and those before/after
+comparisons cannot separate closure from re-decision. But its PURE RENAMES are in the safe
+class — including the taskflow rename that produced this thread's cleanest single-variable
+result — and those measurements stand.
 
 ⚠️ CONFOUNDED BEYOND REPAIR FROM THIS DATA. The specs grew BECAUSE closures were added, so
 "grew" and "the campaign worked on it" are the same set. A taskflow flip may be the closure
@@ -181,7 +224,9 @@ VII. STILL OPEN
 ================
   1. ✅ ANSWERED 22:18 — see V-b. taskflow at +12: two verdicts moved and two groups changed
      site count, on a green artifact, attributable to the draw rather than the repair.
-  2. Monotonicity. One, twelve and forty-eight lines are measured; nothing between.
+  2. ✅ ANSWERED 23:38 — see IV-b. Not monotonic, and not a dose: length is the variable and a
+     same-length substitution is safe on two arms. What remains untested is a same-length
+     change that alters MEANING rather than only word order.
   3. The as-drawn contents of the twelve taskapipro files the loop repaired — fixed going
      forward by `.pre-fix.json`, not backward.
   4. Server versus day for the stub regression. Separating them needs a restart, which would
