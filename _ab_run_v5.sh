@@ -24,7 +24,29 @@ if pgrep -f "\.venv/bin/guildlm-build" > /dev/null; then
 fi
 SPEC="${1:?usage: _ab_run.sh <spec>}"
 OUT="./generated/${SPEC}-v5"
-rm -rf "$OUT"
+# NEVER DELETE A PREVIOUS DRAW — PRESERVE IT INSTEAD.
+#
+# _chain_run.sh states this rule and calls deleting a landed draw "the corpus-deletion shape
+# with a smaller blast radius". This script — which BUILT THE ENTIRE -v5 CORPUS the capstone
+# rests on — opened with an unconditional `rm -rf "$OUT"`. Re-running it on any spec destroyed
+# that spec's tree, and generated/ is gitignored, so there was nothing to restore from.
+#
+# The repo already knew: _redraw_taskapipro_once.sh does `mv "$TREE" "$EVIDENCE"` by hand
+# before calling this script, for exactly this reason. That workaround is now unnecessary and
+# the protection is automatic.
+#
+# PRESERVED, NOT REFUSED, because the sweep runners call this in a loop and rely on being able
+# to redraw. Refusing would break them; moving the old tree aside does not.
+#
+# THE SUFFIX MATTERS: `-prevN` does not match the `*--v5` glob the sweeps and
+# _provenance_census use, so a preserved tree is invisible to every consumer — the same
+# property _redraw_taskapipro_once.sh relies on for its `-red-evidence` name.
+if [[ -d "$OUT" ]]; then
+  n=1
+  while [[ -d "${OUT}-prev${n}" ]]; do n=$((n + 1)); done
+  mv "$OUT" "${OUT}-prev${n}"
+  echo "preserved previous draw -> ${OUT}-prev${n}  (not deleted; generated/ is gitignored)"
+fi
 LOG="logs/ab-${SPEC}-v5-$(date +%m%d%H%M).log"
 echo "=== A/B spec=$SPEC out=$OUT log=$LOG ==="
 
