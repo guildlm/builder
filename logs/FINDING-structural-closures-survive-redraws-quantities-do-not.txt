@@ -1,0 +1,72 @@
+FINDING — a closure that changes a SIGNATURE is durable; one that changes a QUANTITY is not
+============================================================================================
+
+Measured 29 July ~11:15 on taskapipro-v5, mid-fix-loop. Two closures made days apart on the
+SAME spec, redrawn in the SAME run, with opposite outcomes — which is the cleanest control
+this campaign has produced, because everything except the shape of the closure is held
+fixed.
+
+THE TWO RESULTS, SAME ARTIFACT, SAME DRAW
+
+    config wiring       _dead_config: 0 of 6 fields dead      SURVIVED THE REDRAW
+      draw4 landed NewRouter(..., defaultPageSize, maxPageSize int), both handlers holding
+      and reading the fields, main() passing cfg.*. taskapipro-v5 reproduces it: 0 dead,
+      same as draw4, and projects.go reads h.defaultPageSize at three sites.
+
+    paging witnesses    _twin_witness: 0 of 4 discriminate    DID NOT SURVIVE
+      chain4 had 2 of 4. The seed counts went 3,3 -> 1,2 on the arm whose entry was not
+      even edited.
+
+THE DISTINCTION
+The config closure changes STRUCTURE: a function signature, two struct fields, and the call
+sites that must agree with them. The paging closure changes a QUANTITY: how many items a
+test body seeds before it asserts.
+
+    Structure is held in place by everything that touches it. A signature has call sites,
+    a field has readers, a test function has a name the spec checks. A quantity inside a
+    test body is held in place by nothing at all — no compiler, no caller, no other line
+    in the file has an opinion about whether the loop runs once or three times.
+
+That is why prose was enough for one and not the other. The spec's paragraphs did not make
+the signature survive; the compiler did. Remove the argument and nothing builds. Change 3 to
+1 and everything builds, the suite goes green, and the only witness that would object is the
+one being weakened.
+
+IT ORGANISES THE WHOLE CAMPAIGN'S RESULTS
+
+    closure                        shape        redrawn as        verdict
+    -----------------------------  -----------  ----------------  ---------
+    taskapipro config wiring       structure    0/6 dead          held
+    taskapi empty-list x2          structure    raw-body assert   held (fired for real)
+    usersapi empty-list            structure    raw-body assert   held
+    shortener race Lock->RLock     structure    CAUGHT            held
+    workapi Delete-404             structure    (queued)          —
+    taskapipro paging x4           QUANTITY     0/4 discriminate  LOST
+
+Every closure that survived is the presence or absence of a thing — an assertion, a lock
+type, a field, a signature. The only one that failed is the one that is a NUMBER. And the
+presence census agrees from the other side: 0 of 174 spec-named tests missing across 20
+trees, so "does this thing exist" is close to solved while "is this number right" is not.
+
+WHAT IT PREDICTS, AND THIS IS FALSIFIABLE
+  * workapi's Delete-404 is structural — an assertion that exists or does not. PREDICT it
+    holds. (Already registered at 85% in the prediction file, for a different reason; this
+    gives that number a mechanism rather than a base rate.)
+  * Any future closure phrased as a count, a bound, a page size, a retry limit or a timeout
+    is in the fragile class and should be gated, not written into prose. The gate design is
+    in NOTE-the-paging-seed-gate-has-a-precedent-and-a-trap.txt.
+  * A quantity CAN be made structural, and that is the cheaper fix than a gate where it
+    works: a named constant the test must reference, or a seeding helper `seedN(h, 3)`
+    declared in the spec, converts "how many" into "does this call exist" — which is the
+    class that survives. Untested, and the obvious first experiment after the draws drain.
+
+⚠️ BOUNDS
+Six closures, one corpus, one model, and the two arms of the decisive comparison are in one
+artifact. The config/paging contrast is strong precisely because it is same-spec same-draw,
+and that is also its limit: taskapipro may be unrepresentative. The empty-list and race rows
+are supporting evidence from other artifacts, not replications of the contrast itself.
+
+⚠️ AND THE TREE HAS NOT FINISHED. _dead_config was run on a complete tree (main.go landed)
+but the fix loop is still editing test files. Config fields and their readers are not what
+the loop is touching, so the 0-of-6 is stable; if a later round rewrites main.go this must
+be re-read.
