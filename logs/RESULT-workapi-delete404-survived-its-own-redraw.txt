@@ -1,0 +1,70 @@
+RESULT — the Delete-404 closure survived its own redraw, character for character
+=================================================================================
+
+Read 11:30 on 29 July from workapi-v5/internal/api/router_test.go, the moment it landed and
+BEFORE the fix loop touched it. Snapshotted first, because the fix loop rewrites this file
+and taskapipro's lesson is that the as-drawn state does not survive it.
+
+THE PREDICTION
+PREDICTION-the-two-specs-the-reboot-owed-me.txt registered this at 85%, and called it "the
+single most consequential row in the finish run: a miss means the week's closure grades
+measure the draw they were made on rather than the spec, which retracts the central claim
+and not a detail."
+
+WHAT LANDED
+
+    func TestDeleteMissingReturns404(t *testing.T) {
+        h := newRouter()
+        req := httptest.NewRequest("DELETE", "/tasks/nope", nil)
+        req.Header.Set("Authorization", "Bearer secret")
+        rec := httptest.NewRecorder()
+        h.ServeHTTP(rec, req)
+        if rec.Code != http.StatusNotFound {
+            t.Fatalf("DeleteMissingReturns404: want 404, got %d", rec.Code)
+        }
+    }
+
+Every criterion written down in advance, met:
+    present, in internal/api/router_test.go                        YES
+    fresh router, NO seeding                                       YES  (newRouter(), no POSTs)
+    Authorization: Bearer secret                                   YES  (correct token —
+                                                                        wrong or absent
+                                                                        gives 401, not 404)
+    asserts StatusNotFound and nothing else                        YES
+
+AND IT IS CHARACTER-FOR-CHARACTER IDENTICAL TO workapi-chain2 — `diff` reports no
+difference. An independent draw, days apart, with no reason to reproduce it except that the
+spec asks, produced the same bytes.
+
+    That is the strong form of the durability claim, and it is the form the campaign has
+    been asserting on weaker evidence all week.
+
+ALL ELEVEN DECLARED TESTS ARE PRESENT: TestCreateDuplicate, TestCreateInvalid, TestCreateOK,
+TestCreateUnauthorized, TestDeleteMissingReturns404, TestDeleteTask, TestGetTask,
+TestHealthz, TestListTasks, TestMalformedJSON, TestReadyz. No mode-1 absence in this file.
+
+WHAT IS CONFIRMED AND WHAT IS NOT
+  CONFIRMED — presence, shape, token, assertion, and byte-identity with the graded draw.
+              All of it read from source, which is the right evidence for "did the spec
+              reproduce the closure".
+  NOT YET     — the MUTATION grade. CAUGHT means the test notices the Delete handler's
+              ErrNotFound branch being broken, and that needs the tree to build and the
+              mutant to run. taskapipro shipped NOT-GREEN and its twins were never
+              evaluated at all; workapi's fix loop has not started. Until then this is
+              "the closure was rewritten identically", not "the closure still catches".
+
+TWO INDEPENDENT ROUTES PREDICTED THIS, AND BOTH HELD
+  * the presence/magnitude law: an assertion is a distinguishable element the spec can name
+    and a mirroring draw carries intact — the durable class.
+  * the entry contains NO QUANTITY to lose. The "as this test's ONLY assertion" phrase that
+    freed taskapipro's seed count is harmless here because the correct seed count is zero:
+    "an id nobody created" is the whole precondition and a fresh router satisfies it.
+
+Both routes are now one-for-one on an out-of-sample case. That is worth more than either
+was yesterday, and it is still two mechanisms agreeing on one instance.
+
+⚠️ THE HONEST BOUND. This is one closure, in one artifact, on one redraw. taskapipro's four
+paging sites went the other way in the same sweep. The campaign's answer to "are closure
+grades durable" is now split by CLASS rather than uniform — presence-shaped closures held
+(shortener race, usersapi and taskapi empty-list, workapi Delete-404), magnitude-shaped ones
+did not (taskapipro paging x4). That split is the result, not a caveat on it.
