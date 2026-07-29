@@ -1,0 +1,53 @@
+RESULT — `<out>/.pre-fix.json` landed, and the preserve-guard saved a baseline on the way
+==========================================================================================
+
+18:17 on 29 July. The three-line change scoped at 17:13, blocked all afternoon on a control
+draw, is in and verified.
+
+WHAT IT DOES
+At the head of `_fix_loop`, before the first `check(out)`, the `written` dict — every file the
+run produced, exactly as the model wrote it — is dumped to `<out>/.pre-fix.json`. A tree on
+disk is always the POST-REPAIR tree; this makes the other one recoverable.
+
+VERIFIED ON A REAL DRAW (numkit, 3 files, GREEN)
+    1. the file appears                    1718 bytes
+    2. it holds every generated path       {go.mod, numkit.go, numkit_test.go} == the tree
+    3. its contents are the real sources   every value starts `package` or `module`
+    4. it is invisible to consumers        rglob("*.go") and rglob("*_test.go") both miss it
+    5. suite green                         409 passed
+
+WHAT IT UNBLOCKS, and these are not hypothetical — all three were hit TODAY
+    * the as-drawn twin seed/assertion counts, whose post-repair reading was retracted at 16:48
+    * whether the model WROTE the unprefixed import path, which round-1 output cannot answer
+      when an earlier package failure stops the compiler reaching the file
+    * the as-drawn contents of the 12 files the loop repaired in every taskapipro draw, which
+      every cross-draw comparison had to exclude
+
+⚠️ IT IS NOT RETROACTIVE. Nothing on disk from before this change has a snapshot, so the three
+questions above stay unanswered for the draws already taken. It makes the NEXT corpus
+answerable, which is the most any instrument added after the fact can do.
+
+
+⚠️ A NEAR-MISS ON THE WAY, AND THE GUARD THAT CAUGHT IT WAS AN HOUR OLD
+==========================================================================
+To verify the change I ran `./_ab_run.sh numkit`, which draws to `generated/numkit-v4` — a
+BASELINE CORPUS ARTIFACT. That was careless: the v4 trees are the left-hand side of every
+capstone comparison, and consumers glob `*-v4`, so a fresh draw sitting under that name would
+have silently replaced the baseline for every future sweep.
+
+    It cost nothing, because `_ab_run.sh` no longer deletes. The change made at 17:09 moved
+    the existing tree to `generated/numkit-v4-prev1` instead of `rm -rf`-ing it, so the
+    baseline was intact and I moved it back. The verification draw now sits at
+    `generated/numkit-prefixverify`.
+
+    Restored baseline checked: 3 files, the original set, and no .pre-fix.json — correct,
+    since it predates the change.
+
+That guard was written an hour ago against a hypothetical, with the note that "every landed
+draw is the evidence behind a graded RESULT". The first thing it caught was me.
+
+⚠️ AND THE LESSON IS NOT "THE GUARD WORKS". It is that a verification draw must not use a
+corpus name. `_ab_run.sh <spec>` hardcodes `-v4`, so there is no flag that would have made
+this safe — the right move was a spec name the corpus does not use, or a copy. Recorded rather
+than fixed, because giving _ab_run an --out flag is a change to the script that BUILT the
+baseline, and that is not a thing to do casually at the end of a long session.

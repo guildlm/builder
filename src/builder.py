@@ -5187,6 +5187,37 @@ def _fix_loop(
     (edit-then-fix) so one verification-driven convergence backs both.
     """
     check = check or toolchain.check
+    # SNAPSHOT THE PRE-REPAIR TREE. `written` is every file this run produced, and right here
+    # — before the first check — it is exactly what the model wrote, with nothing repaired.
+    #
+    # WHY THIS EXISTS. Three separate questions on 29 July could not be answered because
+    # nothing persisted this state, and one published claim was retracted for it:
+    #   * were the paging twins' seed and assertion counts THE DRAW's, or the loop's? The
+    #     answer was read off a post-repair tree and withdrawn.
+    #   * did the model write the unprefixed import path, or did a package that failed first
+    #     hide the answer? Round-1 output cannot say when the compiler never reached the file.
+    #   * of the 12 files the loop repaired in each taskapipro draw, which differed as drawn?
+    #     Every cross-draw comparison had to exclude them.
+    # A tree on disk is the POST-REPAIR tree, always. This makes the other one recoverable.
+    #
+    # A DOTFILE INSIDE THE TREE, deliberately: it travels with the artifact, needs no path
+    # configuration, and is invisible to every consumer in this repo — checked rather than
+    # assumed. _hole_hunt walks rglob("*.go"), _twin_witness rglob("*_test.go"), _cross_draw
+    # rglob("*.go") plus copytree, _load_project filters to .go and go.mod, and the two
+    # stray-binary cleaners require an empty suffix plus the executable bit. `.pre-fix.json`
+    # has suffix .json and is not executable, so all six pass it over.
+    #
+    # NAMED pre-fix AND NOT as-drawn because _fix_loop has two callers: `build`
+    # (generate-then-fix) and `maintain` (edit-then-fix). "As drawn" is wrong for the second,
+    # and a field name that is wrong for half its callers is how one gets misread later.
+    #
+    # NEVER FAILS THE BUILD. A snapshot is diagnostics; if it cannot be written the run must
+    # continue exactly as before.
+    try:
+        (out / ".pre-fix.json").write_text(
+            json.dumps(written, indent=1, sort_keys=True), encoding="utf-8")
+    except OSError as exc:  # pragma: no cover - diagnostics must never break a build
+        _log(f"  (could not write .pre-fix.json: {exc})")
     ok, output = check(out)
     if ok:
         _log("compile/test passed")
