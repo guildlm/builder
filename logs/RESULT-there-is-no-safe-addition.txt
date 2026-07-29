@@ -1,0 +1,51 @@
+RESULT — BRANCH A. One added line perturbs. There is no safe addition size.
+===========================================================================
+
+23:16 on 29 July. taskflow + ONE line of the tracked inert block, into the same
+projects_test.go entry the +3 and +12 arms used, against snapshotted chain6 — so as-drawn on
+both sides. Converged green after one deterministic round. Predicted A 70% · B 30%.
+
+    +1 ADDITION   CODE 3 · PROSE 2 · IDENTICAL 10
+
+    CODE   projects_test.go   5326 vs 5403   <- the TARGET
+    CODE   router.go           855 vs  859   <- collateral, an implementation file
+    CODE   taskflow_test.go   8594 vs 8583   <- collateral, a DIFFERENT test file
+
+    TWO OF THE THREE CODE DIFFERENCES ARE IN FILES THE LINE DOES NOT MENTION.
+
+THE SERIES, COMPLETE
+    +1 SUBSTITUTION (21 chars -> 21 chars)   CODE 1 — the TARGET only, NO collateral
+    +1 ADDITION                              CODE 3 — target + 2 collateral
+    +3 ADDITION                              CODE 8
+    +12 ADDITION                             CODE 6
+
+    THE FLOOR HYPOTHESIS IS DEAD. One line was the smallest addition available and it still
+    reaches files it does not name. The rename's null was never about being small — it was
+    about being the SAME LENGTH.
+
+    LENGTH IS THE VARIABLE. A substitution that preserves the spec's length leaves the draw
+    alone; adding anything at all re-decides unrelated files. Four arms, one spec, and the
+    only arm with no collateral is the only arm that did not change the length.
+
+⚠️ THE ORDERING AMONG ADDITIONS IS STILL NOT MONOTONIC. 1 -> 3 CODE, 3 -> 8 CODE, 12 -> 6 CODE.
+So 1 < 3 and 1 < 12, but 3 > 12. Adding more is not reliably worse; adding ANY is worse than
+adding none. That is the shape: a step at zero, and noise above it.
+
+WHAT THE PRACTICAL RULE IS, NOW THAT ALL FOUR ARMS ARE IN
+    · a same-length substitution — a rename, a reworded sentence of equal length — appears
+      safe, on one arm
+    · ANY addition invalidates prior measurements on files the edit does not mention
+    · there is no size budget, because one line is already enough
+    · so after any spec edit that lengthens the file, previous mutation results describe a
+      program that no longer exists
+
+    For the campaign: its closure edits added 43-73 lines each. Every artifact it touched was
+    re-drawn as a different program, and its own before/after comparisons cannot separate the
+    closure from the perturbation. That is section V of the consolidation, now resting on a
+    four-point series rather than a single contrast.
+
+⚠️ ONE DRAW PER ARM, ONE SPEC. Same-condition variance on taskflow is zero (chain5 vs chain6,
+12 of 12 identical), so each arm's differences are real. The SHAPE across arms rests on one
+draw each, and "same-length substitutions are safe" rests on exactly ONE arm — the rename —
+which is the weakest link in the practical rule and the obvious next test: a second same-length
+substitution, elsewhere in the spec.
