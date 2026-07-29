@@ -116,3 +116,34 @@ of them rejected a genuinely destructive edit in the same round. The gap is that
 the loop is positioned to notice a test that still passes while distinguishing less, and no
 addition to a candidate guard would find it — the weakening was introduced by a DETERMINISTIC
 pass that runs before candidates exist.
+
+
+CORRECTION TO THE ADDENDUM ABOVE (11:40) — the guard is a PREFERENCE, then a REPAIR
+====================================================================================
+I wrote "the loop DOES reject destructive model edits". The full log sequence is more
+interesting and my wording was too strong:
+
+    rejected fix candidate 1: drops failStore — still used, no sibling declares it
+    rejected fix candidate 2: drops failStore — still used, no sibling declares it
+    best-of-N fix: no clean candidate; using the first of 2
+    restored failStore into fix candidate — the rewrite dropped what it still calls
+
+BOTH candidates were rejected, and the loop then USED ONE ANYWAY — "no clean candidate;
+using the first of 2" — and afterwards repaired the specific loss it could name, splicing
+failStore back in.
+
+So the guard is not a veto. It is a ranking, and when nothing ranks clean the loop proceeds
+with a dirty candidate and patches what it has a rule for. That is defensible engineering —
+refusing outright would strand the round with no progress at all — but it means the phrase
+"rejected" in the log does not imply the candidate was discarded, and I read it as if it
+did.
+
+    Two rejections and a use, on adjacent lines. I quoted the first line and inferred the
+    outcome, which is the same mistake as reading a round header and inferring how the run
+    ended.
+
+WHAT SURVIVES OF THE ADDENDUM. The substance is unchanged and slightly strengthened: the
+loop's protections cover losses it has a NAMED RULE for — a dropped declaration, restored by
+name — and nothing else. TestCreateUnauthorized's weakening has no rule, so it was neither
+rejected nor repaired nor logged. The gap is not that a veto failed; it is that no rule
+exists for the shape.
