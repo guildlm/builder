@@ -1,0 +1,45 @@
+PREDICTION — what is taskflow's OWN draw-to-draw variance?
+===========================================================
+
+20:00 on 29 July, before the draw. This is the control the dose result explicitly says it
+lacks, and without it "4 of 12 CODE differences" cannot be separated from taskflow simply
+drawing differently each time.
+
+WHAT IS KNOWN
+    taskapipro, same condition, two draws 4h apart   0 of 8 untouched files differ
+    taskflow,   same condition, two draws            NEVER MEASURED
+    taskflow,   +12 inert lines vs control           4 of 12 CODE, 4 PROSE
+    _iso-workapi-without, three draws                1 of 3 diverged structurally
+
+The last row is why this is not a formality: byte-determinism held in three of four groups
+measured today and broke in the fourth.
+
+THIS DRAW: `./_chain_run.sh taskflow` — HEAD spec, no added lines, server 4439, the same flags
+as every other arm. It lands as generated/taskflow-chain6. The control is taskflow-chain5,
+drawn 15:06 from that same HEAD spec on that same process. Identical condition, ~5 hours apart.
+
+BRANCHES, graded by _untouched_diff.py against taskflow-chain5
+  A  0 CODE differences (IDENTICAL throughout, or PROSE only)
+     -> taskflow's sampling variance is zero or prose-only, exactly like taskapipro's. The
+        dose result stands as measured: 4 CODE differences are the twelve lines, not noise.
+  B  >=1 CODE difference
+     -> taskflow varies between identical draws. The dose result is CONFOUNDED and its four
+        CODE files cannot be attributed to the twelve lines without a variance estimate to
+        subtract. How badly depends on how many: 1 of 12 weakens it, 4 of 12 would destroy it.
+
+PREDICT A, 70%.
+  For A: taskapipro gave 0 of 8 across two draws four hours apart; three of four groups
+  measured today are byte-deterministic in a fixed condition; and taskflow converges in ONE
+  deterministic fix round, which is the least disturbed pipeline in the corpus.
+  For B: _iso-workapi-without diverged in 1 of 3, so it does happen, and taskflow's variance
+  has genuinely never been looked at — the 70% is a prior from other specs, not evidence
+  about this one.
+
+⚠️ THIS IS THE ORDER I SHOULD HAVE RUN THEM IN. The variance control belongs BEFORE the
+treatment, not after it. I ran the dose draw first because it was the interesting one, and
+that is exactly the reasoning that produces a result you then cannot interpret. It cost
+nothing here only because the GPU was free afterwards.
+
+⚠️ AND B WOULD NOT REFUTE THE TASKAPIPRO RESULT. That one has its own variance control — 0 of
+8 — measured on its own spec. A taskflow variance finding would take down the taskflow arm
+and the generalisation, and leave the original finding standing.
