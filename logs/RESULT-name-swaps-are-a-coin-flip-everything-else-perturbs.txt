@@ -1,0 +1,87 @@
+RESULT — the series closes: name swaps split 2/2, every other edit kind perturbed
+=================================================================================
+
+02:22 on 30 July. The last unresolved row is resolved. Ten gradable arms, and for the first
+time the distribution has a shape that is not "everything perturbs".
+
+    ✗ PREDICTED at 02:01: collateral appears, 65% (stated as the base rate, not a judgement).
+      WRONG. It is a clean null — and the cleanest of the whole series.
+
+THE ARM
+    spec      taskflow HEAD + TestSortedProjectList -> TestProjectListSorted, 21 -> 21 chars
+    direction REVERSE, and forced: the forward rename was committed into HEAD at 11520cc, so
+              the control already contains its output
+    guard     22410 bytes before == 22410 after; 1 substitution, 0 left behind
+    control   generated/taskflow-chain6, snapshotted, server 4439
+    draw      generated/taskflow-name5, converged after fix round 1 (4 fix lines)
+
+    16 common files · CODE 1 · IDENTICAL 15 · PROSE 0
+    projects_test.go: 0 of 11 funcs differ, residue clean, 5326 -> 5326 chars
+    ✅ RENAME-ONLY — no program changed anywhere, and unlike the 19->19 arm there is not even
+      a prose echo. Fifteen of sixteen files byte-identical; the sixteenth differs by the name
+      it was told to change and nothing else.
+
+THE CLOSED DISTRIBUTION — 10 gradable arms
+    edit kind                          spec        n   perturbed
+    test-NAME word-order swap          taskflow    3   1  (16->16 hit; 19->19 and 21->21 null)
+    test-NAME word-order swap          ratelimit   1   1
+    PROSE word-order swap (10->10)     taskflow    1   1
+    VERBATIM fixture, 1 char           taskflow    1   1
+    line additions (+1, +3, +12)       taskflow    3   3
+    line addition (+48)                ratelimit   1   1  (artifact KILLED, replicated)
+    ----------------------------------------------------------------------------------
+    NAME SWAPS                                     4   2   ← a coin flip
+    EVERYTHING ELSE                                6   6   ← no exceptions
+
+⚠️ THIS IS THE FIRST STRUCTURE IN THE DATA, AND IT IS STATED AS A DISTRIBUTION, NOT A MECHANISM.
+Every non-rename edit perturbed: 6 of 6, across two specs, including a single character inside
+a verbatim fixture and a semantics-preserving word swap in prose. Renames perturbed 2 of 4.
+That is the first split all night that survives the arms that produced it.
+
+    It is NOT "renames are safe". Two of four perturbed, one of them rewriting eight functions
+    across six files. It is: renames are the only edit kind with any observed nulls at all, and
+    even they fail half the time.
+
+    ⚠️ AND THE NIGHT'S RECORD SAYS DISTRUST THIS PARAGRAPH. Three mechanism stories died in
+    ninety minutes, each fitting every arm that existed when it was written. This split fits ten
+    arms and has not been tested on an eleventh. By the standard established at 01:04 it is a
+    description, not a mechanism. The honest use of it is to pick the next arm, not to conclude.
+
+BOTH NULLS REPLICATE THEIR OWN ORIGINAL ROWS
+The 19->19 and 21->21 arms were the two rows the withdrawn "renames are safe" claim rested on.
+At 01:37 both were marked UNRESOLVED, because a ratelimit arm had produced the identical
+file-level row ("CODE 1, target only") and turned out to have collateral at function level. Both
+have now been redrawn and graded at code level with the rename neutralised, and both are nulls.
+
+    So the granularity finding was right about the INSTRUMENT and wrong about these two ARMS.
+    A file-level null is untrustworthy — that stands, and ratelimit proves it. But these two
+    particular file-level nulls happened to be correct, and saying so is the difference between
+    a lesson and an overcorrection.
+
+⚠️ WHAT STAYS WITHDRAWN. "Renames are safe, so those measurements stand" is still false. Two of
+four renames perturbed, and one of the two nulls still propagated off-target as prose. A
+campaign measurement that a rename sat between cannot be trusted, because 50% is not a licence.
+
+THE PREDICTION LEDGER, COMPLETE — six attempts, one hit
+    23:38  "LENGTH is the variable"                    falsified 00:03
+    00:03  "COPIED verbatim vs INTERPRETED"            falsified 00:39
+    00:46  "the CATEGORY is real, p=0.036"             falsified 01:04
+    01:22  A 45 / B 55, shaded against the base rate   B at function level — the only hit
+    01:37  "collateral appears, 70%"                   wrong (clean null)
+    02:01  "collateral appears, 65%" (base rate)       wrong (clean null)
+
+    Reasoned predictions: 0 for 3. Bias-corrected prediction: 1 for 1, and the bias it corrected
+    for turned out to be noise. Base-rate prediction: 0 for 1.
+
+    ⚠️ THE BASE RATE FAILED TOO, AND THAT IS THE USEFUL PART. Suspending reasoning in favour of
+    2/3 did not help, because the sample it averaged over mixed edit kinds that behave
+    differently — six that always perturb with four that perturb half the time. A base rate
+    taken over a heterogeneous pool is not a base rate for any arm in it. If the split above is
+    real, the correct prior for the next name swap is 50% and for the next addition is ~100%,
+    and neither is 65%.
+
+NEXT ARM, if the series continues: a name swap on a THIRD spec (ledger has three equal-length
+meaning-preserving candidates and needs its control drawn first, ~2 draws). Under the split it
+should be a coin flip; under "ratelimit is just perturbable" it should hit. That is the first
+prediction all night with two live hypotheses making different calls, which is what an arm
+should be for.
