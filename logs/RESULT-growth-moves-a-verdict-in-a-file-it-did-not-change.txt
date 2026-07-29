@@ -1,0 +1,64 @@
+RESULT — growth moved TWO verdicts, in a file whose only difference is two comments
+====================================================================================
+
+22:18 on 29 July. Swept both taskflow arms — chain5 (control) and dose (+12 inert lines),
+both GREEN, both drawn on 4439. Predicted A 45% · B 30% · C 25%. BOTH A and C landed.
+
+BRANCH C: THE SITE COUNT CHANGED
+    control 43 rows · dose 45 rows
+
+    projects_handler.go   StatusInternalServerError->StatusBadGateway   3 -> 4 sites
+    tasks_handler.go      StatusInternalServerError->StatusBadGateway   3 -> 4 sites
+
+    The dose arm's handlers carry an EXTRA error path each. So twelve inert lines did not only
+    rewrite code — they changed HOW MANY THINGS THERE ARE TO DEFEND. Those two groups cannot
+    be compared by ordinal at all, which is precisely what _redraw_diff's site-count warning
+    exists to catch, now observed in a controlled pair.
+
+BRANCH A: A VERDICT MOVED, IN A GROUP WHOSE SITE COUNT DID NOT CHANGE
+    26 groups have equal site counts, covering 37 rows. One group differs:
+
+        models.go   %w -> %v (ErrValidation)
+        control   CAUGHT · SURVIVED · SURVIVED
+        dose      CAUGHT · CAUGHT   · CAUGHT
+
+    TWO UNDEFENDED SITES BECAME DEFENDED. Growth moved mutation verdicts, on a large artifact,
+    without killing it. That is open item 1 answered affirmatively.
+
+AND THE MECHANISM IS THE INTERESTING PART
+models.go differs between the two arms by EXACTLY TWO COMMENTS:
+
+    - // Task represents a task with a title, status, and project ID.
+    + // Task represents a task with an ID, title, status, and project ID.
+    - // Project represents a project with a name.
+    + // Project represents a project with an ID and name.
+
+Comments cannot change behaviour. So the verdict change does not come from the mutated file at
+all — it comes from the REST OF THE PROGRAM. The dose arm's handlers, store and tests differ,
+and those differences decide whether a mutation inside models.go is observed.
+
+    A MUTATION VERDICT IS A PROPERTY OF THE WHOLE PROGRAM, NOT OF THE MUTATED FILE.
+
+    That is the sharpest thing this thread has produced for the campaign. Every row in the
+    capstone is keyed (artifact, FILE, shape, ordinal) and read as a statement about that file's
+    defences. This pair shows a row flipping from SURVIVED to CAUGHT while its own file is
+    unchanged in every respect that a compiler can see. A flip attributed to a closure in file X
+    can be caused by an edit that never touched X.
+
+⚠️ THE ATTRIBUTION IS BOUNDED, AND THE BOUND IS THE FAMILIAR ONE. chain5 was drawn at 15:06,
+before `.pre-fix.json` landed at 18:17, so it has NO SNAPSHOT. The dose arm has one. Both arms
+repaired their test files in round 1, and their final test files differ (taskflow_test.go 8596
+vs 8672, projects_test.go 5326 vs 5351). So I cannot separate "the draw wrote different tests"
+from "the repair wrote different tests".
+
+    What is established: the two arms differ by twelve inert lines and nothing else in their
+    inputs, and their verdicts differ. What is NOT established: whether the verdict moved
+    because of what the model drew or because of what the fix loop then did to it.
+
+    The clean version of this experiment is now cheap and is NOT run: redraw the control so
+    both arms carry snapshots, then repeat. Every draw from 18:17 onward has one; chain5 is
+    simply older than the instrument.
+
+⚠️ AND IT IS ONE PAIR AT ONE DOSE. Twelve lines, one spec. The campaign's flip-bearing specs
+grew 43-73. Two SURVIVED becoming CAUGHT is the direction a closure campaign WANTS — which is
+exactly why it is dangerous: this pair got that result from prose that closes nothing.
