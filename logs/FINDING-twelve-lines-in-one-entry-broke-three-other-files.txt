@@ -289,3 +289,58 @@ verdict with no idea whether the file it read was rewritten three times after it
 That is the same shape as every instrument bug found today: the tool is right about its query
 and silent about the world. It now takes --log= and refuses to print an unqualified verdict
 when the log shows a model `fixing` of the file it is reading.
+
+
+THIRD CORRECTION (17:26) — one of the two PRE-edit arms was never measured, and the server
+control goes with it
+============================================================================================
+Pre-flighting the control arm's grader against logs with known answers, which is the only way
+to know an instrument works. It reproduced the table — and then showed the table is wrong.
+
+GO REPORTS ERRORS PER PACKAGE AND SKIPS PACKAGES WHOSE DEPENDENCY FAILED. So "0 import-path
+errors in round 1" has two completely different meanings, and a count cannot tell them apart:
+
+    chain4   round 1: `# guildlm.dev/taskapipro/internal/api`, then
+             `internal/api/projects.go:34:36: undefined: service.ErrExists`.
+             A TYPE error INSIDE internal/api. You cannot reach an undefined-symbol error in
+             package `service` unless the import of `service` RESOLVED — so internal/api
+             compiled far enough to prove its imports were fine.
+             0 errors, MEASURED. ✓
+
+    chain5   round 1: `# guildlm.dev/taskapipro/internal/store`, `undefined: Task`.
+             The string "internal/api" does not appear ANYWHERE in that round — checked, 0
+             matches. internal/api was never built, its imports were never evaluated.
+             0 errors, NOT MEASURED. ✗
+
+THE TABLE, CORRECTED
+    draw       projects entry   server        round-1 verdict
+    chain4     PRE-edit         28 Jul        FINE, measured
+    chain5     PRE-edit         29 Jul/4439   ⚠ UNMEASURED — cannot be scored
+    v5 (1st)   POST-edit        29 Jul/4439   DEFECT, 4 error lines
+    v5 (2nd)   POST-edit        29 Jul/4439   DEFECT, 4 error lines
+
+⚠️ AND THAT COSTS THE SERVER CONTROL. The claim was "the import defect tracks the SPEC, not the
+day and not the server — both post-edit draws produce it; neither pre-edit draw does, INCLUDING
+chain5, drawn today on the same process as both v5 draws." chain5 was the entire basis for
+holding the server fixed. Without it, the surviving comparison is pre-edit/28-Jul/other-server
+against post-edit/29-Jul/server-4439, and spec and server differ together again.
+
+    The import result is not refuted. Its CONTROL is gone, which is a different and smaller
+    claim than the one written at 15:58 and repeated in three files since.
+
+✅ AND THE RUNNING CONTROL ARM RESTORES IT, WHICH IT WAS NOT DESIGNED TO DO. The inert draw is
+PRE-edit prose, drawn TODAY on server 4439 — the same process as both v5 draws. If it grades
+FINE-and-measured it supplies the pre-edit/same-server arm chain5 was supposed to be, and the
+spec attribution recovers on a properly controlled pair. If it grades UNMEASURED, it says
+nothing on this axis and that is a real outcome, not a failure.
+
+A SMALLER CLARIFICATION, same check: "BROKE the imports in THREE FILES".
+Three files DID carry the unprefixed path — projects.go, router.go, tasks.go — read from the
+source at 10:02, before the fix loop. The COMPILER names only internal/api/projects.go, twice,
+because it stops after the first file in a package fails. Both statements are true and they
+are different measurements; the table's row "three files -> 4 errors" welds a source-read file
+count onto a compiler error count and reads as though the compiler named three. It did not.
+
+INSTRUMENT: _grade_import_defect.py, with a self-test whose decisive case is that the two
+zero-count arms must receive DIFFERENT verdicts. Run on all four logs above; exit 1 whenever
+any arm is unmeasured, so a masked arm cannot be scored by accident.
