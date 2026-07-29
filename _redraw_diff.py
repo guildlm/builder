@@ -170,6 +170,39 @@ def render(res: dict, old: dict, new: dict) -> str:
         out.append(f"\n   {len(measurable)} row(s) became MEASURABLE (dead verdict -> live) and "
                    f"{len(silenced)} went dead.\n   Those are artifacts changing state, not "
                    f"defences changing.")
+    # A FLIP WHOSE GROUP CHANGED SIZE IS NOT A VERDICT CHANGE.
+    #
+    # Rows are matched by ORDINAL within (artifact, file, shape). If a redraw inserts a site
+    # EARLIER in the file, every later ordinal shifts by one and this tool compares two
+    # DIFFERENT sites while reporting a flip. The docstring above anticipates added and
+    # removed sites and expects the surplus to surface as "only in one sweep" — which is
+    # true only when the surplus is at the END.
+    #
+    # Measured on the 29 July capstone: taskflow's pagination.go held ONE `boundary <= -> <`
+    # site in v4 and TWO in v5, the new one earlier in the file. Ordinal 0 compared
+    # ParsePage's new line against Paginate's old one and reported DEFENCE LOST. Paginate's
+    # site was CAUGHT in both draws. Nine of 170 live flips sat in groups whose size changed,
+    # and removing them took the headline from "12 gained, 3 lost" to "6 gained, 2 lost".
+    #
+    # This is a REPORTING addition — it changes no key and no verdict — which is why it is
+    # safe to add between a pair of sweeps when widening a mutation shape is not.
+    def _sizes(d):
+        c: collections.Counter = collections.Counter()
+        for k in d:
+            c[(k[0], k[1], k[2])] += 1
+        return c
+    so, sn = _sizes(old), _sizes(new)
+    shifted = [(k, o, n) for k, o, n in res["live_flips"]
+               if so[(k[0], k[1], k[2])] != sn[(k[0], k[1], k[2])]]
+    if shifted:
+        out.append(f"\n   ⚠️ {len(shifted)} of {len(res['live_flips'])} live flip(s) sit in a "
+                   f"group whose SITE COUNT CHANGED between sweeps.")
+        out.append("      Ordinals cannot align there — these compare different sites and are "
+                   "NOT verdict changes:")
+        for (a, f, sh, i), o, n in shifted:
+            out.append(f"      {o:<13} -> {n:<13} {a:<14} {f:<20} {sh[:30]:<30} "
+                       f"v4={so[(a, f, sh)]} v5={sn[(a, f, sh)]}")
+
     lost = [(k, o, n) for k, o, n in res["live_flips"] if o == "CAUGHT" and n == "SURVIVED"]
     won = [(k, o, n) for k, o, n in res["live_flips"] if o == "SURVIVED" and n == "CAUGHT"]
     if lost:

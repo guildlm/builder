@@ -1,0 +1,46 @@
+comparing hole-hunt-rows.tsv [v4]  ->  hole-hunt-rows-v5.tsv [v5]
+
+rows: 314 old · 307 new · 295 COMPARABLE (same artifact+file+shape in both)
+      19 site(s) only in the old sweep, 12 only in the new — moved, added or lost, NOT verdict changes
+      140 row(s) LIVE IN BOTH — the only rows where a verdict change is observable at all
+flips: 170 of 295 comparable (170 involving a live verdict, 140 answerable)
+
+    96  CAUGHT        -> BASELINE-RED
+    55  SURVIVED      -> BASELINE-RED
+    12  SURVIVED      -> CAUGHT
+     4  SURVIVED*     -> BASELINE-RED
+     3  CAUGHT        -> SURVIVED
+
+   0 row(s) became MEASURABLE (dead verdict -> live) and 155 went dead.
+   Those are artifacts changing state, not defences changing.
+
+   ⚠️ 9 of 170 live flip(s) sit in a group whose SITE COUNT CHANGED between sweeps.
+      Ordinals cannot align there — these compare different sites and are NOT verdict changes:
+      SURVIVED      -> CAUGHT        bitset         bitset.go            boundary < -> <=               v4=1 v5=2
+      SURVIVED      -> CAUGHT        bitset         bitset.go            boundary >= -> >               v4=2 v5=3
+      CAUGHT        -> BASELINE-RED  ledger         internal/api/response.go StatusUnprocessableEntity->Sta v4=2 v5=1
+      SURVIVED      -> BASELINE-RED  taskapipro     internal/config/config.go boundary <= -> <               v4=2 v5=1
+      CAUGHT        -> SURVIVED      taskflow       pagination.go        boundary <= -> <               v4=1 v5=2
+      SURVIVED      -> CAUGHT        tasks-api      handlers.go          StatusBadRequest->StatusNotFou v4=8 v5=7
+      SURVIVED      -> CAUGHT        tasks-api      handlers.go          StatusBadRequest->StatusNotFou v4=8 v5=7
+      SURVIVED      -> CAUGHT        tasks-api      handlers.go          StatusBadRequest->StatusNotFou v4=8 v5=7
+      SURVIVED      -> CAUGHT        tasks-api      handlers.go          StatusBadRequest->StatusNotFou v4=8 v5=7
+
+   DEFENCE LOST in the redraw (was CAUGHT, now SURVIVED):
+      taskflow                     pagination.go      boundary <= -> <
+      taskflow                     store.go           reverse sort by ID  [site 2]
+      tasks-api                    handlers.go        StatusNotFound->StatusBadRequest  [site 3]
+
+   DEFENCE GAINED in the redraw (was SURVIVED, now CAUGHT):
+      bitset                       bitset.go          boundary < -> <=
+      bitset                       bitset.go          boundary >= -> >  [site 2]
+      shortener                    handlers.go        StatusBadRequest->StatusNotFound  [site 3]
+      shortener                    handlers.go        StatusNotFound->StatusBadRequest  [site 2]
+      taskflow                     middleware.go      boundary >= -> >
+      taskflow                     pagination.go      clamp value offset = 0 -> 7777
+      taskflow                     tasks_handler.go   StatusNotFound->StatusBadRequest  [site 2]
+      tasks-api                    handlers.go        StatusBadRequest->StatusNotFound  [site 3]
+      tasks-api                    handlers.go        StatusBadRequest->StatusNotFound  [site 4]
+      tasks-api                    handlers.go        StatusBadRequest->StatusNotFound  [site 5]
+      tasks-api                    handlers.go        StatusBadRequest->StatusNotFound  [site 6]
+      usersapi                     middleware.go      boundary >= -> >
