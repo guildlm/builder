@@ -1,0 +1,48 @@
+PREDICTION — is it LENGTH generally, or only test-name swaps?
+==============================================================
+
+23:44 on 29 July, before the draw. The last cell in the taskflow series.
+
+WHAT THE FIVE ARMS SAY. Two same-length substitutions produced no collateral; three additions,
+down to one line, produced collateral every time. Length looks like the variable — but BOTH
+safe arms were word-order swaps of a TEST NAME:
+
+    TestProjectListSorted -> TestSortedProjectList   (21 -> 21)
+    TestCreateDuplicate   -> TestDuplicateCreate     (19 -> 19)
+
+    So "equal length is safe" and "renaming a test is safe" are not yet distinguished. If the
+    mechanism is about the spec's LAYOUT — its length, its line breaks, where each entry sits —
+    then any equal-length edit should be safe. If it is about names specifically, prose is
+    still unprotected and the rule is much narrower than IV-b states.
+
+THE DRAW: `sync, sort` -> `sort, sync` in specs/taskflow.yaml — a reordering of the allowed-
+imports list in the store.go entry.
+    · both 10 characters, so the spec's byte count is unchanged
+    · ORDINARY PROSE, not a name — this is the cell that has never been tested
+    · meaning identical: it is a list of permitted standard-library imports, and a list's order
+      carries nothing
+    · one occurrence, in a DIFFERENT entry again (store.go)
+    · control is snapshotted chain6, so as-drawn on both sides
+    · diff will be +1/-1 with equal byte counts, checked before drawing
+
+BRANCHES, graded as-drawn
+  A  0 CODE differences anywhere
+     -> LENGTH is the variable, generally. IV-b's rule stands as written: preserve the byte
+        count and the program is left alone, names or prose alike.
+  B  >=1 CODE difference
+     -> the rule is NARROWER than IV-b claims. Equal length is not sufficient; the two safe
+        arms were safe because they were NAME swaps, and every prose edit — however small —
+        perturbs. IV-b would need rewriting.
+
+PREDICT A 65% · B 35%.
+A because the mechanism that fits everything so far is layout: the model re-reads a spec whose
+shape has changed and re-decides. Nothing about that story cares whether the changed characters
+are inside an identifier.
+B because store.go's entry is where this lands, and store.go was one of the files that moved in
+the +12 arm — this entry is demonstrably load-bearing. And because 35% of the time today, the
+thing I expected not to matter has mattered.
+
+⚠️ B WOULD BE THE MORE USEFUL RESULT. A confirms a rule already written down. B would show the
+rule is wrong in a specific, correctable way, and would mean the only safe operation is
+renaming — which is a far tighter constraint than "keep the byte count" and worth knowing
+before anyone relies on the loose version.
