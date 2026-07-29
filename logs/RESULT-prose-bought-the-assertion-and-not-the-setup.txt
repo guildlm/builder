@@ -169,3 +169,45 @@ differed (tasks had a reason, projects did not) and the files did NOT mirror. So
 That is worth more than any further repair to the projects wording, and it must wait for
 the draws to drain — see NOTE-do-not-touch-src-until-the-draws-drain.txt for the adjacent
 rule about the generator.
+
+
+QUANTIFIED BY INSTRUMENT (_twin_witness.py), AND THE INSTRUMENT WAS VALIDATED FIRST
+===================================================================================
+Hand-reading four test bodies is how everything above was established. _twin_witness.py
+counts the same three numbers mechanically — the page size the router is built with, the
+items the test seeds, and the length it asserts — and applies the only relation that makes
+a paging test a witness:
+
+    seeds < bound   CANNOT-PASS     fails against a correct handler
+    seeds == bound  CANNOT-FAIL     a handler ignoring the page size returns the same count
+    seeds > bound   DISCRIMINATES   the only case worth writing
+
+VALIDATED AGAINST GROUND TRUTH BEFORE USE. Run on chain4, whose four twins were graded by
+mutation days ago, it reproduces those grades exactly:
+
+    chain4  DISCRIMINATES  TestListDefaults...        seeds=3 asserts=2     (graded CAUGHT)
+            DISCRIMINATES  TestListCapsAt...          seeds=3 asserts=2     (graded CAUGHT)
+            CANNOT-FAIL    TestProjectListDefaults... seeds=1 asserts=1     (graded SURVIVED)
+            CANNOT-FAIL    TestProjectListCapsAt...   seeds=1 asserts=1     (graded SURVIVED)
+            -> 2 of 4 witnesses can discriminate
+
+Four for four against independent mutation verdicts. A static count agreeing with a dynamic
+grade on every row is what earns it the right to be read on a tree nobody has graded.
+
+THE V5 NUMBER, from the pre-fix-loop snapshot:
+
+    v5      CANNOT-PASS    TestListDefaults...        seeds=1 asserts=2
+            CANNOT-FAIL    TestListCapsAt...          seeds=2 asserts=2
+            CANNOT-PASS    TestProjectListDefaults... seeds=1 asserts=2
+            CANNOT-FAIL    TestProjectListCapsAt...   seeds=2 asserts=2
+            -> 0 of 4 witnesses can discriminate
+
+    2 of 4  ->  0 of 4.
+
+The campaign's paging witnesses went from half working to none, and the half that worked
+was the arm nobody edited.
+
+⚠️ THE DENOMINATOR IS FOUR, AND IT IS FOUR IN ONE ARTIFACT. taskapipro is the only spec in
+the corpus that builds a router with an explicit page size, so this instrument has nothing
+else to look at. "0 of 4" is a complete census of the paging witnesses that exist, not a
+sample of a larger population, and it must not be read as a corpus-wide rate.
