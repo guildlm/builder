@@ -1,0 +1,68 @@
+RESULT — the rename worked. A test missing from five straight draws was written.
+=================================================================================
+
+Graded 13:22 on 29 July from generated/taskflow-chain4/projects_test.go.
+
+    func TestProjectListSorted(t *testing.T) {
+        h := newRouter()
+        for _, body := range []string{
+            `{"id":"3","name":"c"}`,
+            `{"id":"1","name":"a"}`,
+            `{"id":"2","name":"b"}`,
+        } { ... POST /projects, expect 201 ... }
+        ... GET /projects, decode into `all`
+        if len(all) != 3 { ... }
+
+ELEVEN of ELEVEN tests present, where every previous draw wrote ten.
+
+THE PREDICTION: registered at 65% in PREDICTION-the-two-specs-the-reboot-owed-me.txt.
+CONFIRMED.
+
+THE EXPERIMENT WAS CLEAN, WHICH IS WHY THIS MEANS SOMETHING
+Commit f0ba8f9 changed EXACTLY ONE LINE of specs/taskflow.yaml:
+
+    -      TestListProjectsSorted: POST THREE projects with ids OUT OF ORDER — first "3",
+    +      TestProjectListSorted: POST THREE projects with ids OUT OF ORDER — first "3",
+
+The attached reason, the position in the enumeration, the count, the ids, the assertions —
+all unchanged. Only the identifier moved. So a single variable was manipulated and the
+outcome flipped after five consecutive failures with the old name.
+
+    TestListProjectsSorted  absent from taskflow-chain, chain2, chain3, v4 and v5
+    TestProjectListSorted   present on the first draw that asked for it
+
+I REGISTERED 65% AND SHOULD HAVE REGISTERED HIGHER, FOR A REASON I FOUND AFTER
+The number was set before I understood the mechanism. The collision account — found at 11:04
+and recorded then, before this draw — is that the old name is a NEAR-HOMONYM of TestListSorted,
+which already exists in the sibling file taskflow_test.go asserting the TASKS sort. In a file
+whose other ten names all begin TestProject, a TestList* name points at the tasks group, where
+a test of that description already exists. Dropping it as a duplicate is the locally
+reasonable act.
+
+    The prediction is right, and it is right for the better reason rather than the one the
+    number was based on. Recorded at 11:04 that if it landed I would say exactly this.
+
+WHAT IT DOES AND DOES NOT ESTABLISH
+  ESTABLISHES: name shape governs PRESENCE, on a single-variable manipulation with five
+     control draws behind it. That is the strongest causal claim in the campaign — every
+     other closure result compares draws that differ in more than one respect.
+  DOES NOT: distinguish "breaks the file's convention" from "collides with an existing test
+     in the group its prefix names". Both stories predict this outcome. The old name does
+     both things at once and this draw cannot separate them.
+     The separating test is a third name that breaks the convention WITHOUT colliding —
+     e.g. TestSortedProjectList, which is neither TestProject* nor a homonym of anything.
+     One draw, and it is cheap.
+
+  AND IT SAYS NOTHING ABOUT WHETHER THE TEST IS ANY GOOD. It is present and it seeds three
+  items with ids out of order, which _twin_witness's relation would call discriminating —
+  but this is mode 1, presence, and the mode 2 question is separate. The tree has not
+  finished; the RESULT line and a mutation grade are still owed.
+
+THE FOURTH NAME-SHAPE DATA POINT TODAY, and the first that is a repair rather than a defect:
+  taskflow    the odd name out was DROPPED         -> renaming it fixed it
+  ledger      the longest name was TRUNCATED       -> unrepaired across six rounds
+  taskapipro  four twins mirrored a sibling file including its defects
+  taskapi     eleven names reproduced verbatim, the twelfth was the outlier
+
+    Names are not inert labels to this model. The outlier in a list is the one that does not
+    come back intact, and the shape of the outlier decides how it fails.
