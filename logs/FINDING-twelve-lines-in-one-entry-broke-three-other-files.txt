@@ -157,3 +157,84 @@ green in one round.
 and silently removed what it tested. This is the loop reading a test-side failure and
 repairing the implementation. Both are the machinery being confidently wrong about WHICH SIDE
 of a failure to touch, and both are invisible in the RESULT line.
+
+
+CORRECTION (16:52) — the loop DID edit the test, and the chain4/chain5 comparison is confounded
+================================================================================================
+Went to design the second separating draw, read chain5's per-round fix targets for the first
+time, and three sentences above are wrong. Both errors come from the same shortcut: I read the
+ROUND HEADERS and the widened-in lines, and never listed what each round actually targeted.
+
+WHAT THE LOG SAYS, per round:
+
+    ROUND 1   fixing internal/api/projects_test.go
+    ROUND 2   fixing internal/api/projects_test.go
+              then response.go, middleware.go, tasks.go, projects.go, router.go (widened in)
+    ROUND 3   fixing internal/api/projects.go
+    ROUND 4   fixing internal/api/projects.go
+    ROUND 5   fixing internal/api/projects.go
+    ROUND 6   fixing internal/api/projects.go
+
+WITHDRAWN, all three sentences:
+  * "the loop spent seven rounds editing internal/api handlers"        — rounds 1 and 2 did not.
+  * "it spent EVERY round repairing internal/api/*.go ... for a defect
+     in projects_test.go"                                              — false for rounds 1-2.
+  * "neither branch taken BECAUSE THE LOOP NEVER EDITED THE TEST"      — it edited it twice.
+
+    THE THIRD OUTCOME, RESTATED. The loop did NOT misattribute the failure. It identified
+    projects_test.go correctly and repaired it in the first two rounds. The repair did not
+    move either number — seeds stayed 1 and the assertion stayed 2, from first observation
+    through to the final tree. Then round 2 widened into implementation IN THE SAME ROUND,
+    the widening manufactured the mirrored `status` argument, and rounds 3-6 were consumed
+    entirely by that manufactured defect. The test-side failure was never revisited.
+
+That is worse than misattribution, not better. A loop that repairs the wrong file can be
+pointed at the right one. This one was already at the right file, could not fix it, widened
+anyway within the same round, and the widening's own defect then monopolised every remaining
+round — so the original failure got two attempts out of seven and four rounds were spent on
+damage the loop had caused itself.
+
+The prediction from 09:59 is still ungraded on its own terms and now for a stateable reason:
+its two branches (add two POSTs / change the assert to 1) describe edits to the test, the loop
+made edits to the test, and NEITHER branch's edit appeared. What it did write instead is not
+recoverable — see below.
+
+⚠️ AND THE chain4-vs-chain5 WITNESS COMPARISON IS CONFOUNDED. The claim above — "an unmeasured
+day-to-day variation changed which of two broken shapes a test took" — rests on chain4 having
+(seeds 1, asserts 1) and chain5 (seeds 1, asserts 2) from the same pre-edit spec. Those are
+not both as-drawn values:
+
+    chain4   projects_test.go: ONE deterministic fix, no model fix. Converged green after
+             round 1 (deterministic). Its final tree IS essentially its drawn tree.
+    chain5   projects_test.go: a deterministic fix, a DRAINED-BODY REBUILD, and a MODEL fix,
+             all in round 1 — and round 1's failure was a store.go compile error, so the
+             tests never ran and the twins were never observed until ROUND 2, after all three.
+
+So chain5's (1,2) is a post-repair value and chain4's (1,1) is not, and the difference between
+them cannot be attributed to the draw. A round-1 model rewrite of that file explains it just as
+well, needs no day/server story, and is a WITHIN-DRAW mechanism.
+
+    The as-drawn twin values for chain5 are NOT RECOVERABLE. The log prints only the
+    `!`-prefixed failure subset and round 1 failed to compile, so no observation of those
+    tests exists before the file had been rewritten three ways.
+
+WHAT THIS COSTS, stated plainly. "The day/server difference flipped a broken witness from the
+silent kind to the loud kind" was the most mechanistic-sounding claim in this file. It is now
+one of at least two explanations and not the cheaper one. The IMPORT-PATH result above is
+untouched — that is measured from round-1 error output, which is genuinely as-drawn, and it is
+why the control arm running right now measures round 1 and nothing else.
+
+⚠️ CONSEQUENCE FOR THE SECOND SEPARATING DRAW, which is why this surfaced. A same-server
+pre-edit redraw was about to be queued to test whether the 1 -> 2 assertion shift is
+server/day or sampling. It would have inherited exactly this confound: whatever it reports,
+the value is only observable after the loop has had a round at the file. Any such draw must
+report (a) the round at which the twins were FIRST observed, and (b) whether projects_test.go
+was model-fixed before that round — and if it was, the draw does not answer the question.
+
+CHECKED AND CLEARED IN PASSING: _twin_witness counts `httptest.NewRequest("POST")` SITES, not
+successful insertions, and 6 of 16 audited paging witnesses in the corpus serve one POST
+request a second time. That looked like an instrument defect and is not. A re-serve with no
+reassignment sends a drained body, seeds nothing, and adds no NewRequest site — not counted,
+correctly. A drained-body REBUILD inserts a fresh NewRequest — counted, correctly. And zero
+audited witnesses create a POST they never serve, which is the only direction that would
+inflate. The counting basis tracks bodies-available, which is the right quantity.
