@@ -58,6 +58,18 @@ def draws() -> dict[str, list[pathlib.Path]]:
     for d in sorted(GEN.glob("*")):
         if not d.is_dir() or not any(d.rglob("*.go")):
             continue
+        # SKIP PRESERVED DRAWS. _ab_run/_ab_run_v5 now move an existing tree to `<name>-prevN`
+        # instead of deleting it, so generated/ accumulates superseded draws. This is the ONE
+        # tool that globs generated/ broadly rather than keying on a -vN suffix.
+        #
+        # It was already harmless BY ACCIDENT: `taskapipro-v5-prev1` does not match the suffix
+        # regex below, so it keys as its own spec, forms a singleton group, and is dropped by
+        # the len(v) > 1 filter. That is a coincidence, not a decision — and it inverts badly.
+        # If `prev` were ever added to that suffix list to "tidy up the grouping", preserved
+        # trees would merge into the real spec group and get cross-tested against the draws
+        # that superseded them, which is exactly the comparison nobody wants.
+        if re.search(r"-prev\d+$", d.name):
+            continue
         stem = re.sub(r"-(v\d+|chain\d*|witness|empty\d*|mirrors|ct|gated|min)$", "", d.name)
         out[re.sub(r"[^a-z0-9]", "", stem.lower())].append(d)
     return {k: v for k, v in out.items() if len(v) > 1}
