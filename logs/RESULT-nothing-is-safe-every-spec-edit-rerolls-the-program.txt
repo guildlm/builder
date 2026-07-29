@@ -1,0 +1,73 @@
+RESULT — BRANCH B. The name-swap nulls were luck. NOTHING is reliably safe.
+===========================================================================
+
+01:04 on 30 July. TestRecoverPanic -> TestPanicRecover: 16 characters to 16, byte count
+unchanged at 22410, a word-order swap — the SAME manipulation as the two arms that produced no
+collateral — in a third entry. Predicted A 55% · B 45%. B LANDED.
+
+    CODE 7 · IDENTICAL 7 · PROSE 1
+
+    CODE   middleware_recover_test.go    390 vs  386   <- the TARGET
+    CODE   middleware_chain_test.go      799 vs  857
+    CODE   pagination_test.go            878 vs  890
+    CODE   projects_handler.go          2152 vs 2269
+    CODE   projects_test.go             5326 vs 4900
+    CODE   store.go                     2881 vs 2460
+    CODE   tasks_handler.go             2077 vs 2194
+
+    SIX of the seven are collateral. The edit landed (TestPanicRecover is in the drawn file),
+    so this is not a null from the rename being ignored.
+
+THE NINE ARMS, FINAL
+    test-NAME swap (21 -> 21)      CODE 1, target only      no collateral
+    test-NAME swap (19 -> 19)      CODE 1, target only      no collateral
+    test-NAME swap (16 -> 16)      CODE 7                   SIX collateral
+    PROSE swap     (10 -> 10)      CODE 6                   perturbs
+    VERBATIM fixture, 1 char       CODE 4                   perturbs
+    +1  line addition              CODE 3                   perturbs
+    +3  line addition              CODE 8                   perturbs
+    +12 line addition              CODE 6                   perturbs
+    +48 on ratelimit               artifact KILLED, replicated
+
+    SEVEN of nine perturb. The two that did not are the same manipulation as the third that
+    did. The category difference that looked significant at p=0.036 on 2/2-versus-0/6 was a
+    small-sample accident.
+
+    THE CONCLUSION IS THE SIMPLEST ONE AVAILABLE: ANY SPEC EDIT RE-ROLLS THE PROGRAM. There is
+    no safe kind, no safe size, and no safe token. Additions perturb every time; equal-length
+    substitutions perturb 2 times in 4 — which is worse than a rule, because it means an edit
+    that looks safe on one try is not evidence about the next.
+
+THREE MECHANISM STORIES, ALL DEAD IN NINETY MINUTES
+    23:38  "LENGTH is the variable"                 falsified 00:03
+    00:03  "COPIES VERBATIM vs INTERPRETS"          falsified 00:39
+    00:46  "the CATEGORY is real even without a why"  falsified 01:04
+
+    Each fit every arm that existed when written. Each failed the first test built against it.
+    And all three of my predictions were wrong IN THE SAME DIRECTION — I expected something to
+    be safe, three times running. I priced that in explicitly before this draw ("a pattern in
+    my own errors, not in the data") and still predicted A at 55%.
+
+    THE LESSON IS ABOUT PROCEDURE, NOT ABOUT SPECS: when every proposed mechanism dies on its
+    first real test, stop proposing mechanisms and report the raw distribution. Nine arms, seven
+    perturb, no structure found.
+
+WHAT THIS DOES TO THE CAMPAIGN — the good news is withdrawn
+    Unchanged: its closure edits ADDED 43-73 lines per spec. Additions perturb on every arm
+    tried, so those before/after comparisons cannot separate the closure from the re-decision.
+    That was never in doubt.
+
+    ⚠️ WITHDRAWN: "its pure renames are in the SAFE class, so those measurements stand" — written
+    at 23:38, repeated at 00:12 in the save point, and false. A rename perturbs one time in
+    three. The taskflow rename that produced this thread's cleanest single-variable result is
+    not exempt; it simply was not re-measured.
+
+    So the campaign's position is uniform: EVERY spec edit it made invalidated the measurements
+    taken before it, and nothing it measured across an edit is attributable. The practical rule
+    has no exceptions to remember: re-measure after any change.
+
+⚠️ WHAT IS STILL WORTH SAYING FOR THE INSTRUMENT. `.pre-fix.json` is what made all nine arms
+readable — every comparison here is as-drawn, and the two mechanism stories died on evidence
+that did not exist twelve hours ago. Same-condition variance is zero on this spec (chain5 vs
+chain6, 12 of 12), so each arm's differences are real. Nine single draws on one spec is the
+sample; the conclusion is deliberately the weakest one that fits it.
