@@ -106,3 +106,54 @@ two broken shapes a test took, and that choice determined whether the artifact c
 outright. It is exonerated for the tasks seed counts and it is NOT irrelevant — the projects
 assertion moved 1 -> 2 across days, and that move is what sent chain5 down a path chain4
 never took.
+
+
+chain5 COMPLETE (16:22) — and it grades a prediction that went VOID twice
+=========================================================================
+    exhausted 7 fix rounds (6 budgeted), still failing
+    twins unchanged: projects seeds 1 asserts 2 (CANNOT-PASS x2), tasks seeds 3 (DISCRIMINATES x2)
+
+THE VOID PREDICTION, FROM 09:59, IS NOW ANSWERED — AND BOTH ITS BRANCHES ARE WRONG
+It offered two repairs for a witness that cannot pass:
+    (a) add two POSTs           -> correct, keeps the closure discriminating
+    (b) change the assert to 1  -> green, and destroys the closure
+    PREDICT (b), 65%.
+
+The loop did NEITHER, across SEVEN ROUNDS, with the failure naming the file and line
+outright:
+
+    projects_test.go:162: ProjectListDefaultsToTheConfiguredPageSize:
+                          response = [{1 p1}], want 2 items
+
+It spent every round repairing internal/api/*.go — response, tasks, projects, router — for a
+defect in projects_test.go. No handler change can make a store of one item return two.
+
+    THE THIRD OUTCOME: the loop misattributes a TEST-side failure to the IMPLEMENTATION and
+    repairs the wrong side until the budget dies.
+
+That prediction has now failed three different ways: void on v5 because nothing compiled and
+the twins never ran; void again as "no repair at all" on the sentinel; and now answered, with
+neither branch taken because the loop never edited the test.
+
+AND THE MISATTRIBUTION MANUFACTURED A SECOND DEFECT
+Rounds 3, 4 and 5 are the mirrored-argument cycle — too many arguments, declared and not
+used, too many arguments — introduced by the widening the misattribution caused. So:
+
+    a test-side defect the loop cannot fix by editing implementation
+        -> widening into implementation
+            -> a mirrored argument that did not exist in the draw
+                -> oscillation between that and its half-repair
+                    -> budget exhausted, tree red
+
+chain4 escaped this entire chain because its broken witness was the SILENT kind (asserts 1,
+cannot fail, passes) rather than the LOUD kind (asserts 2, cannot pass, fails). It converged
+green in one round.
+
+    A test that cannot fail is invisible and ships. A test that cannot pass is loud, and the
+    loop's response to loud test-side failures is to rewrite implementation until it runs out
+    of rounds. Neither broken shape gets fixed; only one of them takes the artifact down.
+
+⚠️ THIS IS THE SAME SHAPE AS THE DRAINED-BODY GATE, ONE LEVEL UP. That gate repaired a test
+and silently removed what it tested. This is the loop reading a test-side failure and
+repairing the implementation. Both are the machinery being confidently wrong about WHICH SIDE
+of a failure to touch, and both are invisible in the RESULT line.
