@@ -1,7 +1,8 @@
-PENDING — which spec edits from 2026-07-28/29 are still unverified, and what verifies each
-==========================================================================================
-One place, because these were scattered across five result files and one of them turned out
-to have no scheduled retest at all.
+PENDING — which spec edits are still unverified, and what verifies each
+=======================================================================
+Updated 2026-07-29 ~10:00, while taskapipro-v5 was at file 17 of 21. One place, because
+these were once scattered across five result files and one of them turned out to have no
+scheduled retest at all.
 
     spec         edit                                          verified by         status
     -----------  --------------------------------------------  ------------------  ---------
@@ -10,33 +11,93 @@ to have no scheduled retest at all.
                  because the justification stated the correct value (301). See
                  FINDING-the-prohibition-failed-the-value-worked.txt.
 
-    usersapi     empty-list closure (nil-slice)                 usersapi-v5         in flight
-    taskapi      empty-list closures x2 (nil-slice)             taskapi-v5   (9/22) pending
-    taskapi      healthz body assertion WITHDRAWN               taskapi-v5   (9/22) pending
-                 THE CLEAN TEST of prohibition-vs-value: unlike shortener, the entry does
-                 NOT tell it what the body contains. No body assertion => withdrawal works
-                 when unaccompanied by the answer. A correct body assertion => what fixes
-                 these is information, never prohibition.
+    usersapi     empty-list closure (nil-slice)                 usersapi-v5         DONE
+                 CAUGHT on a fresh draw, tree GREEN. Graded by hand in
+                 RESULT-sweep-invisible-closures.txt — the sweep's six shapes cannot see
+                 a nil-slice mutation at all.
 
-    taskapipro   projects paging: REASON attached to the test   taskapipro-v5 (21/22) pending
-                 3 sites SURVIVED on chain4 with only the instruction. Interesting either
-                 way: if the attached reason works, spec reasoning is a per-test cost
-                 payable at every test; if not, an exact quantity needs a mechanism other
-                 than prose.
+    taskapi      empty-list closures x2 (nil-slice)             taskapi-v5          DONE
+                 Better than CAUGHT. The draw shipped `var tasks []models.Task` — the
+                 mutation VERBATIM — so both endpoints answered `null` on an empty store
+                 and BOTH tests failed on the UNMUTATED tree. A test noticing a break
+                 nobody planted. The tree shipped NOT-GREEN, which is the correct outcome:
+                 before these closures existed it would have shipped green with the bug.
 
-    workapi      Delete-404 closure                             workapi-v5   (22/22) pending
-                 Already CAUGHT on workapi-chain2; this is the survives-its-own-redraw test.
+    taskapi      healthz body assertion WITHDRAWN               taskapi-v5          DONE
+                 THE CLEAN TEST of prohibition-vs-value, and the withdrawal WORKED:
+                 TestHealthz asserts the status code and nothing else. The value was
+                 available the whole time — spec line 182 says `GET /healthz -> 200 "ok"` —
+                 but that sits in the router.go entry while the prohibition sits in the
+                 router_test.go entry, and it did not travel. With shortener above this is
+                 a controlled contrast, and one law covers both:
+                 FINDING-the-test-description-is-the-unit-of-transfer.txt.
 
-    taskflow     TestProjectListSorted RENAME                   *** NO RETEST SCHEDULED ***
-                 taskflow was spec 3 of 22 and drawn BEFORE the rename. The naming-shape
-                 hypothesis — that the one name breaking a file's TestProject* convention is
-                 the one that goes missing — has nothing scheduled to test it.
-                 ACTION: draw taskflow once after the v5 sweep drains. One spec, ~30 min at
-                 its current cost (2 fix rounds, 0 model calls), and the answer is binary:
-                 the renamed test is written, or the hypothesis is dead.
+    taskapipro   projects paging: REASON attached to the test   taskapipro-v5       IN FLIGHT
+                 3 sites SURVIVED on chain4 with only the instruction. The entry now
+                 carries its OWN measured reason. projects_test.go is FILE 18 OF 21 in the
+                 draw running right now.
+                 CHECK IN THIS ORDER: does TestProjectListDefaultsToTheConfiguredPageSize
+                 call newRouterWithPaging(2, 100), POST THREE projects and assert EXACTLY 2
+                 (chain4 POSTed ONE and asserted 1 — a witness that cannot fail)? THEN do
+                 the three paging sites in projects.go flip SURVIVED -> CAUGHT?
+                 Registered at 70% / 60% — split deliberately, because posting three is
+                 NECESSARY AND NOT SUFFICIENT, and a split verdict is a sharper finding
+                 than either clean outcome: it would mean prose bought the SETUP and not
+                 the ASSERTION.
+                 ⚠️ Those three sites are FIELD assignments (`limit = h.defaultPageSize`),
+                 which sweep shape 6b cannot match — hand-grade, do not expect diff rows.
 
-ALSO PENDING, not a spec edit:
-    Four nil-slice sites and four field-clamp sites are invisible to the capstone diff and
-    are hand-graded in RESULT-sweep-invisible-closures.txt (6 of 9 done).
-    Widen shape 6b to match `x = h.field` and add nil-slice as a shape — but only before a
-    pair of sweeps that can both use them, never between v4 and v5.
+    workapi      Delete-404 closure                             workapi-v5          QUEUED
+                 Already CAUGHT on workapi-chain2; this is the survives-its-own-redraw
+                 test. Drawn immediately after taskapipro by _sweep_v5_finish.sh.
+                 Registered at 85%. The most consequential row in the finish run: a miss
+                 means the week's closure grades measure the draw they were made ON rather
+                 than the spec, which retracts the central claim and not a detail.
+
+    taskflow     TestProjectListSorted RENAME                   taskflow chain draw QUEUED
+                 RETEST NOW SCHEDULED (it was the item with none): ./_chain_run.sh taskflow,
+                 after the sweep and the ledger draw drain. taskflow-v5 was drawn 00:39 and
+                 the rename landed 00:42, so v5 cannot answer it — _named_present flags
+                 exactly this as SPEC-NEWER rather than counting it as a miss.
+                 f0ba8f9 changed EXACTLY ONE LINE, so this isolates name shape with the
+                 attached reason held constant — a single-variable change.
+                 Registered at 65%. The collision mechanism found since — the old name is a
+                 near-homonym of TestListSorted, which ALREADY EXISTS in the sibling file
+                 asserting the tasks sort — is a better story than that number was based
+                 on. The number stands as written.
+
+    ledger       NOT AN EDIT — AN OMISSION FROM THE SWEEP       ledger-v5           QUEUED
+                 ledger is 31 rows of the 314-row baseline, the fifth largest artifact and
+                 the one this programme is named after (TEETH.md opens on it), and
+                 _sweep_v5.sh's SPECS list does not contain it. specs/ledger.yaml exists,
+                 24KB, and nothing excluded it on purpose.
+                 _sweep_v5_ledger.sh draws it after workapi, RECOVERING 31 comparable rows
+                 rather than documenting their loss. It gates on the RESULT count reaching
+                 22, not on the worker going quiet.
+                 FINDING-the-capstone-omits-the-artifact-the-campaign-is-named-after.txt
+
+CLOSED SINCE THE LAST UPDATE
+    The nine sweep-invisible closures are 9 OF 9 graded (was 6 of 9) —
+    RESULT-sweep-invisible-closures.txt: 7 CAUGHT by mutation, 2 fired against a real
+    defect on an independent draw.
+
+    Mode 1 (a spec-named test simply not written) is at 0 of 174 across 20 v5 trees, and
+    the gate was probed to prove it can still fail —
+    FINDING-presence-is-solved-in-the-v5-corpus.txt. Bounded: mode 1 was always
+    STOCHASTIC, so that is one sample, not extinction. The one genuine drop left is
+    taskflow's, above.
+
+NOT A VERIFICATION, BUT OWED BEFORE THE NEXT SWEEP PAIR
+    Sweep shape 6b is NUMERIC-ONLY and nil-slice/race are in no shape at all, so nine
+    closure sites are structurally invisible to the diff. Do NOT widen them before the
+    v4-vs-v5 diff — _redraw_diff parses POSITIONALLY and hard-fails on anything but four
+    fields. After the diff, widen both together and sweep the PAIR.
+
+    Adding the LINE NUMBER to sweep rows would make the survivor/reachability join exact
+    instead of bounded. Same sequencing rule, same reason.
+
+    The v5 survivor/reachability join needs v5 reachability rows, which could not be
+    produced until today — _reachability now takes --gen=. Its consumer, _resweep_report,
+    still keys (artifact, file) verbatim from both files and would silently subtract NO
+    cold sites across generations; it is disarmed only by hardcoded v4 paths. Fix its
+    keying and give it a self-test IN THE SAME EDIT that widens it, never before.
