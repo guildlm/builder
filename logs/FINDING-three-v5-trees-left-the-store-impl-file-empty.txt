@@ -83,6 +83,20 @@ Two questions closed with the pristine draw's snapshot and one table.
    chain5 and preedit are pre-edit, v5 and inert are +12 — so the twelve lines are exonerated
    completely, and so is every other spec difference among them.
 
+AND IT REPLICATES ACROSS THREE SPECS, not four draws of one (checked 19:43)
+       ledger-v4      07-17/other    memory.go 2308B   correct
+       ledger-v5      07-29/4439     memory.go   14B   STUB
+       workapi-v4     07-27/other    memory.go 1160B   correct
+       workapi-v5     07-29/4439     memory.go   14B   STUB
+       taskapipro-v4  07-19/other    memory.go 2309B   correct
+       taskapipro-v5  07-29/4439     memory.go   14B   STUB
+
+   I had assumed ledger-v5 and workapi-v5 came from the early-morning sweep on the PREVIOUS
+   server process. They did not — they were redrawn at 12:03 and 12:43 by
+   _sweep_v5_finish.sh, after 4439 started at 09:29. So every stub draw in the corpus is a
+   4439 draw, across THREE different specs with three different store entries, and every
+   correct draw is on another process. Six stubs, four correct, no exceptions either way.
+
 ⚠️ SERVER AND DAY ARE NOT SEPARATED. Process 4439 started 09:29 on 29 July, so every 4439 draw
 is also a 29-July draw and every other-server draw is 19 or 28 July. This says the cause is
 not the spec; it does not say whether it is the server process, the machine's state, or
