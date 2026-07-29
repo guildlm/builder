@@ -25,6 +25,7 @@ shipped composition, because the concrete in-memory store returns only the senti
 `if` already handles. This tool gives the first half cheaply and says so.
 
     python _reachability.py generated/workapi-v4
+    python _reachability.py --gen=v5          # whole-corpus over *-v5, own rows file
     python _reachability.py --self-test
 """
 from __future__ import annotations
@@ -170,9 +171,33 @@ def self_test() -> int:
 if __name__ == "__main__":
     if "--self-test" in sys.argv:
         raise SystemExit(self_test())
+    # --gen= MIRRORS _hole_hunt's flag, and it is here because without it there was NO WAY
+    # to produce reachability rows for any generation but v4. The whole-corpus default
+    # globbed *-v4, and a targeted run deliberately writes nothing (a targeted run answers
+    # about one tree and must not replace a corpus baseline) — so `_reachability.py
+    # generated/*-v5` printed a fine report and left no file behind. The WARM+SURVIVED join
+    # that found this campaign's sharp set needs BOTH halves at the SAME generation, and
+    # only one half could move.
+    #
+    # THE BASELINE PATH MUST NOT MOVE — same rule as _hole_hunt.rows_path. v4 keeps
+    # reachability-rows.tsv exactly, so nothing about an unflagged run changes; every other
+    # generation gets its own file. Overwriting the tracked v4 rows with v5 numbers would
+    # leave "8/29 cold -> 7/29" resting on a file that no longer holds the number it moved
+    # from.
+    #
+    # ⚠️ AND THE JOIN IS PER-GENERATION. _resweep_report keys (artifact, file) from BOTH
+    # files verbatim, so reachability rows saying `taskapipro-v4` never match sweep rows
+    # saying `taskapipro-v5`: every cold.get() misses, no COLD is subtracted, and the
+    # "lower bound" silently INFLATES to the full SURVIVED count. That is worse than
+    # _redraw_diff's version of this bug, which at least announced NOTHING WAS COMPARED.
+    # It is latent today only because _resweep_report's paths are hardcoded to two v4
+    # files. Recorded in FINDING-the-capstone-comparison-could-not-compare-generations.txt.
+    gen = next((a.split("=", 1)[1] for a in sys.argv if a.startswith("--gen=")), "v4")
     targets = [pathlib.Path(a) for a in sys.argv[1:] if not a.startswith("-")]
     if not targets:
-        targets = sorted(pathlib.Path("generated").glob("*-v4"))
+        targets = sorted(pathlib.Path("generated").glob(f"*-{gen}"))
+        if not targets:
+            raise SystemExit(f"no generated/*-{gen} trees — nothing to measure")
     total = cold_n = 0
     all_rows = []
     for art in targets:
@@ -198,7 +223,8 @@ if __name__ == "__main__":
     # Only for a WHOLE-CORPUS run. A targeted run answers about one tree and would replace
     # the baseline with something not comparable to it.
     if not [a for a in sys.argv[1:] if not a.startswith("-")]:
-        dump = pathlib.Path("logs") / "reachability-rows.tsv"
+        dump = pathlib.Path("logs") / ("reachability-rows.tsv" if gen == "v4"
+                                       else f"reachability-rows-{gen}.tsv")
         if dump.parent.is_dir():
             dump.write_text("".join(
                 f"{a}\t{r['file']}\t{r['line']}\t{r['shape']}\t"

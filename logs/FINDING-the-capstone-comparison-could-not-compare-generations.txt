@@ -70,3 +70,52 @@ failure in confident language ("the two sweeps do not describe the same corpus")
 as a finding rather than a defect. Second one caught before it cost anything, and both of
 today's catches came from the same act: profiling the inputs of the next step before
 running it, rather than running it and reading what came out.
+
+
+ADDENDUM (same day, found by checking the sibling) — THE SAME BUG IS IN _resweep_report,
+AND THERE IT FAILS SILENTLY
+==========================================================================================
+
+Having fixed the keying in _redraw_diff, the obvious question is which OTHER tool joins two
+row files. One does: _resweep_report's WARM+SURVIVED join, the thing that mechanically
+found this campaign's sharp set.
+
+    cold[(r[0], r[1])] += 1        # from logs/reachability-rows.tsv   -> taskapipro-v4
+    surv = Counter((r[0], r[1]) ...)  # from the sweep's AFTER rows    -> taskapipro-v5
+    n = surv[key] - cold.get(key, 0)
+
+Cross-generation, every cold.get() misses, NO COLD IS SUBTRACTED, and the "at least N sites
+executed and undefended" lower bound inflates to the full SURVIVED count — the one number
+the report exists to make small.
+
+WORSE THAN THE _redraw_diff VERSION. That one printed "NOTHING WAS COMPARED" in capital
+letters. This one prints a bigger number with no indication anything went wrong, and a
+bigger sharp set reads as a finding rather than a defect.
+
+LATENT, NOT LIVE — the reason it has never bitten. _resweep_report's paths are HARDCODED to
+hole-hunt-rows-before-walk-fix.tsv and hole-hunt-rows.tsv, both v4, so the tool cannot
+currently be pointed at a v5 file at all. It is a trap set for exactly the next person who
+wants this join on the v5 corpus, which is me, after the diff.
+
+THE ACTUAL BLOCKER WAS ONE LEVEL DOWN. Reproducing the join on v5 needs v5 reachability
+rows, and there was NO WAY TO PRODUCE THEM. _reachability's whole-corpus default globbed
+*-v4, and a targeted run deliberately writes nothing — correctly, because a targeted run
+answers about one tree and must not replace a corpus baseline. So `_reachability.py
+generated/*-v5` printed a perfectly good report and left no file behind. _hole_hunt got
+--gen= when the redraw was planned; its sibling did not, and the join needs both halves at
+the same generation.
+
+FIXED: --gen= added to _reachability, mirroring _hole_hunt.rows_path exactly — v4 keeps
+reachability-rows.tsv byte-for-byte so no unflagged run changes, every other generation
+gets reachability-rows-<gen>.tsv, and an unknown generation refuses rather than writing an
+empty file. Verified: self-test ok, tracked v4 rows untouched (git reports no diff),
+--gen=v99 refuses.
+
+_resweep_report itself is left alone deliberately. Its hardcoded v4 paths are what make the
+bug unreachable, and widening it to take arguments is what would ARM the bug. When the v5
+join is actually wanted, it gets generation-normalised keying and a self-test in the same
+edit — not a CLI first.
+
+    Three tools this session, one shape: a join or a diff whose keys carry a generation
+    the author was not thinking about. Fixed in two; the third is disarmed by being
+    unable to run.
