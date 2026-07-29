@@ -1,0 +1,45 @@
+PREDICTION — were the two name-swap nulls luck?
+================================================
+
+00:46 on 30 July, before the draw. Both mechanism stories are dead (length, falsified 00:03;
+copies-vs-interprets, falsified 00:39). What remains is a bare category difference:
+
+    test-NAME word-order swaps    2 of 2 produced NO collateral
+    every other edit tried        0 of 6 produced no collateral
+                                  (prose swap, verbatim-fixture char, +1, +3, +12 lines,
+                                   and +48 on ratelimit which killed the artifact)
+
+    Fisher one-sided on 2/2 versus 0/6: p = 0.036. So the CATEGORY is distinguishable even
+    with no explanation attached. What died is my account of WHY, not the observation.
+
+    But 2/2 is 2/2. A third arm either makes the category solid or shows the nulls were luck.
+
+THE EDIT: TestRecoverPanic -> TestPanicRecover in specs/taskflow.yaml.
+    · 16 characters to 16, so byte count unchanged
+    · a word-order swap, the SAME manipulation as both prior arms
+    · in the middleware_recover_test.go entry — a THIRD entry, distinct from projects_test.go
+      (arm 1) and taskflow_test.go (arm 2)
+    · one occurrence; no existing TestPanic* name, so it cannot go unwritten the way
+      TestListProjectsSorted did for five draws
+    · control chain6, snapshotted, graded as-drawn
+
+BRANCHES
+  A  0 CODE differences outside the target file
+     -> three for three. The category is real: a test-name word-order swap does not perturb.
+        With no mechanism, it stays an empirical rule — but a rule on three arms across three
+        entries is worth acting on, and it is the only safe operation known.
+  B  >=1 CODE difference elsewhere
+     -> the nulls were luck. EVERY spec edit re-rolls the program, the p=0.036 was a
+        small-sample accident, and the practical rule collapses to: re-measure after any
+        change, no exceptions. The campaign's "its renames are safe" goes with it.
+
+PREDICT A 55% · B 45%.
+Barely above even, and deliberately so. The category evidence is real (p=0.036) and points at
+A. Against it: six of eight arms perturb, my last two predictions in this series were both
+wrong, and both were wrong in the direction of expecting something to be SAFE. That is a
+pattern in my own errors, not in the data, and it is worth pricing in.
+
+⚠️ AND B IS THE OUTCOME I SHOULD WANT TO FIND. A leaves a rule I would then rely on — after two
+rules already collapsed. B is simpler, harsher, and needs no mechanism: nothing is safe,
+re-measure always. If A lands, a FOURTH arm is required before it goes in a summary as guidance,
+and I am writing that down now so the temptation to stop at three is on the record.
