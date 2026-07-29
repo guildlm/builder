@@ -57,3 +57,57 @@ to compile — the twins are read from source, as they were on both previous dra
        git checkout specs/taskapipro.yaml
    A copy of the current version is at scratch/taskapipro.yaml.CURRENT. Leaving the revert in
    place would silently undo a measured spec repair.
+
+
+GRADED 15:42 — WRONG. The PROJECTS-ENTRY EDIT moved the TASKS twins.
+=====================================================================
+
+    tasks twins, projects entry REVERTED, on TODAY's server (pid 4439, started 09:29):
+
+        TestListDefaultsToTheConfiguredPageSize   seeds=3 asserts=2   DISCRIMINATES
+        TestListCapsAtTheConfiguredMaxPageSize    seeds=3 asserts=2   DISCRIMINATES
+
+    draw                          projects entry        server    tasks seeds
+    chain4      28 Jul 23:06      PRE-edit              28 Jul    3, 3
+    v5          29 Jul 09:30      post-edit             29 Jul    1, 2
+    v5 (2nd)    29 Jul 13:27      post-edit             29 Jul    1, 2
+    chain5      29 Jul 15:09      PRE-edit (reverted)   29 Jul    3, 3
+
+PREDICTED: twins stay 1,2 — the server process is the cause.  55%.  WRONG.
+
+The server is held FIXED across rows 2, 3 and 4 — the same process, pid 4439. The only
+variable that moves with the seed counts is the projects entry. Reverting twelve lines in a
+SIBLING entry restored the tasks twins from 1,2 to 3,3, and restored them from
+CANNOT-PASS/CANNOT-FAIL to DISCRIMINATES.
+
+    A twelve-line addition to the PROJECTS entry changed the SETUP COUNT of two tests in
+    the TASKS entry, on a spec whose tasks text is byte-identical throughout, and it
+    changed them from working witnesses into broken ones.
+
+THE SERVER-PROCESS CONFOUND IS EXONERATED. NOTE-v5-drawn-across-two-server-processes.txt
+judged it "weak but not zero" at 09:30; it is zero for this measurement. Every cross-day
+comparison in the campaign that I flagged as confounded by the restart is clean.
+
+WHAT IT COSTS — the transfer-unit law, directly
+FINDING-the-test-description-is-the-unit-of-transfer.txt says: "A test is written from ITS
+OWN description. Text elsewhere — a sibling entry, the implementation file's entry, a
+cross-reference, three sentences up — does not reach it."
+
+    That is now FALSIFIED as stated. Text in a sibling entry reached these tests and changed
+    a number in them. The law held across every case it was built on — the healthz
+    prohibition, the shortener value, the clamp-vs-paging pair — and fails here.
+
+The narrower survivor: text elsewhere does not reach a test's ASSERTIONS. What it demonstrably
+does reach is the SETUP, which is the same axis prose could never secure and the same axis the
+presence/magnitude law calls fragile. Three findings now point at the setup count as the one
+thing nothing controls and everything disturbs.
+
+AND THE REPAIR MADE IT WORSE, WHICH IS THE PART TO SIT WITH
+15e25f3 was written to FIX the projects twins — twelve lines of measured reasoning explaining
+why POSTing one project cannot discriminate. It did not fix them (they are 1,2 in both v5
+draws). It BROKE the tasks twins, which were 3,3 and correct before it.
+
+    The edit that was supposed to close a hole opened two, in a file it did not touch,
+    and every measurement of it until now read that as "quantities are not durable".
+
+⚠️ RESTORE THE SPEC. Doing that now: git checkout specs/taskapipro.yaml
