@@ -1,0 +1,78 @@
+FINDING — the drained-body gate repaired a test by deleting what it tested, and nothing failed
+===============================================================================================
+
+Caught 11:35 on 29 July, live, in workapi-v5's fix round 1, by diffing the as-drawn snapshot
+against the tree after the deterministic pass. The test still passes. It tests strictly less
+than it did.
+
+THE TWO CASES, SAME GATE, SAME FILE, SAME ROUND
+
+TestCreateDuplicate — HANDLED CORRECTLY
+  as drawn:  req := NewRequest(POST, body)
+             req.Header.Set("Authorization", "Bearer secret")     <- mutation BEFORE both
+             ServeHTTP(rec, req)      201
+             rec = NewRecorder()
+             ServeHTTP(rec, req)      409          <- second serve, body drained
+  repaired:  ... req = NewRequest(POST, body)
+             req.Header.Set("Authorization", "Bearer secret")     <- REPLAYED. correct.
+             ServeHTTP(rec, req)      409
+
+TestCreateUnauthorized — SILENTLY WEAKENED
+  as drawn:  req := NewRequest(POST, body)                        <- no token
+             ServeHTTP(rec, req)      401   (no token)
+             req.Header.Set("Authorization", "Bearer wrong")      <- mutation BETWEEN serves
+             rec = NewRecorder()
+             ServeHTTP(rec, req)      401   (WRONG token)
+  repaired:  ServeHTTP(rec, req)      401   (no token)
+             req.Header.Set("Authorization", "Bearer wrong")      <- now applies to the OLD req
+             rec = NewRecorder()
+             req = NewRequest(POST, body)     <- INSERTED HERE, AFTER the mutation, no header
+             ServeHTTP(rec, req)      401   (no token AGAIN)
+
+The rebuild was inserted AFTER the mutation instead of replaying it. "Bearer wrong" is now
+set on a request that is discarded one line later, and the second half of the test repeats
+the first half.
+
+    The test's two cases were "no token" and "WRONG token". It now checks "no token" twice.
+    Both expect 401, so the loss produces no failure and no output. Nothing announces it.
+
+WHY THE DIFFERENCE, AND IT IS THE MUTATION'S POSITION
+In TestCreateDuplicate the Header.Set precedes BOTH ServeHTTP calls, so replaying it onto the
+rebuilt request reproduces the author's intent exactly. In TestCreateUnauthorized the
+Header.Set sits BETWEEN the two serves — it is not setup, it is the second case's INPUT. A
+gate that collects "mutations applied to req" and replays them before the next serve has no
+way to distinguish those two roles from the AST alone, and here it did the safe-looking
+thing: it left the statement where it was and rebuilt after it.
+
+THIS IS THE EXACT FAILURE THE GATE'S OWN DOCSTRING CLAIMS TO PREVENT
+
+    "the rebuild REPLAYS the mutations the author applied — without which the repaired test
+     loses its req.Header.Set("Authorization", ...) and fails 401 instead of 400, trading
+     one silent breakage for another."
+
+It anticipated losing the header and producing a WRONG ANSWER. What happened is worse and
+quieter: the header was lost and the answer stayed RIGHT, because both branches of this
+particular test expect the same status code. The docstring's failure mode is loud. This one
+is not.
+
+AND IT IS THIS PROJECT'S FOUNDING OBSERVATION, INSIDE ITS OWN REPAIR TOOL
+A green suite that no longer defends what it defended yesterday. The campaign has spent a
+week finding that in MODEL-WRITTEN tests; this instance was written by a deterministic gate
+built to make tests correct, and it is invisible to every instrument here — mutation testing
+grades the tests that exist, and this test exists and passes.
+
+⚠️ WHAT I HAVE NOT ESTABLISHED. I have not read freshreq.go's replay logic closely enough to
+say whether this is a mis-ordering bug with a small fix, or a genuine limit of AST-level
+repair. The distinction matters and I am not asserting it. What is established is the
+before/after on this artifact and that the resulting test is weaker.
+
+⚠️ AND IT DOES NOT TOUCH THE Delete-404 RESULT. That closure is byte-identical to as-drawn
+and to chain2, verified separately after this same round. TestCreateUnauthorized is a
+different test in the same file.
+
+NEXT — and it belongs with the other src/ work, after the draws drain:
+  1. Check how many other artifacts have a Header.Set BETWEEN two serves — the same shape
+     would be weakened the same way, silently, corpus-wide.
+  2. The gate should REFUSE rather than repair when a mutation sits between two serves, on
+     the same principle already written into the paging-gate design: refuse where the
+     rewrite cannot be known correct.
