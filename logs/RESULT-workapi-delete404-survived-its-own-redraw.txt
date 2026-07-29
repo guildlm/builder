@@ -68,3 +68,33 @@ paging sites went the other way in the same sweep. The campaign's answer to "are
 grades durable" is now split by CLASS rather than uniform — presence-shaped closures held
 (shortener race, usersapi and taskapi empty-list, workapi Delete-404), magnitude-shaped ones
 did not (taskapipro paging x4). That split is the result, not a caveat on it.
+
+
+THE SITE IT DEFENDS ALSO REPRODUCED (11:32)
+============================================
+A closure needs two things to be gradeable: the test, and a live line for the test to
+defend. Read tasks.go as drawn, before the fix loop:
+
+    86  func (h *TaskHandler) Delete(w http.ResponseWriter, r *http.Request) {
+    90      if errors.Is(err, service.ErrNotFound) {
+    91          writeJSON(w, http.StatusNotFound, nil)
+    97      writeJSON(w, http.StatusNoContent, nil)
+
+Line 91 is the exact line the spec cites from a coverage run: "the `writeJSON(w,
+http.StatusNotFound, nil)` inside Delete is executed ZERO times by the whole suite" — the
+measured hole the closure was written to fill.
+
+So the fresh draw reproduced BOTH halves: the branch, and the test that reaches it. The
+mutation is well defined (StatusNotFound -> StatusNoContent, or delete the branch) and has
+a live target, which means the pending CAUGHT/SURVIVED grade is a real question rather than
+a formality on an absent site.
+
+That is not automatic. taskapipro's closures survived as SITES too — all four field
+assignments intact — while their WITNESSES died, and the campaign's other failure mode is
+the reverse: a witness written against a line that a later draw refactored away, where the
+grade is INERT and says nothing. Here both are present and matched.
+
+⚠️ STILL PRE-FIX-LOOP. tasks.go is as-drawn and the loop has not run; it widened into
+implementation files three times on taskapipro. Re-read line 91 after the RESULT line before
+grading, because a widened round can move it and the grade would then be about a line that
+no longer exists in the form it was measured on.
