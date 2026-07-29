@@ -144,3 +144,43 @@ a single line of CODE. The defect structure is untouched because the code is unt
 same bytes, then any difference between the arms in projects.go or projects_test.go is
 attributable too — and those are exactly the files whose as-drawn contents were never
 persisted. `<out>/.pre-fix.json` would have made this measurable rather than blocked.
+
+
+⚠️ CORRECTION (18:04) — "generation is DETERMINISTIC" IS FALSE AS A GENERAL CLAIM
+==================================================================================
+Wrote "generation is DETERMINISTIC — the same spec produces the same bytes" two minutes ago,
+then went looking for whether it generalises beyond taskapipro. The repo already holds repeated
+same-condition draws, and they do not all agree.
+
+    _iso-workapi-with     3 draws, GUILDLM_ENABLE_RULES=completeness   19/19 identical
+    _cachefix-workapi     3 draws                                      19/19 identical
+    taskapipro v5         2 draws                                       8/8  identical
+    _iso-workapi-without  3 draws, completeness rule UNSET             15/19 · 4 DIFFER
+
+The divergence is not a truncation or a failed run — all three trees have 19 files and 88 KB.
+Draw 3 put the store implementation in a DIFFERENT FILE:
+
+    internal/store/memory.go   1160, 1160, and 14 bytes — draw 3's is `package store` alone
+    internal/store/store.go     426,  426, and 1509 bytes — the implementation moved here
+    internal/service/service_test.go and internal/worker/worker_test.go also differ
+
+    So the model restructured which file holds the store, and the pipeline reproduced that
+    faithfully. Real, structural generation variance.
+
+WHAT SURVIVES, precisely
+The taskapipro comparison is unaffected: within THAT condition the control gave 0 of 8, and
+that is the number the 2-of-8 across-condition result is measured against. What is withdrawn
+is the generalisation. Byte-determinism is a property of the conditions measured — 8 draws
+across three groups agreeing — and NOT of the pipeline. One group in four breaks it.
+
+⚠️ AND THERE IS A CANDIDATE MECHANISM, WORTH NO MORE THAN THAT. The divergent arm is the one
+with the completeness rule DISABLED; the arm with it enabled is 3-for-3 identical. A rule that
+constrains what must be generated plausibly narrows the output distribution. N=3 per arm and
+one divergent draw is far too little to claim it — but the arms ALTERNATE in time by design
+(with, without, with, without), so at least this is not temporal drift, and that is more than
+most of today's comparisons can say.
+
+⚠️ IT ALSO PUTS A NUMBER ON WHAT A SINGLE REDRAW CAN MOVE. A draw that relocates a package's
+implementation between two files changes every line number in both, which is precisely the
+ordinal misalignment the capstone's site-count warning exists to catch. One draw in three, in
+one condition.
