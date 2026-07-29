@@ -1,0 +1,65 @@
+FINDING — the published grades are sound; the tool I wrote today reintroduced a bug the repo
+had already fixed, with the same reasoning, in the same file I was importing from
+=============================================================================================
+
+Audited 11:47 on 29 July. Trigger: I found that workapi's tasks.go holds two
+character-identical `writeJSON(w, http.StatusNotFound, nil)` lines, then found the same
+ambiguity in my own _grade_clamp_sites.sh, and went to check whether the NINE PUBLISHED
+hand-grades in RESULT-sweep-invisible-closures.txt had the same defect.
+
+THE PUBLISHED GRADES ARE SOUND, AND THE REASON IS THE POINT
+chain4 has the same ambiguity — `limit = h.defaultPageSize` appears TWICE in both tasks.go
+and projects.go, `limit = h.maxPageSize` once. So the target WAS ambiguous when those four
+clamp sites were graded. It did not matter, because _grade_0728.sh does not match text:
+
+    v, _ = verdict_for(art, rel, replace_at(i, ln, ln.replace(f"= {m.group(2)}", "= 7777", 1)))
+
+`replace_at(i, ...)` addresses a LINE INDEX. The detector already knew which line it had
+chosen and passed that through to the mutator.
+
+AND ITS DOCSTRING IS THIS MORNING'S DISCOVERY, WRITTEN BEFORE TODAY:
+
+    "A mutator that edits ONE LINE BY INDEX, not by matching its text.
+     Text matching cannot address a site that appears twice: jsonapi's regenerated main.go
+     writes `w.WriteHeader(http.StatusBadRequest)` on two lines, byte-identical, and the
+     uniqueness guard this replaced refused both... The detector already knows which line it
+     chose; carrying the index is simply telling the mutator what the detector knew."
+
+Byte-identical lines. The same failure, the same example shape, already diagnosed and
+already fixed, in _hole_hunt.py — the module my own grading scripts import from.
+
+WHAT I ACTUALLY DID TODAY
+  _grade_clamp_sites.sh   used `sed 's|X|Y|'`, which mutates the first match on EVERY line.
+                          Reintroduced the bug. Fixed at 11:43 with an occurrence index and
+                          a moved-exactly-one check.
+  _grade_workapi_delete404.sh
+                          reimplemented function-scoped mutation in awk, twenty minutes
+                          later, to solve the same problem a third way.
+
+Both are correct now. Both are also a hand-rolled shell version of a Python primitive that
+already exists, is already tested, and already carries the reasoning in its docstring.
+
+    The repo had the answer. I wrote two new tools without checking, and the first one
+    shipped the exact defect the existing answer was written to prevent.
+
+WHY IT HAPPENED, and it is not "I forgot"
+I reached for shell because the grading runs `go test` in a copied tree, which feels like a
+shell job. _hole_hunt's mutators are Python and its verdict_for already does the copy, the
+mutation and the run. The task looked like orchestration, so I wrote orchestration, and
+never asked whether the hard part — addressing one site among identical ones — was solved.
+
+    The question I skipped is the one this session keeps rewarding: before building, read
+    what the existing tool does, not what its name suggests it does.
+
+WHAT THIS DOES AND DOES NOT CHANGE
+  UNCHANGED: all nine grades in RESULT-sweep-invisible-closures.txt. They were taken with
+             the correct primitive. Nothing is retracted.
+  UNCHANGED: today's two graders, which are now correct by a different route.
+  QUEUED:    port both to Python over _hole_hunt.replace_at / verdict_for, after the draws
+             drain. Not urgent — they work — but three implementations of one idea is two
+             too many, and the shell versions cannot be self-tested the way the Python one is.
+
+⚠️ ONE THING I DID NOT CHECK. The shortener race grade (Lock -> RLock) and the four
+nil-slice grades were also taken by these scripts, and I verified the METHOD rather than
+each site's uniqueness. The method is index-based, so uniqueness does not matter — which is
+precisely why the method is the right thing to have verified.
