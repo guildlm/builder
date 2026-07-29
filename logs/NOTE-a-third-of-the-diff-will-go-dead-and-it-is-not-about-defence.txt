@@ -181,3 +181,44 @@ queued fix is "19 to 32 rows of 146", not "half the dead rows". That is still th
 between workapi contributing nothing to the capstone and contributing most of its rows — and
 workapi is the artifact carrying the Delete-404 closure, which is the campaign's one clean
 durability result.
+
+
+WHAT LEDGER BRINGS TO THE DIFF (12:14) — profiled while it draws
+=================================================================
+ledger was omitted from the sweep list and is being drawn now to recover its 31 rows. What
+those rows are, from the tracked baseline:
+
+    22 CAUGHT · 8 SURVIVED · 1 SURVIVED*
+
+The eight survivors are the rows worth reading, because they are the ones a repaired spec
+could move:
+
+    internal/api/response.go    StatusConflict -> StatusBadRequest
+    internal/api/response.go    StatusUnprocessableEntity -> StatusBadRequest
+    internal/api/response.go    StatusInternalServerError -> StatusBadGateway
+    internal/api/response.go    drop Content-Type
+    internal/store/memory.go    reverse sort by ID
+    internal/models/models.go   %w -> %v (ErrInvalid)
+    internal/models/models.go   json tag "memo" renamed
+    internal/money/money.go     boundary < -> <=
+
+Four of eight sit in response.go — a single file where status codes and the Content-Type
+header go unasserted. That is the same shape as the campaign's other survivors: a helper
+whose OUTPUT every test relies on and whose CONTRACT no test names.
+
+WHY THIS MATTERS FOR THE HEADLINE. ledger contributes 31 comparable rows to a diff whose
+live-in-both denominator is otherwise badly reduced — 146 of 314 rows dead across four red
+artifacts. If ledger-v5 comes back green, it is a meaningful fraction of what remains
+answerable, and it is 8 survivors' worth of room to move in either direction.
+
+⚠️ AND IT COULD ALSO SHIP RED. Nothing about ledger has been repaired this week — no closure
+was written for these eight sites, because ledger was not in the sweep and nobody was looking
+at it. So the honest expectation is that its eight survivors STAY survivors: there is no
+intervention whose effect they could show. A flip here would need explaining, not
+celebrating.
+
+    ledger is the one artifact in this diff with a genuine control character: same spec,
+    same model, a week apart, and NO spec edits in between. Whatever its rows do is drift.
+
+That makes it the cleanest read of "what does a redraw do on its own", separate from every
+closure claim — which is worth more than the 31 rows it adds to the denominator.
