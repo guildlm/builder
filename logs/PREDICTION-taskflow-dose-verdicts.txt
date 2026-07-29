@@ -1,0 +1,40 @@
+PREDICTION — does growth move a verdict on a LARGE artifact with varied shapes?
+================================================================================
+
+22:09 on 29 July, before the sweep. Open item 1, on the artifact it was specified for.
+
+WHY THIS ONE. jsoncodec answered twice and both times the answer was bounded by its size: six
+rows, two shapes, one file. taskflow has FORTY-NINE rows across NINETEEN distinct shapes, and
+both arms are already on disk and GREEN:
+
+    generated/taskflow-chain5   control, no added lines, converged round 1
+    generated/taskflow-dose     +12 inert lines, converged round 1
+    4 CODE differences between them: middleware.go, projects_handler.go, store.go,
+    tasks_handler.go — including StoreImpl unexported to `store`, and store.go 477 bytes lighter
+
+    NO DRAW IS NEEDED. This is two sweeps and a comparison, which is why it is worth doing now
+    rather than being listed as future work.
+
+BRANCHES
+  A  same site count, >=1 verdict differs
+     -> spec growth moves mutation verdicts on a large artifact without killing it. Open item 1
+        answered affirmatively and the artefact reading of the capstone becomes measured.
+  B  same site count, all verdicts identical
+     -> the null holds where it matters most: 49 rows, 19 shapes, four rewritten files. That
+        would be a strong bound — growth rewrites code and still does not reach what the suite
+        defends.
+  C  the SITE COUNT differs between arms
+     -> the arms are not comparable by ordinal, which is its own finding and exactly what
+        _redraw_diff's site-count warning exists for. Report as such; do not read the verdicts.
+
+PREDICT  A 45% · B 30% · C 25%.
+  A leads on arithmetic: 49 rows against jsoncodec's 6, and 19 shapes against 2, so many more
+  chances for a rewrite to land on a mutated line.
+  C is not small. store.go lost 477 bytes and StoreImpl was renamed throughout; if a function
+  went with it, sites disappear and the ordinal join breaks.
+  B is the interesting one to survive, because it would mean the perturbation is real,
+  reproducible, large — and still invisible to mutation testing.
+
+⚠️ WHATEVER LANDS, IT IS ONE PAIR. Two arms of one spec at one dose. A is not "growth moves
+verdicts"; it is "growth moved a verdict here". The campaign's flip-bearing specs grew 43-73
+lines, three to six times this dose.
