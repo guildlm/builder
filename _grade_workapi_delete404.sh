@@ -30,7 +30,12 @@ cd "$(dirname "$0")"
 
 TREE="./generated/workapi-v5"
 FILE="internal/api/tasks.go"
-FUNC="func (h \*TaskHandler) Delete"
+# FIXED-STRING, NOT A REGEX. The first version wrote this as an ERE with the parens
+# UNESCAPED, so grep -E read (h \*TaskHandler) as a capture group and matched nothing.
+# The guard caught it and reported INCONCLUSIVE naming the reason — the
+# refuse-rather-than-guess design doing its job. A grader that silently matched zero
+# lines would have mutated nothing and still printed a verdict.
+FUNC='func (h *TaskHandler) Delete'
 TEST="TestDeleteMissingReturns404"
 FROM="writeJSON(w, http.StatusNotFound, nil)"
 TO="writeJSON(w, http.StatusNoContent, nil)"   # the 404 branch stops answering 404
@@ -49,7 +54,7 @@ fi
 rm -rf "$SCRATCH"; cp -R "$TREE" "$SCRATCH"
 
 # --- locate the function's line range, so the mutation cannot escape it ---
-START=$(grep -nE "^${FUNC}" "$SCRATCH/$FILE" | head -1 | cut -d: -f1)
+START=$(grep -nF "$FUNC" "$SCRATCH/$FILE" | head -1 | cut -d: -f1)
 if [[ -z "$START" ]]; then
   echo "INCONCLUSIVE: '$FUNC' not found in $FILE — the handler moved or was renamed."
   exit 0
@@ -81,8 +86,16 @@ fi
 echo "baseline: PASS"
 
 # --- 2+3. mutate ONLY inside the function, then prove exactly one line moved ---
+# index()+substr(), NOT sub(). awk's sub() takes a REGEX as its first argument, and the
+# target — writeJSON(w, http.StatusNotFound, nil) — is full of metacharacters: the parens
+# become a group and each . matches anything. So index() found the line and sub() could not
+# replace it, and the run reported "mutation changed 0 lines" rather than a verdict. Second
+# regex-for-fixed-string bug in this script, one line apart from the first.
 awk -v s="$START" -v e="$END" -v F="$FROM" -v T="$TO" '
-  NR>=s && NR<=e && index($0,F)>0 && !done { sub(F,T); done=1 }
+  NR>=s && NR<=e && !done {
+    p = index($0, F)
+    if (p > 0) { $0 = substr($0, 1, p-1) T substr($0, p+length(F)); done=1 }
+  }
   { print }' "$SCRATCH/$FILE" > "$SCRATCH/$FILE.tmp" && mv "$SCRATCH/$FILE.tmp" "$SCRATCH/$FILE"
 
 MOVED=$(( TOTAL - $(grep -cF "$FROM" "$SCRATCH/$FILE") ))

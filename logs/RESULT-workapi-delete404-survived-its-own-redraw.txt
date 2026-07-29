@@ -238,3 +238,45 @@ WHAT THE PENDING GRADE CAN AND CANNOT CHANGE
   is present, identical, passing, and no longer defending the line it was written for,
   which is the shape this whole campaign exists to detect. It would also be the first
   instance of it in the presence class.
+
+
+GRADED 13:01 — CAUGHT. The closure survived its redraw AND still defends its line.
+===================================================================================
+
+    Delete handler spans lines 88-100 of internal/api/tasks.go
+    target appears 1 time(s) inside Delete, 2 time(s) in the whole file
+    baseline: PASS
+    mutated exactly 1 line, inside Delete only
+
+    VERDICT: CAUGHT — TestDeleteMissingReturns404 notices the Delete 404 branch being broken.
+
+Every guard fired as designed and the verdict is the strong one:
+
+    the test is BYTE-IDENTICAL to chain2, where it was graded CAUGHT days ago
+    it is byte-identical to the as-drawn snapshot, through seven fix rounds
+    it RAN AND PASSED four times during those rounds
+    and mutating the line it was written for, inside Delete only, makes it fail
+
+PREDICTION GRADED: registered at 85% in PREDICTION-the-two-specs-the-reboot-owed-me.txt as
+"the single most consequential row in the finish run: a miss means the week's closure grades
+measure the draw they were made on rather than the spec". CONFIRMED.
+
+THE GRADER REFUSED TWICE BEFORE IT ANSWERED, and both refusals were my bugs:
+  1. FUNC was written as an ERE with unescaped parens, so grep -E read (h \*TaskHandler) as
+     a capture group and matched nothing -> "INCONCLUSIVE: handler not found".
+  2. The mutation used awk's sub(), whose first argument is a REGEX; the target
+     writeJSON(w, http.StatusNotFound, nil) is full of metacharacters, so index() found the
+     line and sub() could not replace it -> "INCONCLUSIVE: mutation changed 0 lines".
+
+Both are the same mistake — a fixed string handed to something that wanted a pattern — one
+line apart. Neither produced a verdict.
+
+    A grader with those two bugs and NO guards would have printed SURVIVED twice: once
+    having mutated nothing because it never found the function, once having mutated nothing
+    because the substitution silently failed. Both times the test would have passed, both
+    times it would have been recorded as a closure that no longer defends its line, and both
+    times it would have retracted the campaign's central claim on the strength of my own
+    typo.
+
+That is the whole argument for refuse-rather-than-guess, demonstrated on the one grade this
+week that most mattered, against bugs I wrote myself while knowing better.
