@@ -205,3 +205,36 @@ I quoted that warning at 11:37 and made the same move three minutes later.
 WHAT IS UNAFFECTED: everything about Delete-404. This is internal/service; the closure is in
 internal/api, which reports `ok` and has run its tests. The stall finding is also unaffected —
 rounds 2 and 3 do carry the identical actionable error, whatever its cause.
+
+
+FINAL TREE VERIFIED (12:04) — the closure held through seven rounds
+====================================================================
+workapi-v5 has landed (NOT-GREEN, on a scope error in internal/service). The tree is now
+frozen, so this is the state the grade will be taken on:
+
+    TestDeleteMissingReturns404  identical to as-drawn   ✓
+                                 identical to chain2     ✓   (the draw graded CAUGHT)
+
+Byte-identical to BOTH, after seven fix rounds, two of which ran model fixes over
+router_test.go itself. The closure was written the same way on an independent draw days
+apart, and survived a repair loop that rewrote its file.
+
+    internal/api reported `ok` in 4 of 4 rounds that reached the test phase, so this test
+    RAN and PASSED four times on a tree nobody tuned for it.
+
+THE SITE, FINAL POSITION: the Delete handler's 404 branch is at tasks.go:93, and the file
+holds TWO occurrences of StatusNotFound — the other is Get's, at 78. That is the ambiguity
+the grader is scoped against; nothing about it has changed since it was found at 11:41.
+
+STILL PENDING, AND DELIBERATELY: the mutation grade. _grade_workapi_delete404.sh refuses
+while the ledger draw generates, which is the CPU rule recorded at 11:02 after I ran a
+targeted sweep against a live generation. The guard is doing what it was written to do, and
+relaxing it to get an answer thirty minutes sooner would be the wrong instinct on the one
+day this session has spent finding out what unverified shortcuts cost.
+
+WHAT THE PENDING GRADE CAN AND CANNOT CHANGE
+  It cannot change that the closure REPRODUCED — that is settled by the diffs above.
+  It can change whether the closure still CATCHES. A SURVIVED verdict would mean the test
+  is present, identical, passing, and no longer defending the line it was written for,
+  which is the shape this whole campaign exists to detect. It would also be the first
+  instance of it in the presence class.
