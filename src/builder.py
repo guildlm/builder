@@ -5213,6 +5213,25 @@ def _fix_loop(
     while rnd < max_fix_rounds + _EXTENSION_ROUNDS:
         rnd += 1
         sig = _error_signature(output)
+        # LOG THE SURFACE SO THE GUARD'S OWN QUESTION BECOMES ANSWERABLE FROM A LOG.
+        #
+        # The guard below only fires past the flat budget. Whether it SHOULD fire inside it
+        # is an empirical question — 27 in-budget repeats were counted on 29 July with zero
+        # recoveries — but that count used a DIFFERENT signature: the set of error lines,
+        # not this whole-output fingerprint. The two share a name and a purpose and are not
+        # the same object, and the builder's historical signatures were unrecoverable
+        # because _log prints only the `!`-prefixed subset of `output`.
+        #
+        # So: eight hex digits per round, and the question is countable next time. This is
+        # the same move as printing "matched N, probed M" in the sweep and the site-count
+        # warning in _redraw_diff — make the tool state the thing a later reader would
+        # otherwise have to reconstruct, and cannot.
+        #
+        # A REPEAT INSIDE THE BUDGET IS FLAGGED, NOT ACTED ON. The line says `seen before`
+        # and the loop continues, so the data accrues without changing any behaviour this
+        # corpus was measured under.
+        _repeat = "  (surface seen before)" if sig in seen_surfaces else ""
+        _log(f"  error surface {abs(hash(sig)) & 0xffffffff:08x}{_repeat}")
         if rnd > max_fix_rounds and sig in seen_surfaces:
             _log("error surface repeats — stopping extension rounds")
             break
