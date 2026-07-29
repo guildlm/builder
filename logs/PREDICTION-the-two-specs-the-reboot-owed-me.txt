@@ -1,0 +1,84 @@
+PREDICTION — the three questions still open on 29 July, written while taskapipro is at 3/21
+==========================================================================================
+
+Written BEFORE the draws land, because a prediction read after the result is not a
+prediction, it is a description. Every entry below names the outcome that refutes it.
+Graded in RESULT-the-two-specs-the-reboot-owed-me.txt.
+
+Context: the v5 sweep drew 20 of 22 specs before the machine slept. The two it did not
+reach, taskapipro and workapi, are exactly the two carrying unverified spec edits — so
+these are not leftovers, they are the campaign's last two questions.
+
+
+1. taskapipro — DOES AN ATTACHED REASON BUY AN EXACT QUANTITY?
+--------------------------------------------------------------
+The edit: the projects paging entry now carries its OWN measured reason rather than a
+cross-reference to the tasks entry three sentences above it.
+
+What it is repairing: on chain4 the projects paging test POSTed ONE project and asserted
+`len == 1`. Page size 2 and page size 7777 both return one item from a store of one, so no
+input can distinguish them — the three paging sites in projects.go SURVIVED because the
+witness could not fail, not because the test was missing. The twin tasks test, whose entry
+carried ten lines of reason, was CAUGHT.
+
+PREDICT: the projects paging test POSTs THREE projects and asserts EXACTLY 2.       ~70%
+PREDICT: the three paging sites in projects.go flip SURVIVED -> CAUGHT.             ~60%
+
+The second is lower than the first ON PURPOSE and the gap is the interesting part. POSTing
+three is necessary for the sites to flip; it is not sufficient. A test can post three, ask
+for page size 2, and still assert something that a clamped limit also satisfies. If the
+first lands and the second does not, the finding is that prose bought the SETUP and not the
+ASSERTION, which is a sharper result than either clean outcome.
+
+Leaning yes because of the shortener finding from the same week: a sentence that forbids an
+assertion while also stating the correct value gets read FOR THE VALUE. The reason states
+the quantity. The same reading behaviour that defeated the prohibition should serve here.
+
+REFUTED BY: the test POSTs one project again, or posts three and asserts a number a clamp
+also produces. Either kills "attached reason is a per-test cost payable at every test" and
+promotes the alternative on the table: an exact quantity needs a mechanism that is not
+prose — a fixture, a table, a named constant the test must reference.
+
+
+2. workapi — DOES THE Delete-404 CLOSURE SURVIVE ITS OWN REDRAW?
+----------------------------------------------------------------
+Already CAUGHT on workapi-chain2, the draw made FOR it. This is the strong form: a fresh
+tree that has no reason to reproduce it except that the spec asks.
+
+PREDICT: Delete-404 CAUGHT on workapi-v5.                                           ~85%
+
+High because the same test has already been run twice this week on independent trees and
+both times the closure held: usersapi's empty-list closure was CAUGHT on a fresh v5 draw,
+and taskapi's twins did better than CAUGHT — they fired against a defect nobody planted.
+Two independent redraws, two holds.
+
+REFUTED BY: the Delete-404 assertion missing or present-but-not-discriminating on workapi-v5.
+That would mean the closure grades recorded this week measure the draw they were made on
+rather than the spec, which retracts the campaign's central claim, not a detail of it. It
+is the single most consequential row in the whole finish run.
+
+
+3. taskflow — IS THE ODD NAME OUT THE ONE THAT GOES MISSING?
+-------------------------------------------------------------
+`TestListProjectsSorted` has failed to be written on 4+ consecutive draws. All ten names
+that DO get written begin `TestProject*`; the one that goes missing is the only name that
+breaks the file's convention. Renamed to `TestProjectListSorted` — same test, same
+position, same enumeration, conforming name. Binary answer.
+
+PREDICT: `TestProjectListSorted` IS written on the next taskflow draw.              ~65%
+
+Only 65 because the previous repair — putting the name INSIDE the enumeration, first in
+the list, with the count correct — was insufficient, and I believed that one too. A
+hypothesis whose predecessor failed on the same test deserves less confidence than its
+story suggests. A third cause is live: the test may be dropped for what it ASKS (sorted
+order over a map, which the model may not know how to witness) rather than what it is
+CALLED. That cause predicts the rename changes nothing.
+
+REFUTED BY: the renamed test still absent. That kills name-shape and leaves the
+what-it-asks explanation, testable by keeping the odd name and simplifying the assertion —
+the exact inverse experiment.
+
+NOTE ON ALL THREE: taskapipro and workapi are drawn against a SECOND server process (see
+NOTE-v5-drawn-across-two-server-processes.txt). Predictions 1 and 2 are structural and
+binary, which is why they are worth stating despite the confound; a GREEN/NOT-GREEN call on
+either tree is NOT, and no prediction is made about tree colour here.
