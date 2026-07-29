@@ -1,0 +1,61 @@
+NOTE — every "as-drawn" comparison made today rests on evidence that is no longer on disk
+==========================================================================================
+
+17:16 on 29 July. Checked whether an as-drawn snapshot facility already existed before
+proposing to build one, which is the right order. It does not — and the check turned up
+something worth writing down about the comparisons that were already made with one.
+
+WHAT THE EVIDENCE FILES CLAIM
+    "Caught 11:35, live, in workapi-v5's fix round 1, by diffing the AS-DRAWN SNAPSHOT
+     against the tree after the deterministic pass."
+    "Both defaults twins are BYTE-IDENTICAL to the as-drawn snapshot — checked by hashing
+     the function bodies, not by eye."
+    "That closure is byte-identical to as-drawn."
+
+Those are three separate checks, and one of them is the strongest clause in the campaign's
+single clean durability result — workapi's Delete-404.
+
+WHAT IS ON DISK
+    src/builder.py             no snapshot mechanism. grep: as-drawn, asdrawn, pre-fix,
+                               snapshot — 0 hits.
+    generated/                 no *asdrawn*, *as-drawn*, *snapshot*, *pre-fix* directory
+                               at any depth.
+    scratchpad                 nothing.
+
+    The snapshots were taken by hand, in-session, while a draw was running, and compared
+    there. They were never persisted. Every as-drawn comparison in today's evidence is
+    therefore CORRECT AS MADE and NOT RE-VERIFIABLE BY ANYONE, including me tomorrow.
+
+THIS IS NOT A RETRACTION, and the difference matters
+The checks were performed with the evidence in hand and the files say what was compared and
+how (hashing function bodies, not reading them). Nothing here suggests a wrong answer. What
+it means is narrower and still serious:
+
+    The campaign's cleanest result has a key clause that cannot be re-checked, and the same
+    is true of the two findings that used the technique. If any of them is ever challenged,
+    the only available response is "I looked at the time".
+
+AND IT PUTS A PRICE ON THE QUEUED src/ CHANGE
+NOTE-the-second-separating-draw-is-not-ready.txt proposes dumping `written` to
+`<out>/.pre-fix.json` at the head of _fix_loop. Until now the argument for it was that it
+UNBLOCKS an experiment. The stronger argument is that it converts a whole class of evidence
+this repo already relies on from ephemeral to durable, at three lines, and would have made all
+three checks above permanent records rather than recollections.
+
+    It also removes the race. Snapshotting by hand means copying a tree while the fix loop is
+    writing to it. That worked; it is not a method anyone should have to repeat.
+
+⚠️ METHOD NOTE, and it nearly produced a wrong answer in this very check
+The first pass used `ls -d generated/*asdrawn* generated/*as-drawn* generated/*snapshot*`.
+In zsh, a failed glob ABORTS THE WHOLE COMMAND — the first pattern matched nothing, so the
+other two were never evaluated, and the shell printed one error while my `|| echo "no snapshot
+trees"` fallback printed a confident conclusion. The conclusion happened to be right. The
+method could not have established it.
+
+    A multi-pattern `ls` in zsh reports on the first pattern and silently abandons the rest.
+    Use `find` with -o, which evaluates every branch and cannot half-run.
+
+The same shape appeared twice more today: a substring check that "found" a preserved tree in
+`expreval-v4` ("ex-PREV-al"), and `pgrep -f "guildlm-build main"` matching the shells that
+merely mention it. Three variants of one failure in one day — the query was right and the
+world was not what the query assumed.

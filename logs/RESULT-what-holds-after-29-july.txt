@@ -41,6 +41,12 @@ four times, and CAUGHT under a function-scoped mutation.
 That is the strong form and it is the only closure that has it. Its artifact had no spec edit
 between draws, which — see IV — turns out to be why.
 
+⚠️ ONE CLAUSE OF IT IS NOT RE-VERIFIABLE (17:16). The as-drawn snapshot it was compared against
+was taken by hand, in-session, while the draw ran, and never persisted — there is no snapshot
+facility in src/ and no snapshot directory anywhere. The check was made with the evidence in
+hand and the file records how (hashing function bodies); it simply cannot be repeated. Same for
+the two other as-drawn comparisons made today. NOTE-the-as-drawn-evidence-was-ephemeral.txt.
+
 
 III. NAME SHAPE, FULLY SEPARATED
 ---------------------------------
