@@ -1,0 +1,48 @@
+RESULT — taskflow's sampling variance is ZERO, so every dose difference is the twelve lines
+=============================================================================================
+
+20:27 on 29 July. The control the dose result said it lacked, run afterwards and predicted A
+at 70%.
+
+    VARIANCE   chain5 vs chain6   IDENTICAL condition, same server, 5h apart
+                                  12 comparable · IDENTICAL 12 · 0 differ
+
+    DOSE       chain5 vs dose     +12 inert lines, same server, 26 min apart
+                                  12 comparable · CODE 4 · PROSE 4 · IDENTICAL 4
+
+Same spec, same server process, same flags, same instrument, SAME DENOMINATOR of twelve files.
+Two draws of the identical condition five hours apart differ in nothing at all. Add twelve
+lines of prose about naming a variable `t` and eight of those twelve files change, four of
+them in code.
+
+    SO NONE OF THE DOSE DIFFERENCES IS NOISE. There is no noise. The eight are the twelve
+    lines, entirely.
+
+BOTH SPECS NOW HAVE A ZERO-VARIANCE BASELINE
+    taskapipro  +12 condition    v5 draw1 vs draw2      8 of 8 identical, 3h57 apart
+    taskapipro  PRE-EDIT cond.   chain5 vs preedit      7 of 7 identical, 3h13 apart
+    taskflow    control cond.    chain5 vs chain6      12 of 12 identical, 5h02 apart
+
+    Twenty-seven files across three independent same-condition pairs, spanning three to five
+    hours each, and not one byte different. Every difference reported anywhere in this
+    investigation is a difference BETWEEN conditions.
+
+THE DOSE FINDING IS NOW COMPLETE ON TWO SPECS
+    spec        edit               comparable   result              variance baseline
+    taskflow    ONE-LINE rename       12         CODE 1 (the target)   0 of 12
+    taskflow    +12 INERT lines       12         CODE 4 · PROSE 4      0 of 12
+    taskapipro  +12 lines              7         CODE 3 · PROSE 1      0 of 8 and 0 of 7
+
+    A one-line edit reaches exactly its target. Twelve lines reach four files they never
+    mention, in a different spec, with a measured zero-variance floor underneath both.
+
+⚠️ THE ORDER WAS WRONG AND THE RESULT SURVIVED IT. This control belonged BEFORE the dose draw,
+not after — recorded at 20:00 when the prediction was written, before this outcome was known.
+Running the interesting arm first is how one produces a number that cannot be interpreted. It
+cost nothing here because the answer came back zero; had chain6 differed from chain5 in four
+files, the dose arm would have been unreadable and the GPU hour wasted.
+
+⚠️ WHAT IS STILL NOT MEASURED. Whether the effect is monotonic in the number of lines. One and
+twelve are measured; nothing between them is. And both specs' twelve-line arms used the SAME
+twelve lines, so "twelve lines" and "these twelve lines" are not separated — though the
+taskapipro arms already showed that swapping the prose entirely changes nothing but wording.

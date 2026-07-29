@@ -61,12 +61,11 @@ FIX PROFILES, near-identical
     dose     pagination_test.go, router.go, taskflow_test.go(shadow), taskflow_test.go
 Both converged green after fix round 1 (deterministic). The dose draw needed one fewer fix.
 
-⚠️ WHAT IS STILL NOT MEASURED. taskflow's sampling variance — it has never had two
-same-condition draws compared, so unlike taskapipro (0 of 8 across two draws) there is no
-zero-variance baseline here. A CODE difference in four of twelve files is far larger than the
-prose-only differences seen between taskapipro's identical-condition draws, but "far larger
-than another spec's variance" is not the same as "larger than this spec's variance". The
-cheap fix is a second taskflow draw in either condition; NOT RUN.
+✅ TASKFLOW'S VARIANCE WAS MEASURED AT 20:27 AND IT IS ZERO. chain5 vs chain6, identical
+condition, same server, five hours apart: 12 comparable files, 12 IDENTICAL, 0 differ — the
+same denominator as the dose arm. So none of the eight dose differences is noise; there is no
+noise. See RESULT-taskflow-variance-is-zero-the-dose-result-holds.txt.
+(The paragraph this replaces said the control had NOT been run and named it as the gap.)
 
 
 WHAT THE FOUR CODE DIFFERENCES ACTUALLY ARE (20:09) — an API change, propagated
