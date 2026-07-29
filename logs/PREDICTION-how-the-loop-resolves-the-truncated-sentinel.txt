@@ -50,3 +50,46 @@ TestCreateUnauthorized.
 VOID: if the run is killed or the machine sleeps. Grade by reading both files, not the RESULT
 line — a green ledger is compatible with (a), (b) and (c), and only the source distinguishes
 them.
+
+
+PARTIAL RESOLUTION (12:39) — NONE OF THE THREE YET, AND A NEAR-MISS ON MY PART
+==============================================================================
+Rounds 2 and 3 carry the identical error; _stall_audit reports STALLED from round 3.
+models.go still declares ErrInsufficient and response.go still uses ErrInsufficientFunds. So
+the loop has picked NONE of (a), (b) or (c) after three rounds.
+
+I NEARLY RECORDED THE WRONG REASON. Reading the log's tail, I saw:
+
+    widening fix targets to internal/models — undefined models.ErrInsufficientFunds
+    fixing internal/service/service_test.go
+
+and was about to write that the loop diagnoses the missing symbol correctly and then edits a
+different file. Checked the full per-round fix list first, and it is false:
+
+    round 1   fixing internal/service/service_test.go
+              fixing internal/api/response.go
+              fixing internal/models/models.go (widened in)      <- it DID
+    round 2   ... fixing internal/models/models.go (widened in)  <- and again
+    round 3   ... fixing internal/service/service.go (widened in)
+
+The loop widened correctly, routed models.go to the model twice, and the model returned
+models.go without renaming the sentinel. Tail-reading again — the same mistake as the
+stall-audit one at 10:32, where I parsed round headers and missed how the run ended.
+
+SO THE ACTUAL FINDING IS ABOUT THE MODEL, NOT THE LOOP, and it is sharper:
+
+    A missing symbol, named exactly in the compiler error, named again in the widening
+    message, with the file containing it handed to the model TWICE — and the model does not
+    supply it.
+
+AND THE TRUNCATION IS STABLE. The model wrote ErrInsufficient in the original draw and wrote
+it again through two repair passes over the same file. That is not a sampling slip; the
+shorter name is what this model produces for this declaration, repeatedly, against an
+explicit spec and an explicit compiler error.
+
+    Which strengthens the alignment hypothesis rather than settling it: whatever causes the
+    shortening is stable enough to survive being told, twice, in two different registers.
+
+THE PREDICTION STANDS UNRESOLVED, with two rounds left. If it exhausts without repair, the
+outcome is a FOURTH branch I did not list — no repair at all, tree ships red on this — and
+that would make the prediction VOID rather than wrong, since none of the three was chosen.
