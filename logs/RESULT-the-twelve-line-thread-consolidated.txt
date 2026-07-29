@@ -121,10 +121,45 @@ specs the campaign had itself rewritten:
 taking effect or 73 added lines perturbing an unrelated file. THE CAMPAIGN CANNOT DISTINGUISH
 ITS SUCCESSES FROM ITS OWN PERTURBATION.
 
-⚠️ BUT PERTURBING A FILE IS NOT FLIPPING A VERDICT, and the one direct test came back NULL:
-twelve lines rewrote jsoncodec's only implementation file and left all six of its mutation
-verdicts exactly where they were. So the artefact reading is plausible and UNPROVEN. The
-ratelimit arm could not answer it — the artifact died, so every row went BASELINE-RED.
+⚠️ AND PERTURBING A FILE DOES FLIP A VERDICT — measured 22:18, on the artifact it needed to be
+measured on. See section V-b.
+
+
+V-b. GROWTH MOVES VERDICTS, AND A VERDICT IS NOT A FACT ABOUT ITS OWN FILE
+===========================================================================
+Three artifacts were asked whether perturbation reaches a mutation verdict:
+
+    jsoncodec +12   green · impl file rewritten · 0 of 6 verdicts moved
+    jsoncodec +24   green · rewritten MORE      · 0 of 6 verdicts moved
+    ratelimit +48   RED   · unmeasurable, every row BASELINE-RED
+    taskflow  +12   green · 49 rows, 19 shapes  · TWO verdicts moved
+
+    taskflow is the one that could answer it. jsoncodec's six rows are two shapes in one file;
+    taskflow has nineteen shapes across a dozen.
+
+    models.go   %w -> %v (ErrValidation)
+    control   CAUGHT · SURVIVED · SURVIVED      dose   CAUGHT · CAUGHT · CAUGHT
+
+    And the site count changed too: projects_handler.go and tasks_handler.go each gained a
+    StatusInternalServerError site, 3 -> 4. Twelve inert lines changed how many things there
+    are to defend.
+
+THE MECHANISM, which is the part that matters
+models.go differs between the arms by EXACTLY TWO COMMENTS. Comments cannot change behaviour,
+so the verdict change does not come from the mutated file — it comes from the rest of the
+program. Confirmed as-drawn (chain6 vs dose, both snapshotted, before either fix loop ran):
+16 files, CODE 6, and TWO of the six are TEST files — taskflow_test.go and pagination_test.go.
+
+    The model wrote different TESTS. The chain is: twelve inert lines -> different tests
+    -> different verdicts, and every link is measured before any repair.
+
+    A MUTATION VERDICT IS A PROPERTY OF THE WHOLE PROGRAM, NOT OF THE MUTATED FILE. Every
+    capstone row is keyed (artifact, FILE, shape, ordinal) and read as a statement about that
+    file's defences. A flip attributed to a closure in file X can be caused by an edit that
+    never touched X.
+
+⚠️ ONE PAIR, ONE DOSE. Two SURVIVED becoming CAUGHT is the direction a closure campaign WANTS,
+which is exactly why it is dangerous: this pair got that result from prose that closes nothing.
 
 
 VI. TWO NEIGHBOURING FINDINGS, NOT ABOUT THE TWELVE LINES
@@ -144,8 +179,8 @@ second type the spec never mentions. All converged GREEN. `_shape_conformance.py
 
 VII. STILL OPEN
 ================
-  1. Whether growth moves a VERDICT at a dose that does not kill the artifact. jsoncodec at 12
-     lines: no. ratelimit at 48: unmeasurable. The gap is a mid-dose artifact that stays green.
+  1. ✅ ANSWERED 22:18 — see V-b. taskflow at +12: two verdicts moved and two groups changed
+     site count, on a green artifact, attributable to the draw rather than the repair.
   2. Monotonicity. One, twelve and forty-eight lines are measured; nothing between.
   3. The as-drawn contents of the twelve taskapipro files the loop repaired — fixed going
      forward by `.pre-fix.json`, not backward.
