@@ -55,15 +55,27 @@ IV. THE LARGEST FINDING, AND IT RELOCATES MOST OF THE MORNING
 --------------------------------------------------------------
 15e25f3 added twelve lines to taskapipro's PROJECTS entry, intending to fix two tests.
 
-    did NOT fix the projects twins       1,1 -> 1,2, still 0/2 discriminating
-    BROKE the tasks twins                3,3 -> 1,2, 2/2 -> 0/2
-    BROKE the imports in three files     0 errors -> 4
-    the tree never compiled              7 rounds, both post-edit draws
-    the capstone lost taskapipro         62 of 314 rows, 20%
+    BROKE the imports in three files     0 errors -> 4          MEASURED, round-1 output
+    the tree never compiled              7 rounds, both draws    MEASURED, an outcome
+    the capstone lost taskapipro         62 of 314 rows, 20%     MEASURED, a consequence
 
-Evidence: round-1 logs across four draws — chain4 PRE 0 errors, chain5 PRE 0, v5 POST 4,
-v5-2nd POST 4 — with the server held fixed across the last three. chain4, pre-edit, converged
-GREEN in one round.
+    ⚠️ WITHDRAWN 17:01, both twin-quantity rows:
+    ~~did NOT fix the projects twins     1,1 -> 1,2~~
+    ~~BROKE the tasks twins              3,3 -> 1,2, 2/2 -> 0/2~~
+    Those compare a tree that took ONE deterministic fix and converged (chain4) against a
+    tree whose two test files were model-rewritten in rounds 1, 2 and 5 and never compiled
+    (v5). Not the same kind of measurement; the difference is not attributable to the edit.
+
+Evidence for what stands: round-1 logs across four draws — chain4 PRE 0 errors, chain5 PRE 0,
+v5 POST 4, v5-2nd POST 4 — with the server held fixed across the last three. chain4, pre-edit,
+converged GREEN in one round. Round-1 output is emitted before any fix of any kind, which is
+the entire reason it survives the retraction that took the twin rows.
+
+AND ONE RESULT REPLACES THEM, stronger than what it replaces: THE PIPELINE IS DETERMINISTIC
+END TO END. The two post-edit draws are independent — separate generations, separate
+seven-round repair sequences — and land on identical twin values (projects 1,2 and 2,2; tasks
+1,2 and 2,2; 0 of 4 discriminating in both). Two independent repair sequences converging on
+the same four numbers says more about reproducibility than the comparison it replaces did.
 
     THEREFORE: "the control arm regressed in its own redraw", "setup counts are not durable",
     "quantities do not survive" were all measuring a SPEC EDIT, not a redraw. The
@@ -135,6 +147,13 @@ VI. WHAT WAS RETRACTED OR NARROWED
   * "the day flipped the witness shape"  -> confounded. chain5's twins were first observed
                                             AFTER a round-1 rewrite of that file; chain4's
                                             were not. Not a comparison of two draws.
+
+  * "the edit broke the tasks twins"     -> withdrawn 17:01. Post-repair tree (3 model
+                                            rewrites) vs near-as-drawn tree. THE ROOT CAUSE
+                                            OF BOTH OF TODAY'S RETRACTIONS: any quantity read
+                                            from a generated tree is a POST-REPAIR quantity
+                                            unless the draw converged on deterministic fixes
+                                            alone. _twin_witness now takes --log= and says so.
 
 Four predictions resolved VOID, all for one reason: the machinery never reached the question.
 That is a fact about the pipeline and it is now a standing rule — put the "nothing happens"

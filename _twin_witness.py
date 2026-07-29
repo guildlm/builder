@@ -114,6 +114,56 @@ def seeds(body: str) -> int:
     return total
 
 
+FIXING = re.compile(r"^\[guildlm-build\]\s+fixing (\S+?\.go)(?: \(widened in\))?\s*$", re.M)
+DETERMINISTIC = re.compile(r"^\[guildlm-build\]\s+deterministic fix in (\S+?\.go)\s*$", re.M)
+DRAINED = re.compile(r"^\[guildlm-build\]\s+rebuilt a request that was served twice "
+                     r"\(drained body\) in (\S+?\.go)\s*$", re.M)
+
+
+def provenance(log_text: str) -> dict[str, dict]:
+    """Which files a draw REWROTE after generating them, from the build log.
+
+    WHY A TREE-READING TOOL NEEDS THIS, and it cost two retractions on 29 July before it was
+    built. This tool reads a tree on disk and prints CANNOT-PASS / CANNOT-FAIL / DISCRIMINATES
+    with total confidence. A tree on disk is the POST-REPAIR tree. If the fix loop called
+    `fixing internal/api/projects_test.go` three times, the numbers here describe what the
+    LOOP left behind, not what the draw produced — and two draws being compared can differ
+    entirely in how much repair they absorbed:
+
+        chain4   projects_test.go: one DETERMINISTIC fix, converged. Numbers ~= as-drawn.
+        v5       projects_test.go: drained-body rebuild + `fixing` in rounds 1, 2 and 5, and
+                 the tree never compiled so no test ever RAN. Numbers are post-3-rewrites.
+
+    Comparing those two and attributing the difference to a spec edit is the error, and it
+    was made twice in one file. Deterministic fixes are goimports-class and do not rewrite
+    assertions or seeding, so they do NOT spoil provenance; a model `fixing` call rewrites
+    whatever it likes, so it does.
+
+    Returns {relpath: {"model": n, "deterministic": n, "drained": n}}.
+    """
+    out: dict[str, dict] = {}
+    for kind, rx in (("model", FIXING), ("deterministic", DETERMINISTIC), ("drained", DRAINED)):
+        for path in rx.findall(log_text):
+            out.setdefault(path, {"model": 0, "deterministic": 0, "drained": 0})[kind] += 1
+    return out
+
+
+def provenance_note(rel: str, prov: dict[str, dict] | None) -> str:
+    """The qualifier printed beside a verdict. Empty only when provenance is genuinely clean."""
+    if prov is None:
+        return ""
+    p = prov.get(rel)
+    if p is None:
+        return "  [as-drawn: untouched]"
+    if p["model"]:
+        extra = " +drained-body rebuild" if p["drained"] else ""
+        return (f"  ⚠ POST-REPAIR: {p['model']} model rewrite(s){extra} — this verdict "
+                f"describes the LOOP's file, not the draw's")
+    if p["drained"]:
+        return "  [drained-body rebuild only — a request was replaced, assertions untouched]"
+    return "  [as-drawn: deterministic fixes only]"
+
+
 def verdict(seeded: int, bound: int) -> str:
     if seeded < bound:
         return "CANNOT-PASS"
@@ -185,6 +235,32 @@ def self_test() -> int:
     # has it, and counting commas+1 turns three elements into four.
     if literal_len('\n\t`{"id":"3"}`,\n\t`{"id":"1"}`,\n\t`{"id":"2"}`,\n') != 3:
         fails.append("a gofmt trailing comma must not add a phantom element")
+    # PROVENANCE — the check that would have stopped two retractions on 29 July.
+    log = (
+        "[guildlm-build]   deterministic fix in internal/api/router_test.go\n"
+        "[guildlm-build]   rebuilt a request that was served twice (drained body) in internal/api/projects_test.go\n"
+        "[guildlm-build]   fixing internal/api/projects_test.go\n"
+        "[guildlm-build]   fixing internal/api/projects_test.go\n"
+        "[guildlm-build]   fixing internal/api/projects.go (widened in)\n"
+    )
+    prov = provenance(log)
+    if prov.get("internal/api/projects_test.go", {}).get("model") != 2:
+        fails.append("two `fixing` lines for one file must count 2 model rewrites")
+    if prov.get("internal/api/projects_test.go", {}).get("drained") != 1:
+        fails.append("a drained-body rebuild must be counted separately from a model rewrite")
+    if prov.get("internal/api/projects.go", {}).get("model") != 1:
+        fails.append("a `(widened in)` suffix must not stop the path from being recognised")
+    if prov.get("internal/api/router_test.go", {}).get("deterministic") != 1:
+        fails.append("a deterministic fix must be counted, and separately")
+    if "POST-REPAIR" not in provenance_note("internal/api/projects_test.go", prov):
+        fails.append("a model-rewritten file must be flagged POST-REPAIR")
+    if "POST-REPAIR" in provenance_note("internal/api/router_test.go", prov):
+        fails.append("deterministic fixes alone must NOT be flagged post-repair — chain4's "
+                     "tree is the only clean provenance in the whole comparison")
+    if "untouched" not in provenance_note("internal/api/nothing.go", prov):
+        fails.append("a file the log never mentions is as-drawn and must say so")
+    if provenance_note("anything", None) != "":
+        fails.append("with no log supplied the tool must add no provenance claim at all")
     for f in fails:
         print(f"  FAIL: {f}")
     print("self-test: " + ("FAILED" if fails else
@@ -196,6 +272,18 @@ def self_test() -> int:
 if __name__ == "__main__":
     if "--self-test" in sys.argv:
         raise SystemExit(self_test())
+    flags = [a for a in sys.argv[1:] if a.startswith("-")]
+    unknown = [a for a in flags if not a.startswith("--log=")]
+    if unknown:
+        raise SystemExit(f"REFUSING: unknown flag(s) {' '.join(unknown)}. "
+                         f"Takes --self-test or --log=<build log>.")
+    prov = None
+    for a in flags:
+        p = pathlib.Path(a.split("=", 1)[1])
+        if not p.is_file():
+            raise SystemExit(f"REFUSING: --log={p} is not a file. Provenance unchecked is a "
+                             f"worse state than provenance absent, because the rows still print.")
+        prov = provenance(p.read_text(errors="ignore"))
     targets = [pathlib.Path(a) for a in sys.argv[1:] if not a.startswith("-")]
     if not targets:
         raise SystemExit(__doc__)
@@ -206,5 +294,16 @@ if __name__ == "__main__":
             print("   no paging witnesses found (no newRouterWithPaging + len!=N pair)")
         for rel, name, dflt, mx, sd, bound, v, note in rows:
             print(f"   {v:<14} {name:<48} router({dflt},{mx}) seeds={sd} asserts={bound}{note}")
+            pn = provenance_note(str(rel), prov)
+            if pn:
+                print(f"   {'':14} {pn.strip()}")
         bad = [r for r in rows if r[6] != "DISCRIMINATES"]
         print(f"   -> {len(rows) - len(bad)} of {len(rows)} witnesses can discriminate")
+    if prov is None:
+        # SAY IT EVERY TIME. The two retractions of 29 July both came from comparing a
+        # post-repair tree to a near-as-drawn one, and nothing in this tool's output
+        # distinguished them. A verdict with unknown provenance is not a verdict about a draw.
+        print("\n⚠ PROVENANCE UNCHECKED — these numbers are read off the tree ON DISK, which is\n"
+              "  the POST-REPAIR tree. If the fix loop rewrote a test file, they describe what\n"
+              "  the LOOP left behind, not what the draw produced. Pass --log=<build log> to\n"
+              "  find out. Two claims were retracted on 29 July for exactly this.")

@@ -238,3 +238,54 @@ reassignment sends a drained body, seeds nothing, and adds no NewRequest site �
 correctly. A drained-body REBUILD inserts a fresh NewRequest — counted, correctly. And zero
 audited witnesses create a POST they never serve, which is the only direction that would
 inflate. The counting basis tracks bodies-available, which is the right quantity.
+
+
+SECOND CORRECTION (17:01) — the TWIN QUANTITIES in this file are post-repair, not as-drawn
+===========================================================================================
+Same check, applied to the v5 logs instead of chain5's, and it reaches the headline table at
+the top of this file. Per-round targets:
+
+    v5 (1st)   ROUND 1  deterministic fixes + DRAINED-BODY REBUILD + `fixing` on BOTH
+                        internal/api/projects_test.go AND internal/api/router_test.go
+               ROUND 2  `fixing` both test files again
+               ROUND 5  `fixing` both test files a third time
+               and the tree NEVER COMPILED, so no test ever RAN — the twins were never
+               observed by execution at any point in the draw.
+
+So the v5 twin values are read by _twin_witness off the FINAL tree, after three model
+rewrites of both test files. chain4's are read off a tree that took ONE deterministic fix and
+converged. Those are not the same kind of measurement, and the difference between them is not
+attributable to the spec edit.
+
+WITHDRAWN from the table at the top of this file:
+    "did NOT fix the projects twins   1,1 -> 1,2"
+    "BROKE the tasks twins            3,3 -> 1,2, 2 of 2 discriminating -> 0 of 2"
+
+Both compare a barely-touched tree to a thrice-rewritten one. The edit may well have done
+these things; nothing here shows it did.
+
+    THE GENERAL RULE, and it is the root cause of both of today's corrections:
+    ANY QUANTITY READ FROM A GENERATED TREE IS A POST-REPAIR QUANTITY unless the draw
+    converged on deterministic fixes alone. Deterministic fixes are goimports-class and do
+    not rewrite assertions or seeding; a model `fixing` call rewrites whatever it likes.
+    The only trees in this whole comparison with clean provenance are chain4's.
+
+WHAT SURVIVES, and it is not nothing:
+  * THE IMPORT-PATH RESULT IS UNTOUCHED. 0 errors in both pre-edit draws, 4 in both
+    post-edit draws, read from ROUND-1 error output — emitted before any fix of any kind.
+    That is the one measurement in this file taken at a point where nothing had been
+    repaired, and it is precisely why the control arm running now measures round 1 and
+    nothing else.
+  * THE PIPELINE IS DETERMINISTIC END TO END. The two post-edit draws are independent —
+    separate generations, separate seven-round repair sequences — and land on IDENTICAL twin
+    values: projects (1,2) and (2,2), tasks (1,2) and (2,2), 0 of 4 discriminating in both.
+    Two independent repair sequences converging to the same four numbers is a stronger
+    reproducibility result than the twin comparison it replaces.
+  * The tree never compiling, seven rounds, in both post-edit draws — an outcome, not a
+    tree-read quantity. Stands.
+
+⚠️ AND THE INSTRUMENT SHOULD HAVE SAID SO. _twin_witness reads a tree and prints a confident
+verdict with no idea whether the file it read was rewritten three times after it was drawn.
+That is the same shape as every instrument bug found today: the tool is right about its query
+and silent about the world. It now takes --log= and refuses to print an unqualified verdict
+when the log shows a model `fixing` of the file it is reading.
