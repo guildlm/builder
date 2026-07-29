@@ -184,3 +184,34 @@ most of today's comparisons can say.
 implementation between two files changes every line number in both, which is precisely the
 ordinal misalignment the capstone's site-count warning exists to catch. One draw in three, in
 one condition.
+
+
+THE FULL TRAJECTORY, MECHANICALLY (18:13) — all six rounds identical
+=====================================================================
+The prediction tested two line numbers. Comparing every round's complete error list and fix
+target list between the inert draw and v5 draw 2:
+
+    round   v5 errors   inert errors   errors        targets
+    1       5           5              IDENTICAL     IDENTICAL
+    2       2           2              IDENTICAL     IDENTICAL
+    3       3           3              IDENTICAL     IDENTICAL
+    4       2           2              IDENTICAL     IDENTICAL
+    5       2           2              IDENTICAL     IDENTICAL
+    6       3           3              IDENTICAL     IDENTICAL
+
+Not "the same defects" — the same STRINGS, including every file, line, column and message, and
+the same files repaired in the same order in every round.
+
+    So P2's hit was one visible corner of something total. Two draws whose specs differ by
+    twelve lines of entirely unrelated prose produce the same code (bar one comment), then
+    fail identically six times, then get repaired identically six times.
+
+That closes the content question as firmly as this corpus can. What the twelve lines SAY
+changes one comment's word order and one Fatalf string, and changes nothing else — not a
+defect, not a line number, not a repair target, not an ordering.
+
+⚠️ AND IT SHARPENS WHAT IS LEFT. Everything that DOES differ between the arms — the getenv
+helper, the service.go statement, the two test files, and the 6-line defect offset — belongs to
+the PRESENCE comparison (chain5 vs v5), not the content one. The open question was never "do
+twelve lines matter"; it is whether their effect is the spec's or the server's, and only a
+draw in an untried condition answers that.
