@@ -1,0 +1,225 @@
+name: ratelimit
+language: go
+go_module: guildlm.dev/ratelimit
+description: >-
+  A realistic, idiomatic, STANDARD-LIBRARY-ONLY per-client rate-limited HTTP
+  API — production middleware territory. No external dependencies whatsoever
+  (never golang.org/x/time/rate): net/http and its ServeMux for routing,
+  sync for concurrency, time for the token bucket. All files use package main.
+  The service layers cleanly: a token-bucket limiter with an injectable clock,
+  a per-client registry, HTTP middleware that enforces the limit, and a small
+  JSON API behind it.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/ratelimit, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+  - path: bucket.go
+    purpose: >-
+      package main. A hand-rolled token bucket (do NOT import
+      golang.org/x/time/rate). A Bucket struct with capacity int, tokens
+      float64, refillPerSec float64, last time.Time, a sync.Mutex, and a now
+      func() time.Time field so tests can inject a fake clock. NewBucket(capacity
+      int, refillPerSec float64) *Bucket starts full (tokens == capacity) with
+      now defaulting to time.Now. CRITICAL: do NOT set `last` from time.Now() in
+      the constructor — tests swap the now func for a fake clock AFTER NewBucket,
+      so a real-time `last` would make the first elapsed hugely negative and
+      wrongly deny. Leave `last` as the zero time.Time in the constructor, and on
+      the FIRST Allow() (when last.IsZero()) seed last = b.now() so the first
+      elapsed is 0. Every time reading in Allow() MUST go through b.now(), never
+      time.Now() directly. Allow() bool: read now := b.now(); if last is zero set
+      last = now; refill tokens += now.Sub(last).Seconds()*refillPerSec capped at
+      capacity; set last = now; then if tokens >= 1 consume one and return true,
+      else return false. A freshly built bucket whose now was replaced by a fake
+      clock MUST allow its first `capacity` calls. Standard library only.
+      NEVER NAME A LOCAL VARIABLE t — this is a constraint on the test, not a style
+      preference. In a Go test the parameter t is the only channel a failure has: t.Errorf
+      and t.Fatalf are how an assertion reports, and nothing else in the function reaches
+      the test runner. A loop variable, a struct field or a helper parameter named t
+      SHADOWS that handle for the rest of its scope, and every call written after it
+      compiles against the wrong receiver or does not compile at all.
+      The shadowed form is the dangerous one, because the compiler can accept it. A value
+      that happens to carry an Errorf method takes the call, the file builds, vet stays
+      quiet, and the assertions inside that scope no longer have a route to the runner.
+      NOTHING IN A PASSING RUN DISTINGUISHES A REPORTING ASSERTION FROM A SHADOWED ONE.
+      Give the loop variable, the table row and the helper argument their own names —
+      tc, row, want, got — and leave t meaning exactly one thing in the whole file.
+  - path: registry.go
+    purpose: >-
+      package main. Per-client limiter registry. A Registry struct holding a
+      map[string]*Bucket guarded by sync.Mutex plus the capacity and
+      refillPerSec used for new clients, built by NewRegistry(capacity int,
+      refillPerSec float64) *Registry. Get(clientID string) *Bucket returns
+      the client's bucket, creating it on first sight (double-checked under
+      the lock so concurrent first requests race safely). Len() int reports
+      how many clients are tracked. Standard library only.
+      NEVER NAME A LOCAL VARIABLE t — this is a constraint on the test, not a style
+      preference. In a Go test the parameter t is the only channel a failure has: t.Errorf
+      and t.Fatalf are how an assertion reports, and nothing else in the function reaches
+      the test runner. A loop variable, a struct field or a helper parameter named t
+      SHADOWS that handle for the rest of its scope, and every call written after it
+      compiles against the wrong receiver or does not compile at all.
+      The shadowed form is the dangerous one, because the compiler can accept it. A value
+      that happens to carry an Errorf method takes the call, the file builds, vet stays
+      quiet, and the assertions inside that scope no longer have a route to the runner.
+      NOTHING IN A PASSING RUN DISTINGUISHES A REPORTING ASSERTION FROM A SHADOWED ONE.
+      Give the loop variable, the table row and the helper argument their own names —
+      tc, row, want, got — and leave t meaning exactly one thing in the whole file.
+  - path: middleware.go
+    purpose: >-
+      package main. RateLimit(reg *Registry) func(http.Handler) http.Handler —
+      middleware that identifies the client by the X-Client-ID header, falling
+      back to r.RemoteAddr when the header is empty, and consults
+      reg.Get(client).Allow(). When allowed it forwards to the wrapped
+      handler; when denied it responds 429 with a JSON body {"error": "rate
+      limit exceeded"} and sets the Retry-After header to "1". Standard
+      library only.
+  - path: api.go
+    purpose: >-
+      package main. The protected API plus wiring. A PingHandler
+      http.HandlerFunc that returns 200 with JSON {"message": "pong"}. func
+      NewRouter(reg *Registry) http.Handler RETURNS AN http.ServeMux and applies
+      the middleware PER ROUTE, by WRAPPING the handler at registration — /ping is
+      limited, /health is not. Write it EXACTLY in this shape:
+          mux := http.NewServeMux()
+          mux.Handle("GET /ping", RateLimit(reg)(http.HandlerFunc(PingHandler)))
+          mux.HandleFunc("GET /health", func(w http.ResponseWriter, r *http.Request) {
+              w.WriteHeader(http.StatusOK)
+              _, _ = w.Write([]byte("ok"))
+          })
+          return mux
+      RateLimit(reg) RETURNS a func(http.Handler) http.Handler, so you must CALL
+      the returned function on the handler — RateLimit(reg)(h) — and register THAT.
+      Do NOT hand-roll a dispatcher that inspects r.URL.Path and calls PingHandler
+      directly: that silently BYPASSES the middleware, every request is allowed,
+      and the build and vet both stay GREEN while every rate-limit test fails.
+      Merely DECLARING RateLimit is not calling it; the ONLY thing that enforces
+      the limit is a handler that is WRAPPED by it. Use a small
+      writeJSON(w, status, v) helper shared by handlers and middleware.
+      Standard library only.
+  - path: main.go
+    purpose: >-
+      package main. func main() constructs NewRegistry(5, 1) and NewRouter,
+      runs an *http.Server on :8080, and shuts down gracefully via
+      signal.NotifyContext(context.Background(), os.Interrupt) and
+      srv.Shutdown with a short context.WithTimeout. Standard library only.
+      NEVER NAME A LOCAL VARIABLE t — this is a constraint on the test, not a style
+      preference. In a Go test the parameter t is the only channel a failure has: t.Errorf
+      and t.Fatalf are how an assertion reports, and nothing else in the function reaches
+      the test runner. A loop variable, a struct field or a helper parameter named t
+      SHADOWS that handle for the rest of its scope, and every call written after it
+      compiles against the wrong receiver or does not compile at all.
+      The shadowed form is the dangerous one, because the compiler can accept it. A value
+      that happens to carry an Errorf method takes the call, the file builds, vet stays
+      quiet, and the assertions inside that scope no longer have a route to the runner.
+      NOTHING IN A PASSING RUN DISTINGUISHES A REPORTING ASSERTION FROM A SHADOWED ONE.
+      Give the loop variable, the table row and the helper argument their own names —
+      tc, row, want, got — and leave t meaning exactly one thing in the whole file.
+  - path: ratelimit_test.go
+    purpose: >-
+      package main. Tests with a FAKE CLOCK — no time.Sleep anywhere.
+      Define ONE request helper at package scope and route EVERY HTTP request
+      through it (this avoids the boilerplate mistakes of chaining the void
+      req.Header.Set into another call, or forgetting to CALL rec.Header()):
+      `func hit(h http.Handler, path, clientID string) *httptest.ResponseRecorder
+      { req := httptest.NewRequest(http.MethodGet, path, nil); if clientID != ""
+      { req.Header.Set("X-Client-ID", clientID) }; rec := httptest.NewRecorder();
+      h.ServeHTTP(rec, req); return rec }`. Build the request, set the header, and
+      serve as SEPARATE statements exactly as shown — never inline
+      httptest.NewRequest(...).Header.Set(...) as an argument (Header.Set returns
+      nothing). Unit-test Bucket: a NewBucket(2, 1) with an injected now func
+      allows exactly 2 calls then denies; advancing the fake time by one second
+      allows exactly one more.
+      THE VARIABLE THAT MOVES IS THE TIME, NOT THE FUNCTION. `b.now = f` copies
+      the function VALUE, so reassigning the local `f` afterwards does NOT reach
+      the bucket — it keeps calling the first one, the clock never advances, the
+      bucket never refills, and `Allow()` correctly returns false against an
+      implementation that is perfectly right. Close over a mutable time and move
+      THAT, exactly like this:
+        clock := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+        b := NewBucket(2, 1)
+        b.now = func() time.Time { return clock }   // reads `clock` on every call
+        // ... two Allow() -> true, third -> false ...
+        clock = clock.Add(time.Second)              // THIS is what advances it
+        // ... one more Allow() -> true ...
+      Never write `now = func() ...` a second time; the bucket cannot see it.
+      Write a SECOND, SEPARATE named test for the burst cap — the invariant that a
+      long idle refills to CAPACITY and no further, which the one-second test above
+      never reaches. Without the clamp an idle client accrues unbounded tokens and
+      defeats the limiter, and no other test catches it. Write it exactly:
+        func TestBucketCapAfterIdle(t *testing.T) {
+            clock := time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)
+            b := NewBucket(2, 1)
+            b.now = func() time.Time { return clock }
+            if !b.Allow() || !b.Allow() {
+                t.Fatalf("first two Allow() should be true")
+            }
+            clock = clock.Add(time.Hour)   // idle far past capacity/refill
+            if !b.Allow() {
+                t.Errorf("after idle: 1st Allow() should be true")
+            }
+            if !b.Allow() {
+                t.Errorf("after idle: 2nd Allow() should be true (refilled to capacity 2)")
+            }
+            if b.Allow() {
+                t.Errorf("after idle: 3rd should be FALSE — capped at capacity, not 3600")
+            }
+        }
+      Unit-test the Registry in TWO SEPARATE functions — one outcome each. Packing
+      both into one function produces a test that contradicts itself: it fetches
+      TWO DIFFERENT clients and then asserts they got the SAME bucket, which no
+      correct Registry can satisfy.
+      TestContentTypeJSON: drive the middleware with an ALLOWED request and assert
+      the RESPONSE header Content-Type is exactly "application/json", read off the
+      recorder (rec.Header().Get("Content-Type")). writeJSON sets it on every JSON
+      response.
+      TestRegistrySameClient: on a fresh NewRegistry(1, 1), call Get("a") TWICE and
+      assert the two *Bucket pointers are EQUAL — the SAME id must return the SAME
+      bucket, or a client gets a fresh allowance on every request.
+      TestRegistryDistinctClients: on a fresh NewRegistry(1, 1), call Get("a") and
+      then Get("b") — TWO DIFFERENT ids — and assert the two *Bucket pointers are
+      DIFFERENT and that Len() == 2. Different clients are different buckets; that
+      is what per-client limiting means.
+      The
+      fake clock MUST start at a CONCRETE NON-ZERO time (e.g. time.Date(2000, 1,
+      1, 0, 0, 0, 0, time.UTC)) — never the zero time.Time{}, because the bucket
+      seeds its `last` from the first now() and a zero start is indistinguishable
+      from an unseeded last, so refills would never register.
+      Flow-test against NewRouter via hit(), as SEPARATE FOCUSED TEST FUNCTIONS.
+      CRITICAL — isolate the REGISTRY, not just the mux: the mux is stateless, and
+      the registry is what holds the per-client token buckets. Each test function
+      MUST build BOTH, from scratch, at the top of its own body:
+      `reg := NewRegistry(1, 1)` and then `mux := NewRouter(reg)`. A fresh mux over
+      a SHARED registry isolates nothing — the earlier function has already spent
+      clientA's only token, so the next one sees 429 where it expects 200, and no
+      implementation can make that pass. Never build the registry once outside and
+      reuse it.
+      Use CAPACITY 1 (NewRegistry(1, 1)) so the FIRST request for a client is
+      allowed and the SECOND is denied; do not use a capacity that would still
+      allow the second request. THREE MORE test functions — these are IN ADDITION
+      to TestBucket, TestBucketCapAfterIdle, TestRegistrySameClient,
+      TestRegistryDistinctClients and TestContentTypeJSON above, which all stay —
+      and here they are, all three:
+      TestFlowAllowThenDeny: rec := hit(mux, "/ping", "clientA") returns 200, then
+      a SECOND hit(mux, "/ping", "clientA") returns 429 with
+      rec.Header().Get("Retry-After") == "1" and a JSON error body (read the
+      recorder header with rec.Header().Get — Header is a METHOD, call it).
+      TestFlowTwoClients: on a FRESH registry, hit clientA once (200) and clientB
+      once (200), proving they have separate allowances, then hit clientA a second
+      time (429) and clientB a second time (429), proving A exhausting its bucket
+      did not 429 B.
+      TestFlowHealthAlwaysOK: GET /health returns 200 even for a client whose
+      bucket you have just exhausted.
+      Standard library only.
+      NEVER NAME A LOCAL VARIABLE t — this is a constraint on the test, not a style
+      preference. In a Go test the parameter t is the only channel a failure has: t.Errorf
+      and t.Fatalf are how an assertion reports, and nothing else in the function reaches
+      the test runner. A loop variable, a struct field or a helper parameter named t
+      SHADOWS that handle for the rest of its scope, and every call written after it
+      compiles against the wrong receiver or does not compile at all.
+      The shadowed form is the dangerous one, because the compiler can accept it. A value
+      that happens to carry an Errorf method takes the call, the file builds, vet stays
+      quiet, and the assertions inside that scope no longer have a route to the runner.
+      NOTHING IN A PASSING RUN DISTINGUISHES A REPORTING ASSERTION FROM A SHADOWED ONE.
+      Give the loop variable, the table row and the helper argument their own names —
+      tc, row, want, got — and leave t meaning exactly one thing in the whole file.
