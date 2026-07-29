@@ -177,3 +177,53 @@ also the only one of the four where the spec explicitly FORBIDS additional asser
 pattern and the prohibition are confounded in the only negative instance, which is exactly
 why the falsification test in this file is the right next move: rewrite taskapipro's entry
 to name the items and redraw. If the seeds become 3, the assertion shape is what governs.
+
+
+CORRECTION AND SHARPENING (11:17) — IT IS THE SETUP INSTRUCTION, NOT THE ASSERTION SHAPE
+=========================================================================================
+A within-FILE control found by auditing every spec instruction that asks for an explicit
+count. It corrects the mechanism this file has been claiming.
+
+taskapipro/internal/api/router_test.go holds BOTH of these, same draw, same model:
+
+  TestListLimit          spec: "POST TWO tasks FIRST with ids OUT OF ORDER — id "2" then
+                                id "1""
+                         drew: TWO POSTs, bodies id "2" and id "1".   COUNT CORRECT.
+
+  TestListDefaults...    spec: "POST THREE tasks"
+                         drew: ONE POST.                              COUNT WRONG.
+
+Same file. Same generation. The instruction that ENUMERATED THE ITEMS got its count right;
+the instruction that stated only a NUMBER did not. That removes the artifact-level confound
+this file was carrying — it is no longer taskapipro-versus-lrucache, it is two entries eight
+lines apart in one file.
+
+AND THE ASSERTIONS ARE NOT WHAT DID IT. TestListLimit's spec also asks for a first assertion
+block — decode into `all` of length 2 and assert all[0].ID == "1", all[1].ID == "2". THE
+DRAW DROPPED THAT ENTIRELY and went straight to the ?limit=1 request. So the per-item
+assertions were NOT written, and the setup was STILL correct.
+
+    What pins the setup is naming the items in the SETUP INSTRUCTION.
+    Per-item assertions are a separate thing, and they can be dropped independently.
+
+WHAT THIS CORRECTS. The section above says "a per-item assertion makes the setup
+structural". That was the right family and the wrong member. The presence that matters is in
+the instruction, not in the assertion — and TestListLimit is the case that separates them,
+because it has one without the other.
+
+THE REPAIR GETS CHEAPER AND MORE DIRECT
+Earlier this file proposed rewriting the assertion to name what came back. The better repair
+is one clause earlier in the sentence:
+
+    instead of:  POST THREE tasks
+    write:       POST THREE tasks with ids "1", "2", "3"
+
+That is what TestListLimit already has and what taskflow, lrucache and ratelimit all have in
+their own forms. It leaves the ONLY-assertion rule untouched, which matters because that rule
+was fixing a real shortener defect and I would rather not trade one for the other.
+
+⚠️ AND IT RE-OPENS A CONFOUND I HAD CLOSED. lrucache, taskflow and ratelimit all enumerate
+their items AND assert per-item, so they cannot separate the two. TestListLimit is the ONLY
+instance where the enumeration appears without the assertions, and it comes down on the side
+of the enumeration. One instance. The falsification test should now vary the SETUP CLAUSE
+alone — add ids to taskapipro's paging entries, change nothing else, redraw.
