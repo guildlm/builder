@@ -90,3 +90,50 @@ METHOD NOTES, because two matcher bugs were found and fixed while building this
   * One-sided evidence is still evidence: if the v5 tree was model-rewritten, the difference
     is unattributable whatever the v4 log says. Reporting those as UNKNOWN threw away four
     verdicts the evidence supported.
+
+
+THE DENOMINATOR, TOO (17:23) — and it answers the obvious worry about the dirty rows
+=====================================================================================
+The flips were split by provenance above. The 140 live-in-both rows they are drawn from
+split as well, and that is the number that says how well-founded the drift estimate is:
+
+    CLEAN-BOTH     25 live rows   18%    no model rewrite either side
+    PARTIAL        87 live rows   62%    v5 clean, v4 tree undatable
+    MISMATCHED     28 live rows   20%    one side model-rewritten
+
+    Six-up-and-two-down is measured over 140 rows of which 25 are fully controlled.
+
+WHERE THE ROWS ACTUALLY ARE
+    taskflow      47  PARTIAL        jsoncodec      6  CLEAN-BOTH
+    tasks-api     26  PARTIAL        ratelimit      5  PARTIAL
+    usersapi      16  MISMATCHED     logstats       5  MISMATCHED
+    shortener     14  CLEAN-BOTH     kvservice      4  CLEAN-BOTH
+    jsonapi        8  PARTIAL        bitset         3  MISMATCHED
+                                     taskapipro     3  MISMATCHED
+                                     priorityqueue  1  CLEAN-BOTH
+                                     numkit         1  PARTIAL
+                                     workapi        1  MISMATCHED
+
+Two artifacts, taskflow and tasks-api, carry 73 of the 140 rows — just over half — and both
+are PARTIAL for the same reason: their v5 draws converged on deterministic fixes alone (clean),
+while their v4 trees have a single-second mtime and cannot be matched to a build log.
+
+    So the dominant uncertainty in the capstone is NOT model rewrites. It is that half the
+    baseline's v4 side cannot be dated. That is a different problem with a different fix, and
+    `.pre-fix.json` addresses it going forward while doing nothing for the rows already taken.
+
+THE WORRY THIS ANSWERS: does provenance mismatch INFLATE the flip count?
+If a model rewriting a test file were manufacturing flips, the MISMATCHED bucket would show
+the highest flip rate. It shows the lowest:
+
+    CLEAN-BOTH     2 flips / 25 rows    8.0%
+    PARTIAL        5 flips / 87 rows    5.7%
+    MISMATCHED     1 flip  / 28 rows    3.6%
+
+⚠️ AND THE COUNTS ARE FAR TOO SMALL TO SEPARATE. 2, 5 and 1. Any two of these rates are
+indistinguishable at this size and the ordering would move if a single row changed verdict.
+What it rules out is a LARGE inflation effect — dirty rows are not flipping several times more
+often than clean ones — and that is the whole claim. It does not license reading the dirty
+rows as evidence about closures; the usersapi row is still the one where a test file was
+rewritten in the same draw that gained a defence, and that stays unattributable whatever the
+bucket rate says.
