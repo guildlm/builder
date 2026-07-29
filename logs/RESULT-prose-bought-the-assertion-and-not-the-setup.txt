@@ -274,3 +274,41 @@ WHAT DOES NOT SURVIVE
   * "setup counts are not stable across draws" as an unqualified claim. They are stable
     across draws that share a day and a server process. The instability is BETWEEN
     conditions, and the condition that changed has not been identified.
+
+
+ALL FOUR TWINS REPRODUCE (14:03) — and the convergence pattern favours one explanation
+=======================================================================================
+Draw 2's projects_test.go landed. Every twin matches draw 1 exactly:
+
+                     chain4 (28 Jul)   draw 1 (29 Jul 09:30)   draw 2 (29 Jul 13:27)
+    tasks twins      3, 3              1, 2                    1, 2
+    projects twins   1, 1              1, 2                    1, 2
+
+    _twin_witness on draw 2: 0 of 4 discriminate — the same verdict, the same seeds, the
+    same bounds, four hours apart.
+
+Two independent draws agreeing on ALL FOUR counts is close to conclusive against sampling
+variance. Whatever moved these numbers between 28 and 29 July was systematic.
+
+THE CONVERGENCE IS THE NEW INFORMATION
+On chain4 the two arms DISAGREED — tasks 3,3 and projects 1,1. Today they AGREE, at 1,2 and
+1,2. The arms did not drift independently; they converged on the same pair.
+
+    That is the mirroring signature. Whatever changed pushed projects_test.go and
+    router_test.go into identical output rather than moving each on its own — which is what
+    today's draws showed structurally too, the two files carrying the same seed counts, the
+    same assertion, and the same undeclared-w defect.
+
+WHICH SLIGHTLY FAVOURS THE PROJECTS-ENTRY EDIT OVER THE SERVER PROCESS, and only slightly.
+Mirroring is a within-spec mechanism: a change to one entry propagating into the file that
+mirrors it is a story about the prompt, not about the server. A server restart has no obvious
+reason to make two files agree that previously disagreed.
+
+    But "has no obvious reason" is not evidence, and I have retracted three stories today
+    for exactly this kind of it-fits reasoning. Recorded as a lean, not a conclusion.
+
+THE SEPARATING DRAW IS UNCHANGED AND NOW BETTER MOTIVATED: revert the projects entry to its
+pre-15e25f3 text, draw once on today's server, and read the TASKS twins. If they return to
+3,3 the projects edit was moving them. If they stay 1,2 the server process is the candidate
+and the projects edit is exonerated. One draw, one variable, and the tasks arm is the readout
+precisely because nobody edited it.
