@@ -5211,13 +5211,24 @@ def _fix_loop(
     # (generate-then-fix) and `maintain` (edit-then-fix). "As drawn" is wrong for the second,
     # and a field name that is wrong for half its callers is how one gets misread later.
     #
+    # WRITE-ONCE, and that is load-bearing rather than tidy. _fix_loop has THREE call sites:
+    # `build` calls it once, and `maintain` calls it TWICE — once to converge the
+    # implementation on build_vet, then again for the full verify. Without this guard:
+    #   * maintain's second call would overwrite the first, and the file would hold the state
+    #     AFTER a convergence pass while claiming to be pre-fix;
+    #   * maintain run over a GENERATED tree would destroy that tree's build-time snapshot —
+    #     the only record of what the model originally drew — and replace it with a
+    #     pre-maintain one. Silently, since the name would not change.
+    # First writer in a tree's life wins, which is the earliest and therefore truest state.
+    #
     # NEVER FAILS THE BUILD. A snapshot is diagnostics; if it cannot be written the run must
     # continue exactly as before.
-    try:
-        (out / ".pre-fix.json").write_text(
-            json.dumps(written, indent=1, sort_keys=True), encoding="utf-8")
-    except OSError as exc:  # pragma: no cover - diagnostics must never break a build
-        _log(f"  (could not write .pre-fix.json: {exc})")
+    _snap = out / ".pre-fix.json"
+    if not _snap.exists():
+        try:
+            _snap.write_text(json.dumps(written, indent=1, sort_keys=True), encoding="utf-8")
+        except OSError as exc:  # pragma: no cover - diagnostics must never break a build
+            _log(f"  (could not write .pre-fix.json: {exc})")
     ok, output = check(out)
     if ok:
         _log("compile/test passed")
