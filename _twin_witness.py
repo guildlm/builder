@@ -55,16 +55,43 @@ def bodies(text: str) -> list[tuple[str, str]]:
 
 
 def literal_len(items: str) -> int:
-    """Elements in a slice literal, counting only commas at depth 0."""
-    depth, n = 0, 1
+    """Elements in a slice literal: depth-0 comma-separated segments that are NON-EMPTY.
+
+    COUNTING COMMAS AND ADDING ONE IS WRONG IN GO, and this returned 4 for a three-element
+    literal until 15:07 on 29 July. Go permits — and gofmt REQUIRES — a trailing comma in a
+    multi-line composite literal:
+
+        []string{
+            `{"id":"3","name":"c"}`,
+            `{"id":"1","name":"a"}`,
+            `{"id":"2","name":"b"}`,      <- this one
+        }
+
+    Three elements, three depth-0 commas. commas+1 gives four. Splitting and dropping empty
+    segments gives three, and handles a single-line literal with no trailing comma equally.
+
+    Caught by the tool disagreeing with the source: it reported seeds=4 against an assertion
+    of 3 on a tree that was GREEN, and a green tree whose witness "cannot pass" is a
+    contradiction that has to be one of the two being wrong. It was the instrument.
+
+    The self-test did not catch it because the planted literal had no trailing comma — the
+    fixture was written by hand, and by hand one does not add one. Real gofmt'd Go always
+    does. A fixture that is not formatted the way the corpus is formatted tests a language
+    nobody writes.
+    """
+    depth, segs, cur = 0, [], ""
     for ch in items:
         if ch in "{[(":
             depth += 1
         elif ch in "}])":
             depth -= 1
-        elif ch == "," and depth == 0:
-            n += 1
-    return n if items.strip() else 0
+        if ch == "," and depth == 0:
+            segs.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    segs.append(cur)
+    return sum(1 for seg in segs if seg.strip())
 
 
 def seeds(body: str) -> int:
@@ -154,6 +181,10 @@ def self_test() -> int:
     # A slice literal with a nested brace must not over-count.
     if literal_len('`{"id":"1"}`, `{"id":"2"}`') != 2:
         fails.append("commas inside braces must not be counted as separators")
+    # THE TRAILING COMMA — gofmt requires one in a multi-line literal, every real Go file
+    # has it, and counting commas+1 turns three elements into four.
+    if literal_len('\n\t`{"id":"3"}`,\n\t`{"id":"1"}`,\n\t`{"id":"2"}`,\n') != 3:
+        fails.append("a gofmt trailing comma must not add a phantom element")
     for f in fails:
         print(f"  FAIL: {f}")
     print("self-test: " + ("FAILED" if fails else
