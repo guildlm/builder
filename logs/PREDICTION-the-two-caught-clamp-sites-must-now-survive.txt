@@ -50,3 +50,45 @@ HOW TO GRADE IT: after the tree lands, on a COPY, mutate each of the four sites 
 already-recorded way (limit = h.defaultPageSize -> a wrong literal; the clamp removed) and
 run only the named test. Read the UNMUTATED baseline first for each one, because Twin A is
 red before anything is touched.
+
+
+GRADED 13:01 — VOID. All four INCONCLUSIVE, exactly as the void condition described.
+=====================================================================================
+
+    CAUGHT 0 · SURVIVED 0 · INCONCLUSIVE 4  (of 4)
+    every row: "FAIL  -  INCONCLUSIVE (witness already broken)"
+
+The unmutated baseline fails on all four, so no mutation on this tree can be graded. The
+prediction — all four SURVIVED, 90% — asked a question taskapipro-v5 cannot answer.
+
+VOID, NOT WRONG, AND THE VOID CONDITION WAS WRITTEN IN ADVANCE. This file's own text says:
+"the fix loop is still running... if a later round repairs the seed counts, the premise
+evaporates and this prediction is void rather than wrong". The premise evaporated the other
+way — the tree never compiled, so the twins never ran and their baseline is red.
+
+    Fourth prediction today to resolve VOID rather than hit or miss. The pattern is now
+    unmistakable: taskapipro's (a)-vs-(b), the sentinel repair, and both of these. Every
+    one assumed the machinery would reach the question, and the machinery kept not
+    reaching it.
+
+THE GRADER'S DESIGN IS WHAT MAKES THIS READABLE. Written at 10:43 with the baseline-first
+rule specifically so a red baseline could not be counted as CAUGHT:
+
+    baseline PASS -> mutant FAIL = CAUGHT, mutant PASS = SURVIVED
+    baseline FAIL -> INCONCLUSIVE
+
+Without that rule all four would have reported CAUGHT — the named test fails after mutation,
+because it was already failing — and I would have recorded that _twin_witness disagreed with
+mutation on four rows and gone looking for a bug in the instrument. The static reading was
+right; only the tree could not be asked.
+
+WHAT SURVIVES OF THE QUESTION
+_twin_witness says 0 of 4 witnesses can discriminate on this tree, and that reading stands
+on the source: seeds 1,2,1,2 against bounds 2,2,2,2. It has never been checked against
+mutation, because the only tree carrying those witnesses does not compile. The static
+instrument remains validated only retrodictively — 4 of 4 against chain4's mutation grades —
+and the prospective test is still owed.
+
+    It needs a taskapipro tree that BUILDS. The one permitted redraw is the natural
+    occasion, and if that draw comes back green this grade should be re-run against it
+    before anything else.
