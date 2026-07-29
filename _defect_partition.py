@@ -144,10 +144,25 @@ def self_test() -> int:
     # But timings must be, or two identical runs would look different.
     if defects("[guildlm-build]     ! ok x 0.413s\n") != defects("[guildlm-build]     ! ok x 0.303s\n"):
         fails.append("timings must normalise")
+    # FIRST-APPEARANCE ROUND — the dimension whose absence let a post-repair comparison be
+    # published as an as-drawn one. A defect seen only in round 2 must NOT report round 1.
+    br = defects_by_round(log)
+    if br.get("internal/api/p.go:7:2: package x/internal/models is not in std") != 1:
+        fails.append(f"an import error in round 1 must record round 1; got {br}")
+    if br.get("vet: internal/api/p_test.go:183:2: undefined: w") != 2:
+        fails.append("a defect first seen in round 2 must record round 2, not 1 — that is the "
+                     "difference between 'the spec produced it' and 'it survived a repair'")
+    # A defect recurring in later rounds keeps its FIRST round, not its last.
+    twice = log + "[guildlm-build] compile/test FAILED, fix round 3/6\n" + \
+        "[guildlm-build]     ! internal/api/p.go:7:2: package x/internal/models is not in std (/o)\n"
+    if defects_by_round(twice)["internal/api/p.go:7:2: package x/internal/models is not in std"] != 1:
+        fails.append("a recurring defect must keep its FIRST round")
+
     for f in fails:
         print(f"  FAIL: {f}")
     print("self-test: " + ("FAILED" if fails else
-                           "ok — GOROOT stripped, line:col kept, structural lines dropped"))
+                           "ok — GOROOT stripped, line:col kept, structural lines dropped, "
+                           "and first-appearance round recorded"))
     return 1 if fails else 0
 
 
@@ -179,15 +194,51 @@ def main() -> int:
     only_treat = sorted(in_all_treat - in_any_ctrl)
 
     print(f"\nDEFECTS IN EVERY TREATMENT DRAW AND NO CONTROL DRAW  ({len(only_treat)})")
-    by_round = {}
+    by_round0 = {}
     for label, name in {**CONTROL, **TREATMENT}.items():
         p = LOGS / name
         if p.is_file():
-            by_round[label] = defects_by_round(p.read_text(errors="ignore"))
+            by_round0[label] = defects_by_round(p.read_text(errors="ignore"))
+    def reached(label: str, pkg: str, rnd: int) -> bool:
+        """Did this draw's round `rnd` produce ANY output about package `pkg`?
+
+        "ABSENT FROM THE CONTROL" IS NOT EVIDENCE IF THE CONTROL NEVER LOOKED. Go builds
+        per package and skips any whose dependency failed, so a control whose round 1 died
+        in internal/store never evaluated internal/api at all — and its silence about an
+        internal/api defect means nothing. That exact confusion cost the import table one of
+        its arms at 17:26, and without this check the tool reprints it as a clean
+        "absent from chain5 too".
+
+        Checked at the round the defect appears in TREATMENT, not anywhere in the log: a
+        control that reached the package in round 3 says nothing about round 1.
+        """
+        p2 = LOGS / {**CONTROL, **TREATMENT}[label]
+        if not p2.is_file():
+            return False
+        cur = 0
+        for ln in p2.read_text(errors="ignore").splitlines():
+            m = ROUND_HDR.search(ln)
+            if m:
+                cur = int(m.group(1))
+                continue
+            if cur == rnd and ERRLINE.match(ln) and pkg in ln:
+                return True
+        return False
+
     for d in only_treat:
-        c5 = "absent from chain5 too" if "chain5" in got and d not in got["chain5"][0] else \
-             "⚠ present in chain5"
-        first = {l: by_round[l][d] for l in treat if l in by_round and d in by_round[l]}
+        first = {l: by_round0[l][d] for l in treat if l in by_round0 and d in by_round0[l]}
+        rnd = min(first.values()) if first else 0
+        pkg = d.split(":")[0].rsplit("/", 1)[0] if "/" in d.split(":")[0] else ""
+        pkg = pkg.replace("vet: ", "")
+        if "chain5" not in got:
+            c5 = "chain5 log missing"
+        elif d in got["chain5"][0]:
+            c5 = "⚠ present in chain5"
+        elif pkg and not reached("chain5", pkg, rnd):
+            c5 = (f"⚠ NOT A MEASUREMENT — chain5's round {rnd} produced no output about "
+                  f"{pkg} at all, so it never evaluated this")
+        else:
+            c5 = f"absent from chain5, which DID reach {pkg or 'it'} in round {rnd}"
         stage = ("AS-DRAWN (round 1 in every treatment arm)"
                  if first and set(first.values()) == {1}
                  else f"POST-REPAIR — first seen in round(s) {sorted(set(first.values()))}, "
