@@ -106,3 +106,66 @@ files. This is entirely a mode-2 result.
 a wrong import path, so no verdict here comes from execution. Every claim above is read off
 the source as drawn. That is the correct evidence for questions about what the model WROTE,
 and it is not evidence about what the suite DOES.
+
+
+CORRECTION (same day, ~10:40) — "THE REPAIR WORKED ON THE ASSERTION" IS NOT IDENTIFIABLE
+=========================================================================================
+Checking the mirroring claim at N=2 undercut a conclusion stated above, and the conclusion
+is withdrawn rather than defended.
+
+taskapi-v5's empty-list twins are CHARACTER-FOR-CHARACTER IDENTICAL apart from the route,
+the function name, and the string in t.Errorf:
+
+    func TestListEmptyIsEmptyArray            func TestProjectListEmptyIsEmptyArray
+        h := newRouter()                          h := newRouter()
+        GET "/tasks"                              GET "/projects"
+        want 200                                  want 200
+        TrimSpace(body) != "[]"                   TrimSpace(body) != "[]"
+
+Same structure, same helper, same assertion, same shape of error message. Those two are the
+pair that FIRED FOR REAL against a genuine nil-slice defect — so mirroring reproduces a
+CORRECT witness just as faithfully as it reproduced two broken ones in taskapipro. Mirroring
+is quality-neutral: it copies whatever the first file did.
+
+WHY THAT BREAKS THE CLAIM ABOVE
+The section "THE REPAIR WORKED — ON THE ASSERTION" reads the projects twins going from
+`assert 1` to `assert 2` as the repaired reason taking effect. Mirroring explains the same
+observation with no reference to the repair at all: the projects file copied the tasks file,
+and the tasks twins have asserted 2 in BOTH draws. The POST counts mirrored too — 1 and 2,
+which no entry asked for — so the mechanism that demonstrably moved the setup numbers is
+also sufficient for the assertion number. One mechanism, both columns.
+
+    Two explanations, one draw, and nothing in this draw separates them. The repair's
+    effect on the assertion is UNIDENTIFIABLE here.
+
+WHAT STILL STANDS, AND WHY
+The load-bearing observation does not depend on the projects arm at all: the TASKS twins
+went POSTs=3 on chain4 to POSTs=1 and 2 on v5 with their entry UNEDITED. That is a single
+artifact, a single unchanged sentence, and a setup count that moved anyway. "Setup counts
+are not stable across draws and were not secured by prose" survives on that evidence alone.
+
+What does NOT survive is the paired framing — assertions repairable, setups not — because
+the assertion half rested on the projects arm, and the projects arm is a copy.
+
+THE HEADLINE SHOULD HAVE BEEN NARROWER
+The honest one-line result of this draw is:
+
+    The tasks paging witnesses regressed with their spec entry unchanged, and the projects
+    file mirrored them, so this draw contains ONE independent observation, not two.
+
+The prediction grades are unaffected — POSTs THREE was predicted and one was drawn, sites
+flipping to CAUGHT was predicted and cannot happen. Both still WRONG.
+
+THE DISCRIMINATING EXPERIMENT, NOW SPECIFIED
+Mirroring and per-entry prose make the same prediction whenever the two entries agree. They
+diverge only when the entries DISAGREE — chain4 is the existing instance, where the entries
+differed (tasks had a reason, projects did not) and the files did NOT mirror. So:
+
+    Draw taskapipro with the TASKS entry deliberately asking for a different item count
+    than the PROJECTS entry. If the projects file follows its own entry, prose wins. If it
+    follows tasks, mirroring wins. One draw, binary, and it settles which mechanism the
+    campaign has actually been measuring all week.
+
+That is worth more than any further repair to the projects wording, and it must wait for
+the draws to drain — see NOTE-do-not-touch-src-until-the-draws-drain.txt for the adjacent
+rule about the generator.
