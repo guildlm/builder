@@ -142,3 +142,42 @@ WHAT TO REPORT FROM THE DIFF, unchanged in principle and sharper in number: rows
 BOTH sweeps first, with the four red artifacts named and 146 stated as the dead count. A
 "comparable" figure that silently includes 146 BASELINE-RED rows would describe a corpus
 half of which was not measured.
+
+
+HOW MUCH THE QUEUED FIX WOULD RECOVER (12:08) — measured per package, bounded
+==============================================================================
+The 146 dead rows are not equally dead. Broken down by the package each row sits in:
+
+    workapi-v4     36 rows   internal/api 19 · models 7 · config 5 · service 4 · store 1
+    taskapi-v4     40 rows   internal/api 29 · models 9 · store 2
+    taskapipro-v4  62 rows   internal/api 40 · models 9 · config 7 · service 4 · store 2
+    expreval-v4     8 rows   (root) 8
+
+workapi is the recoverable case, and the arithmetic is stark. Its ONLY reported failure is
+
+    vet: internal/service/service_test.go:165:9: undefined: fake
+
+which is 4 rows. internal/api reported `ok` explicitly in four rounds — 19 rows. So AT LEAST
+19 and plausibly 32 of workapi's 36 rows are gradeable right now and are being reported
+ungradeable.
+
+    At least 19 rows lost to a scoping choice; 4 lost to the actual defect.
+
+⚠️ THE 32 IS AN UPPER BOUND, NOT A MEASUREMENT. Only internal/api was reported `ok` in the
+captured log lines; models, config and store were not listed either way, and I have not run
+them — doing so would put `go test` against a live generation, which is the rule recorded at
+11:02. The confirmed figure is 19. The 32 assumes the untested packages pass, which is likely
+given the single reported failure, and is labelled as an assumption.
+
+THE OTHER THREE ARE NOT RECOVERABLE THIS WAY
+  taskapi     its failure IS in internal/api — the nil-slice defect the empty-list closure
+              caught, in projects_test.go. Scoping does not help; the package under test is
+              the one that is red, and it is red for the right reason.
+  taskapipro  internal/api never compiled at all across seven rounds.
+  expreval    one package, no scope to narrow to.
+
+So per-package scoping recovers workapi and nothing else, and the honest headline for the
+queued fix is "19 to 32 rows of 146", not "half the dead rows". That is still the difference
+between workapi contributing nothing to the capstone and contributing most of its rows — and
+workapi is the artifact carrying the Delete-404 closure, which is the campaign's one clean
+durability result.
