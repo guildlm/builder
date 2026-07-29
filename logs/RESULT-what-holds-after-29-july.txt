@@ -84,14 +84,18 @@ IV. THE LARGEST FINDING, AND IT RELOCATES MOST OF THE MORNING
     tree whose two test files were model-rewritten in rounds 1, 2 and 5 and never compiled
     (v5). Not the same kind of measurement; the difference is not attributable to the edit.
 
-✅ AND AT 17:44 A SECOND DEFECT GOT A FULLY CONTROLLED ATTRIBUTION — the first of the day.
+✅ AND AT 17:44 A SECOND DEFECT GOT A CONTROLLED ATTRIBUTION (narrowed 17:48 — see below).
 `vet: internal/api/projects_test.go:183:2: undefined: w`, same line and column, appears in all
 three +12-line draws and in NEITHER draw without them. chain5 closes the SERVER arm (same
 process 4439, same base spec, differs only by the twelve lines) and the inert draw closes the
 CONTENT arm (same position and length, completely different prose). chain5 is a valid control
 because its projects_test.go COMPILED AND RAN — its failures are runtime assertions inside that
-file, which a file carrying `undefined: w` could never produce. So: twelve lines in that entry
-cause a downstream defect, and what they say is irrelevant. See
+file. ⚠️ NARROWED: that comparison is POST-REPAIR on both sides — internal/api does not compile
+until round 2 in ANY taskapipro draw, and round 1 applies 4-5 fixes to projects_test.go first.
+Matched stage, comparable repair, both confounds still held — so the spec attribution and the
+content-irrelevance survive, but "the model wrote it" does not: the repair loop is inside the
+mechanism. The two IMPORT errors, by contrast, ARE as-drawn (round 1) — with their control side
+unmeasured. Neither finding is the clean one; the pristine draw supplies both. See
 RESULT-twelve-lines-cause-a-defect-with-the-server-controlled.txt.
 
 ⚠️ THE CONTROL ARM LANDED AT 17:36, BRANCH A. Twelve lines of INERT prose — reasoning for

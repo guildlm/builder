@@ -72,3 +72,52 @@ or one, have never been tried.
 question. This defect turned up in its round-2 output while waiting, and chain5 happened to
 constitute the control. Worth saying because the design that produced the day's cleanest
 attribution was not the designed one.
+
+
+CORRECTION (17:48) — this is a POST-REPAIR comparison, not an as-drawn one
+===========================================================================
+Built `_defect_partition.py` to ask the same question of every defect rather than the one I
+happened to read, and it found the same three — the two import errors and `undefined: w` —
+partitioning perfectly. Then I gave it the dimension it shipped without, the round each defect
+FIRST appears in, and it corrects this file.
+
+    internal/api/projects.go:7:2  package ... models is not in std   ROUND 1 — AS-DRAWN
+    internal/api/projects.go:8:2  package ... service is not in std  ROUND 1 — AS-DRAWN
+    vet: projects_test.go:183:2: undefined: w                        ROUND 2 — POST-REPAIR
+
+WHY THAT MATTERS HERE. In EVERY taskapipro draw, control and treatment alike, internal/api is
+not successfully compiled until round 2, and round 1 applies four or five fixes to
+projects_test.go first — deterministic passes, a drained-body rebuild, and a model rewrite.
+So the first moment `undefined: w` could be observed anywhere is already post-repair.
+
+    WITHDRAWN: "chain5's projects_test.go COMPILED AND RAN ... so chain5 genuinely lacks the
+    defect." It lacks it AT ROUND 2, after four fixes to that file. Whether it was ever there
+    as drawn is not recoverable, for exactly the reason recorded twice today: nothing
+    persists the as-drawn tree.
+
+WHAT SURVIVES, and it is still a controlled result — just a narrower one
+Both arms are observed at the SAME STAGE (first successful compile of internal/api,
+post-round-1-repair) with comparable repair applied to that file on both sides. At that
+matched stage the defect is present in all three treatment draws and absent from both
+controls. The server is still held by chain5 and the content still by the inert arm.
+
+    SO: adding twelve lines to the projects entry produces a tree that still carries
+    `undefined: w` after a round of repair, and one without them does not. The attribution to
+    the spec holds and the content is still irrelevant. What is no longer claimed is that the
+    MODEL WROTE the defect — the repair loop is inside the mechanism now, and "the lines
+    caused it" and "the lines caused the repair to fail to fix it" are not separated.
+
+⚠️ AND THE IMPORT DEFECTS' CONTROL SIDE IS STILL NOT A MEASUREMENT. The partition tool reports
+them "absent from chain5 too", which is literally true of the log and is NOT evidence: chain5's
+round 1 died in internal/store and never evaluated internal/api's imports at all. The tool
+cannot see that, and a reader would take the line at face value. This is the same masking that
+cost the import table an arm at 17:26 — it does not stop being true because a different tool
+printed it.
+
+    The two findings are therefore in opposite positions, which is worth stating plainly:
+        IMPORT ERRORS   measured AS-DRAWN in treatment, control side UNMEASURED
+        undefined: w    measured POST-REPAIR on both sides, control side VALID at that stage
+
+    Neither is the clean thing. `_pristine_pre_edit_draw.sh` supplies both: a pre-edit draw on
+    4439 whose round 1 either reaches internal/api or does not, graded by the tool that knows
+    the difference.
