@@ -1,0 +1,67 @@
+NOTE — the gate this morning's result asks for has an exact precedent, and it names the trap
+============================================================================================
+
+Written 29 July ~11:05 while the taskapipro-v5 fix loop ran. Design only; nothing built,
+because src/ is an editable install and three draws are still owed
+(NOTE-do-not-touch-src-until-the-draws-drain.txt).
+
+THE PRECEDENT IS `_fix_drained_body` + tools/freshreq.go, AND ITS DOCSTRING IS THE ARGUMENT
+Reading it settles whether a paging-seed gate is justified, because it is the same defect
+at the same point in its lifecycle. Quoting the parts that transfer:
+
+    "STRUCTURAL, not error-driven, and that is deliberate. The defect surfaces as a test
+     assertion failure whose text is written by the spec (`want 409, got 400`), not by the
+     compiler — there is no sentence a gate could key on."
+
+    "This one earned its gate. Six escalating versions of the prompt default failed to stop
+     it — the rule names the variable, forbids the reuse, explains the drain, predicts the
+     exact status code, quotes the wrong code verbatim as 'exactly the bug', and anchors the
+     example to the duplicate test by name. The corpus was checked and does not teach it.
+     The model writes it anyway... A nudge is not a gate."
+
+Every clause applies to the paging seed count. The spec entry names the quantity, forbids
+the wrong one ("POST THREE projects, NOT ONE"), explains the drain-equivalent (a store
+smaller than the page size makes every handler agree), predicts the exact failure ("NO INPUT
+DISTINGUISHES A CORRECT HANDLER FROM ONE THAT IGNORES THE FIELD"), and anchors it to the
+measured draw. The model writes seeds=1 anyway, on BOTH arms, in the SAME file.
+
+    The paging seed count is the drained body, one lifecycle stage later. The escalation
+    has already been tried and has already failed. This is the point at which that gate
+    was built.
+
+WHAT THAT MAKES THE BUILD
+Not a new capability — a second instance of an existing pattern:
+    tools/pagingseed.go     reads a _test.go on stdin, rewrites, exit 3 = nothing to do
+    _fix_paging_seed(...)   ~25 lines mirroring _fix_drained_body, structural, del error_output
+    six tests               the suite convention for a new gate (403 -> 409 last time)
+The detection is already written and validated: _twin_witness.py's relation, which
+reproduced four of four mutation grades on chain4. The gate is that predicate plus a
+rewrite.
+
+⚠️ THE TRAP, NAMED BY THE PRECEDENT'S OWN SAFETY SECTION
+freshreq.go earns its correctness by REPLAYING the author's mutations: "without which the
+repaired test loses its req.Header.Set("Authorization", ...) and fails 401 instead of 400,
+trading one silent breakage for another."
+
+The paging equivalent is sharper. The naive repair — duplicate the seeding POST until
+seeds > bound — produces the SAME BODY twice, and every one of these artifacts rejects a
+duplicate id with 409 Conflict. The store would still hold one item, the test would still
+fail, and the gate would have written a repair that looks right and changes nothing. So:
+
+    A paging-seed gate MUST vary the identifying field per seeded item, and must know
+    which field that is. taskapipro uses `id`; another spec may use `name` or a
+    server-assigned code that cannot be set at all.
+
+That last case is the real bound. shortener's codes are assigned by Save and the spec
+forbids guessing them — a gate that invents ids would break exactly the rule
+NEVER GUESS A SHORT CODE exists to protect. So the gate must REFUSE where it cannot
+identify a settable unique field, and refusing must be its default, not its fallback.
+
+    Detection is corpus-wide. The rewrite is not, and pretending otherwise is how a gate
+    becomes the thing that breaks the suite it was built to defend.
+
+SEQUENCING
+1. Draws drain: workapi, ledger, taskflow. RESULT count 23.
+2. Build the gate with its six tests and a refuse-by-default rewrite.
+3. Its before/after needs a MATCHED PAIR of draws — one more reason not to spend the
+   current corpus on it.
