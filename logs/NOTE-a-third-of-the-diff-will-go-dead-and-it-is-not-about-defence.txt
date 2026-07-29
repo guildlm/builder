@@ -59,3 +59,34 @@ suites that pass, so a suite that is currently DOING ITS JOB is invisible to the
 make its rows gradeable and would destroy the thing they would be graded on — the defect is
 what the closure caught. If a comparable number for taskapi is wanted it needs a fresh draw,
 not a repair.
+
+
+COHERENCE CHECK (11:12) — THE v5 CORPUS MATCHES THE CURRENT SPECS, WITH ONE KNOWN EXCEPTION
+============================================================================================
+The capstone asks whether the REPAIRED SPEC SET produces a better corpus. That question is
+only answerable if the corpus was actually drawn from the specs as they now stand. If specs
+had been edited mid-sweep the v5 trees would be a mix of before-and-after and the comparison
+would be about nothing in particular.
+
+Checked by comparing every spec's mtime against its tree's:
+
+    22 v5 trees with a spec · 1 has a spec NEWER than the draw
+
+    taskflow      spec edited 07-29 00:42     tree drawn 07-29 00:39     SPEC-NEWER
+
+That is the rename, by three minutes, and it is the case already known and already queued
+for a retest. Every other tree was drawn from the spec as it stands today.
+
+So the corpus is spec-coherent, and the one incoherent artifact is the one whose incoherence
+IS the pending experiment. _named_present flags it by itself, which is why that hint was
+added.
+
+⚠️ MTIME IS FORGEABLE AND IS A HINT, NOT A PROOF — the same caveat _named_present carries.
+It is evidence that no spec was quietly edited mid-sweep, not a guarantee. The stronger check
+is `git log --since` over specs/, and for the three specs that matter most the answer is
+already known from their commits: taskapipro's paging repair and shortener's prohibition both
+predate the sweep, and taskflow's rename is the exception above.
+
+⚠️ AND IT SAYS NOTHING ABOUT ledger, workapi OR THE taskapipro REDRAW, which are not drawn
+yet. Re-run this check after the corpus completes; a spec edited between now and then would
+be invisible to the run above.
