@@ -12,13 +12,23 @@ FINDING-twelve-lines-in-one-entry-broke-three-other-files.txt left open in its o
 
 THE ESTABLISHED TABLE, from round-1 logs across four draws
 -----------------------------------------------------------
-    draw       projects entry       server     import-path errors in round 1
-    chain4     PRE-edit             28 Jul     0
-    chain5     PRE-edit             29 Jul     0
-    v5 (1st)   POST-edit (+12)      29 Jul     4
-    v5 (2nd)   POST-edit (+12)      29 Jul     4
+    draw       projects entry       server        round-1 verdict
+    chain4     PRE-edit             28 Jul        FINE, measured
+    chain5     PRE-edit             29 Jul/4439   ⚠ UNMEASURED  (corrected 17:26)
+    v5 (1st)   POST-edit (+12)      29 Jul/4439   DEFECT, 4 error lines
+    v5 (2nd)   POST-edit (+12)      29 Jul/4439   DEFECT, 4 error lines
 
-Deterministic in both directions, and the server is held fixed across the last three.
+⚠️ CORRECTED AFTER THIS PREDICTION WAS WRITTEN, BEFORE THE RESULT LANDED. chain5's row read 0
+when this file was written. It is not a 0: Go skips packages whose dependency failed, chain5's
+round 1 failed in internal/store, and the string "internal/api" never appears in that round —
+so its imports were never evaluated. See the third correction in
+FINDING-twelve-lines-in-one-entry-broke-three-other-files.txt.
+
+    THAT RAISES THE STAKES OF THIS DRAW RATHER THAN CHANGING ITS BRANCHES. chain5 was the only
+    PRE-edit arm on server 4439, so it was what held the server fixed. Without it, spec and
+    server differ together across the surviving rows. This draw is pre-edit prose on 4439 — so
+    a measured grade here supplies the arm chain5 was supposed to be, and does it for the
+    ORIGINAL question at the same time.
 
 THE CONTROL ARM
 ----------------
@@ -47,10 +57,30 @@ BRANCHES
      about the real twelve lines specifically is doing it. Does NOT identify what: see the
      limitation below.
 
-  C  the draw does not reach a round-1 import check — early failure, a different error class
-     dominating, no round-1 log line                       -> INCONCLUSIVE, report as such.
+  C  0 import errors AND internal/api never appears in round 1 — a different package failed
+     first, so the imports were never evaluated             -> UNMEASURED. Not a 0. Report as
+     such and score nothing.
 
-PREDICT A, 60%.
+⚠️ BRANCH C IS SHARPER THAN IT WAS, AND ITS PRIOR IS NOT NEGLIGIBLE (refined 17:27, before the
+result). As first written, C was vague — "does not reach a round-1 import check". The grader
+makes it a decision procedure:
+
+     no round 1 at all              the whole tree compiled -> imports FINE. That is BRANCH B,
+                                    measured, NOT inconclusive. The original wording would
+                                    have mis-scored a converged draw as C.
+     >=1 import-path error          BRANCH A.
+     0 errors, internal/api present it compiled and said nothing about imports -> BRANCH B.
+     0 errors, internal/api absent  BRANCH C.
+
+     One of the four draws on record (chain5) lands in C. So C is roughly a 1-in-4 outcome on
+     this spec, not a remote possibility, and this prediction would have scored it as B.
+
+THE PROBABILITIES ARE UNCHANGED — only the decision procedure is sharpened, and it is being
+written down BEFORE the log exists rather than chosen after it. PREDICT A, 60%, with C's own
+share now stated: A 60% · B 25% · C 15%.
+
+Graded by `_grade_import_defect.py`, whose self-test's decisive case is that the two
+zero-count arms must receive different verdicts.
 
 Weak either way and stated weakly on purpose. For A: the mechanism most available is that
 twelve lines shift the prompt context for every file generated after them, and nothing in the
