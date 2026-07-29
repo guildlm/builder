@@ -187,5 +187,16 @@ _resweep_report (generation keying + its first self-test), _chain_run.sh (in-fli
 Five silent-ignore .gitignore holes closed, including the capstone's own output and
 reachability-rows.tsv, which the tool had been claiming was tracked since it was written.
 
-⚠️ SEVEN RUNNERS STILL HAVE NO IN-FLIGHT GUARD, _ab_run_v5.sh first among them. And no guard
-anywhere covers a mutation sweep competing with a generation for CPU.
+⚠️ THE UNGUARDED-RUNNER COUNT WAS WRONG, AND IT WAS 17, NOT SEVEN. Six invoke guildlm-build
+directly (_ab_run.sh, _ab_run_v5.sh, _taskflow_chain_run.sh, _taskflow_ct_run.sh,
+_taskflow_projsort_run.sh, _tasksapi_ct_run.sh) and eleven more reach a generation through
+those six. The undercount came from grepping for a leading `./_ab_run.sh` when eleven of them
+pass an env prefix — `GUILDLM_ENABLE_RULES=... ./_ab_run.sh ledger`. All six now carry the
+guard, which covers all seventeen, and it was VERIFIED FIRING against a real in-flight draw:
+exit 3, and the refusal lands BEFORE _ab_run_v5.sh's `rm -rf "$OUT"`, which is the line that
+made this worth doing rather than noting.
+
+⚠️ STILL UNGUARDED: no guard anywhere covers a mutation sweep competing with a generation for
+CPU. And _post_rebuild_measure.sh waits on `pgrep -f "guildlm-build main"` — the pattern this
+repo has documented twice as wrong, because it matches shells that merely mention it and it
+wakes in the gap between a queue's jobs.

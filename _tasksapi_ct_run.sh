@@ -9,6 +9,24 @@
 # (120bb7c), which is what unlocked the 3381s compile deadlock this run hit before.
 set -uo pipefail
 cd "$(dirname "$0")"
+
+# TWO BUILDS SHARE ONE GPU EXACTLY ONCE, and this runner had no guard until 29 July.
+#
+# It is one of six scripts that invoke guildlm-build DIRECTLY. Eleven more reach a generation
+# THROUGH these six, so guarding here covers all seventeen — and eleven of those pass an env
+# prefix (`GUILDLM_ENABLE_RULES=... ./_ab_run.sh ledger`), which is why a grep for a leading
+# `./_ab_run.sh` missed them and the first count of "seven unguarded runners" was wrong.
+#
+# MATCH THE EXECUTABLE PATH, not a string a command line can contain. `pgrep -f
+# "guildlm-build main"` also matches every shell that merely MENTIONS it, including the
+# `until ! pgrep ...` waiters this repo writes constantly, and that mistake has already made
+# a guard refuse on a machine with nothing running. `.venv/bin/guildlm-build` is the path
+# only the real process carries.
+if pgrep -f "\.venv/bin/guildlm-build" > /dev/null; then
+  echo "REFUSING: a generation is in flight. Two builds share one GPU exactly once."
+  echo "Wait for it to print its completion line, then re-run."
+  exit 3
+fi
 OUT="./generated/tasksapi-ct"
 rm -rf "$OUT"
 LOG="logs/tasksapi-ct-$(date +%m%d%H%M).log"
