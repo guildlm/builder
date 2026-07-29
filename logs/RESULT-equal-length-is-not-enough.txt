@@ -52,7 +52,9 @@ withdrawn is the GENERALISATION — "keep the byte count and you are safe" — w
 licensed equal-length prose rewording, and that is exactly the operation just shown to rewrite
 six files.
 
-    So: rename tests freely. Do not reword prose, at any length, without re-measuring.
+    ⚠️ WITHDRAWN 01:04. "Rename tests freely" is false: a third name swap perturbed seven
+    files. Nine arms, seven perturb, and the two nulls were the same manipulation as the third
+    that failed. The rule has no exceptions — re-measure after ANY spec edit.
 
 ⚠️ AND THE PREDICTION WAS WRONG IN THE DIRECTION I SAID WOULD BE MORE USEFUL. Recorded before
 the draw: "B would be the more useful result. A confirms a rule already written down. B would
