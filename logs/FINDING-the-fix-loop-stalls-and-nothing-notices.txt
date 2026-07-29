@@ -107,3 +107,61 @@ real, read off the log each time, which is exactly what made the fabricated half
 
 The rule that follows: a timestamp in one of these files is a MEASUREMENT and gets read
 from `date` or `git log`, never supplied from context.
+
+
+CORRECTION AND QUANTIFICATION (~10:32) — THE BUILDER ALREADY HAS THIS DETECTOR
+==============================================================================
+The title of this file is wrong and the sentence "nothing compares this round's failure to
+the last one" is false. Found by reading the tail of a stalled log instead of its rounds:
+
+    [guildlm-build] error surface repeats — stopping extension rounds
+    [guildlm-build] exhausted 6 fix rounds (5 budgeted), still failing
+
+The mechanism is in src/builder.py:
+
+    seen_surfaces: set[str] = set()
+    sig = _error_signature(output)
+    if rnd > max_fix_rounds and sig in seen_surfaces:
+        _log("error surface repeats — stopping extension rounds")
+
+So the comparison exists, the signature function exists, and the abort exists. What is
+scoped is WHEN it may fire: `rnd > max_fix_rounds` means the check runs ONLY on rounds
+granted BEYOND the flat budget. Inside the budget a repeated surface is not checked at all.
+
+IT IS A PERFECT PREDICTOR IN BOTH REGIMES — 125 detections, 0 recoveries
+
+    builder's own detector (extension rounds)   100 logs   0 converged to green
+    an in-budget repeat (this tool's signal)     25 logs   0 converged to green
+
+Every one of the 125 ended "still failing". And when the builder's detector does fire it
+stops immediately: 0 fix rounds and 0 model fix calls appear after that line, in any log. So
+the builder is not ignoring the signal — it is refusing to look at it early.
+
+THE COST OF LOOKING LATE, MEASURED
+Across the 20 logs where both detectors fired, the in-budget signal precedes the builder's
+by a mean of 2.1 rounds and 43 rounds in total. Those are rounds run inside the budget after
+the error surface had already repeated once — each one a full compile/test cycle plus
+best-of-N model fix calls, and none of the 125 runs recovered from that state.
+
+THE CHANGE IS THEREFORE NOT "BUILD AN ABORT". It is deleting four words:
+
+    if rnd > max_fix_rounds and sig in seen_surfaces:      ->      if sig in seen_surfaces:
+
+with the evidence being 125 for 125. That is a much smaller and much better-supported change
+than the one this file originally proposed, and I would not have found it by reasoning about
+the design — only by reading the last four lines of a log I had already parsed twice for
+something else.
+
+WHAT I GOT WRONG AND WHY IT IS THE SAME MISTAKE AS THE REST OF TODAY
+I parsed these logs for round headers and error lines, concluded "nothing reads the signal",
+and never read the END of the file. The parser answered its query correctly; the query was
+about rounds and the answer I wanted was about the run. Same shape as the nine invented
+timestamps, the ledger omission, and the generation-keyed diff: right answer, wrong subject.
+
+⚠️ ONE-LINE CHANGES TO src/ ARE STILL src/ CHANGES. This waits for the draws to drain like
+everything else — see NOTE-do-not-touch-src-until-the-draws-drain.txt — and it needs its own
+before/after, which is cheap here because the historical logs ARE the before.
+
+⚠️ AND THE 9% FIGURE ABOVE NEEDS ITS DENOMINATOR SAID OUT LOUD: 25 stalled logs of 279 with
+at least one fix round, 69 rounds of 787 run. The 43 recoverable rounds are the subset where
+both detectors fired and is the honest number for what the change would have saved.
