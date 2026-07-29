@@ -1,0 +1,61 @@
+FINDING — a model fix round produced a byte-identical file, and a hash would have said so
+==========================================================================================
+
+Measured 12:00 on 29 July, live, by hashing the fix target before and after a round rather
+than reading the log about it.
+
+    service_test.go, before round 5's model fix   630904a7c1e2f467228cda8c19eb1808
+    service_test.go, at the start of round 6      630904a7c1e2f467228cda8c19eb1808
+
+The round ran `fixing internal/service/service_test.go`, drew its candidates, and wrote back
+a file identical to the one it was given. Not a worse fix, not a partial fix — the same
+bytes.
+
+THE DEFECT IT FAILED TO FIX IS ONE LINE
+
+    func TestCreateStoreError(t *testing.T) {
+        svc := NewTaskService(failStore{}, &fakeEnqueuer{})    <- constructed anonymously
+        ...
+        if len(fake.Events) != 0 {                             <- `fake` never bound here
+
+The repair is `fake := &fakeEnqueuer{}` and passing `fake`. Five consecutive rounds (2 3 4 5
+6) report it at the SAME line and column, 165:9, which is what first suggested the file was
+not moving at all.
+
+WHY THIS IS A BETTER STALL SIGNAL THAN THE ONE I SPENT THE MORNING ON
+_stall_audit compares ERROR SURFACES between rounds and infers that no progress was made.
+That is inference from symptoms, and it took three corrections today to get right —
+consecutive-vs-set, a missing non-consecutive case, and successes counted as failures.
+
+A hash of the fix target is not an inference. It is the thing itself:
+
+    if the file the round set out to fix is unchanged after the round, the round
+    accomplished nothing, and no further round has new information to work from.
+
+Cheaper, exact, and immune to every framing problem that bit the surface comparison — a
+package turning green elsewhere cannot disturb it, and neither can line numbers shifting or
+errors reordering.
+
+WHAT IS PROVEN AND WHAT IS INFERRED
+  PROVEN   round 5's model fix wrote a byte-identical file. Two hashes, same value.
+  INFERRED rounds 2-4 did the same. The evidence is the error's stability at 165:9 across
+           all five rounds, which is strong but not a measurement — I did not start hashing
+           until round 5. Recorded as inference.
+
+THE REMEDY, alongside the four-word abort already queued
+The abort-on-repeated-surface change deletes `rnd > max_fix_rounds and` so the existing
+detector may fire inside the budget. This suggests a second, independent check that is
+simpler than either: after a fix round, compare the target's hash. Unchanged means stop.
+
+    Two signals, different in kind. The surface says "this failure has been seen before".
+    The hash says "this round wrote nothing". The second cannot be confounded.
+
+⚠️ BOUNDED, AND THE BOUND MATTERS. One artifact, one round, one hash pair. A no-op round is
+not the same as a stall in general — a round can rewrite a file substantially and still fail,
+which is what taskapipro did while oscillating between two self-inflicted defects. The hash
+check would have said "progress" there every round while the run went nowhere. So it is a
+sufficient condition for stopping, NOT a necessary one, and proposing it as a replacement for
+the surface check would be wrong. It belongs beside it.
+
+⚠️ AND IT SAYS NOTHING ABOUT Delete-404, which is in internal/api — a package reporting `ok`
+in rounds 3, 4, 5 and 6, meaning the closure has run and passed four times on this draw.
