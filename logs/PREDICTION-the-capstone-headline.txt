@@ -1,0 +1,55 @@
+PREDICTION — the capstone diff's headline, registered while the sweep runs
+===========================================================================
+
+Registered 12:47 on 29 July, with the v5 sweep at ~50 of an expected few hundred rows and
+logs/hole-hunt-rows-v5.tsv not yet written. Nothing about the v5 verdicts is known.
+
+THE BUDGET, computed from the tracked baseline
+
+    314 v4 rows total
+    177 in the five artifacts whose v5 counterpart is RED  (taskapi 40, expreval 8,
+                                                            taskapipro 62, workapi 36,
+                                                            ledger 31)
+    137 in the twelve whose v5 counterpart is GREEN
+
+    those 137 carry v4 verdicts: CAUGHT 98 · SURVIVED 34 · SURVIVED* 2 · INERT 3
+
+So 137 is the CEILING on live-in-both. Every row above that is dead on the v5 side by
+construction.
+
+PREDICT: live-in-both lands between 95 and 130.                                    ~70%
+   Below 137 because sites move between draws — a declaration relocating to another file
+   loses its (artifact, file, shape, ordinal) key entirely, and workapi has already done
+   exactly that with Chain. The July 27 dry-run quoted in _sweep_v5.sh's NEXT block lost
+   roughly a third of its keys that way; a third off 137 is 91, so I am predicting slightly
+   better than that because these draws share a spec set rather than spanning a repair.
+
+PREDICT: CAUGHT -> SURVIVED is 0 to 4 rows.                                        ~65%
+   This is the number that can retract a claim. The twelve green artifacts include four
+   that received closures this week — shortener (race), usersapi (empty-list), ratelimit
+   and jsonapi (from the 26th) — and every one of those was graded CAUGHT on an independent
+   draw already. The rest had no intervention, so their movement is drift. Low, not zero,
+   because taskapipro's twins proved a closure CAN regress on a redraw and those four
+   closures have not been redrawn until now.
+
+PREDICT: SURVIVED -> CAUGHT exceeds CAUGHT -> SURVIVED.                            ~55%
+   Barely over even. The case for it is that four closures land in this set. The case
+   against is that 34 survivors is a small pool, most of them in artifacts nobody touched,
+   and drift has no reason to favour improvement. A coin-flip prediction is worth
+   registering precisely because I cannot argue myself past 55.
+
+WHAT WOULD SURPRISE ME, and what each would mean
+  live-in-both under 80   the corpus moved more than a spec-preserving redraw should. Look
+                          for artifacts that restructured, not for a defence story.
+  CAUGHT->SURVIVED over 6 the per-closure grades taken this week measure their own draws
+                          rather than the specs — the retraction this whole redraw exists
+                          to make possible.
+  SURVIVED->CAUGHT over 12 too good. Check the shape counts first: a sweep that produced
+                          MORE probes per file would raise both directions, and the
+                          instrument changed twice this week.
+
+⚠️ THE HONEST FRAME, WHICH DOES NOT DEPEND ON ANY OF THE ABOVE. 177 of 314 rows — 56% — are
+unanswerable because five artifacts do not compile. Whatever the flip counts are, the
+capstone's real finding is that a corpus drawn from the repaired specs on 29 July produced
+five red trees out of twenty-three, and that a majority of the tracked baseline could not be
+re-measured against it. That sentence is the result. The flips are a detail inside it.
