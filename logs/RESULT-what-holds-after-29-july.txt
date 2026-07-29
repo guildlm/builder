@@ -77,13 +77,23 @@ seven-round repair sequences — and land on identical twin values (projects 1,2
 1,2 and 2,2; 0 of 4 discriminating in both). Two independent repair sequences converging on
 the same four numbers says more about reproducibility than the comparison it replaces did.
 
-    THEREFORE: "the control arm regressed in its own redraw", "setup counts are not durable",
-    "quantities do not survive" were all measuring a SPEC EDIT, not a redraw. The
-    measurements were correct; their subject was wrong.
+    THEREFORE, and this is weaker than the version written at 15:58: "the control arm
+    regressed in its own redraw", "setup counts are not durable", "quantities do not survive"
+    were NOT measuring a redraw. That much is certain. The 15:58 version went on to say they
+    were measuring a SPEC EDIT instead, and that no longer follows — the same comparisons are
+    confounded a second way, by how much repair each tree absorbed. They measured neither
+    cleanly. What they establish is that the comparison was never controlled, not what it was
+    secretly a measurement of.
 
 What survives of that morning's work: a redraw faithfully REPRODUCES whatever the spec
 produces — v5 and v5-2nd agree to the character, including the fix loop's own mistakes. That
 is a durability finding. "Quantities degrade across redraws" is not.
+
+⚠️ AND THE CLEAN COMPARISON HAS NOT BEEN RUN. Isolating the spec edit needs two draws whose
+trees are provenance-matched — either both converged on deterministic fixes alone, or both
+compared at ROUND-1 output only. The four draws on record include exactly one clean tree
+(chain4). The import-path result survives because it uses round-1 output, and the control arm
+running now was designed the same way for the same reason.
 
 
 V. TWO PIPELINE DEFECTS, MEASURED
