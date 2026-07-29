@@ -17,6 +17,22 @@ WHAT IT DOES NOT DO. It does not stop a header being written wrong; it finds it 
 That is the right trade here — the alternative is a helper that must be remembered at exactly
 the moment attention is elsewhere, which is the moment the error happens.
 
+WHAT IT DOES NOT COVER, measured rather than guessed. Only tracked logs/*.txt. Running
+claim_stamps over all 75 tracked _*.py and _*.sh files finds ZERO header times — script
+docstrings put times mid-sentence ("caught by the tool disagreeing with the source ... until
+15:07 on 29 July"), and mid-sentence is exactly what the claim rules drop, because loosening
+them is what produced three rounds of false positives. So tool docstrings are UNCHECKED.
+
+    Spot-checked the one real docstring claim by hand: _twin_witness.py:61 says 15:07 and the
+    commit that introduced that fix is 15:08. Accurate. The other matches in _check_timestamps
+    itself are quoted examples and cross-references, not claims — which is the same
+    distinction the tool makes automatically for evidence files.
+
+    The honest summary is that the detector covers the files where a wrong time misleads a
+    reader about WHEN A FINDING WAS MADE, and not the files where one would only mislead
+    about when a tool was fixed. Widening it means loosening the rules; that trade was
+    considered and declined.
+
 TOLERANCE. A file is written, then committed minutes later, sometimes after another edit. The
 default window is 45 minutes and errors of interest are hours. An APPENDED correction block
 carrying its own time is checked too — the file is committed at the append, so a correction
