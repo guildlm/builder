@@ -1,0 +1,307 @@
+jsonapi-v5	main.go	StatusMethodNotAllowed->StatusBadRequest	CAUGHT
+jsonapi-v5	main.go	StatusBadRequest->StatusNotFound	CAUGHT
+jsonapi-v5	main.go	StatusBadRequest->StatusNotFound	CAUGHT
+jsonapi-v5	main.go	StatusOK->StatusAccepted	CAUGHT
+kvservice-v5	main.go	StatusNotFound->StatusBadRequest	CAUGHT
+kvservice-v5	main.go	StatusBadRequest->StatusNotFound	SURVIVED
+kvservice-v5	main.go	StatusCreated->StatusOK	CAUGHT
+ledger-v5	internal/api/accounts.go	StatusCreated->StatusOK	BASELINE-RED
+ledger-v5	internal/api/accounts.go	StatusOK->StatusAccepted	BASELINE-RED
+ledger-v5	internal/api/accounts.go	StatusOK->StatusAccepted	BASELINE-RED
+ledger-v5	internal/api/accounts.go	StatusOK->StatusAccepted	BASELINE-RED
+ledger-v5	internal/api/middleware.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+ledger-v5	internal/api/middleware.go	StatusOK->StatusAccepted	BASELINE-RED
+ledger-v5	internal/api/response.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+ledger-v5	internal/api/response.go	StatusConflict->StatusBadRequest	BASELINE-RED
+ledger-v5	internal/api/response.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+ledger-v5	internal/api/response.go	StatusUnprocessableEntity->StatusBadRequest	BASELINE-RED
+ledger-v5	internal/api/response.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+ledger-v5	internal/api/transactions.go	StatusCreated->StatusOK	BASELINE-RED
+ledger-v5	internal/api/transactions.go	StatusOK->StatusAccepted	BASELINE-RED
+ratelimit-v5	api.go	StatusOK->StatusAccepted	CAUGHT
+ratelimit-v5	api.go	StatusOK->StatusAccepted	CAUGHT
+ratelimit-v5	middleware.go	StatusTooManyRequests->StatusServiceUnavailable	CAUGHT
+shortener-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+shortener-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+shortener-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+shortener-v5	handlers.go	StatusCreated->StatusOK	CAUGHT
+shortener-v5	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+shortener-v5	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+shortener-v5	handlers.go	StatusMovedPermanently->StatusFound	CAUGHT
+shortener-v5	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+shortener-v5	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+shortener-v5	handlers.go	StatusOK->StatusAccepted	CAUGHT
+shortener-v5	router.go	StatusOK->StatusAccepted	CAUGHT
+taskapi-v5	internal/api/middleware.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapi-v5	internal/api/middleware.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusConflict->StatusBadRequest	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusCreated->StatusOK	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapi-v5	internal/api/projects.go	StatusNoContent->StatusOK	BASELINE-RED
+taskapi-v5	internal/api/response.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapi-v5	internal/api/router.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusConflict->StatusBadRequest	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusCreated->StatusOK	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapi-v5	internal/api/tasks.go	StatusNoContent->StatusOK	BASELINE-RED
+taskapipro-v5	internal/api/middleware.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapipro-v5	internal/api/middleware.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusConflict->StatusBadRequest	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusCreated->StatusOK	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	StatusNoContent->StatusOK	BASELINE-RED
+taskapipro-v5	internal/api/router.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapipro-v5	internal/api/router.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusConflict->StatusBadRequest	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusCreated->StatusOK	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusOK->StatusAccepted	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	StatusNoContent->StatusOK	BASELINE-RED
+taskflow-v5	httpjson.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskflow-v5	middleware.go	StatusOK->StatusAccepted	SURVIVED*
+taskflow-v5	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
+taskflow-v5	projects_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskflow-v5	projects_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskflow-v5	projects_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskflow-v5	projects_handler.go	StatusConflict->StatusBadRequest	CAUGHT
+taskflow-v5	projects_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskflow-v5	projects_handler.go	StatusCreated->StatusOK	CAUGHT
+taskflow-v5	projects_handler.go	StatusOK->StatusAccepted	CAUGHT
+taskflow-v5	projects_handler.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskflow-v5	projects_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskflow-v5	projects_handler.go	StatusOK->StatusAccepted	CAUGHT
+taskflow-v5	projects_handler.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskflow-v5	projects_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskflow-v5	projects_handler.go	StatusNoContent->StatusOK	CAUGHT
+taskflow-v5	tasks_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskflow-v5	tasks_handler.go	StatusBadRequest->StatusNotFound	CAUGHT
+taskflow-v5	tasks_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskflow-v5	tasks_handler.go	StatusConflict->StatusBadRequest	CAUGHT
+taskflow-v5	tasks_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskflow-v5	tasks_handler.go	StatusCreated->StatusOK	CAUGHT
+taskflow-v5	tasks_handler.go	StatusOK->StatusAccepted	CAUGHT
+taskflow-v5	tasks_handler.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskflow-v5	tasks_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskflow-v5	tasks_handler.go	StatusOK->StatusAccepted	CAUGHT
+taskflow-v5	tasks_handler.go	StatusNotFound->StatusBadRequest	CAUGHT
+taskflow-v5	tasks_handler.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+taskflow-v5	tasks_handler.go	StatusNoContent->StatusOK	CAUGHT
+tasks-api-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v5	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+tasks-api-v5	handlers.go	StatusCreated->StatusOK	CAUGHT
+tasks-api-v5	handlers.go	StatusOK->StatusAccepted	CAUGHT
+tasks-api-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v5	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+tasks-api-v5	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+tasks-api-v5	handlers.go	StatusOK->StatusAccepted	CAUGHT
+tasks-api-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v5	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+tasks-api-v5	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+tasks-api-v5	handlers.go	StatusOK->StatusAccepted	CAUGHT
+tasks-api-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+tasks-api-v5	handlers.go	StatusNotFound->StatusBadRequest	SURVIVED
+tasks-api-v5	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+tasks-api-v5	handlers.go	StatusNoContent->StatusOK	CAUGHT
+usersapi-v5	handlers.go	StatusBadRequest->StatusNotFound	CAUGHT
+usersapi-v5	handlers.go	StatusConflict->StatusBadRequest	CAUGHT
+usersapi-v5	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+usersapi-v5	handlers.go	StatusCreated->StatusOK	CAUGHT
+usersapi-v5	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+usersapi-v5	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+usersapi-v5	handlers.go	StatusOK->StatusAccepted	CAUGHT
+usersapi-v5	handlers.go	StatusOK->StatusAccepted	CAUGHT
+usersapi-v5	handlers.go	StatusNotFound->StatusBadRequest	CAUGHT
+usersapi-v5	handlers.go	StatusInternalServerError->StatusBadGateway	SURVIVED
+usersapi-v5	handlers.go	StatusNoContent->StatusOK	CAUGHT
+usersapi-v5	middleware.go	StatusOK->StatusAccepted	SURVIVED*
+usersapi-v5	middleware.go	StatusInternalServerError->StatusBadGateway	CAUGHT
+workapi-v5	internal/api/middleware.go	StatusOK->StatusAccepted	BASELINE-RED
+workapi-v5	internal/api/middleware.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+workapi-v5	internal/api/router.go	StatusOK->StatusAccepted	BASELINE-RED
+workapi-v5	internal/api/router.go	StatusOK->StatusAccepted	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusBadRequest->StatusNotFound	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusConflict->StatusBadRequest	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusCreated->StatusOK	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusOK->StatusAccepted	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusOK->StatusAccepted	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusNotFound->StatusBadRequest	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusInternalServerError->StatusBadGateway	BASELINE-RED
+workapi-v5	internal/api/tasks.go	StatusNoContent->StatusOK	BASELINE-RED
+jsonapi-v5	main.go	drop Content-Type	CAUGHT
+kvservice-v5	main.go	drop Content-Type	CAUGHT
+ledger-v5	internal/api/response.go	drop Content-Type	BASELINE-RED
+ratelimit-v5	middleware.go	drop Retry-After	CAUGHT
+ratelimit-v5	middleware.go	drop Content-Type	CAUGHT
+shortener-v5	handlers.go	drop Content-Type	CAUGHT
+taskapi-v5	internal/api/response.go	drop Content-Type	BASELINE-RED
+taskapipro-v5	internal/api/response.go	drop Content-Type	BASELINE-RED
+taskflow-v5	httpjson.go	drop Content-Type	CAUGHT
+tasks-api-v5	handlers.go	drop Content-Type	CAUGHT
+usersapi-v5	handlers.go	drop Content-Type	CAUGHT
+workapi-v5	internal/api/response.go	drop Content-Type	BASELINE-RED
+ledger-v5	internal/store/store.go	reverse sort by ID	BASELINE-RED
+ledger-v5	internal/store/store.go	reverse sort by ID	BASELINE-RED
+logstats-v5	stats.go	reverse sort by Path	CAUGHT
+priorityqueue-v5	pq.go	reverse sort by Priority	CAUGHT
+taskapi-v5	internal/store/memory.go	reverse sort by ID	BASELINE-RED
+taskapi-v5	internal/store/memory.go	reverse sort by ID	BASELINE-RED
+taskapipro-v5	internal/store/store.go	reverse sort by ID	BASELINE-RED
+taskapipro-v5	internal/store/store.go	reverse sort by ID	BASELINE-RED
+taskflow-v5	store.go	reverse sort by ID	CAUGHT
+taskflow-v5	store.go	reverse sort by ID	SURVIVED
+tasks-api-v5	store.go	reverse sort by ID	CAUGHT
+usersapi-v5	store.go	reverse sort by ID	CAUGHT
+workapi-v5	internal/store/store.go	reverse sort by ID	BASELINE-RED
+ledger-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+ledger-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+ledger-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+ledger-v5	internal/models/models.go	%w -> %v (ErrUnbalanced)	BASELINE-RED
+logstats-v5	parse.go	%w -> %v (ErrBadLine)	CAUGHT
+logstats-v5	parse.go	%w -> %v (ErrBadLine)	CAUGHT
+logstats-v5	parse.go	%w -> %v (ErrBadLine)	CAUGHT
+logstats-v5	parse.go	%w -> %v (ErrBadLine)	CAUGHT
+taskapi-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+taskapi-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+taskapi-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+taskapipro-v5	internal/config/config.go	%w -> %v (?)	BASELINE-RED
+taskapipro-v5	internal/config/config.go	%w -> %v (?)	BASELINE-RED
+taskapipro-v5	internal/config/config.go	%w -> %v (?)	BASELINE-RED
+taskapipro-v5	internal/config/config.go	%w -> %v (?)	BASELINE-RED
+taskapipro-v5	internal/config/config.go	%w -> %v (?)	BASELINE-RED
+taskapipro-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+taskapipro-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+taskapipro-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+taskflow-v5	models.go	%w -> %v (ErrValidation)	CAUGHT
+taskflow-v5	models.go	%w -> %v (ErrValidation)	CAUGHT
+taskflow-v5	models.go	%w -> %v (ErrValidation)	CAUGHT
+tasks-api-v5	task.go	%w -> %v (ErrInvalidTask)	CAUGHT
+workapi-v5	internal/config/config.go	%w -> %v (?)	BASELINE-RED
+workapi-v5	internal/config/config.go	%w -> %v (?)	BASELINE-RED
+workapi-v5	internal/config/config.go	%w -> %v (?)	BASELINE-RED
+workapi-v5	internal/config/config.go	%w -> %v (?)	BASELINE-RED
+workapi-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+workapi-v5	internal/models/models.go	%w -> %v (ErrInvalid)	BASELINE-RED
+jsonapi-v5	main.go	json tag "message" renamed	CAUGHT
+jsonapi-v5	main.go	json tag "echo" renamed	CAUGHT
+jsonapi-v5	main.go	json tag "length" renamed	CAUGHT
+jsoncodec-v5	event.go	json tag "name" renamed	SURVIVED
+jsoncodec-v5	event.go	json tag "at" renamed	SURVIVED
+jsoncodec-v5	event.go	json tag "name" renamed	CAUGHT
+jsoncodec-v5	event.go	json tag "at" renamed	CAUGHT
+jsoncodec-v5	event.go	json tag "name" renamed	CAUGHT
+jsoncodec-v5	event.go	json tag "at" renamed	CAUGHT
+shortener-v5	handlers.go	json tag "url" renamed	CAUGHT
+taskapi-v5	internal/models/models.go	json tag "id" renamed	BASELINE-RED
+taskapi-v5	internal/models/models.go	json tag "title" renamed	BASELINE-RED
+taskapi-v5	internal/models/models.go	json tag "status" renamed	BASELINE-RED
+taskapi-v5	internal/models/models.go	json tag "project_id" renamed	BASELINE-RED
+taskapi-v5	internal/models/models.go	json tag "id" renamed	BASELINE-RED
+taskapi-v5	internal/models/models.go	json tag "name" renamed	BASELINE-RED
+taskapipro-v5	internal/models/models.go	json tag "id" renamed	BASELINE-RED
+taskapipro-v5	internal/models/models.go	json tag "title" renamed	BASELINE-RED
+taskapipro-v5	internal/models/models.go	json tag "status" renamed	BASELINE-RED
+taskapipro-v5	internal/models/models.go	json tag "project_id" renamed	BASELINE-RED
+taskapipro-v5	internal/models/models.go	json tag "id" renamed	BASELINE-RED
+taskapipro-v5	internal/models/models.go	json tag "name" renamed	BASELINE-RED
+taskflow-v5	models.go	json tag "id" renamed	CAUGHT
+taskflow-v5	models.go	json tag "title" renamed	CAUGHT
+taskflow-v5	models.go	json tag "status" renamed	CAUGHT
+taskflow-v5	models.go	json tag "project_id" renamed	CAUGHT
+taskflow-v5	models.go	json tag "id" renamed	CAUGHT
+taskflow-v5	models.go	json tag "name" renamed	CAUGHT
+tasks-api-v5	task.go	json tag "id" renamed	CAUGHT
+tasks-api-v5	task.go	json tag "title" renamed	CAUGHT
+tasks-api-v5	task.go	json tag "done" renamed	CAUGHT
+tasks-api-v5	task.go	json tag "created_at" renamed	CAUGHT
+workapi-v5	internal/models/models.go	json tag "id" renamed	BASELINE-RED
+workapi-v5	internal/models/models.go	json tag "title" renamed	BASELINE-RED
+workapi-v5	internal/models/models.go	json tag "status" renamed	BASELINE-RED
+workapi-v5	internal/models/models.go	json tag "type" renamed	BASELINE-RED
+workapi-v5	internal/models/models.go	json tag "task_id" renamed	BASELINE-RED
+bitset-v5	bitset.go	boundary >= -> >	CAUGHT
+bitset-v5	bitset.go	boundary >= -> >	CAUGHT
+bitset-v5	bitset.go	boundary >= -> >	CAUGHT
+bitset-v5	bitset.go	boundary < -> <=	CAUGHT
+bitset-v5	bitset.go	boundary < -> <=	SURVIVED
+expreval-v5	eval.go	boundary < -> <=	BASELINE-RED
+expreval-v5	eval.go	boundary < -> <=	BASELINE-RED
+expreval-v5	eval.go	boundary >= -> >	BASELINE-RED
+expreval-v5	eval.go	boundary >= -> >	BASELINE-RED
+expreval-v5	eval.go	boundary >= -> >	BASELINE-RED
+expreval-v5	eval.go	boundary >= -> >	BASELINE-RED
+expreval-v5	eval.go	boundary >= -> >	BASELINE-RED
+expreval-v5	eval.go	boundary < -> <=	BASELINE-RED
+ledger-v5	internal/api/middleware.go	boundary >= -> >	BASELINE-RED
+ledger-v5	internal/money/money.go	boundary < -> <=	BASELINE-RED
+ledger-v5	internal/money/money.go	boundary < -> <=	BASELINE-RED
+numkit-v5	numkit.go	boundary < -> <=	INERT
+shortener-v5	codec.go	boundary > -> >=	CAUGHT
+taskapi-v5	internal/api/middleware.go	boundary >= -> >	BASELINE-RED
+taskapipro-v5	internal/api/middleware.go	boundary >= -> >	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	boundary <= -> <	BASELINE-RED
+taskapipro-v5	internal/api/projects.go	boundary < -> <=	INERT
+taskapipro-v5	internal/api/projects.go	clamp value offset = 0 -> 7777	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	boundary <= -> <	BASELINE-RED
+taskapipro-v5	internal/api/tasks.go	boundary < -> <=	INERT
+taskapipro-v5	internal/api/tasks.go	clamp value offset = 0 -> 7777	BASELINE-RED
+taskapipro-v5	internal/config/config.go	boundary <= -> <	BASELINE-RED
+taskapipro-v5	internal/service/service.go	boundary >= -> >	BASELINE-RED
+taskapipro-v5	internal/service/service.go	boundary < -> <=	INERT
+taskapipro-v5	internal/service/service.go	clamp value offset = 0 -> 7777	BASELINE-RED
+taskapipro-v5	internal/service/service.go	boundary <= -> <	BASELINE-RED
+taskflow-v5	middleware.go	boundary >= -> >	CAUGHT
+taskflow-v5	pagination.go	boundary <= -> <	SURVIVED
+taskflow-v5	pagination.go	boundary < -> <=	INERT
+taskflow-v5	pagination.go	clamp value offset = 0 -> 7777	CAUGHT
+taskflow-v5	pagination.go	boundary >= -> >	SURVIVED
+taskflow-v5	pagination.go	boundary < -> <=	INERT
+taskflow-v5	pagination.go	clamp value offset = 0 -> 7777	CAUGHT
+taskflow-v5	pagination.go	boundary <= -> <	CAUGHT
+usersapi-v5	middleware.go	boundary >= -> >	CAUGHT
+workapi-v5	internal/api/middleware.go	boundary >= -> >	BASELINE-RED
+workapi-v5	internal/config/config.go	boundary <= -> <	BASELINE-RED
+workapi-v5	internal/service/service.go	boundary >= -> >	BASELINE-RED
+workapi-v5	internal/service/service.go	boundary < -> <=	INERT
+workapi-v5	internal/service/service.go	clamp value offset = 0 -> 7777	BASELINE-RED
+workapi-v5	internal/service/service.go	boundary <= -> <	BASELINE-RED

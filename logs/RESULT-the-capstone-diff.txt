@@ -1,0 +1,97 @@
+comparing hole-hunt-rows.tsv [v4]  ->  hole-hunt-rows-v5.tsv [v5]
+
+rows: 314 old · 307 new · 295 COMPARABLE (same artifact+file+shape in both)
+      19 site(s) only in the old sweep, 12 only in the new — moved, added or lost, NOT verdict changes
+      140 row(s) LIVE IN BOTH — the only rows where a verdict change is observable at all
+flips: 170 of 295 comparable (170 involving a live verdict, 140 answerable)
+
+    96  CAUGHT        -> BASELINE-RED
+    55  SURVIVED      -> BASELINE-RED
+    12  SURVIVED      -> CAUGHT
+     4  SURVIVED*     -> BASELINE-RED
+     3  CAUGHT        -> SURVIVED
+
+   0 row(s) became MEASURABLE (dead verdict -> live) and 155 went dead.
+   Those are artifacts changing state, not defences changing.
+
+   DEFENCE LOST in the redraw (was CAUGHT, now SURVIVED):
+      taskflow                     pagination.go      boundary <= -> <
+      taskflow                     store.go           reverse sort by ID  [site 2]
+      tasks-api                    handlers.go        StatusNotFound->StatusBadRequest  [site 3]
+
+   DEFENCE GAINED in the redraw (was SURVIVED, now CAUGHT):
+      bitset                       bitset.go          boundary < -> <=
+      bitset                       bitset.go          boundary >= -> >  [site 2]
+      shortener                    handlers.go        StatusBadRequest->StatusNotFound  [site 3]
+      shortener                    handlers.go        StatusNotFound->StatusBadRequest  [site 2]
+      taskflow                     middleware.go      boundary >= -> >
+      taskflow                     pagination.go      clamp value offset = 0 -> 7777
+      taskflow                     tasks_handler.go   StatusNotFound->StatusBadRequest  [site 2]
+      tasks-api                    handlers.go        StatusBadRequest->StatusNotFound  [site 3]
+      tasks-api                    handlers.go        StatusBadRequest->StatusNotFound  [site 4]
+      tasks-api                    handlers.go        StatusBadRequest->StatusNotFound  [site 5]
+      tasks-api                    handlers.go        StatusBadRequest->StatusNotFound  [site 6]
+      usersapi                     middleware.go      boundary >= -> >
+
+
+================================================================================
+THE CAPSTONE, READ IN THE ORDER COMMITTED TO IN ADVANCE
+================================================================================
+
+1. THE DENOMINATOR FIRST, because it is the headline and 56% of it is gone.
+
+       314 v4 rows · 307 v5 rows · 295 comparable
+       140 LIVE IN BOTH — the only rows where a verdict change is observable
+       155 went dead · 0 became measurable
+
+   Five artifacts do not compile — expreval, ledger, taskapi, taskapipro, workapi — and
+   163 of the 307 v5 rows are BASELINE-RED. Every "flip" involving one of them is an
+   artifact changing state, not a defence changing. The diff separates them and so does
+   this reading.
+
+2. CAUGHT -> SURVIVED, the only direction that can retract a claim: THREE rows.
+
+       taskflow    pagination.go   boundary <= -> <
+       taskflow    store.go        reverse sort by ID          [site 2]
+       tasks-api   handlers.go     StatusNotFound->StatusBadRequest [site 3]
+
+   Three defences present in v4 and absent in v5, out of 140 answerable rows. None is in
+   an artifact that received a closure this week. They are drift.
+
+3. SURVIVED -> CAUGHT: TWELVE rows, four times the losses.
+
+       bitset x2 · shortener x2 · taskflow x4 · tasks-api x4 · usersapi x1
+
+   shortener's two are the artifact whose race closure was written this week. The rest are
+   artifacts nobody edited, which means most of this is drift too — drift that happens to
+   favour improvement 12 to 3.
+
+THE PRE-REGISTERED HEADLINE, GRADED
+     live-in-both 95-130        70%   ->  140   MISS, and high rather than low
+     CAUGHT->SURVIVED 0-4       65%   ->    3   HIT
+     SURV->CAUGHT > reverse     55%   ->  12v3  HIT
+
+   The miss is instructive. I predicted key loss from sites moving between draws and priced
+   it at a third; only 19 of 314 old sites vanished and 12 appeared — about 6%. These draws
+   share a spec set, and site identity is far more stable across a redraw than the July 27
+   dry-run suggested. I over-corrected from a measurement taken across a repair.
+
+WHAT THE CAMPAIGN CAN AND CANNOT CLAIM FROM THIS
+   CAN: on 140 answerable rows, a full redraw from the repaired specs moved 12 sites into
+        defence and 3 out of it. Defence is not fragile across a redraw at this scale, and
+        the CAUGHT->SURVIVED direction — the one that would have retracted this week's
+        closure grades — is 3 rows and none of them in a closed artifact.
+   CANNOT: attribute the 12 gains to the closures. Ten of the twelve are in artifacts that
+        received no spec edit this week. The honest reading is that redraw drift at this
+        corpus size is worth roughly 12 up and 3 down, and that is the BASELINE any future
+        closure claim has to beat.
+
+   That baseline is the single most useful number here, and it is the one the campaign has
+   never had. Every per-closure grade this week was taken without knowing what a redraw does
+   by itself.
+
+⚠️ AND THE UNFLATTERING HALF, stated as prominently as the rest: the repaired specs produced
+FIVE RED TREES OUT OF TWENTY-THREE. 56% of the tracked baseline could not be re-measured.
+taskapipro and workapi failed on defects the fix loop itself introduced or could not clear;
+ledger failed on a truncated identifier the model would not repair across six rounds. A
+corpus that cannot compile cannot be graded, and no flip count above changes that sentence.
