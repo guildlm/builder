@@ -1,0 +1,48 @@
+PREDICTION — workapi ships NOT-GREEN, and internal/api stays green through it
+==============================================================================
+
+Registered 11:52 on 29 July, at fix round 4 of 6, with rounds 5 and 6 unrun. Resolves within
+minutes, which is the point: the claim behind it was measured on 125 historical runs and has
+never been tested prospectively.
+
+THE EVIDENCE IT RESTS ON
+Rounds 2, 3 and 4 all report the identical actionable error:
+
+    vet: internal/service/service_test.go:165:9: undefined: fake
+
+Same file, same line, same symbol, three rounds running. This morning's audit found that a
+repeated error surface is a perfect predictor of failure across the whole log history:
+
+    builder's own detector (extension rounds)   100 logs   0 ever converged to green
+    an in-budget repeat (_stall_audit)           25 logs   0 ever converged to green
+
+125 detections, zero recoveries. Every one ended "still failing".
+
+PREDICT: workapi-v5 ships NOT-GREEN.                                              ~95%
+PREDICT: rounds 5 and 6 report the same `undefined: fake`.                        ~85%
+PREDICT: internal/api reports `ok` in every remaining round.                       ~90%
+
+The third is the one that matters for the campaign. taskapipro's internal/api NEVER compiled,
+so its twins were never evaluated and the (a)-vs-(b) prediction went void. workapi's
+internal/api has reported `ok` in rounds 3 and 4 — the Delete-404 closure has actually RUN
+and PASSED — and _grade_workapi_delete404.sh runs `go test ./internal/api/` specifically, not
+`./...`. So a NOT-GREEN tree here still yields a gradeable closure, which is the difference
+between this artifact and the last one.
+
+WHY NOT 99 ON THE FIRST
+125-for-0 is a strong base rate and it is a base rate, not a mechanism. Two rounds remain and
+the loop widens its targets when a failure persists — taskapipro's widening introduced new
+defects, but widening could equally reach service_test.go's scope error, which is a one-line
+fix (bind the enqueuer, or drop the assertion). A widened round is exactly the kind of event
+the base rate averages over rather than predicts.
+
+WHAT WOULD MAKE ME WRONG, and it is worth wanting
+If workapi converges from a three-round repeat, the 125-for-0 claim gets its first
+counterexample and the "abort on a repeated surface" change I proposed this morning — delete
+four words from `if rnd > max_fix_rounds and sig in seen_surfaces` — would have destroyed a
+run that recovered. That is a good reason to have registered this BEFORE proposing the change
+be made, and the change is still queued behind the draws, unmade.
+
+VOID CONDITION: if the run is killed, the machine sleeps again, or the sweep is interrupted,
+this is void rather than wrong — the same condition I failed to state on the taskapipro
+prediction and have stated on every one since.
