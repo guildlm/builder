@@ -67,3 +67,42 @@ zero-variance baseline here. A CODE difference in four of twelve files is far la
 prose-only differences seen between taskapipro's identical-condition draws, but "far larger
 than another spec's variance" is not the same as "larger than this spec's variance". The
 cheap fix is a second taskflow draw in either condition; NOT RUN.
+
+
+WHAT THE FOUR CODE DIFFERENCES ACTUALLY ARE (20:09) — an API change, propagated
+================================================================================
+Read the largest of them, store.go at 2881 vs 2404 bytes. It is not noise and not formatting:
+
+    control  type StoreImpl struct { ... }   func NewStore() *StoreImpl
+    dose     type store     struct { ... }   func NewStore() *store
+
+THE DOSE DRAW UNEXPORTED A PUBLIC TYPE. `StoreImpl` — exported, part of the package's API
+surface — became `store`, unexported. Every method receiver went with it, and so did the two
+other CODE files:
+
+    projects_handler.go   control mentions StoreImpl 2x · dose 0x
+    tasks_handler.go      control mentions StoreImpl 2x · dose 0x
+
+So three of the four CODE differences are ONE decision propagating. The fourth, middleware.go,
+is a separate change at identical byte length.
+
+    exported declarations in store.go   control 3 · dose 2
+
+The dose draw also added a compile-time interface assertion the control does not have:
+
+    var _ Store = (*store)(nil)
+
+    A GOOD line, incidentally — it pins the impl to the interface at compile time. The point
+    is not that either version is worse. It is that TWELVE LINES OF PROSE ABOUT NAMING A
+    VARIABLE `t` IN A TEST changed a package's exported API and added an assertion in an
+    implementation file, in a spec entry that mentions none of it.
+
+⚠️ AND IT SHARPENS WHAT "CODE DIFFERENCE" MEANT IN THE TASKAPIPRO ARM TOO. There the three
+were an entire `getenv` helper present in one arm and absent in the other, a statement body in
+service.go, and models_test.go. Both specs show the same character: not a token here or there,
+but whole declarations appearing, disappearing, or changing visibility.
+
+⚠️ WHAT IT DOES NOT SHOW. Which version the spec asked for. The taskflow spec's store entry
+would have to be read against both to say whether either is a violation, and neither draw
+failed — both converged green in one deterministic round. This is a difference, not yet a
+defect.
