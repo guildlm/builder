@@ -76,3 +76,43 @@ NEXT — and it belongs with the other src/ work, after the draws drain:
   2. The gate should REFUSE rather than repair when a mutation sits between two serves, on
      the same principle already written into the paging-gate design: refuse where the
      rewrite cannot be known correct.
+
+
+WHY IT SLIPPED PAST THE CANDIDATE GUARDS (11:37) — they check declarations, not behaviour
+==========================================================================================
+Round 1 of this same run also produced:
+
+    rejected fix candidate 1: drops failStore — still used, no sibling declares it
+
+So the loop DOES reject destructive model edits. The guard (src/builder.py:4863) refuses a
+candidate that removes a top-level declaration still referenced elsewhere. It works, and it
+fired on this very artifact minutes after the weakening landed.
+
+    It catches losses the COMPILER would notice — a dropped declaration leaves an
+    `undefined:` behind. It cannot catch a loss with no compile signature.
+
+TestCreateUnauthorized lost neither a declaration nor an import. It kept every symbol, kept
+compiling, and kept passing. What it lost was the DIFFERENCE between its two cases, and
+nothing in the toolchain has an opinion about that. The guards are a presence check on
+declarations; the weakening was a change in what the test exercises.
+
+    Same distinction as the campaign's own law, one level up. Presence of a named thing is
+    checkable and defended. What a test actually distinguishes is neither.
+
+AND THE REPO ALREADY LEARNED TODAY'S OTHER LESSON, IN THIS FUNCTION'S DOCSTRING
+why_dirty exists because rejections used to be logged without saying WHICH rule fired:
+
+    "a rejection landed in the same round as an `undefined: failStore`, the two looked
+     consistent, and I was one inference from crediting the rule I had just written.
+     Consistent is not proof."
+
+That is the shape this session has hit repeatedly — an answer that is right about its own
+query and wrong about its subject — already written down, in the code, before today. The
+remedy adopted there is the one that has worked here all day: make the output name its
+subject.
+
+⚠️ THIS IS NOT A CRITICISM OF THE CANDIDATE GUARDS. They are doing what they claim, and one
+of them rejected a genuinely destructive edit in the same round. The gap is that NOTHING in
+the loop is positioned to notice a test that still passes while distinguishing less, and no
+addition to a candidate guard would find it — the weakening was introduced by a DETERMINISTIC
+pass that runs before candidates exist.
