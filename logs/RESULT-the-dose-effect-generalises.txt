@@ -106,3 +106,39 @@ but whole declarations appearing, disappearing, or changing visibility.
 would have to be read against both to say whether either is a violation, and neither draw
 failed — both converged green in one deterministic round. This is a difference, not yet a
 defect.
+
+
+ANSWERED 20:13 — THE SPEC ASKED FOR NEITHER, AND ALL THREE DRAWS DEVIATE
+=========================================================================
+The section above left open "which version the spec asked for". Read it:
+
+    specs/taskflow.yaml, store.go entry:
+      "A Store STRUCT holding two maps (tasks map[string]Task, projects map[string]Project)
+       guarded by a single sync.RWMutex, built by NewStore()."
+
+    what the draws built:
+      taskflow-chain4   type Store INTERFACE + type StoreImpl struct + NewStore() *StoreImpl
+      taskflow-chain5   type Store INTERFACE + type StoreImpl struct + NewStore() *StoreImpl
+      taskflow-dose     type Store INTERFACE + type store     struct + NewStore() *store
+
+    NONE of them produced a `Store` struct. All three invented an INTERFACE named Store and
+    put the maps in a second type the spec never mentions. The three draws agree on the
+    deviation and disagree only on what to call the invented type.
+
+    SO IT IS NOT "WHICH ONE IS RIGHT". Both are wrong, in the same way, and the twelve lines
+    moved the draw between two flavours of a deviation the spec did not ask for.
+
+⚠️ AND THAT MAKES THE DIFFERENCE SHARPER, NOT SOFTER. A spec-compliant draw has one obvious
+target to hit; an unconstrained invention has many, and the twelve lines are enough to move
+which one gets picked. The perturbation is landing precisely where the spec left room.
+
+    That is a testable follow-on and it is NOT run: tighten the store entry to name the struct
+    explicitly, redraw both arms, and see whether the perturbation survives being pinned. If
+    it does, dose beats specificity; if it does not, the practical mitigation for the whole
+    finding is "say exactly what you want" rather than "keep entries short".
+
+⚠️ IT ALSO MEANS THE CAMPAIGN'S OWN INSTRUMENTS NEVER FLAGGED THIS. Every taskflow draw for
+weeks has invented an interface where the spec asked for a struct, and every one converged
+GREEN — because a green suite tests behaviour, not shape, and the spec audits check test names
+and promised guards. It is the same blind spot _stub_files.py found in the store split, on the
+same file, in a different spec.
