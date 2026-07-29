@@ -137,3 +137,58 @@ often than clean ones — and that is the whole claim. It does not license readi
 rows as evidence about closures; the usersapi row is still the one where a test file was
 rewritten in the same draw that gained a defence, and that stays unattributable whatever the
 bucket rate says.
+
+
+PER-ROW PROVENANCE (17:56) — the artifact-level verdict was too coarse, and it was pessimistic
+================================================================================================
+The census grades an ARTIFACT clean when no model rewrite touched it anywhere. For a specific
+ROW that is the wrong question: what can move a mutation verdict on middleware.go is a rewrite
+of middleware.go, not a rewrite of some other file in the tree.
+
+AND ONE MORE v4 LOG WAS RECOVERED, by file set rather than by time.
+Time failed for 11 v4 trees. A build log lists every file it generated, so the FILE SET
+identifies the spec generation that produced a tree. Tried on all seven PARTIAL artifacts; it
+disambiguates exactly one, and it happens to be the one that matters most:
+
+    taskflow-v4   15 files.  19 candidate logs, and ONLY ab-taskflow-v4-07261523.log
+                  generated 15 — the others produced 12, 13 or 14. Unique on count alone.
+                  That log converged to green after fix round 1 and the tree is green today.
+
+    ⚠️ STRONG CANDIDATE, NOT PROOF. taskflow-v4's bytes carry a single-second mtime of
+    07-27 00:15:07, nine hours after that log closed, and what performed that write is still
+    unidentified. The file set says which SPEC VERSION the tree came from; it cannot prove
+    which RUN wrote those bytes. Recorded as a candidate and used as one.
+    The other six PARTIAL artifacts gain nothing: their file sets are identical across every
+    draw, so the technique identifies nothing at all for them.
+
+WHAT THAT LOG SAYS, and it is the interesting part
+taskflow-v4 took exactly ONE model rewrite, of `router.go`, prompted by a pointer-to-interface
+type error in main.go. Under the artifact-level rule that makes taskflow MISMATCHED — worse
+than the PARTIAL it was. But taskflow's four flipped rows are in middleware.go, pagination.go,
+tasks_handler.go and store.go. NONE of them is router.go.
+
+THE EIGHT FLIPS, GRADED PER ROW
+    GAINED  shortener  handlers.go       v4 no rewrites at all · v5 no rewrites at all
+    GAINED  shortener  handlers.go [2]   v4 no rewrites at all · v5 no rewrites at all
+    GAINED  taskflow   middleware.go     v4 clean for this file · v5 no rewrites at all
+    GAINED  taskflow   pagination.go     v4 clean for this file · v5 no rewrites at all
+    GAINED  taskflow   tasks_handler.go  v4 clean for this file · v5 no rewrites at all
+    LOST    taskflow   store.go          v4 clean for this file · v5 no rewrites at all
+    LOST    tasks-api  handlers.go       v4 log unmatched       · v5 no rewrites at all
+    GAINED  usersapi   middleware.go     v4 log unmatched       · v5 clean for this file
+                                          (its one rewrite was users_test.go — see below)
+
+    6 of 8 flips have NO model rewrite of their own file on EITHER side, against 2 of 8
+    under the artifact-level rule. The 2 remaining have an unmatched v4 log, not a dirty one.
+
+⚠️ FILE-LEVEL IS BETTER THAN ARTIFACT-LEVEL AND STILL NOT AIRTIGHT. A rewrite of router.go can
+change what a test of tasks_handler.go observes, because the router wires the handlers together
+— so "clean for this file" bounds the risk, it does not eliminate it. The honest ordering is:
+no rewrites anywhere (shortener, 2 rows) > no rewrite of this file (taskflow, 4 rows) >
+unmatched (2 rows).
+
+⚠️ AND usersapi IS NOT RESCUED BY THIS. Its v5 draw's single rewrite was users_test.go, and its
+flip is middleware.go going from SURVIVED to CAUGHT. A rewritten TEST is exactly what could
+newly catch a middleware mutation — the file-level rule says "clean for middleware.go" and
+that is the wrong file to be asking about. It stays the one flip that cannot be attributed,
+and this refinement does not change that.

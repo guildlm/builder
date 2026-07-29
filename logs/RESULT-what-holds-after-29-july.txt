@@ -29,7 +29,9 @@ an as-drawn v5 tree and a v4 tree whose build log cannot be identified — 11 of
 trees were restored wholesale and carry one uniform mtime. One (usersapi) is unattributable
 outright: that draw's single model rewrite was of a test file, and its only flip is a defence
 gained. Six-up-two-down stands as the best available estimate; it rests on two fully controlled
-rows out of 25 fully controlled live rows (of 140 total: 18% clean-both, 62% partial, 20%
+rows under the artifact-level rule — 6 of 8 once provenance is graded PER ROW, since a rewrite
+of router.go cannot move a mutation verdict on middleware.go (17:56) — out of 25 fully
+controlled live rows (of 140 total: 18% clean-both, 62% partial, 20%
 mismatched). The dominant uncertainty is NOT model rewrites — taskflow and tasks-api carry 73
 of the 140 rows and both have a CLEAN v5 side and an undatable v4 tree. And the flip rate is
 not higher where provenance is dirty (8.0% clean / 5.7% partial / 3.6% mismatched), which
