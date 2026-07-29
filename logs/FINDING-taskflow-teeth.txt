@@ -110,6 +110,14 @@ invariant, and the teeth suite now regression-guards that exact hole. Suite: 10
 CAUGHT / 5 SURVIVED across 9 specs (ledger, ratelimit, lrucache, eventbus, workapi,
 taskflow, usersapi, logstats, taskapi, taskapipro).
 
+⚠️ THAT TALLY IS PARTLY UNVERIFIABLE (appended 29 July 17:42). The eventbus registry mutation
+produces SYNTACTICALLY INVALID Go on both trees that exist today — its `_drop_line` pattern
+cuts one line out of a multi-line statement. Under the code as it stood, that scored CAUGHT,
+"suite red — defended", about a file the compiler refused to parse. `verdict_for` now returns
+MUTANT-BROKEN instead. Whether the 18 July eventbus verdict was one of these 10 CAUGHTs is
+NOT recoverable: this tally ran against the v4 tree as it stood that day and the corpus was
+redrawn 26-27 July. See FINDING-two-registry-mutations-produce-unparseable-go.txt.
+
 --- UPDATE 2026-07-18 (bitset): a required no-panic guard nobody exercises ---
 bitset.go Clear(i): spec says "if i/64 is beyond the current words, it is already
 clear — do nothing, do not panic". The impl guards with `if wordIndex < len(words)`.
