@@ -1,0 +1,88 @@
+RESULT — the twelve-line investigation, consolidated
+=====================================================
+
+18:30 on 29 July. This thread now spans six files and three retractions. Written so a reader
+does not have to reconstruct it from the order things were discovered in, and so the OPEN
+questions are separable from the settled ones.
+
+THE ORIGINAL CLAIM (15:58): adding twelve lines to taskapipro's projects test entry caused
+three implementation files to lose their module prefix, broke the paging twins, and cost the
+capstone 62 rows.
+
+
+WHAT IS ESTABLISHED
+====================
+
+1. THE CONTENT OF THE TWELVE LINES IS IRRELEVANT TO EVERYTHING MEASURABLE.
+   Twelve lines of prose about naming a variable `t` produce the same result as twelve lines
+   about page sizes and store contents:
+     · the same round-1 import defect, byte for byte
+     · the same defect at the same line AND column in rounds 3 and 4
+     · all six fix rounds identical — the same error STRINGS and the same files repaired in
+       the same order
+     · the generated code identical bar one comment's word order and one Fatalf message
+   Basis: the inert control arm (drawn 16:41-18:15) against both v5 draws.
+
+2. THEIR PRESENCE CHANGES GENERATED CODE IN FILES THE ENTRY NEVER MENTIONS.
+   On one denominator — the seven files untouched in all four draws:
+     v5 draw1 vs draw2   differ by nothing           0 of 7
+     inert vs v5         differ by CONTENT           1 of 7   a comment
+     chain5 vs v5        differ by PRESENCE          4 of 7   REAL CODE
+   chain5 carries an entire `getenv` helper in internal/config/config.go that v5 does not, and
+   service.go differs in a statement body. Two of the four are TEST files.
+
+3. AND THAT EXPLAINS THE DEFECT LINE NUMBERS RATHER THAN CORRELATING WITH THEM.
+   chain5's mirrored-argument defect sits at projects.go 77:55 and its half-repair at 56:2.
+   Both v5 draws and the inert draw put them at 71:55 and 50:2 — a constant six-line offset,
+   because the arms contain different code above both sites. The inert draw matches v5 to the
+   column because it IS v5's code.
+
+4. SAMPLING VARIANCE IN THIS CONDITION IS ZERO, which is what makes 1, 2 and 3 readable at
+   all. Two v5 draws four hours apart on one server: 8 of 8 untouched files identical.
+
+
+WHAT IS SUGGESTIVE AND NOT ESTABLISHED
+=======================================
+
+5. A ONE-LINE EDIT IS SURGICAL WHERE TWELVE ADDED LINES ARE NOT.
+   taskflow's rename (11520cc), draws either side on the same server: 11 of 12 untouched files
+   identical, and the twelfth is the file the rename is about, differing by exactly the renamed
+   function.
+   ⚠️ DIFFERENT SPECS. taskflow for the one-line arm, taskapipro for the twelve-line arm. A
+   one-line change to taskapipro has never been drawn and neither has a twelve-line addition to
+   taskflow. Suggestive of a dose relationship; not a measurement of one.
+   ⚠️ THE SETTLING EXPERIMENT IS CHEAP: twelve inert lines into a taskflow entry. taskflow
+   converges in one round.
+
+
+WHAT IS STILL OPEN
+===================
+
+6. WHETHER IT IS THE SPEC OR THE SERVER. Every draw that has ever shown the import defect ran
+   on process 4439; the only measured clean pre-edit arm (chain4) ran on another server on
+   another day. "Twelve lines cause it" and "this server writes this code" fit every row.
+   ⚠️ THE DRAW IN FLIGHT ANSWERS THIS. The pristine pre-edit draw on 4439, graded from
+   `.pre-fix.json` rather than from compiler output — which is what makes it answerable at all,
+   since chain5's round 1 died in internal/store before internal/api was ever built.
+   Prediction registered at 18:20: CORRECT at 70%.
+
+7. WHAT HAPPENED IN THE TWELVE REPAIRED FILES. Every cross-draw comparison above excludes
+   projects.go, projects_test.go and ten others, because the loop rewrote them and nothing
+   persisted the as-drawn state. That is fixed going forward, not backward.
+
+
+WHAT WAS RETRACTED, AND WHY IT MATTERS FOR READING THE REST
+============================================================
+  * "the loop repairs the wrong side"          rounds 1 and 2 targeted projects_test.go
+  * "the edit broke the tasks twins 3,3 -> 1,2" post-repair tree vs near-as-drawn tree
+  * "chain5 genuinely lacks undefined: w"       it lacks it AT ROUND 2, after four fixes
+  * "generation is deterministic"               one group in four breaks it
+
+All four are the same error: a quantity read off a generated tree is a POST-REPAIR quantity.
+Points 1-4 above avoid it by comparing only files no draw repaired, and point 6 avoids it by
+reading the snapshot. That constraint is why the established list is short.
+
+⚠️ AND ONE STRUCTURAL POINT WORTH KEEPING. The cleanest comparison in the whole investigation —
+chain5 versus v5, differing in exactly one thing — sat on disk from 16:20 and was not made
+until 18:09, because chain5 was filed as "the control that came back masked". A draw that
+cannot answer ONE question was treated as if it could answer none.
