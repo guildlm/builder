@@ -1,0 +1,65 @@
+FINDING — the same mechanism that saved taskapi's healthz left four ledger sites undefended
+============================================================================================
+
+Measured 12:18 on 29 July while ledger-v5 was generating the very file this is about.
+
+LEDGER'S FOUR response.go SURVIVORS ARE FULLY EXPLAINED, AND THE EXPLANATION IS THIS
+MORNING'S LAW RUNNING THE OTHER WAY.
+
+The spec entry for internal/api/response.go names the contract completely:
+
+    "`writeError(w, err)` maps a domain error to a status with errors.Is and writes
+     {"error": "..."}: ErrNotFound -> 404, ErrExists -> 409, ErrInvalid -> 400,
+     ErrUnbalanced -> 422, ErrInsufficientFunds -> 422, anything else -> 500."
+    "`writeJSON(...)` sets Content-Type: application/json"
+
+Every mapping, by name. And the baseline records exactly those mappings as SURVIVED:
+
+    response.go   StatusConflict -> StatusBadRequest              SURVIVED   (the 409)
+    response.go   StatusUnprocessableEntity -> StatusBadRequest   SURVIVED   (the 422)
+    response.go   StatusInternalServerError -> StatusBadGateway   SURVIVED   (the 500)
+    response.go   drop Content-Type                               SURVIVED
+
+CHECKED: no TEST entry in specs/ledger.yaml names 409, 422, HTTP 500, Conflict,
+Unprocessable, InternalServerError or Content-Type. The seven declared test files —
+money, models, memory, service, router, transactions, middleware — mention "500" only as
+money.Money(500), a monetary amount.
+
+    The contract is stated in the entry for the file that IMPLEMENTS it, and in no entry
+    for any file that TESTS it. So nothing tests it.
+
+THE TWIST: THE SAME STRUCTURE WAS THE GOOD OUTCOME NINE HOURS AGO
+FINDING-the-test-description-is-the-unit-of-transfer.txt established that a value stated in
+one entry does not reach a test described in another. Its evidence was taskapi's healthz:
+the body "ok" appears in the router.go entry, the prohibition on asserting it appears in the
+router_test.go entry, the value did NOT travel, and the prohibition HELD. That was recorded
+as the mechanism working.
+
+Here the identical mechanism produces four undefended sites. Same locality, opposite value:
+
+    taskapi healthz   value in impl entry, not in test entry  ->  no leak      GOOD
+    ledger response   contract in impl entry, not in any test ->  no defence   BAD
+
+    Entry-locality is NEUTRAL. It blocks leakage and defence with equal reliability, and
+    which one you get depends only on whether you wanted the test to know.
+
+THE PRACTICAL RULE, sharper than "attach the reason to the test"
+Documenting a contract where it is IMPLEMENTED is necessary and not sufficient. If it should
+be defended, it must appear in a TEST entry — naming the status, the header, the value. The
+implementation entry tells the model what to BUILD; only a test entry tells it what to CHECK,
+and the campaign's survivors are overwhelmingly things stated in the first and never the
+second.
+
+    Four of ledger's eight survivors are one helper's contract, written down completely,
+    in the one place that cannot cause it to be tested.
+
+WHY THIS STRENGTHENS THE CONTROL PREDICTION RATHER THAN COMPLICATING IT
+ledger's spec has not changed since 17 July, so these four entries read today exactly as
+they read when the v4 rows were measured. There is no mechanism by which ledger-v5 could
+defend them. The prediction that its 8 survivors stay survivors now has a REASON rather than
+just an absence of intervention, which makes a flip more informative if one occurs: it would
+have to be drift, and drift on a site whose contract no test names would be luck.
+
+⚠️ NOT A NEW MECHANISM, AND NOT COUNTED AS A NEW INSTANCE. This is the transfer-unit law
+applied to a case I had not looked at, with the sign reversed. Its value is the sign
+reversal — a law that only ever explains good outcomes is not being tested.
