@@ -1,0 +1,62 @@
+PREDICTION — on THIS server, does the pre-edit spec write the unprefixed import path?
+======================================================================================
+
+18:20 on 29 July, before the draw. This is the question the whole twelve-line finding has
+rested on since 15:58, and it has never been measured on server 4439 with the pre-edit spec.
+
+WHY IT IS ANSWERABLE NOW AND WAS NOT AT 18:10
+At 18:10 this draw was shelved as expected-VOID: its condition is chain5's, generation in a
+fixed condition is byte-identical here, so it should reproduce chain5 — including chain5's
+round 1 dying in internal/store before internal/api was ever built. Compiler output cannot
+report imports the compiler never evaluated.
+
+`<out>/.pre-fix.json` landed at 18:17 and removes that entirely. "Did the model write
+`taskapipro/internal/models`?" is a property of the SOURCE. The snapshot holds the source as
+written, before any repair, and `_grade_asdrawn_imports.py` reads the import block out of it.
+Reproducing chain5 is now the GOOD case: it tells us what chain5 would have shown.
+
+THE TABLE THIS FILLS IN
+    draw       projects entry        server        as-drawn internal/api imports
+    chain4     PRE-edit, no lines    28 Jul        (inferred CORRECT — round 1 type-checked
+                                                    internal/api, so its imports resolved)
+    chain5     PRE-edit, no lines    29 Jul/4439   NOT RECOVERABLE — no snapshot
+    v5 x2      +12 REAL lines        29 Jul/4439   UNPREFIXED (round-1 compiler)
+    inert      +12 INERT lines       29 Jul/4439   UNPREFIXED (round-1 compiler)
+    preedit    PRE-edit, no lines    29 Jul/4439   ?   <- this draw, read from source
+
+BRANCHES
+  A  CORRECT     every first-party internal/api import carries `guildlm.dev/taskapipro/`.
+                 -> the ADDED LINES cause the defect. The spec attribution recovers on a pair
+                    that holds the server fixed, which nothing has managed all day.
+  B  UNPREFIXED  the pre-edit spec writes them too, on this server.
+                 -> the SERVER causes it. The twelve-line edit is EXONERATED of the import
+                    defect entirely, and the 15:58 headline loses its remaining half.
+  C  NO-SNAPSHOT the write failed or the package has no first-party imports. Should not
+                 happen — the change is verified on a real draw — but it is in the set,
+                 because four predictions went void today for omitting the nothing-happens
+                 branch.
+
+PREDICT A, 70%.
+
+The reason is not chain4 — that arm is on another server and another day, which is the whole
+problem. It is the 18:09 measurement: chain5 versus v5, SAME server, differing only in whether
+the twelve lines are present, differ in 4 of 7 untouched files with REAL CODE differences —
+an entire `getenv` helper present in one and absent in the other. So on this exact server the
+twelve lines demonstrably change generated code in files their entry never mentions. An import
+path is generated code. The defect appearing in both +12 arms and not in the one pre-edit arm
+anyone measured is then the expected shape.
+
+Against A, and it is not nothing: every draw that has EVER shown the defect ran on 4439, and
+a server-state explanation fits all four rows without needing the lines to matter at all.
+
+SECONDARY PREDICTION, graded separately: this draw reproduces chain5. Same spec, same server,
+same flags. Measured as before — untouched-file byte comparison against generated/taskapipro-
+chain5. PREDICT 75% that every file untouched in both is identical.
+
+    ⚠️ If it does NOT reproduce chain5, branch A/B still grades — the snapshot says what this
+    draw wrote regardless — but the inference "this is what chain5 would have shown" is void,
+    and the result speaks only for itself.
+
+⚠️ N=1, one spec, one entry. And branch A would establish that the twelve lines cause the
+import defect ON THIS SERVER; it would say nothing about why chain4 on a different server also
+wrote correct imports, which is consistent with either story.

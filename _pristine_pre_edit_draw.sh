@@ -25,6 +25,18 @@
 # It is the draw chain5 was supposed to be. chain5 came back masked, which is the only reason
 # this is still open, so this script REFUSES to report a count and defers to the grader that
 # knows the difference.
+#
+# ⚠️ ITS EXPECTED VALUE CHANGED AT 18:17, WHICH IS WHY IT IS BEING RUN AFTER ALL. At 18:10 this
+# draw was shelved: its condition is chain5's condition, generation in a fixed condition is
+# byte-identical here, so it was expected to reproduce chain5 — including chain5's round 1
+# dying in internal/store before internal/api was ever built. That is the UNMEASURED verdict
+# again, and an hour of GPU for a 1-in-4 shot was a bad trade.
+#
+# `<out>/.pre-fix.json` removes the blocker entirely. The question is "did the MODEL write the
+# unprefixed path", which is a property of the source, not of whether a compiler reached it.
+# The snapshot is read directly by _grade_asdrawn_imports.py and cannot be masked. So the
+# draw reproducing chain5 is now the GOOD case rather than the wasted one: it tells us what
+# chain5 would have shown.
 set -uo pipefail
 cd "$(dirname "$0")"
 
@@ -126,15 +138,20 @@ echo "=== guildlm-build exit rc=$? (${SECONDS}s) ==="
 # previous runner did, was written before the masking problem was known, and its verdict had
 # to be publicly superseded.
 echo
-echo "=== VERDICT (from _grade_import_defect.py — a count would not be safe here) ==="
+echo "=== PRIMARY VERDICT: what the MODEL WROTE, from the pre-repair snapshot ==="
+echo "This is the one that cannot be masked. A compiler that never reached internal/api says"
+echo "nothing about its imports; the source says what it says."
+.venv/bin/python _grade_asdrawn_imports.py "$OUT"
+SNAP=$?
+echo
+echo "=== SECONDARY: round-1 compiler output (may be UNMEASURED — that is chain5's outcome) ==="
 .venv/bin/python _grade_import_defect.py "$LOG"
 RC=$?
 echo
-case $RC in
-  0) echo "Compare against: chain4 FINE/other-server · v5 x2 DEFECT/4439 · inert DEFECT/4439"
-     echo "  FINE   -> the added LINES cause the defect; spec attribution recovers."
-     echo "  DEFECT -> the SERVER causes it; the twelve-line edit is exonerated of it." ;;
-  1) echo "UNMEASURED — a different package failed round 1 first, so internal/api's imports"
-     echo "were never evaluated. This is chain5's outcome again. It answers nothing; redraw." ;;
-  *) echo "grader error rc=$RC" ;;
-esac
+echo "READ THE SNAPSHOT VERDICT, NOT THE LOG ONE, WHEN THEY DISAGREE:"
+echo "  CORRECT    -> the pre-edit spec writes prefixed imports on THIS server. The twelve"
+echo "                added lines cause the defect; the spec attribution recovers."
+echo "  UNPREFIXED -> the pre-edit spec writes them too. The SERVER causes it and the"
+echo "                twelve-line edit is exonerated of the import defect entirely."
+echo "  (snapshot rc=$SNAP · log-grader rc=$RC — a log UNMEASURED alongside a snapshot verdict"
+echo "   is the expected shape, not a conflict: it means the compiler never looked.)"
