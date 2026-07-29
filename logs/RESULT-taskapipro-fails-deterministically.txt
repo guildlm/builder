@@ -72,3 +72,56 @@ unknown; three rounds is what is established.
 REPORTING THE PAIR, AS THE RULE REQUIRES: taskapipro required two draws. Draw 1 shipped
 NOT-GREEN after seven rounds. Draw 2 is at round 3 of 6 having reproduced draw 1 exactly.
 Neither draw's rows enter the capstone diff, per the same rule.
+
+
+COMPLETE (14:38) — ALL SIX ROUNDS AND THE FINAL VERDICT ARE IDENTICAL
+=====================================================================
+
+    round 1   projects.go:7:2 / 8:2   package taskapipro/internal/... not in std    IDENTICAL
+    round 2   projects_test.go:183:2  undefined: w                                  IDENTICAL
+    round 3   projects.go:71:55       too many arguments in call to h.svc.List      IDENTICAL
+    round 4   projects.go:50:2        declared and not used: status                 IDENTICAL
+    round 5   projects_test.go:183:2  undefined: w                                  IDENTICAL
+    round 6   projects.go:71:55       too many arguments in call to h.svc.List      IDENTICAL
+    end       error surface repeats — stopping extension rounds                     IDENTICAL
+              exhausted 7 fix rounds (6 budgeted), still failing                    IDENTICAL
+
+    RESULT taskapipro: NOT-GREEN (build=1 vet=1 test=1)   BOTH DRAWS, byte for byte
+
+Six rounds, every defect at the same file, line and column, in the same order, ending on the
+same repeat-detector trip and the same exit code. Two independent draws four hours apart.
+
+THE RULE'S REQUIRED REPORT: taskapipro required TWO draws. NEITHER compiled. 0 of 2.
+
+    logs/NOTE-the-rule-for-redrawing-taskapipro-decided-in-advance.txt, written at 10:57
+    before any second draw existed: "If the second draw is ALSO red, the honest capstone
+    number is 110 of 314 rows dead and taskapipro is reported as uncomparable. No third
+    draw."
+
+    That is the branch that happened. No third draw. taskapipro is uncomparable, and the
+    capstone's 177 dead rows stand exactly as published.
+
+WHAT THE REDRAW BOUGHT, given that it changed no number
+It converted "taskapipro failed" into "taskapipro fails, reproducibly, by this route":
+
+  * THE DRAW is deterministic — imports, twin seed counts, all identical.
+  * THE REPAIR LOOP is deterministic — including all three of its SELF-INFLICTED defects.
+    Rounds 3, 4 and 6 are the mirrored argument, its half-repair, and the mirrored argument
+    again. None exists in either as-drawn tree; both trees call h.svc.List with three
+    correct arguments.
+  * THE OSCILLATION is deterministic — rounds 3->4->6 and 2->5 are two cycles, and the loop
+    walks both, twice, from a fixed start.
+
+    A defect that reproduces at a fixed line and column is a defect you can put a test
+    around. That is what this run bought, and it is worth more than a green tree that
+    would have said "sometimes it lands".
+
+THE ONE HONEST CAVEAT, restated because it bounds everything above: both draws shared a
+server process. chain4, on 28 July, produced seeds 3,3 where today produces 1,2 — from
+byte-identical spec text. Determinism holds WITHIN a condition. The variable that changed
+between the days is still unidentified, and the separating draw (revert the projects entry,
+redraw on today's server, read the TASKS twins) is unrun.
+
+AND THE CLAMP GRADE STAYS VOID. It needed a taskapipro tree that compiles. Neither draw
+produced one, so _twin_witness's static 0-of-4 reading remains validated only retrodictively
+against chain4. That prospective test is still owed and now has no tree to run on.
