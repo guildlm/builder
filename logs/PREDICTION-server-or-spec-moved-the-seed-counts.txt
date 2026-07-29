@@ -134,3 +134,53 @@ not be touched.
 
     Two mid-run edits today, two different answers. Python parses its input once and holds
     it; bash reads its script by byte offset as it goes. Neither is guessable from the other.
+
+
+CORRECTION (15:49) — "THE SERVER IS EXONERATED" IS TOO STRONG. It is exonerated for the
+TASKS SEED COUNTS and for nothing else.
+========================================================================================
+chain5 finished its projects_test.go, which makes a second comparison available that I did
+not design for: chain4 and chain5 used BYTE-IDENTICAL specs — verified, 15e25f3 is the only
+commit to taskapipro.yaml since chain4, and the reverted file equals eed0365's version — so
+those two draws isolate the DAY and SERVER with the spec held fixed.
+
+    chain4  28 Jul   tasks  seeds 3 asserts 2 · seeds 3 asserts 2      DISCRIMINATES x2
+                     projects seeds 1 asserts 1 · seeds 1 asserts 1    CANNOT-FAIL x2
+    chain5  29 Jul   tasks  seeds 3 asserts 2 · seeds 3 asserts 2      DISCRIMINATES x2
+                     projects seeds 1 asserts 2 · seeds 1 asserts 2    CANNOT-PASS x2
+
+THE TASKS TWINS ARE IDENTICAL ACROSS DAYS. Same seeds, same asserts, same verdict. That is
+the readout the experiment was built on, and it holds: the server does not move them, so the
+spec edit is what moved them from 3,3 to 1,2.
+
+THE PROJECTS ASSERTION MOVED ACROSS DAYS, 1 -> 2, WITH THE SPEC HELD FIXED. Nothing in the
+spec changed; the day and the server did. So SOMETHING is day-dependent, and my commit
+message at 15:42 — "every cross-day comparison in the campaign that I flagged as confounded
+by the restart is clean" — is wrong as written.
+
+    Exonerated: the server, for the TASKS SEED COUNTS.
+    Not exonerated: the server, in general. One assertion value moved across days on an
+    unchanged spec, in the same file the experiment was about.
+
+WHY THE OVER-CLAIM HAPPENED, and it is the day's shape again
+I designed a single-variable experiment, got a clean answer on the variable I designed for,
+and then generalised it to a claim about "every cross-day comparison". The experiment
+licenses a statement about the tasks seed counts. It licenses nothing about assertions, other
+artifacts, or other days — and the counterexample was sitting in the same tree, three files
+later, waiting for the draw to finish.
+
+    The answer to the question I asked was right. The sentence I wrote around it was wider
+    than the question.
+
+WHAT STILL STANDS, PRECISELY
+  * The projects-entry edit moved the tasks seed counts from 3,3 to 1,2. Server held fixed
+    across v5, v5-2nd and chain5. That is the finding and it is unaffected.
+  * The transfer-unit law is still falsified as stated — text in a sibling entry reached the
+    tasks tests.
+  * The edit still made things worse: pre-edit is 2 of 4 discriminating, post-edit is 0 of 4.
+
+WHAT NEEDS ANOTHER DRAW
+Whether the projects assertion's 1 -> 2 shift is the server, the day, or ordinary sampling.
+Two draws on the same server with the same spec would settle it — and v5 and v5-2nd already
+show that same-day same-spec draws agree exactly, which makes SAMPLING the least likely of
+the three.
