@@ -19,16 +19,66 @@ WHAT IT REFUSES TO DO
   because "3 flips" out of 12 comparable rows and out of 150 rows are different sentences,
   and the corpus headline has already been wrong once for exactly this reason
   (FINDING-status-code-holes: 64 of 150 probes could answer, not 150).
+
+  The GENERATION SUFFIX is stripped before keying, so `taskapipro-v4` and `taskapipro-v5`
+  are the same artifact. Without that this tool answered its own reason for existing with
+  "NOTHING WAS COMPARED" — see _GEN_SUFFIX below. The generations actually present in each
+  file are printed on the first line, so a v4-vs-v4 re-sweep can never be read as a redraw.
 """
 from __future__ import annotations
 
 import collections
 import pathlib
+import re
 import sys
 
 # NOTESTS: a tree with no _test.go survives every mutation, which is not a verdict
 # about defence — see _teeth_suite.verdict_for.
 DEAD = ("BASELINE-RED", "NOAPPLY", "SKIP", "NOTESTS")
+
+# THE GENERATION SUFFIX IS METADATA, NOT IDENTITY — and this was wrong until 29 July.
+#
+# _hole_hunt writes `art.name`, the DIRECTORY name, so a row says `taskapipro-v4` in the
+# baseline and `taskapipro-v5` after a redraw. Keyed raw, those two never match, and this
+# tool answers a cross-generation comparison with 0 COMPARABLE and "NOTHING WAS COMPARED".
+#
+# Proven on the tracked baseline: 314 rows diffed against a copy of ITSELF with only the
+# suffix rewritten reported 314 gone, 314 fresh, nothing compared. Byte-identical verdicts,
+# zero of them comparable.
+#
+# It went unseen because every previous use was v4-vs-v4. _rebuild_corpus.sh and
+# _resweep_v4.sh both regenerate `generated/<spec>-v4` IN PLACE, so both sides of every
+# diff ever run carried the same suffix. --gen= was added to _hole_hunt precisely so a
+# redraw could be swept without overwriting the baseline, and this half of the pair was
+# never taught about it. The tool was correct for every comparison it had done and wrong
+# for the only one it was built for.
+#
+# The self-test did not catch it because the self-test plants `a-v4` on BOTH sides — it was
+# calibrated to the tool as built, which is the failure recorded three times already this
+# week: a completeness check that shares its subject's blind spot. The cross-generation
+# case is planted below now.
+#
+# NARROW ON PURPOSE: only a trailing -v<digits> is stripped. The corpus also holds -chain4,
+# -witness and -empty trees, and those are DIFFERENT EXPERIMENTS on the same spec, not the
+# same artifact at another generation. Collapsing them would silently compare a closure's
+# purpose-built draw against a corpus draw and report the difference as durability.
+_GEN_SUFFIX = re.compile(r"-v\d+$")
+
+
+def base_artifact(art: str) -> str:
+    """`taskapipro-v5` -> `taskapipro`; `tasks-api-v4` -> `tasks-api`; `x-chain4` unchanged."""
+    return _GEN_SUFFIX.sub("", art)
+
+
+def generations(path: pathlib.Path) -> list[str]:
+    """Which generation suffixes a rows file actually contains, for the header line."""
+    gens = set()
+    for line in path.read_text().splitlines():
+        if line.strip():
+            art = line.split("\t")[0]
+            m = _GEN_SUFFIX.search(art)
+            gens.add(m.group(0)[1:] if m else "(none)")
+    return sorted(gens)
 
 
 def load(path: pathlib.Path) -> dict[tuple[str, str, str, int], str]:
@@ -55,6 +105,9 @@ def load(path: pathlib.Path) -> dict[tuple[str, str, str, int], str]:
         if len(parts) != 4:
             raise SystemExit(f"{path}: expected 4 tab-separated fields, got {len(parts)}:\n  {line}")
         art, f, shape, verdict = parts
+        # Generation stripped HERE, at the key, so every downstream set operation compares
+        # artifacts rather than directory names. See _GEN_SUFFIX above.
+        art = base_artifact(art)
         n = seen.get((art, f, shape), 0)
         seen[(art, f, shape)] = n + 1
         rows[(art, f, shape, n)] = verdict
@@ -154,9 +207,44 @@ def self_test() -> int:
     loaded = load(pathlib.Path(tmp))
     if len(loaded) != 3:
         fail.append(f"three sites of one shape must load as three rows, got {len(loaded)}")
-    if loaded.get(("a-v4", "h.go", "drop X", 2)) != "SURVIVED":
+    # Key is ("a", ...) not ("a-v4", ...): load() strips the generation suffix now, and this
+    # assertion is the one place the self-test can SEE that it does. It failed the moment
+    # normalization went in, which is the check doing its job on its own author.
+    if loaded.get(("a", "h.go", "drop X", 2)) != "SURVIVED":
         fail.append("the third site's verdict is not preserved under its own ordinal")
     pathlib.Path(tmp).unlink()
+    # THE CROSS-GENERATION CASE — the one this file was built for and could not do.
+    #
+    # Every assertion above plants `a-v4` on BOTH sides, so all of them passed while the
+    # tool reported 0 COMPARABLE for a v4-vs-v5 diff of identical verdicts. A self-test
+    # that only exercises same-generation rows is calibrated to the bug. This plants the
+    # real shape: same artifact, same file, same shape, DIFFERENT generation suffix, one
+    # verdict changed — and requires the comparison to happen and the flip to be seen.
+    def _tsv(text: str) -> pathlib.Path:
+        with tempfile.NamedTemporaryFile("w", suffix=".tsv", delete=False) as fh:
+            fh.write(text)
+            return pathlib.Path(fh.name)
+
+    v4 = _tsv("taskapipro-v4\tprojects.go\tclamp\tSURVIVED\n"
+              "tasks-api-v4\th.go\tdrop X\tCAUGHT\n")
+    v5 = _tsv("taskapipro-v5\tprojects.go\tclamp\tCAUGHT\n"
+              "tasks-api-v5\th.go\tdrop X\tCAUGHT\n")
+    xg = compare(load(v4), load(v5))
+    if len(xg["comparable"]) != 2:
+        fail.append(f"a v4-vs-v5 diff of the same two sites must compare BOTH, got "
+                    f"{len(xg['comparable'])} — the generation suffix is being keyed as identity")
+    if len(xg["gone"]) or len(xg["fresh"]):
+        fail.append("a pure generation change must not read as sites appearing and vanishing")
+    if [k for k, o, n in xg["live_flips"] if o == "SURVIVED" and n == "CAUGHT"] != \
+            [("taskapipro", "projects.go", "clamp", 0)]:
+        fail.append("the cross-generation SURVIVED->CAUGHT flip is not reported as defence gained")
+    # ...and the hyphenated name must keep its hyphens: tasks-api-v4 -> tasks-api, not tasks.
+    if ("tasks-api", "h.go", "drop X", 0) not in xg["comparable"]:
+        fail.append("a hyphenated artifact lost more than its generation suffix")
+    # ...while a DIFFERENT EXPERIMENT on the same spec must stay distinct from a generation.
+    if base_artifact("taskapipro-chain4") != "taskapipro-chain4":
+        fail.append("-chain4 is another experiment, not another generation; it must not collapse")
+    v4.unlink(); v5.unlink()
     # And the denominator rule: two sweeps sharing NOTHING must say so rather than print 0 flips.
     empty = compare({("x-v4", "h.go", "s", 0): "CAUGHT"}, {("y-v4", "h.go", "s", 0): "CAUGHT"})
     if "NOTHING WAS COMPARED" not in render(empty, {}, {}):
@@ -176,5 +264,16 @@ if __name__ == "__main__":
     for p in (o, n):
         if not p.is_file():
             raise SystemExit(f"{p} is not a file")
+    # Say WHICH generations are being compared, on the first line, before any number.
+    # This session's recurring failure is a sentence whose answer is right and whose SUBJECT
+    # is not what it looks like; the generation suffix was silently deciding the subject of
+    # this entire comparison. Printing it makes a v4-vs-v4 diff impossible to mistake for a
+    # v4-vs-v5 one, which is exactly how "0 regressions" could be read off the wrong pair.
+    go_, gn_ = generations(o), generations(n)
+    print(f"comparing {o.name} [{', '.join(go_)}]  ->  {n.name} [{', '.join(gn_)}]")
+    if go_ == gn_:
+        print(f"   note: BOTH sides are generation {', '.join(go_)} — this is a re-sweep of the "
+              f"same trees,\n         not a redraw comparison.")
+    print()
     old, new = load(o), load(n)
     print(render(compare(old, new), old, new))

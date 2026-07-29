@@ -1,0 +1,72 @@
+FINDING — _redraw_diff answered its own reason for existing with "NOTHING WAS COMPARED"
+=======================================================================================
+
+Found 29 July while taskapipro-v5 was at file 9 of 21 — before the v5 rows existed, so
+before the diff could be run and misread. Fixed in the same sitting.
+
+THE DEFECT
+_hole_hunt writes `art.name`, the DIRECTORY name, into column 1. The baseline therefore
+says `taskapipro-v4` and a v5 sweep says `taskapipro-v5`. _redraw_diff keyed rows by
+(artifact, file, shape, ordinal) using that column verbatim, so the two never matched.
+
+PROVEN, not reasoned:
+
+    $ sed 's/-v4\t/-v5\t/' logs/hole-hunt-rows.tsv > fake-v5.tsv     # ONLY the suffix
+    $ _redraw_diff.py logs/hole-hunt-rows.tsv fake-v5.tsv
+    rows: 314 old · 314 new · 0 COMPARABLE
+          314 site(s) only in the old sweep, 314 only in the new
+    NOTHING WAS COMPARED.
+
+Byte-identical verdicts. Zero comparable. The capstone measurement of the entire campaign,
+run on data that differs in nothing but a directory name, reports that the two sweeps do
+not describe the same corpus.
+
+WHY IT SURVIVED EVERY PREVIOUS USE
+Every diff ever run was v4-vs-v4. _rebuild_corpus.sh and _resweep_v4.sh both regenerate
+`generated/<spec>-v4` IN PLACE, so both sides always carried the same suffix — including
+the dry-run quoted in _sweep_v5.sh's NEXT block that reported 99 comparable sites. That
+number was real and it was same-generation. `--gen=` was added to _hole_hunt specifically
+so a redraw could be swept WITHOUT overwriting the baseline, and the other half of the pair
+was never taught about it. The tool was correct for every comparison it had performed and
+wrong for the only one it was built to perform.
+
+WHY THE SELF-TEST DID NOT CATCH IT
+It plants `a-v4` on BOTH sides. Every transition it separates — defence lost, defence
+gained, both-dead, vanished site, the ordinal collapse — is planted same-generation. It was
+calibrated to the tool as built rather than to the job the tool exists for, which is the
+third instrument this week found checking its own blind spot (the save point records three
+others whose completeness check was calibrated to their own bug). A green self-test was
+available the entire time and meant nothing about the one comparison that mattered.
+
+WHAT IT WOULD HAVE COST
+This was the next command in the written sequence. It would have printed NOTHING WAS
+COMPARED after a six-hour redraw, and the honest reading of that output — "every site moved
+or changed shape, the two sweeps do not describe the same corpus" — is a completely false
+statement about a corpus that had barely moved. The plausible response is to go hunting for
+what changed in the sweep, or to conclude the redraw was botched and run it again.
+
+THE FIX
+Strip a trailing -v<digits> at the key. NARROW ON PURPOSE: -chain4, -witness and -empty
+trees are DIFFERENT EXPERIMENTS on the same spec, not the same artifact at another
+generation, and collapsing them would compare a closure's purpose-built draw against a
+corpus draw and report the difference as durability. Pinned by a new self-test case that
+plants the cross-generation shape, checks a hyphenated name keeps its hyphens
+(`tasks-api-v4` -> `tasks-api`, not `tasks`), and requires `-chain4` NOT to collapse.
+
+The first line of output now names the generations on both sides:
+
+    comparing hole-hunt-rows.tsv [v4]  ->  hole-hunt-rows-v5.tsv [v5]
+
+and a same-generation pair says so explicitly. The suffix was silently deciding the SUBJECT
+of the comparison; printing it means "0 regressions" can never be read off the wrong pair.
+
+CONFIRMATION THE FIX IS THE FIX: the same suffix-only file now reports 314 of 314
+comparable, 0 flips — which is the correct answer for a file diffed against itself.
+
+THE SHAPE, AGAIN
+Seventh instance this session of a sentence whose answer is right and whose subject is not
+what it appears to be. This one is the worst of them, because the tool announced its own
+failure in confident language ("the two sweeps do not describe the same corpus") that reads
+as a finding rather than a defect. Second one caught before it cost anything, and both of
+today's catches came from the same act: profiling the inputs of the next step before
+running it, rather than running it and reading what came out.
