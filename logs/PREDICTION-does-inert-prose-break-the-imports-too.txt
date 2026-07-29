@@ -1,0 +1,80 @@
+PREDICTION — is the import break caused by the CONTENT of those twelve lines, or by twelve
+lines being there at all?
+===============================================================================================
+
+Written 16:44 on 29 July, BEFORE the draw. The question is the one
+FINDING-twelve-lines-in-one-entry-broke-three-other-files.txt left open in its own words:
+
+    "which property of those twelve lines matters (length, position, the words themselves,
+     the fact that they discuss imports-adjacent concepts at all) is untested. The
+     separating draws are cheap and obvious: add twelve lines of UNRELATED text to the
+     projects entry and see whether the imports break anyway."
+
+THE ESTABLISHED TABLE, from round-1 logs across four draws
+-----------------------------------------------------------
+    draw       projects entry       server     import-path errors in round 1
+    chain4     PRE-edit             28 Jul     0
+    chain5     PRE-edit             29 Jul     0
+    v5 (1st)   POST-edit (+12)      29 Jul     4
+    v5 (2nd)   POST-edit (+12)      29 Jul     4
+
+Deterministic in both directions, and the server is held fixed across the last three.
+
+THE CONTROL ARM
+----------------
+    inert      PRE-edit +12 INERT   29 Jul     ?
+
+Same file, same entry, same insertion point, same line count (12), same six-space
+indentation, same paragraph shape. Different subject: the twelve lines give reasoning for
+the `Never name a local variable t` rule that is ALREADY in that entry, and add no new
+requirement to anything.
+
+OUTCOME VARIABLE, fixed in advance
+-----------------------------------
+The count of import-path errors in ROUND 1 of the log — the as-drawn state, before any
+repair. Read from the log, never from the tree. Comparing draws by their post-fix trees is
+the population error already made three times today.
+
+BRANCHES
+---------
+  A  imports break (>=1 import-path error in round 1)      -> LENGTH/POSITION IS SUFFICIENT.
+     The content of the real twelve lines is irrelevant to the defect. Adding any twelve
+     lines to that entry destabilises three implementation files' imports, which makes the
+     spec's blast radius a function of SIZE, not meaning, and makes every future spec edit
+     a risk to files it does not mention.
+
+  B  imports clean (0 import-path errors in round 1)       -> NOT LENGTH ALONE. Something
+     about the real twelve lines specifically is doing it. Does NOT identify what: see the
+     limitation below.
+
+  C  the draw does not reach a round-1 import check — early failure, a different error class
+     dominating, no round-1 log line                       -> INCONCLUSIVE, report as such.
+
+PREDICT A, 60%.
+
+Weak either way and stated weakly on purpose. For A: the mechanism most available is that
+twelve lines shift the prompt context for every file generated after them, and nothing in the
+real twelve lines names an import path — neither the words `guildlm.dev/taskapipro` nor any
+module prefix appears in them, so a content-specific route has no obvious surface. Against A:
+the defect reproduced EXACTLY, four errors twice, and a diffuse length effect is a poor
+explanation for a defect that lands on the same three files with the same count on two
+independent draws.
+
+⚠️ WHAT ONE CONTROL DRAW CANNOT SEPARATE, stated before the result rather than after
+-------------------------------------------------------------------------------------
+Three candidate mechanisms are on the table: LENGTH/POSITION, VOCABULARY (the real lines are
+dense with handler/store/page-size words; the control's are not), and THE SPECIFIC CONTENT.
+This draw separates the first from the other two and nothing more. If the result is B, the
+honest reading is "not length alone", and a second control — twelve lines of API-vocabulary
+prose that still adds no requirement — is what would separate vocabulary from content. That
+follow-up is NOT pre-authorised here; it is a new experiment if B lands.
+
+⚠️ AND THE CONTROL IS NOT SHAPE-IDENTICAL. The real twelve lines cite a measurement ("measured
+on the previous draw ... SURVIVED on all three paging sites"). The control cites none, because
+writing a fabricated measurement into a tracked spec to make a control look tidier is not a
+trade this repo makes. So form is matched on position, length and indentation, and NOT on
+rhetorical mode. If B lands, that unmatched dimension is a live alternative to "content".
+
+N=1. A single draw cannot distinguish a mechanism from a coin, and the pre/post table is only
+deterministic at n=2 per arm. If A lands, the strong claim needs a second inert draw before it
+is worth writing down as a property of the pipeline.

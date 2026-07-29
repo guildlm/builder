@@ -1,0 +1,12 @@
+      NEVER NAME A LOCAL VARIABLE t — this is a constraint on the test, not a style
+      preference. In a Go test the parameter t is the only channel a failure has: t.Errorf
+      and t.Fatalf are how an assertion reports, and nothing else in the function reaches
+      the test runner. A loop variable, a struct field or a helper parameter named t
+      SHADOWS that handle for the rest of its scope, and every call written after it
+      compiles against the wrong receiver or does not compile at all.
+      The shadowed form is the dangerous one, because the compiler can accept it. A value
+      that happens to carry an Errorf method takes the call, the file builds, vet stays
+      quiet, and the assertions inside that scope no longer have a route to the runner.
+      NOTHING IN A PASSING RUN DISTINGUISHES A REPORTING ASSERTION FROM A SHADOWED ONE.
+      Give the loop variable, the table row and the helper argument their own names —
+      tc, row, want, got — and leave t meaning exactly one thing in the whole file.
