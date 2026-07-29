@@ -125,3 +125,36 @@ If (c) happens the prediction is not graded, because the experiment it was about
 That is a genuine miss in how the prediction was written: it assumed the fix loop would
 reach the assertion, and a prediction should name the conditions under which it is void.
 The 65% stands for the case where Twin A is actually edited.
+
+
+CHECKPOINT (~10:55) — OUTCOME (c) IS NOW UNLIKELY, AND THE REASON MATTERS
+=========================================================================
+The fix loop started and its DETERMINISTIC phase cleared both compile-blocking defects at
+zero cost in model rounds:
+
+    + "guildlm.dev/taskapipro/internal/{models,service,store}"   imports added, correct paths
+    - w = httptest.NewRecorder()                                 -> w := ...   (both files)
+    + req = httptest.NewRequest("POST", ...)                     in TestCreateDuplicate
+
+So outcome (c) — the loop exhausting its five rounds on compile errors and never reaching
+the assertion — is now unlikely. The compile errors were never going to cost model rounds,
+because a deterministic gate owns them. I priced (c) without checking which phase handles
+which defect, and the phases are not interchangeable: Phase 1 is free, the model rounds are
+the scarce thing.
+
+THE THIRD DETERMINISTIC FIX IS THE INTERESTING ONE. TestCreateDuplicate POSTed once and
+then re-served the SAME consumed request — a one-shot body read twice — and the gate added
+the second request. That is a deterministic repair of a SETUP COUNT: exactly the class of
+defect prose failed to secure in the twins, fixed mechanically, in the same file, in the
+same run.
+
+    The mechanism this morning's result asked for already exists in this builder. It is
+    applied to duplicate-POST setup and not to paging setup.
+
+That is a much smaller build than the Phase-1 gate I sketched: not a new capability, an
+existing gate widened to a second shape. It still waits for the draws to drain — see
+NOTE-do-not-touch-src-until-the-draws-drain.txt — but the estimate drops sharply.
+
+THE TWINS ARE UNCHANGED SO FAR. _twin_witness.py on the tree mid-loop: still 0 of 4, same
+seeds (1, 2, 1, 2), same bounds (2, 2, 2, 2). The model-driven round on router_test.go is
+running now, and it is what grades (a) vs (b).
