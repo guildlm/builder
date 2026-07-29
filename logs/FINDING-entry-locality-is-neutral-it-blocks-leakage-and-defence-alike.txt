@@ -106,3 +106,38 @@ a correct handler. Those two rules point in opposite directions here and the bou
 recorded at 11:47 says which wins: the ONLY-assertion rule is dangerous when the assertion
 is a COUNT over something seeded, and harmless otherwise. These are status codes on
 responses, so it is the harmless case.
+
+
+⚠️ DO NOT CLOSE THESE FOUR SITES YET — the obvious next action destroys the control
+====================================================================================
+Written 12:22, immediately after the finding above, because the finding's own conclusion
+points straight at an edit that must not be made now.
+
+The natural response to "four invariants are undefended and one test entry would fix it" is
+to add that test entry. It would probably work — a presence-class request, four named
+assertions, the class that survives redraws.
+
+    It would also make ledger the fifth edited spec, and ledger's value in the coming diff
+    is entirely that it is the ONE artifact nobody touched.
+
+specs/ledger.yaml is unchanged since 17 July. That is what makes its rows a measurement of
+REDRAW DRIFT — same spec, same model, two draws three days apart, no intervention. Every
+other artifact in the diff has had closures written into it this week, so every other
+artifact's movement is confounded with those closures. ledger is the only place the question
+"how much moves on its own?" can be answered.
+
+    Close the four sites now and the diff loses its only control arm to gain four rows
+    that will still be there next week.
+
+SEQUENCE:
+  1. ledger-v5 lands, unedited.                                        (in flight)
+  2. hole_hunt --gen=v5, redraw_diff. ledger's 31 rows read as DRIFT.
+  3. THEN write the test entry naming 409, 422, 500 and Content-Type.
+  4. Its closure is graded on a later draw, against a baseline that now includes a
+     measured drift figure — which is a better grade than any closure this week has had,
+     because it can be compared against what a redraw does by itself.
+
+Same family as the two rules already recorded today: do not repair the red trees to make
+them gradeable, and do not widen shape 6b between a pair of sweeps. All three are the same
+mistake — improving the thing being measured, mid-measurement, and losing the measurement to
+get the improvement a few hours sooner.
