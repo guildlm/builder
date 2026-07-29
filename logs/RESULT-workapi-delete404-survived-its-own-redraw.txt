@@ -98,3 +98,41 @@ grade is INERT and says nothing. Here both are present and matched.
 implementation files three times on taskapipro. Re-read line 91 after the RESULT line before
 grading, because a widened round can move it and the grade would then be about a line that
 no longer exists in the form it was measured on.
+
+
+FIX ROUND 1 (11:33) — GENUINE DEFECTS, PRECISE REPAIRS, CLOSURE INTACT
+=======================================================================
+workapi's round 1 chased two defects, BOTH from the draw and neither self-inflicted:
+
+    internal/worker/worker.go:40   w.processed.Inc undefined
+                                   (sync/atomic.Int64 has Add, not Inc)
+    internal/api/router.go:17,20   cannot use http.Handler as func(...) in mux.HandleFunc
+
+Both repaired deterministically, and repaired PRECISELY rather than bluntly:
+
+    mux.Handle("POST /tasks",          auth.TokenAuth(...)(http.HandlerFunc(h.Create)))
+    mux.HandleFunc("GET /tasks",       h.List)          <- left alone, correct already
+    mux.Handle("DELETE /tasks/{id}",   auth.TokenAuth(...)(http.HandlerFunc(h.Delete)))
+    w.processed.Add(1)                                  <- was .Inc()
+
+Only the two auth-wrapped routes changed to Handle; the plain HandleFunc routes were left
+as they were. A blanket rewrite would have been the easy wrong fix.
+
+THE WHOLE 404 PATH IS INTACT. Line 20 still wraps h.Delete in TokenAuth, so the test's
+`Bearer secret` passes auth, reaches h.Delete, and hits the ErrNotFound branch at tasks.go:91.
+Test unchanged, route unchanged, branch unchanged — diff against the as-drawn snapshot
+reports the closure byte-identical after round 1.
+
+CONTRAST WITH taskapipro, WHICH IS THE POINT OF WRITING THIS DOWN
+taskapipro spent five of seven rounds on defects the LOOP introduced — a mirrored status
+argument, its half-repair, and a gate repair the model reverted twice — and died on the one
+it created at round 3. workapi's round 1 is two draw defects, two correct gates, nothing
+new introduced.
+
+    One round is not a trend, and taskapipro's spiral began at round 3, not round 1.
+    So this is evidence that the spiral is not INEVITABLE, not evidence it was rare.
+
+The stall audit says the same thing from the corpus: 30 of 279 logs stalled, so most runs
+do converge. taskapipro was the bad case, and the interesting question — which this run may
+answer — is whether widening into implementation files is what turns a normal run into that
+one. workapi has not widened yet.
