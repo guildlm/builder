@@ -222,3 +222,39 @@ celebrating.
 
 That makes it the cleanest read of "what does a redraw do on its own", separate from every
 closure claim — which is worth more than the 31 rows it adds to the denominator.
+
+
+CONTROL CLAIM VERIFIED, AND ITS INTERVAL CORRECTED (12:16)
+===========================================================
+I asserted "ledger had NO spec edits this week" in the section above. Checked it rather than
+leaving it on memory:
+
+    git log -- specs/ledger.yaml     last commit af1932d, 17 July 14:06
+    mtime                            17 July 16:32
+
+Nothing since 17 July. The closure campaign ran 26-29 July, so ledger genuinely received no
+intervention. The control claim HOLDS.
+
+THE INTERVAL WAS WRONG, THOUGH. I wrote "a week apart". The actual dates:
+
+    specs/ledger.yaml   last edited   17 July
+    generated/ledger-v4 drawn         26 July 15:19
+    logs/hole-hunt-rows.tsv swept     29 July 00:07   (the re-sweep, repaired walk)
+    generated/ledger-v5 drawing       29 July 12:03
+
+So the two DRAWS are 26 July and 29 July — three days apart, from a spec nine days older
+than either. "A week apart" was a guess in the same family as this morning's nine invented
+timestamps, and it is corrected here rather than left because the interval is part of what
+makes the control a control.
+
+WHAT THE VERIFIED VERSION SAYS, precisely:
+    same spec (unchanged since 17 July), same model, same flags, two draws three days apart,
+    and NO closure written for any of ledger's eight survivors in between.
+
+That is a tighter control than I claimed — three days and zero edits beats a week and zero
+edits, because less can have drifted. And the baseline it is measured against was swept on
+29 July with the repaired walk, so both sides use the same instrument.
+
+    Expectation restated: ledger's 8 survivors stay survivors and its 22 CAUGHT stay CAUGHT.
+    Any movement is redraw drift and is the number to quote whenever someone asks how much
+    of a closure result could have happened by itself.
