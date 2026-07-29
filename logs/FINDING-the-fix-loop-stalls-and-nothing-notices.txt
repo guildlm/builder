@@ -1,0 +1,72 @@
+FINDING — when the fix loop repeats a failure it never recovers, and it spends the budget anyway
+================================================================================================
+
+Measured 29 July ~12:00 across all 20 frozen v5 logs. Run because the previous finding's
+generalisation check was written down as deferred — on the stated grounds that "the corpus
+is still moving". That reason was wrong: only taskapipro is moving, the other twenty logs
+have been frozen since 02:08, and the check was available the whole time. Running it changed
+the previous finding's standing.
+
+THREE MULTI-ROUND SPECS, THREE DIFFERENT BEHAVIOURS
+
+  bitset      2 rounds   PROGRESS  round 1 panic (index out of range) -> round 2 a
+                                   DIFFERENT failure (u.Test(130) = false) -> GREEN.
+                                   Each round moved.
+
+  taskapi     5 rounds   STALL     rounds 2,3,4,5 all identical:
+                                   projects_test.go:117: got "null\n", want []
+                                   Four rounds, one failure, never repaired. NOT-GREEN.
+
+  expreval    5 rounds   STALL     rounds 1,2,3,4,5 all identical:
+                                   eval_test.go:28: Eval("1+2") = 1, want 3
+                                   Five rounds, one failure, never repaired. NOT-GREEN.
+
+  taskapipro  2+ rounds  REPAIR-REGRESS (live) — round 1 imports, round 2 `undefined: w`
+                                   after the model reverted the gate. Slow, but MOVING.
+
+THE SIGNAL IS FREE AND NOBODY READS IT
+
+    If round N and round N+1 report the SAME failure text, the loop has stalled and the
+    remaining rounds will not recover it. Two for two here, and both shipped NOT-GREEN.
+
+Wasted model rounds in this corpus: taskapi 3, expreval 4 — SEVEN rounds of best-of-N fix
+calls that could not have helped, on a corpus of twenty specs. taskapi alone made 30 model
+fix calls. The budget is spent to its last round every time because nothing compares this
+round's failure to the last one.
+
+An early abort on a repeated failure is a small change and it is the RIGHT small change:
+it would not fix anything, but it would stop pretending to. A NOT-GREEN tree that stops at
+round 2 is the same artifact as one that stops at round 5, minus four rounds of calls, and
+it reports the stall honestly instead of burying it in a budget exhaustion.
+
+THIS BOUNDS THE PREVIOUS FINDING, AND I SAY SO PLAINLY
+FINDING-the-model-fix-reintroduces-what-the-gate-just-repaired.txt documents a
+repair-regress cycle on taskapipro and asks whether it generalises. It does NOT. Neither
+stalled spec shows it; both show a single unfixed failure repeating. The repair-regress
+cycle is one observation on one spec, and against the corpus it is the LESS common pattern
+and the more benign one — taskapipro is progressing, which taskapi and expreval never did.
+
+    I framed taskapipro's slow rounds as the pathology. The corpus says the pathology is
+    the specs that never move at all, and taskapipro is the healthy case.
+
+WHAT THE STALLS WERE ACTUALLY ABOUT — and it is already recorded
+taskapi's four repeated rounds are the nil-slice defect the empty-list closure caught. That
+is the closure working exactly as designed: the test named the invariant, the invariant was
+violated, and the suite refused to go green. The loop then could not repair it, which is
+the separate known problem recorded at da248de ("the fix loop widens inside the failing
+test's package, and the defect is one layer down"). So taskapi's NOT-GREEN is a SUCCESS of
+the defence and a FAILURE of the repair, and those two facts have been reported as one
+number all week.
+
+expreval's is a genuine implementation defect — a parser returning 1 for "1+2" — with no
+closure involved.
+
+⚠️ BOUNDS. Three multi-round specs is the entire population; seventeen others needed one
+round or none, so there is nothing to sample. The stall rule is 2 for 2, which is not a
+rate. And the abort criterion is a src/ change, so it waits — see
+NOTE-do-not-touch-src-until-the-draws-drain.txt.
+
+⚠️ AND A TRAP FOUND WHILE COUNTING: logs/ab-workapi-v5-07081249.log is from 8 JULY. When
+workapi is drawn today its log will also match ab-workapi-v5-*.log, and any glob over that
+pattern silently mixes a three-week-old run into today's numbers. It already put a spurious
+"workapi, 5 rounds" row into my first count. Match on the datestamp, not the spec name.
