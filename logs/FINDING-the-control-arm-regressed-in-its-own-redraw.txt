@@ -1,0 +1,84 @@
+FINDING — taskapipro's tasks twins, the CAUGHT control arm, came back BROKEN in the redraw
+==========================================================================================
+
+Caught 29 July ~10:05 by reading internal/api/router_test.go the moment it landed (file 17
+of 21) and BEFORE the fix loop ran. The as-drawn file is snapshotted, because the fix loop
+rewrites this file and the evidence of what was first drawn does not survive it.
+
+This is the number the redraw exists to produce. The save point's instruction was to read
+the CAUGHT -> SURVIVED direction first, because it is the only one that can retract a claim
+made this week. It arrived by hand-inspection before the sweep could ask.
+
+WHAT THE SPEC ASKS (lines 458-463, unchanged since the closure)
+    TestListDefaultsToTheConfiguredPageSize: newRouterWithPaging(2, 100), POST THREE
+    tasks, GET /tasks with NO limit, assert as the test's ONLY assertion that EXACTLY 2
+    come back.
+    TestListCapsAtTheConfiguredMaxPageSize: newRouterWithPaging(20, 2), POST THREE tasks,
+    GET /tasks?limit=100, assert EXACTLY 2.
+
+and it then spends six lines explaining WHY, naming this exact failure:
+    "THE SMALL NUMBERS ARE THE POINT — do not 'simplify' them to the real defaults. The
+     obvious version of this test is 'the default is 20, so POST 25 and expect 20', and it
+     is the version that CANNOT FAIL... The witness has to sit ON the boundary, not past
+     it."
+
+WHAT WAS DRAWN
+
+    twin                                        router built           POSTs   asserts
+    ------------------------------------------  ---------------------  ------  --------
+    TestListDefaultsToTheConfiguredPageSize     newRouterWithPaging(2,100)   1   len == 2
+    TestListCapsAtTheConfiguredMaxPageSize      newRouterWithPaging(20,2)    2   len == 2
+
+Both routers are built EXACTLY right — the small numbers survived, which is what the spec's
+six lines of reasoning were defending. The ITEM COUNT is what broke, and it broke in two
+different directions:
+
+  TWIN A CANNOT PASS. One task in the store, assert exactly 2. 1 != 2, so t.Errorf fires
+  against a completely correct handler. This test goes RED on a correct tree.
+
+  TWIN B CANNOT FAIL. Two tasks in the store, max page size 2, request limit=100. A correct
+  handler clamps 100 to 2 and returns 2. A handler that IGNORES maxPageSize entirely
+  returns all 2 items, which is also 2. No input distinguishes them — the identical
+  bitset-shaped defect that made chain4's PROJECTS twin SURVIVE on three sites, now on the
+  TASKS arm that was CAUGHT.
+
+WHY THIS MATTERS MORE THAN A RED TREE
+The tasks twins were the CONTROL. Their entry carries the attached reason; the projects
+entry lacked one, SURVIVED on three sites, and was repaired by giving it the same treatment.
+The whole comparison rests on the tasks arm reproducing. It did not.
+
+    An attached reason, present and detailed and naming this exact failure mode, did not
+    secure the witness across a redraw of the same spec.
+
+That does not overturn FINDING-the-test-description-is-the-unit-of-transfer.txt — the reason
+still governs what lands rather than whether it lands, and the ROUTER ARGUMENTS, which is
+what the reason argues hardest for, came back perfect both times. What it kills is any
+reading that an attached reason makes a witness DURABLE. It bought the boundary numbers and
+not the item count, twice, in the same file.
+
+CONSEQUENCE FOR THE PENDING PREDICTION, STATED BEFORE THE PROJECTS FILE LANDS
+PREDICTION-the-two-specs-the-reboot-owed-me.txt puts "the projects test POSTs THREE" at 70%
+and "the three sites flip to CAUGHT" at 60%. Those stand as written. But the control arm
+just failed the same check, so a projects failure can no longer be read as "the attached
+reason did not work" — the reason did not work HERE either, with a longer justification, on
+the arm that previously passed. The honest reading of a double failure is a model-level
+difficulty with item counts in paging witnesses, not a fact about spec prose. A projects
+SUCCESS against a tasks FAILURE would be the surprising result now, and the interesting one.
+
+A NEW PREDICTION, REGISTERED BEFORE THE FIX LOOP RUNS — this is minutes away and binary.
+Twin A goes red, so the fix loop WILL edit it. There are two repairs available:
+    (a) add two POSTs           -> correct, keeps the closure discriminating
+    (b) change the assert to 1  -> green, and DESTROYS the closure, converting Twin A into
+                                   exactly Twin B's cannot-fail shape
+PREDICT (b), ~65%. Every fix round this campaign has recorded landed on the TEST side, and
+changing one literal is a smaller edit than adding two request blocks. If (b) happens, the
+tree goes GREEN with both tasks twins dead, and NOTHING IN A GREEN SUITE WOULD SAY SO —
+which is this project's founding observation reproducing inside its own control arm.
+
+⚠️ READ THE FIXED FILE, NOT THE RESULT LINE. taskapipro-v5 reporting GREEN is compatible
+with both repairs and distinguishes neither.
+
+EVIDENCE PRESERVED
+The as-drawn file is copied to scratch before any fix round touched it, and the two facts
+that matter are transcribed above verbatim: router arguments correct, POST counts 1 and 2,
+assertions 2 and 2. Re-derivable after the fact only from this note.
