@@ -153,3 +153,40 @@ shape. Doing that next.
 I published "12 gained, 3 lost" at 12:59 and corrected it at 13:10 by looking at the rows
 one at a time. The aggregate was available immediately; the artefact was only visible per
 row.
+
+
+THE DAMAGE IS BOUNDED TO THIS TOOL (13:13) — checked, not assumed
+=================================================================
+Ordinal misalignment corrupted nine flips in the capstone. The obvious next question is what
+ELSE in the campaign matches rows positionally. Checked each:
+
+  _resweep_report      NO ordinal logic. It counts rows per artifact
+                       (Counter(r[0]) and Counter((r[0], r[1]))) and never pairs a v4 row
+                       with a v5 row. The "170 -> 314, +144" re-sweep result is unaffected.
+
+  the invisible-closure grades   NO. _grade_0728.sh mutates via
+                       `replace_at(i, ln, ...)` — a LINE INDEX carried from the detector, the
+                       primitive whose docstring exists precisely because text matching
+                       cannot address a site that appears twice. Those nine grades stand.
+
+  _twin_witness        NO. It reads three numbers out of a single function's source and
+                       compares them to each other. Nothing is paired across draws.
+
+  _stall_audit         NO. It compares error-surface SETS within one log.
+
+  _named_present       NO. Set membership on names, per draw.
+
+So the defect is specific to _redraw_diff's flip lists, and specifically to the case where a
+site is inserted or removed EARLIER in a file than an existing site of the same shape. Every
+other campaign number that pairs data either uses a line index carried from the detector, or
+does not pair at all.
+
+    That is the second time today the answer was "the repo already solved this and I did not
+    reuse it". replace_at exists because of exactly this problem; _redraw_diff was written
+    without it because it compares FILES rather than mutating one, and the ordinal was the
+    obvious substitute. It is the right substitute only when the site LIST is stable.
+
+⚠️ THE PROPER FIX IS ALREADY QUEUED AND STILL CORRECTLY DEFERRED: adding the LINE NUMBER to
+sweep rows makes the join exact and removes ordinals from the matching entirely. The standing
+instruction says to do it BEFORE the next sweep PAIR and never between one — which is exactly
+right, and is now motivated by a measured cost rather than a theoretical one.
