@@ -1,7 +1,7 @@
 FINDING — the model's fix round reintroduces the compile error the gate just repaired
 =====================================================================================
 
-Observed 29 July ~11:45 on the taskapipro-v5 fix loop, live. This is a BUILDER pathology,
+Observed 29 July ~10:20 on the taskapipro-v5 fix loop, live. This is a BUILDER pathology,
 not a spec one, and it is why two of six rounds went by without the paging twins ever being
 evaluated.
 
@@ -31,7 +31,7 @@ The deterministic pass in round 1 had already fixed that exact line. The only wr
 that repair and this error is the model's fix. Round 2 was then spent re-repairing it.
 
 DIRECTLY OBSERVED FOR router_test.go, NOT INFERRED. A diff of the as-drawn snapshot against
-the tree taken at 11:20 — after round 1's model fix — shows:
+the tree taken at ~10:09 — after round 1's model fix — shows:
 
     168c174
     <     w := httptest.NewRecorder()          (as drawn)

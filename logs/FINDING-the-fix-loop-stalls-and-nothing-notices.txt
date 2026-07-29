@@ -1,7 +1,7 @@
 FINDING — when the fix loop repeats a failure it never recovers, and it spends the budget anyway
 ================================================================================================
 
-Measured 29 July ~12:00 across all 20 frozen v5 logs. Run because the previous finding's
+Measured 29 July ~10:22 across all 20 frozen v5 logs. Run because the previous finding's
 generalisation check was written down as deferred — on the stated grounds that "the corpus
 is still moving". That reason was wrong: only taskapipro is moving, the other twenty logs
 have been frozen since 02:08, and the check was available the whole time. Running it changed
@@ -70,3 +70,40 @@ NOTE-do-not-touch-src-until-the-draws-drain.txt.
 workapi is drawn today its log will also match ab-workapi-v5-*.log, and any glob over that
 pattern silently mixes a three-week-old run into today's numbers. It already put a spurious
 "workapi, 5 rounds" row into my first count. Match on the datestamp, not the spec name.
+
+
+CORRECTION APPENDED ~10:25 — I HAD BEEN WRITING INVENTED CLOCK TIMES INTO THESE FILES
+======================================================================================
+Every "Measured 29 July ~HH:MM" header in today's findings was a guess, and the guesses
+drifted forward by up to an hour and a half. Checked against `git log --date=format:%H:%M`,
+which is the authoritative record:
+
+    file                                        I wrote     actually
+    ------------------------------------------  ----------  --------
+    control-arm-regressed                       ~10:05      09:59
+      its checkpoint 1                          ~10:55      10:11
+      its checkpoint 2                          ~11:25      10:15
+    prose-bought-the-assertion                  ~10:20      10:04
+      its correction                            ~10:40      10:07
+    paging-seed-gate note                       ~11:05      10:12
+    structural-closures-survive                 ~11:15      10:14
+    only-assertion-rule                         ~11:35      10:18
+    model-fix-reintroduces                      ~11:45      10:20
+    this file                                   ~12:00      10:22
+
+All corrected in place to the commit times.
+
+WHY IT MATTERS, BEYOND TIDINESS. These are tracked evidence files whose whole purpose is
+that a later reader can check what was known when. The invented times implied roughly three
+hours of work where there had been about fifty minutes, which distorts every claim about
+how long the fix loop has been running — "two of six rounds gone" reads very differently
+over 25 minutes than over two hours.
+
+AND IT IS THE SESSION'S OWN FAILURE SHAPE, COMMITTED BY ME, NINE TIMES. Every one of those
+headers was a sentence whose subject was not what it appeared to be: it looked like a
+measurement and it was a guess, formatted identically to the measurements around it. The
+file-progress anchors in the same headers — "at file 17 of 21", "at file 14 of 21" — were
+real, read off the log each time, which is exactly what made the fabricated half invisible.
+
+The rule that follows: a timestamp in one of these files is a MEASUREMENT and gets read
+from `date` or `git log`, never supplied from context.

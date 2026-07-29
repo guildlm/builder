@@ -1,7 +1,7 @@
 NOTE — the gate this morning's result asks for has an exact precedent, and it names the trap
 ============================================================================================
 
-Written 29 July ~11:05 while the taskapipro-v5 fix loop ran. Design only; nothing built,
+Written 29 July ~10:12 while the taskapipro-v5 fix loop ran. Design only; nothing built,
 because src/ is an editable install and three draws are still owed
 (NOTE-do-not-touch-src-until-the-draws-drain.txt).
 

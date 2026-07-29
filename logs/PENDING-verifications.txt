@@ -1,6 +1,6 @@
 PENDING — which spec edits are still unverified, and what verifies each
 =======================================================================
-Updated 2026-07-29 ~10:00, while taskapipro-v5 was at file 17 of 21. One place, because
+Updated 2026-07-29 ~09:57, while taskapipro-v5 was at file 17 of 21. One place, because
 these were once scattered across five result files and one of them turned out to have no
 scheduled retest at all.
 

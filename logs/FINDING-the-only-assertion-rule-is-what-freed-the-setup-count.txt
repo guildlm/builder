@@ -1,7 +1,7 @@
 FINDING — "assert ONLY the length" is the instruction that let the setup count drift
 =====================================================================================
 
-Measured 29 July ~11:35 across THREE artifacts, chosen because the structural-vs-quantity
+Measured 29 July ~10:18 across THREE artifacts, chosen because the structural-vs-quantity
 law predicted they would differ. They do, and the spec text explains it exactly.
 
 The previous finding said quantities are the fragile class because nothing holds them in

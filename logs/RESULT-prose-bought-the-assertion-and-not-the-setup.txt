@@ -1,7 +1,7 @@
 RESULT — prediction 1 graded: BOTH HALVES WRONG, and the real answer is the split itself
 =========================================================================================
 
-Graded 29 July ~10:20 from taskapipro-v5's projects_test.go and router_test.go, both read
+Graded 29 July ~10:03 from taskapipro-v5's projects_test.go and router_test.go, both read
 AS DRAWN and snapshotted before the fix loop touched them. chain4 is the before-state.
 
 THE PREDICTIONS, from PREDICTION-the-two-specs-the-reboot-owed-me.txt
@@ -108,7 +108,7 @@ the source as drawn. That is the correct evidence for questions about what the m
 and it is not evidence about what the suite DOES.
 
 
-CORRECTION (same day, ~10:40) — "THE REPAIR WORKED ON THE ASSERTION" IS NOT IDENTIFIABLE
+CORRECTION (same day, ~10:07) — "THE REPAIR WORKED ON THE ASSERTION" IS NOT IDENTIFIABLE
 =========================================================================================
 Checking the mirroring claim at N=2 undercut a conclusion stated above, and the conclusion
 is withdrawn rather than defended.

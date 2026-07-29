@@ -1,7 +1,7 @@
 FINDING — taskapipro's tasks twins, the CAUGHT control arm, came back BROKEN in the redraw
 ==========================================================================================
 
-Caught 29 July ~10:05 by reading internal/api/router_test.go the moment it landed (file 17
+Caught 29 July ~09:58 by reading internal/api/router_test.go the moment it landed (file 17
 of 21) and BEFORE the fix loop ran. The as-drawn file is snapshotted, because the fix loop
 rewrites this file and the evidence of what was first drawn does not survive it.
 
@@ -127,7 +127,7 @@ reach the assertion, and a prediction should name the conditions under which it 
 The 65% stands for the case where Twin A is actually edited.
 
 
-CHECKPOINT (~10:55) — OUTCOME (c) IS NOW UNLIKELY, AND THE REASON MATTERS
+CHECKPOINT (~10:11) — OUTCOME (c) IS NOW UNLIKELY, AND THE REASON MATTERS
 =========================================================================
 The fix loop started and its DETERMINISTIC phase cleared both compile-blocking defects at
 zero cost in model rounds:
@@ -160,7 +160,7 @@ seeds (1, 2, 1, 2), same bounds (2, 2, 2, 2). The model-driven round on router_t
 running now, and it is what grades (a) vs (b).
 
 
-CHECKPOINT 2 (~11:25) — THE BUDGET IS 6, NOT 5, AND A ROUND IS NOT WHAT I ASSUMED
+CHECKPOINT 2 (~10:15) — THE BUDGET IS 6, NOT 5, AND A ROUND IS NOT WHAT I ASSUMED
 =================================================================================
 Two corrections to my own arithmetic, both read off the log rather than inferred.
 

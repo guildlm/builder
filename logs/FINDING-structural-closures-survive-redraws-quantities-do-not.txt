@@ -1,7 +1,7 @@
 FINDING — a closure that changes a SIGNATURE is durable; one that changes a QUANTITY is not
 ============================================================================================
 
-Measured 29 July ~11:15 on taskapipro-v5, mid-fix-loop. Two closures made days apart on the
+Measured 29 July ~10:14 on taskapipro-v5, mid-fix-loop. Two closures made days apart on the
 SAME spec, redrawn in the SAME run, with opposite outcomes — which is the cleanest control
 this campaign has produced, because everything except the shape of the closure is held
 fixed.
