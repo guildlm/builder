@@ -81,3 +81,49 @@ queued to settle it — see the separate note on why that draw is now expected t
 ⚠️ AND THE REPAIRED FILES REMAIN EXCLUDED. projects.go and projects_test.go, where the defects
 actually live, were repaired in every draw and their as-drawn contents are not recoverable.
 Everything above is inferred from the files the loop happened not to touch.
+
+
+THE DOSE QUESTION, ANSWERED BY A ONE-LINE EDIT (18:14)
+=======================================================
+The obvious objection to everything above: perhaps ANY spec edit perturbs everything, and
+twelve lines are not special. The corpus already contains the control — `11520cc` changed
+exactly ONE LINE of specs/taskflow.yaml, a test name, with draws either side on server 4439
+about two hours apart.
+
+    taskflow-chain4  (13:02 log)  contains TestProjectListSorted   — before the rename
+    taskflow-chain5  (14:48 log)  contains TestSortedProjectList   — after it
+
+    15 common .go files · 12 untouched in both draws
+    identical 11 · differ 1
+
+And the single differing file is projects_test.go — THE FILE THE RENAME IS ABOUT — differing
+by exactly the renamed function and nothing else:
+
+    11c11
+    < func TestProjectListSorted(t *testing.T) {
+    > func TestSortedProjectList(t *testing.T) {
+
+Same byte count on both sides, 5326, because the two names are the same length.
+
+    A ONE-LINE SPEC EDIT IS SURGICAL: 11 of 12 untouched files byte-identical, and the twelfth
+    carries precisely the change that was asked for, in precisely one line.
+
+    TWELVE ADDED LINES ARE NOT: 4 of 7 untouched files differ, and NONE of them is the file
+    the twelve lines are about. config.go, service.go, models_test.go and
+    middleware_chain_test.go are collateral — the lines live in the projects TEST entry.
+
+    So the effect is not "editing a spec disturbs the draw". It is specific to ADDING BULK.
+    A targeted one-line change reaches exactly its target; twelve lines of added prose reach
+    files the entry never mentions and leave the target's own defects in place.
+
+⚠️ TWO EDITS, ONE SPEC EACH, AND THEY ARE DIFFERENT SPECS. taskflow for the one-line arm,
+taskapipro for the twelve-line arm. So "surgical vs collateral" is not a controlled contrast
+of dose within one spec — a one-line change to TASKAPIPRO has never been drawn, and neither
+has a twelve-line addition to taskflow. What is controlled within each arm is the server, the
+flags and the day. The contrast is suggestive of a dose relationship and is not a measurement
+of one.
+
+⚠️ AND THE CHEAP EXPERIMENT THAT WOULD SETTLE IT IS OBVIOUS: add twelve lines of inert prose
+to a taskflow entry and redraw. taskflow converges in one round, so it costs far less GPU than
+taskapipro, and it would say whether bulk-added prose is collateral in a second spec or only
+in the one where it was first seen. NOT AUTHORISED HERE, and recorded so it is not lost.
