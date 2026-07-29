@@ -1,0 +1,51 @@
+FINDING — three mutation sites RELOCATED between files, and the capstone dropped them silently
+================================================================================================
+
+18:06 on 29 July. Followed directly from the determinism correction: if a redraw can move a
+package's implementation from one file to another, then a mutation site can move with it — and
+`_redraw_diff` keys rows on (artifact, FILE, shape, ordinal). A site that changes file does not
+flip and does not trip the site-count warning. It vanishes from one side, appears on the other,
+and is simply absent from `comparable`.
+
+IT HAPPENS, AND SYSTEMATICALLY
+    ledger      reverse sort by ID   internal/store/memory.go  ->  internal/store/store.go
+    taskapipro  reverse sort by ID   internal/store/memory.go  ->  internal/store/store.go
+    workapi     reverse sort by ID   internal/store/memory.go  ->  internal/store/store.go
+
+Three artifacts, one shape, one direction, between v4 and v5. Not drift in one draw — the same
+relocation in every multi-package spec that has a store.
+
+    v4 side:  ledger CAUGHT + SURVIVED · taskapipro CAUGHT x2 · workapi CAUGHT
+    v5 side:  all five BASELINE-RED
+
+⚠️ IT COST THIS CAPSTONE NOTHING, AND THAT IS LUCK. Every v5-side row landed BASELINE-RED, so
+those rows were unanswerable regardless and would have joined the 177 dead rather than the 140
+live. The same relocation against a GREEN tree would have dropped live rows — including,
+potentially, verdict changes — with nothing printed.
+
+THE MECHANISM IS INDEPENDENTLY OBSERVED, which is what makes this more than a curiosity.
+`_iso-workapi-without-3` relocated its ENTIRE store implementation between exactly these two
+files: memory.go 1160 bytes in draws 1 and 2, and 14 bytes — `package store` alone — in draw 3,
+with store.go going 426 -> 1509. One draw in three, in the arm with the completeness rule
+disabled. So "a redraw moves code between files" is a measured behaviour of this pipeline, not
+an inference from the row keys.
+
+THE FIX
+`_redraw_diff` now reports RELOCATED groups: same (artifact, shape), file sets disjoint between
+sweeps. It is deliberately a THIRD category, printed beside the site-count warning rather than
+folded into it, because the two are different failures:
+
+    SITE COUNT CHANGED   the group exists on both sides with different sizes; ordinals
+                         misalign and the flips inside it are meaningless
+    RELOCATED            the group does not exist on both sides at all; there are no flips
+                         to be wrong about, and that is exactly why it was invisible
+
+⚠️ WHAT IT STILL CANNOT DO. It reports that a group moved; it does not re-join the two sides.
+Doing that safely would need the site's identity to survive the move — a line number will not
+(the file changed), and matching on shape alone would join sites that merely look alike. So the
+warning names the loss rather than repairing it, and the count of comparable rows stays honest
+about what was actually compared.
+
+⚠️ AND THE HEADLINE IS UNCHANGED. Re-ran the capstone diff after the change: 140 live in both,
+the same flip counts. The warning adds information and moves no number, which is the correct
+outcome for a diagnostic added after the fact.

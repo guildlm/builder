@@ -207,6 +207,42 @@ def render(res: dict, old: dict, new: dict) -> str:
             out.append(f"      {o:<13} -> {n:<13} {a:<14} {f:<20} {sh[:30]:<30} "
                        f"v4={so[(a, f, sh)]} v5={sn[(a, f, sh)]}")
 
+    # RELOCATED SITES: same artifact and shape, but the file it lives in CHANGED entirely.
+    #
+    # The site-count warning above catches a group that gained or lost sites. It cannot catch
+    # a group that MOVED, because the key includes the file: a mutation site that migrates from
+    # internal/store/memory.go to internal/store/store.go simply vanishes from one side and
+    # appears on the other. Not a flip, not a site-count change — silently absent from
+    # `comparable`, with nothing printed.
+    #
+    # MEASURED, 29 July: it happens, and systematically. ledger, taskapipro and workapi each
+    # moved their `reverse sort by ID` site from memory.go to store.go between v4 and v5 —
+    # three artifacts, one direction. It cost this capstone NOTHING only because all three
+    # v5-side rows landed BASELINE-RED and were unanswerable anyway. The same relocation with
+    # a green tree would have dropped live rows without a word.
+    #
+    # The mechanism is real and independently observed: _iso-workapi-without-3 relocated its
+    # whole store implementation between those two files, leaving memory.go as `package store`
+    # alone. One draw in three, in that condition.
+    _fileset_old, _fileset_new = {}, {}
+    for k in old:
+        _fileset_old.setdefault((base_artifact(k[0]), k[2]), set()).add(k[1])
+    for k in new:
+        _fileset_new.setdefault((base_artifact(k[0]), k[2]), set()).add(k[1])
+    relocated = []
+    for key in sorted(set(_fileset_old) & set(_fileset_new)):
+        o_files, n_files = _fileset_old[key], _fileset_new[key]
+        if o_files != n_files and not (o_files & n_files):
+            relocated.append((key, sorted(o_files), sorted(n_files)))
+    if relocated:
+        out.append(f"\n   ⚠️ {len(relocated)} (artifact, shape) group(s) RELOCATED to a "
+                   f"different file between sweeps.")
+        out.append("      These are absent from `comparable` entirely — not flips, not "
+                   "site-count changes, just")
+        out.append("      dropped. Any verdict change in them is INVISIBLE to this diff:")
+        for (a, sh), o_f, n_f in relocated:
+            out.append(f"      {a:<14} {sh[:34]:<34} {', '.join(o_f)} -> {', '.join(n_f)}")
+
     lost = [(k, o, n) for k, o, n in res["live_flips"] if o == "CAUGHT" and n == "SURVIVED"]
     won = [(k, o, n) for k, o, n in res["live_flips"] if o == "SURVIVED" and n == "CAUGHT"]
     if lost:
