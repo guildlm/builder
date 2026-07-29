@@ -1,0 +1,135 @@
+RESULT — the cross-spec arm perturbs, and it exposes the instrument, not just the spec
+======================================================================================
+
+01:37 on 30 July. First arm outside taskflow. Pre-registered at 01:22 in
+PREREG-cross-spec-name-swap-ratelimit.txt: A (no collateral) 45%, B (collateral) 55%.
+
+    B LANDED — but only at a granularity the pre-registration did not name, and that is the
+    more important half of the result.
+
+THE ARM
+    spec      ratelimit HEAD + TestContentTypeJSON -> TestJSONContentType, 19 -> 19 chars
+    guard     10964 bytes before == 10964 after, characters equal too
+    control   generated/ratelimit-ctl, HEAD spec, server 4439, snapshotted
+    draw      FIRST-TRY GREEN — zero fix lines, so the tree IS the draw and the snapshot and
+              the disk agree; no repair to disentangle at all
+
+WHAT THE FILE-LEVEL GRADING SAID
+    7 common files (6 .go + go.mod) · CODE 1 · IDENTICAL 6
+    the one differing file IS the target
+    COLLATERAL: 0
+
+    Read as a clean null. It is not one.
+
+WHAT THE FUNCTION-LEVEL GRADING SAID
+    ratelimit_test.go   1 of 9 funcs differ — changed TestFlowAllowThenDeny
+                        OUTSIDE any func (+17 chars: an added import)
+
+    ⚠️ AND THE RENAMED TEST'S OWN BODY IS BYTE-IDENTICAL. The edit changed the name and nothing
+    else about the test it names. What moved is TestFlowAllowThenDeny, a DIFFERENT test, which
+    gained nine lines:
+
+        + "encoding/json"
+        + var resp map[string]string
+        + err := json.NewDecoder(rec.Body).Decode(&resp)
+        + if err != nil { t.Errorf("expected JSON response, got error: %v", err) }
+        + if resp["error"] != "rate limit exceeded" { t.Errorf(...) }
+
+    A word-order swap in one test's NAME caused a different test to start decoding the response
+    body and asserting on the error message. Both draws are green. Nothing else in the package
+    moved by one byte.
+
+THE SAME SHAPE, REPLICATED ON THE OTHER SPEC
+Re-grading taskflow's name3 arm at function level with the rename declared:
+
+    middleware_recover_test.go   0 of 1 funcs differ   <- the TARGET's body is UNCHANGED
+    middleware_chain_test.go     1 of 1               TestChainAppliesEveryMiddlewareOutermostFirst
+    pagination_test.go           2 of 4               TestPaginateNegativeOffset, ...OffsetPastEnd
+    projects_handler.go          2 of 5               Create, NewProjectHandler
+    projects_test.go             1 of 11              TestProjectCreateGet · and chain6 has a
+                                                      TestSortedProjectList name3 does not
+    tasks_handler.go             2 of 5               Create, NewTaskHandler
+    store.go                     0 of 9               but -421 chars OUTSIDE every func
+    FUNCTION-LEVEL COLLATERAL: 8
+
+    So on BOTH specs, in BOTH surviving name-swap arms, the renamed function's own body is the
+    one thing that does NOT change. The edit's target is the still point.
+
+    ⚠️ TWO ARMS ON TWO SPECS IS NOT A LAW. It is the first thing tonight that replicated across
+    specs at all, and it is stated as a shape, not a mechanism — the 01:04 lesson was that a
+    story fitting every arm so far still dies on the next one. Three did.
+
+⚠️⚠️ THE FINDING ABOUT THE INSTRUMENT, WHICH OUTRANKS THE FINDING ABOUT THE SPEC
+The nine-arm table's two null rows read:
+
+    test-NAME swap (21 -> 21)   CODE 1, target only   no collateral
+    test-NAME swap (19 -> 19)   CODE 1, target only   no collateral
+
+"CODE 1, target only" is EXACTLY what ratelimit produced, and ratelimit has collateral. Those
+two rows were graded at FILE level, by an ad-hoc snippet, with the collateral column read off
+by eye. They are not nulls. They are UNRESOLVED, and they were the entire basis for the 23:38
+claim that renames are safe — which was withdrawn at 01:04 for a different reason and would
+have had to be withdrawn for this one anyway.
+
+    Whether a spec edit "perturbed" was decided by how finely the instrument looked. At file
+    granularity: null. At function granularity: a hit. Same two draws, same bytes, opposite
+    verdicts, and the coarse one was the one in the table.
+
+WHAT WAS BUILT IN RESPONSE — _asdrawn_diff.py, and it flags its own false null
+The ad-hoc snippet is replaced by a named tool with a self-test. It compares snapshot to
+snapshot on EVERY file (not just the ones no fix loop touched, which is all _untouched_diff.py
+can reach), then compares FUNCTIONS inside every differing file, then reports what changed
+OUTSIDE every function. When every differing file is the target but a function is collateral it
+prints "THE FILE-LEVEL VERDICT WAS A FALSE NULL" rather than leaving a reader to notice.
+
+    Three things it caught in ITSELF while being built, each of which would have produced a
+    wrong published number:
+      * comparing function BODIES only reported store.go as "0 of 9 differ" while that file had
+        lost 421 characters. Renaming a receiver type changes nine signatures and no body. The
+        span now starts at the `func` keyword.
+      * with signatures included, a PURE rename read as "changed" — destroying the very
+        distinction this arm turns on. Declared renames are now collapsed to a placeholder on
+        both sides before comparison.
+      * a change entirely outside every function was being folded into "none". There is now a
+        residue pass, and a comment-only change must not trip it.
+
+    It also REFUSES a snapshotless pair rather than falling back to the trees on disk, and says
+    why: those are post-repair, and reading a repaired tree as a draw is the error behind every
+    retraction on 29 July.
+
+THE DISTRIBUTION AS IT NOW STANDS — 10 arms, 8 perturb, 2 unresolved
+    test-NAME swap (21 -> 21)  taskflow    file-level null · UNRESOLVED at function level
+    test-NAME swap (19 -> 19)  taskflow    file-level null · UNRESOLVED at function level
+    test-NAME swap (16 -> 16)  taskflow    8 collateral functions
+    test-NAME swap (19 -> 19)  ratelimit   1 collateral function   <- NEW, cross-spec
+    PROSE swap     (10 -> 10)  taskflow    perturbs
+    VERBATIM fixture, 1 char   taskflow    perturbs
+    +1 / +3 / +12 lines        taskflow    perturbs
+    +48 lines                  ratelimit   artifact KILLED, replicated
+
+    NOT ONE CONFIRMED NULL REMAINS. The cross-spec question the arm was fired to answer is
+    answered in passing: the effect is not a taskflow artefact.
+
+ON THE PREDICTION, AND ON THE PREDICTOR
+The pre-registration shaded toward B against the base rate, explicitly to correct a measured
+bias — three predictions, all wrong in the direction of expecting safety. B landed. But the
+honest accounting is more interesting than a hit:
+
+    at FILE level, the granularity I pre-registered, A landed and I was wrong;
+    at FUNCTION level, the granularity I had not thought to name, B landed and I was right.
+
+The bias correction was sound. The instrument was the thing I failed to pre-register, and it,
+not the prediction, decided what the answer was.
+
+WHAT IS RUNNING — the 19->19 null arm, redrawn
+The two unresolved rows are recoverable after all: the record preserves both renames
+(TestProjectListSorted -> TestSortedProjectList and TestCreateDuplicate -> TestDuplicateCreate),
+even though the trees are gone. TestSortedProjectList was COMMITTED into the HEAD spec at
+11520cc, so that arm is baked into the control and can only be redrawn in reverse. The 19 -> 19
+arm is a clean forward edit from HEAD, so it is redrawing now as generated/taskflow-name4
+against chain6, and it will be graded at function level with the rename declared.
+
+    PREDICTION, pre-registered here before it lands: function-level collateral appears, 70%.
+    Grounds: ratelimit's file-level null became a function-level hit on the same manipulation,
+    and eight of ten arms perturb. If it comes back clean at FUNCTION level with the target's
+    body unchanged, that is the first confirmed null of the whole series and it would matter.

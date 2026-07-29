@@ -19,8 +19,14 @@ collateral — in a third entry. Predicted A 55% · B 45%. B LANDED.
     so this is not a null from the rename being ignored.
 
 THE NINE ARMS, FINAL
-    test-NAME swap (21 -> 21)      CODE 1, target only      no collateral
-    test-NAME swap (19 -> 19)      CODE 1, target only      no collateral
+    test-NAME swap (21 -> 21)      CODE 1, target only      ⚠️ NOT A NULL — UNRESOLVED (01:37)
+    test-NAME swap (19 -> 19)      CODE 1, target only      ⚠️ NOT A NULL — UNRESOLVED (01:37)
+      Both rows were graded at FILE level by an ad-hoc snippet. A ratelimit name swap produced
+      the identical row — "CODE 1, target only" — and at FUNCTION level it has collateral: a
+      different test gained nine assertion lines while the renamed test's body stayed identical.
+      So these two say only that no OTHER FILE moved. They cannot support "no collateral", and
+      they were the whole basis for "renames are safe".
+      See RESULT-the-nulls-were-a-granularity-artefact.txt.
     test-NAME swap (16 -> 16)      CODE 7                   SIX collateral
     PROSE swap     (10 -> 10)      CODE 6                   perturbs
     VERBATIM fixture, 1 char       CODE 4                   perturbs

@@ -1,0 +1,337 @@
+name: taskflow
+language: go
+go_module: guildlm.dev/taskflow
+description: >-
+  A larger, realistic, STANDARD-LIBRARY-ONLY HTTP backend for a task tracker —
+  the kind of multi-resource, layered Go service that stresses cross-file
+  consistency. No external dependencies whatsoever: net/http + ServeMux for
+  routing (never a third-party router), encoding/json for bodies, sync for
+  concurrency. All files use package main. Layers: sentinel errors, domain
+  models with validation, a generic-ish in-memory repository, HTTP middleware,
+  JSON + pagination helpers, two resource handlers (tasks and projects), a
+  router that wires everything, and a main with graceful shutdown.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/taskflow, go 1.23. No
+      dependencies. Output as a ```mod block, not Go.
+  - path: errors.go
+    purpose: >-
+      package main. Shared sentinel errors used across the store and handlers,
+      all matchable with errors.Is: ErrNotFound, ErrExists, ErrValidation.
+      Standard library only (errors).
+  - path: models.go
+    purpose: >-
+      package main. Domain models. A Task struct {ID string, Title string,
+      Status string, ProjectID string} and a Project struct {ID string, Name
+      string}. Valid Task.Status values are "todo", "doing", "done". A method
+      (Task) Validate() error that returns a wrapped ErrValidation (use
+      fmt.Errorf with %w) when Title is empty or Status is not one of the three
+      allowed values; a (Project) Validate() error that returns ErrValidation
+      when Name is empty. Standard library only.
+  - path: store.go
+    purpose: >-
+      package main. In-memory repository for BOTH resources. A Store struct
+      holding two maps (tasks map[string]Task, projects map[string]Project)
+      guarded by a single sync.RWMutex, built by NewStore(). Methods:
+      CreateTask(Task) error / GetTask(id) (Task, error) / ListTasks() []Task /
+      DeleteTask(id) error and the same four for Project. Create returns ErrExists
+      on duplicate ID; Get/Delete return ErrNotFound. List methods return items
+      sorted by ID. Standard library only (sync, sort, errors as needed).
+  - path: middleware.go
+    purpose: >-
+      package main. A Middleware type func(http.Handler) http.Handler and
+      Chain(h, mws...) where the first listed is outermost. A Logging middleware
+      (method, path, resolved status via a statusRecorder wrapping
+      http.ResponseWriter defaulting to 200, and latency) and a Recover
+      middleware (downstream panic -> 500). Standard library only.
+  - path: middleware_recover_test.go
+    purpose: >-
+      package main. ONE test for the middleware whose entire job is to run when
+      everything else has already failed — and which, until now, no test has ever
+      made run.
+      TestRecoverPanic: do NOT build a router. Wrap a handler that does nothing but
+      panic DIRECTLY in Recover, exactly like this (the handler is declared INLINE
+      inside the test body — it is a func VALUE, not a method declaration):
+        h := Recover(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { panic("boom") }))
+      then ServeHTTP it with httptest.NewRequest("GET", "/", nil) and
+      httptest.NewRecorder(), and assert the recorder's Code is 500: the panic must
+      be turned into a response, NOT escape out of ServeHTTP.
+      Imports net/http, net/http/httptest, testing. Never name a local variable `t`.
+  - path: middleware_chain_test.go
+    purpose: >-
+      package main. ONE test for Chain itself — the composer every request passes
+      through, and which no test has ever called.
+      TestChainAppliesEveryMiddlewareOutermostFirst: declare `order := []string{}`
+      in the test body and a helper `mark := func(name string) Middleware` whose
+      returned handler APPENDS name to order and THEN calls next.ServeHTTP. Wrap an
+      inner http.HandlerFunc that appends "handler". Then call
+      Chain(inner, mark("first"), mark("second")).ServeHTTP with
+      httptest.NewRecorder() and httptest.NewRequest("GET", "/", nil), and assert
+      — as the test's ONLY assertion — that strings.Join(order, ",") equals
+      "first,second,handler".
+      That one string is the entire contract: BOTH middlewares ran, and the FIRST
+      listed ran OUTERMOST. Asserting the recorder's status instead would pass even
+      if Chain silently dropped a middleware, because the inner handler still
+      answers.
+      Imports net/http, net/http/httptest, strings, testing. Never name a local
+      variable `t`.
+  - path: httpjson.go
+    purpose: >-
+      package main. HTTP/JSON helpers reused by every handler: writeJSON(w
+      http.ResponseWriter, status int, v any) that sets Content-Type
+      application/json and encodes v; writeError(w, status int, msg string) that
+      writes a JSON {"error": msg}; and decodeJSON(r *http.Request, dst any)
+      error that decodes the request body and returns an error on malformed
+      input. Standard library only (encoding/json, net/http).
+  - path: pagination.go
+    purpose: >-
+      package main. func parsePage(r *http.Request) (limit, offset int) that
+      reads ?limit= and ?offset= query params with strconv, defaulting limit to
+      20 (max 100) and offset to 0, clamping negatives to the default/zero. A
+      GENERIC func paginate[T any](items []T, limit, offset int) []T used for BOTH
+      tasks and projects. paginate must be UNPANICKABLE ON ITS OWN — it may NOT
+      rely on parsePage having already clamped its arguments, because it is an
+      exported-shaped helper anyone can call with anything. "Never panics" is not a
+      wish; it is THREE named guards, and the one most often dropped is the second:
+        if offset >= len(items) { return []T{} }   // past the end -> empty
+        if offset < 0 { offset = 0 }               // NEGATIVE offset clamps to 0;
+                                                   // without this, items[:-1] PANICS
+        if limit <= 0 || limit > len(items)-offset { limit = len(items) - offset }
+      then `return items[offset : offset+limit]`. Standard library only
+      (net/http, strconv).
+  - path: tasks_handler.go
+    purpose: >-
+      package main. A TaskHandler struct holding *Store, built by
+      NewTaskHandler(*Store). http.HandlerFunc methods using the httpjson +
+      pagination helpers and r.PathValue("id"): Create (decodeJSON a Task, call
+      Task.Validate returning 400 with writeError on ErrValidation via errors.Is,
+      store it returning 201, 409 on ErrExists); List (parsePage then
+      paginate(tasks, limit, offset), 200 with the page as JSON, optional ?status= filter); Get
+      (200 or 404); Delete (204 or 404). Standard library only.
+  - path: projects_handler.go
+    purpose: >-
+      package main. A ProjectHandler struct holding *Store, built by
+      NewProjectHandler(*Store). http.HandlerFunc methods mirroring the task
+      handler for projects: Create (validate -> 400, store -> 201, 409), List
+      (200 JSON array), Get (200/404), Delete (204/404). Reuse the httpjson
+      helpers. Standard library only.
+  - path: router.go
+    purpose: >-
+      package main. func NewRouter(s *Store) http.Handler building an
+      http.ServeMux (NOT a third-party router). NINE routes, and the projects half
+      is the exact MIRROR of the tasks half — count them, because the one dropped
+      most often is `POST /projects`, and without it a project can never be
+      created: every project endpoint answers 405 and half the API is unreachable.
+      Register all nine:
+        mux.HandleFunc("POST /tasks", taskHandler.Create)
+        mux.HandleFunc("GET /tasks", taskHandler.List)
+        mux.HandleFunc("GET /tasks/{id}", taskHandler.Get)
+        mux.HandleFunc("DELETE /tasks/{id}", taskHandler.Delete)
+        mux.HandleFunc("POST /projects", projectHandler.Create)
+        mux.HandleFunc("GET /projects", projectHandler.List)
+        mux.HandleFunc("GET /projects/{id}", projectHandler.Get)
+        mux.HandleFunc("DELETE /projects/{id}", projectHandler.Delete)
+        mux.HandleFunc("GET /health", ...)   // 200 "ok"
+      Wrap with Chain(mux, Logging, Recover) and return it so tests can drive the
+      fully-wired handler. Standard library only.
+  - path: main.go
+    purpose: >-
+      package main. func main() builds NewStore + NewRouter, runs an
+      *http.Server on :8080 with graceful shutdown via
+      signal.NotifyContext(context.Background(), os.Interrupt) and srv.Shutdown
+      under a short context.WithTimeout. Standard library only.
+  - path: taskflow_test.go
+    purpose: >-
+      package main. Tests (net/http/httptest). Declare ONCE at package scope
+      EXACTLY this helper — it returns http.Handler and it does NOT type-assert:
+        func newRouter() http.Handler {
+            return NewRouter(NewStore())
+        }
+      NewRouter is WRAPPED IN MIDDLEWARE — Chain returns an http.HandlerFunc, not
+      the mux — so `func newRouter() *http.ServeMux` returning
+      `NewRouter(...).(*http.ServeMux)` does not compile, and asserting it at
+      runtime panics. Every test only ever calls h.ServeHTTP(...), which
+      http.Handler already provides; nothing here needs the mux.
+      Declare ONCE at package scope a zero-argument helper `newRouter()` returning
+      a FRESH router+store, and build a FRESH request body for every request
+      (never reuse a drained buffer).
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. A fresh
+      router is EMPTY, so any case with a precondition must CREATE it FIRST, by
+      POSTing, in its own body:
+      TestCreateOK: POST a valid task -> 201 and the body echoes it.
+      TestContentTypeJSON: on a fresh router, POST a valid task and assert the RESPONSE
+      header Content-Type is exactly "application/json", read off the recorder
+      (rec.Header().Get("Content-Type")). Its OWN test, not a clause inside another one:
+      writeJSON promises that header, nothing else checks it, and when this assertion was
+      appended to TestCreateOK the model wrote it in only half of four runs — while every
+      other spec that gives it a named test of its own keeps it in every run.
+      TestCreateInvalid: POST a task with a NON-EMPTY title but an INVALID status —
+      exactly this body: {"id":"1","title":"x","status":"nope"} -> 400. The title is
+      non-empty ON PURPOSE: Validate rejects BOTH an empty title AND a status outside
+      {todo,doing,done}, so a task with an empty title would trip the 400 on the TITLE
+      and the status check would never run. Only a non-empty title paired with a bad
+      status ("nope") proves the STATUS branch is what returns 400.
+      TestDuplicateCreate: POST the task ONCE (expect 201), then POST THE SAME id
+      AGAIN -> 409. (Without the first POST there is nothing to duplicate.)
+      TestGetMissing: on a fresh router, GET an id nobody created -> 404.
+      TestList: POST one task FIRST, then GET the collection, decode the JSON array
+      and assert it holds EXACTLY 1 task.
+      TestListReturns200: its OWN test, and it exists because an assertion added
+      inside TestList did not survive regeneration — measured, twice. POST one task
+      FIRST, GET /tasks, and assert ONE thing: rec.Code == http.StatusOK. Decode
+      nothing. A handler answering 202 with an identical body passes every test that
+      only decodes, which is why this cannot be a line inside another case.
+      TestGetOK: POST a task FIRST, then GET /tasks/1 -> assert ONE thing, rec.Code ==
+      http.StatusOK. Decode nothing here; the body is TestGetOKBody's job.
+      TestGetOKBody: POST a task FIRST, GET /tasks/1, decode it and assert the Title
+      matches what was posted. Nothing
+      else performs a SUCCESSFUL single-task GET: TestGetMissing checks 404 and
+      TestDelete checks 404 after deleting, so the 200 on that path is written by
+      the handler and read by nobody.
+      TestListLimit: FOUR recorders are in play here — two POSTs and two GETs — and
+      ONLY the GET recorders hold JSON ARRAYS. A POST recorder holds ONE task OBJECT,
+      so decoding it into []Task fails with "cannot unmarshal object into Go value of
+      type []main.Task". Write EXACTLY this, and decode nothing else:
+        h := newRouter()
+        for _, body := range []string{
+            `{"id":"1","title":"a","status":"todo"}`,
+            `{"id":"2","title":"b","status":"todo"}`,
+        } {
+            rec := httptest.NewRecorder()
+            h.ServeHTTP(rec, httptest.NewRequest("POST", "/tasks", strings.NewReader(body)))
+            if rec.Code != http.StatusCreated { t.Fatalf("create: got %d", rec.Code) }
+        }
+        recAll := httptest.NewRecorder()
+        h.ServeHTTP(recAll, httptest.NewRequest("GET", "/tasks", nil))
+        var all []Task
+        if err := json.NewDecoder(recAll.Body).Decode(&all); err != nil { t.Fatal(err) }
+        if len(all) != 2 { t.Fatalf("all: got %d, want 2", len(all)) }
+        recLimited := httptest.NewRecorder()
+        h.ServeHTTP(recLimited, httptest.NewRequest("GET", "/tasks?limit=1", nil))
+        var limited []Task
+        if err := json.NewDecoder(recLimited.Body).Decode(&limited); err != nil { t.Fatal(err) }
+        if len(limited) != 1 { t.Fatalf("limited: got %d, want 1", len(limited)) }
+      len(limited) == 1 is EXACTLY one, NEVER "at most one": a paginate that wrongly
+      returns ZERO items satisfies "at most 1" and the bug ships green.
+      TestListSorted: POST THREE tasks with ids OUT OF ORDER — first "3", then "1",
+      then "2" (each a valid task, its own fresh request body) — then GET /tasks,
+      ASSERT rec.Code == http.StatusOK before decoding, and decode the JSON array
+      into a slice `got`. Assert len(got) == 3 AND the ids come
+      back ASCENDING: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3". The store
+      holds tasks in a map (random iteration order), so ONLY ListTasks's sort makes
+      this order deterministic — a store that returns them unsorted, or sorted the
+      wrong way, ships green unless a test pins the exact order. Assert each index by
+      id, not just that the slice is non-empty.
+      TestWireFieldNames: the JSON KEY NAMES are the contract, and every other test
+      here is blind to them — they marshal from Task and decode into Task, so both
+      sides go through the SAME struct tags and a rename is invisible. Measured:
+      renaming project_id leaves this suite green while a real client breaks. So: POST
+      a task carrying a project_id, then request the LIST endpoint — the path is
+      exactly "/tasks", with NO id after it — and decode its body into
+      []map[string]any, never into []Task.
+      THE PATH AND THE DECODE TARGET MUST AGREE, and this is the one thing to get
+      right here: "/tasks" answers a JSON ARRAY and takes []map[string]any;
+      "/tasks/1" answers a single JSON OBJECT and would need map[string]any. A test
+      that requests "/tasks/1" and decodes into []map[string]any compiles and then
+      fails at run time with "cannot unmarshal object into Go value of type
+      []map[string]interface {}". Measured: one draw did exactly that and cost the
+      whole build. Request the list.
+      Then assert with the comma-ok form, each on
+      its OWN line, that the first element has the keys "id", "title", "status" and
+      "project_id": `if _, ok := m["project_id"]; !ok { t.Errorf(...) }`. A length
+      check is NOT a substitute — renaming a key leaves the count unchanged.
+      TestValidateWrapsErrValidation: call Task.Validate() DIRECTLY (a unit test, no
+      HTTP) on an invalid task — {Title: "", Status: "todo"} — and assert
+      errors.Is(err, ErrValidation) is TRUE. Assert with errors.Is, NEVER on the message
+      text: a check like strings.Contains(err.Error(), "validation") passes whether
+      Validate used %w or %v, so it pins nothing. The handler returns 400 for ANY error
+      from Validate, so no HTTP test can tell a wrapped sentinel from an unwrapped one —
+      only this direct assertion defends the errors.Is contract the spec promises.
+      TestDelete: POST a task FIRST, DELETE it -> 204, then GET it -> 404.
+      TestDeleteMissingReturns404: on a FRESH router, DELETE /tasks/nope — an id
+      nobody created — and assert, as this test's ONLY assertion, that the code is
+      404. TestDelete above does NOT cover this: its 404 comes from the GET after a
+      successful delete, so Delete's OWN 404 branch has never been requested. Two
+      routes, two 404 branches, and only Get's is exercised — measured, the Delete
+      one survives being changed to a 400 with the whole suite green.
+      TestMalformedJSON: POST truncated bytes (NOT an empty `{}`) -> 400.
+      Do NOT write the project endpoints here — they live in
+      projects_test.go, in this same package.
+      Standard library only.
+  - path: projects_test.go
+    purpose: >-
+      package main. The project endpoints, in their OWN file so neither test file
+      has to be long. They are a MIRROR of the task endpoints: registered on the
+      same router, shipped in projects_handler.go — and until this file existed,
+      List and Delete were never called once, on the handler OR on the store. A
+      mirror nobody runs is a branch nobody has shown to work.
+      The zero-argument helper `newRouter()` is ALREADY declared at package scope
+      in taskflow_test.go, in this same package. CALL it. Do NOT declare it again
+      (a second declaration is a compile error).
+      Every function builds its OWN fresh router, so a case with a precondition
+      must POST that precondition ITSELF first. Build each request inline with
+      httptest.NewRequest and a FRESH httptest.NewRecorder per call (a request body
+      is a one-shot reader). Each function asserts ONE outcome.
+      ELEVEN test functions, all of them:
+      TestSortedProjectList: POST THREE projects with ids OUT OF ORDER — first "3",
+      then "1", then "2" (each valid, its own fresh request body) — then GET /projects
+      and decode the JSON array into a slice `got`. Assert len(got) == 3 AND the ids come
+      back ASCENDING by INDEX: got[0].ID == "1", got[1].ID == "2", got[2].ID == "3".
+      ListProjects sorts its own copy, and TestListSorted only pins the TASKS sort — the
+      projects sort can be reversed or dropped entirely and every other test still passes.
+      TestProjectCreateGet: POST a project -> 201, then GET it back and assert the
+      stored name.
+      TestProjectGetReturns200: its OWN test, for the same reason TestListReturns200
+      is one — the 200 asserted INSIDE TestProjectCreateGet reopened on a redraw while
+      the test itself stayed. POST a project FIRST, GET /projects/{id}, and assert ONE
+      thing: rec.Code == http.StatusOK. Decode nothing.
+      TestProjectCreateInvalid: POST a project with an EMPTY name -> 400.
+      TestProjectGetMissing: GET a project id nobody created -> 404.
+      TestProjectList: POST ONE project FIRST, then GET the collection, decode the
+      JSON array and assert it holds EXACTLY 1 project.
+      TestProjectListReturns200: its OWN test. POST one project FIRST, GET /projects,
+      and assert ONE thing: rec.Code == http.StatusOK. Decode nothing.
+      TestProjectMalformedJSON: POST /projects with a body that is not valid JSON
+      (e.g. `{`) -> 400. The tasks half has this test; the projects half never did,
+      and its 400 on the malformed-body branch is currently written by the handler
+      and checked by nothing.
+      TestProjectCreateDuplicate: POST a project ONCE (201), then POST the SAME id
+      AGAIN -> 409. Same gap as above — tasks defends its 409, projects does not.
+      TestProjectDelete: POST a project FIRST, DELETE it -> 204, then GET it -> 404.
+      TestProjectDeleteMissing: DELETE a project id nobody created -> 404.
+      Imports bytes, encoding/json, net/http, net/http/httptest, testing.
+      Never name a local variable `t`.
+  - path: pagination_test.go
+    purpose: >-
+      package main. Unit tests for the pagination layer ONLY — paginate and
+      parsePage, no router and no store. These share nothing with the handler tests
+      and are split out so no single test file carries the whole suite. parsePage
+      takes an *http.Request, so its tests build one with
+      httptest.NewRequest("GET", "/tasks?limit=...&offset=...", nil) and call
+      parsePage on it directly; that is still a unit test, not a router test.
+      TestParsePageClampsNegativeOffset: parsePage on a request whose query is
+      "offset=-5" returns offset 0. ONE assertion, on offset.
+      TestParsePageClampsLimitAboveMax: parsePage on a request whose query is
+      "limit=500" returns limit 100. ONE assertion, on limit.
+      These two clamps live in parsePage and are DIFFERENT CODE from paginate's,
+      which the two tests below cover. Measured on a generated tree: parsePage's
+      "limit above 100" branch is executed by no test at all, and its negative-offset
+      clamp can be changed to assign 7777 with the whole suite still green — while
+      paginate's identically-shaped clamp is caught. Defending an invariant in the
+      inner function does not defend the one at the edge where the request arrives.
+      TestPaginateNegativeOffset: call paginate with LITERAL ARGUMENTS —
+      `paginate(items, 0, -1)` on a 3-item slice — and assert EXACTLY 3 items come
+      back with no panic.
+      DO NOT obtain those arguments from parsePage. This is the one mistake to avoid
+      in this file, and it has already happened once: a draw wrote
+      `limit, offset := parsePage(httptest.NewRequest("GET", "/tasks?offset=-1"))`
+      and passed those into paginate. parsePage CLAMPS, so paginate then received
+      offset 0 and its own `offset < 0` guard was never exercised — the test passed,
+      read correctly, and defended nothing. Measured: with the arguments routed
+      through parsePage, breaking paginate's clamp SURVIVES; with the literal -1 it
+      is CAUGHT. The two functions clamp independently and each needs its own test
+      to reach it.
+      TestPaginateOffsetPastEnd: call paginate with literal arguments the same way,
+      `paginate(items, 10, 5)` on a 1-item slice -> no panic and EXACTLY 0 items.
+      Imports net/http/httptest and testing. Standard library only.
