@@ -1,0 +1,48 @@
+RESULT — BRANCH A. The perturbation changes code but moves no mutation verdict
+===============================================================================
+
+20:53 on 29 July. Swept both jsoncodec arms with `_hole_hunt.py --all-sites` and compared.
+Predicted A at 75%.
+
+    control    event.go  json tag name SURVIVED · at SURVIVED · name CAUGHT · at CAUGHT ·
+                         name CAUGHT · at CAUGHT
+    +12 lines  event.go  IDENTICAL, field for field
+
+    Six sites each, same shapes, same order, same verdicts. Branch C — a changed site count —
+    is excluded too: 6 and 6.
+
+    SO TWELVE INERT LINES REWROTE THE ONLY IMPLEMENTATION FILE AND CHANGED NOTHING THE SUITE
+    DEFENDS.
+
+THIS BOUNDS TODAY'S BIGGEST CLAIM, AND THAT IS WHY IT WAS WORTH RUNNING
+At 20:33 I wrote that the capstone's "6 up and 2 down" may be spec-edit drift rather than
+redraw drift, because all eight flips sit in specs that grew 43-73 lines and none in the 33
+rows whose specs did not. This measurement says the missing link is not automatic:
+
+    growth PERTURBS CODE                          measured, four times, three specs
+    perturbation MOVES A VERDICT                  NOT measured here — 0 of 6 rows
+
+    A perturbation has to reach an invariant to matter. This one rewrote a file and left every
+    verdict where it was. So the capstone's flips are LESS likely to be artefacts than the
+    20:33 note implied, and its headline recovers some ground.
+
+⚠️ IT DOES NOT RESTORE THE HEADLINE, AND THE DOSE GAP IS THE REASON. jsoncodec got TWELVE
+lines. The specs whose growth coincided with the capstone's flips grew 43 to 73 — three to six
+times this dose. Nothing here says a 73-line addition leaves verdicts alone; it says a 12-line
+one did, on one artifact, on six rows that all mutate json tags in a single file.
+
+    The honest statement is narrower than either the 20:33 note or this result alone:
+        spec growth demonstrably rewrites unrelated code;
+        whether it moves a mutation verdict is unmeasured at the doses the campaign used;
+        at a 12-line dose on one small artifact, it did not.
+
+⚠️ AND THE SIX ROWS ARE A NARROW TARGET. All six mutate a json struct tag in event.go. The
+perturbation removed an unused type declaration elsewhere in the same file. There was no
+plausible mechanism by which one would reach the other — which is exactly why A was predicted
+at 75%, and why a null here is weaker evidence than a null on a more varied row set would be.
+
+WHAT WOULD ACTUALLY SETTLE THE CAPSTONE QUESTION, and it is now well-defined
+Add 43-73 inert lines — the campaign's real dose — to a spec that never changed, redraw, and
+sweep. jsoncodec has six rows and is three files, so it is cheap; a bigger artifact with more
+varied shapes would be better. NOT RUN. It is the last open question in this thread and it is
+one draw plus one sweep.
