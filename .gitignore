@@ -49,6 +49,23 @@ logs/*
 # that instead of retrying it.
 !logs/PENDING-*.txt
 !logs/hole-hunt-rows.tsv
+# ...AND EVERY OTHER GENERATION AND BASELINE OF IT, which the single-file rule above did not
+# cover and nothing announced. Found 29 July by creating logs/hole-hunt-rows-v5.tsv and
+# asking git: it is ignored. That file is the ENTIRE OUTPUT of the capstone redraw — the
+# comparison this whole campaign exists to make — and it would have been written, read once,
+# and lost, with the tracked v4 baseline sitting beside it looking like the pair was safe.
+#
+# The same hole swallowed three baselines already on disk and untracked:
+#   hole-hunt-rows-before-walk-fix.tsv    <- the BEFORE half of _resweep_report's comparison
+#   hole-hunt-rows-before-redraw.tsv
+#   hole-hunt-rows-before-noapply-fix.tsv
+#
+# ...and reachability's rows, whose own code PRINTS "(tracked — a changed verdict shows as a
+# diff)" while git ignored the file. A tool asserting its output is tracked is not evidence
+# that it is; `git ls-files` is. That line has been printing a false claim since the tool
+# was written.
+!logs/hole-hunt-rows*.tsv
+!logs/reachability-rows*.tsv
 # Do not verify this with `git check-ignore` — it reports pattern matching and says
 # nothing about tracking, so it answered "ignored" for a file that was already
 # committed and diffing correctly. The question is whether a CHANGE shows up:

@@ -1,0 +1,250 @@
+bitset-v4	bitset.go	20	boundary	run	if wordIndex >= len(b.words) {
+bitset-v4	bitset.go	29	boundary	run	if wordIndex < len(b.words) {
+bitset-v4	bitset.go	37	boundary	run	if wordIndex >= len(b.words) {
+expreval-v4	eval.go	16	boundary	run	for p.pos < len(p.input) && unicode.IsSpace(rune(p.input[p.pos])) {
+expreval-v4	eval.go	23	boundary	run	for p.pos < len(p.input) && unicode.IsDigit(rune(p.input[p.pos])) {
+expreval-v4	eval.go	35	boundary	run	if p.pos >= len(p.input) {
+expreval-v4	eval.go	45	boundary	run	if p.pos >= len(p.input) {
+expreval-v4	eval.go	55	boundary	run	if p.pos >= len(p.input) || p.input[p.pos] != ')' {
+expreval-v4	eval.go	71	boundary	run	if p.pos >= len(p.input) {
+expreval-v4	eval.go	105	boundary	run	if p.pos >= len(p.input) {
+expreval-v4	eval.go	136	boundary	run	if p.pos < len(p.input) {
+jsonapi-v4	main.go	23	status	run	http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+jsonapi-v4	main.go	28	status	run	http.Error(w, "invalid json", http.StatusBadRequest)
+jsonapi-v4	main.go	32	status	run	http.Error(w, "message required", http.StatusBadRequest)
+jsonapi-v4	main.go	35	header	run	w.Header().Set("Content-Type", "application/json")
+jsonapi-v4	main.go	36	status	run	w.WriteHeader(http.StatusOK)
+kvservice-v4	main.go	13	status	run	http.Error(w, "not found", http.StatusNotFound)
+kvservice-v4	main.go	16	header	run	w.Header().Set("Content-Type", "text/plain")
+kvservice-v4	main.go	22	status	COLD	http.Error(w, "bad body", http.StatusBadRequest)
+kvservice-v4	main.go	26	status	run	w.WriteHeader(http.StatusCreated)
+ledger-v4	internal/api/accounts.go	29	status	run	writeJSON(w, http.StatusCreated, a)
+ledger-v4	internal/api/accounts.go	34	status	run	writeJSON(w, http.StatusOK, accounts)
+ledger-v4	internal/api/accounts.go	44	status	run	writeJSON(w, http.StatusOK, acc)
+ledger-v4	internal/api/accounts.go	54	status	run	writeJSON(w, http.StatusOK, map[string]string{"balance": balance.Strin
+ledger-v4	internal/api/middleware.go	16	boundary	run	for i := len(mws) - 1; i >= 0; i-- {
+ledger-v4	internal/api/middleware.go	28	status	run	http.Error(w, "internal server error", http.StatusInternalServerError)
+ledger-v4	internal/api/middleware.go	39	status	run	rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+ledger-v4	internal/api/response.go	12	header	run	w.Header().Set("Content-Type", "application/json")
+ledger-v4	internal/api/response.go	21	status	run	status = http.StatusNotFound
+ledger-v4	internal/api/response.go	23	status	COLD	status = http.StatusConflict
+ledger-v4	internal/api/response.go	25	status	run	status = http.StatusBadRequest
+ledger-v4	internal/api/response.go	27	status	run	status = http.StatusUnprocessableEntity
+ledger-v4	internal/api/response.go	29	status	COLD	status = http.StatusUnprocessableEntity
+ledger-v4	internal/api/response.go	31	status	COLD	status = http.StatusInternalServerError
+ledger-v4	internal/api/transactions.go	29	status	run	writeJSON(w, http.StatusCreated, t)
+ledger-v4	internal/api/transactions.go	34	status	run	writeJSON(w, http.StatusOK, transactions)
+ledger-v4	internal/models/models.go	28	wrap	COLD	return fmt.Errorf("%w: id is required", ErrInvalid)
+ledger-v4	internal/models/models.go	31	wrap	run	return fmt.Errorf("%w: name is required", ErrInvalid)
+ledger-v4	internal/models/models.go	50	wrap	run	return fmt.Errorf("%w: id is required", ErrInvalid)
+ledger-v4	internal/models/models.go	53	wrap	run	return fmt.Errorf("%w: must have at least two postings", ErrInvalid)
+ledger-v4	internal/models/models.go	60	wrap	run	return fmt.Errorf("%w: postings must sum to zero", ErrUnbalanced)
+ledger-v4	internal/money/money.go	13	boundary	run	neg := m < 0
+ledger-v4	internal/money/money.go	40	boundary	run	if dot < 0 {
+logstats-v4	parse.go	24	wrap	run	return Entry{}, fmt.Errorf("expected 5 fields: %w", ErrBadLine)
+logstats-v4	parse.go	29	wrap	run	return Entry{}, fmt.Errorf("invalid timestamp: %w", ErrBadLine)
+logstats-v4	parse.go	37	wrap	run	return Entry{}, fmt.Errorf("invalid status code: %w", ErrBadLine)
+logstats-v4	parse.go	42	wrap	run	return Entry{}, fmt.Errorf("invalid latency: %w", ErrBadLine)
+numkit-v4	numkit.go	32	boundary	run	if x < 0 {
+ratelimit-v4	api.go	8	status	run	writeJSON(w, http.StatusOK, map[string]string{"message": "pong"})
+ratelimit-v4	api.go	15	status	run	w.WriteHeader(http.StatusOK)
+ratelimit-v4	middleware.go	20	status	run	writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "r
+ratelimit-v4	middleware.go	21	header	run	w.Header().Set("Retry-After", "1")
+ratelimit-v4	middleware.go	27	header	run	w.Header().Set("Content-Type", "application/json")
+shortener-v4	codec.go	17	boundary	run	for n > 0 {
+shortener-v4	handlers.go	24	status	run	writeJSON(w, http.StatusBadRequest, nil)
+shortener-v4	handlers.go	28	status	run	writeJSON(w, http.StatusBadRequest, nil)
+shortener-v4	handlers.go	33	status	COLD	writeJSON(w, http.StatusBadRequest, nil)
+shortener-v4	handlers.go	37	status	run	writeJSON(w, http.StatusCreated, link)
+shortener-v4	handlers.go	45	status	run	http.Error(w, "", http.StatusNotFound)
+shortener-v4	handlers.go	47	status	COLD	http.Error(w, "", http.StatusInternalServerError)
+shortener-v4	handlers.go	52	status	run	w.WriteHeader(http.StatusMovedPermanently)
+shortener-v4	handlers.go	60	status	COLD	http.Error(w, "", http.StatusNotFound)
+shortener-v4	handlers.go	62	status	COLD	http.Error(w, "", http.StatusInternalServerError)
+shortener-v4	handlers.go	66	status	run	writeJSON(w, http.StatusOK, link)
+shortener-v4	handlers.go	70	header	run	w.Header().Set("Content-Type", "application/json")
+shortener-v4	router.go	13	status	run	w.WriteHeader(http.StatusOK)
+taskapi-v4	internal/api/middleware.go	14	boundary	run	for i := len(mws) - 1; i >= 0; i-- {
+taskapi-v4	internal/api/middleware.go	25	status	run	rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+taskapi-v4	internal/api/middleware.go	39	status	run	http.Error(w, "internal server error", http.StatusInternalServerError)
+taskapi-v4	internal/api/projects.go	25	status	run	writeError(w, http.StatusBadRequest, "malformed request body")
+taskapi-v4	internal/api/projects.go	29	status	run	writeError(w, http.StatusBadRequest, "invalid project")
+taskapi-v4	internal/api/projects.go	34	status	run	writeError(w, http.StatusConflict, "project already exists")
+taskapi-v4	internal/api/projects.go	36	status	COLD	writeError(w, http.StatusInternalServerError, "failed to create projec
+taskapi-v4	internal/api/projects.go	40	status	run	writeJSON(w, http.StatusCreated, p)
+taskapi-v4	internal/api/projects.go	49	status	run	writeError(w, http.StatusNotFound, "project not found")
+taskapi-v4	internal/api/projects.go	51	status	COLD	writeError(w, http.StatusInternalServerError, "failed to get project")
+taskapi-v4	internal/api/projects.go	55	status	run	writeJSON(w, http.StatusOK, p)
+taskapi-v4	internal/api/projects.go	61	status	run	writeJSON(w, http.StatusOK, projects)
+taskapi-v4	internal/api/projects.go	69	status	run	writeError(w, http.StatusNotFound, "project not found")
+taskapi-v4	internal/api/projects.go	71	status	COLD	writeError(w, http.StatusInternalServerError, "failed to delete projec
+taskapi-v4	internal/api/projects.go	75	status	run	w.WriteHeader(http.StatusNoContent)
+taskapi-v4	internal/api/response.go	10	header	run	w.Header().Set("Content-Type", "application/json")
+taskapi-v4	internal/api/router.go	27	status	run	writeJSON(w, http.StatusOK, "ok")
+taskapi-v4	internal/api/tasks.go	25	status	COLD	writeError(w, http.StatusBadRequest, "malformed request body")
+taskapi-v4	internal/api/tasks.go	29	status	run	writeError(w, http.StatusBadRequest, "invalid task")
+taskapi-v4	internal/api/tasks.go	34	status	run	writeError(w, http.StatusConflict, "task already exists")
+taskapi-v4	internal/api/tasks.go	36	status	COLD	writeError(w, http.StatusInternalServerError, "failed to create task")
+taskapi-v4	internal/api/tasks.go	40	status	run	writeJSON(w, http.StatusCreated, t)
+taskapi-v4	internal/api/tasks.go	49	status	run	writeError(w, http.StatusNotFound, "task not found")
+taskapi-v4	internal/api/tasks.go	51	status	COLD	writeError(w, http.StatusInternalServerError, "failed to get task")
+taskapi-v4	internal/api/tasks.go	55	status	run	writeJSON(w, http.StatusOK, t)
+taskapi-v4	internal/api/tasks.go	61	status	run	writeJSON(w, http.StatusOK, tasks)
+taskapi-v4	internal/api/tasks.go	69	status	run	writeError(w, http.StatusNotFound, "task not found")
+taskapi-v4	internal/api/tasks.go	71	status	COLD	writeError(w, http.StatusInternalServerError, "failed to delete task")
+taskapi-v4	internal/api/tasks.go	75	status	run	w.WriteHeader(http.StatusNoContent)
+taskapi-v4	internal/models/models.go	28	wrap	run	return fmt.Errorf("%w: title is required", ErrInvalid)
+taskapi-v4	internal/models/models.go	31	wrap	run	return fmt.Errorf("%w: bad status %q", ErrInvalid, t.Status)
+taskapi-v4	internal/models/models.go	39	wrap	run	return fmt.Errorf("%w: name is required", ErrInvalid)
+taskapipro-v4	internal/api/middleware.go	15	boundary	run	for i := len(mws) - 1; i >= 0; i-- {
+taskapipro-v4	internal/api/middleware.go	26	status	run	rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+taskapipro-v4	internal/api/middleware.go	41	status	run	http.Error(w, "internal server error", http.StatusInternalServerError)
+taskapipro-v4	internal/api/projects.go	28	status	run	writeError(w, http.StatusBadRequest, "invalid request body")
+taskapipro-v4	internal/api/projects.go	35	status	run	writeError(w, http.StatusBadRequest, "invalid project")
+taskapipro-v4	internal/api/projects.go	37	status	run	writeError(w, http.StatusConflict, "project already exists")
+taskapipro-v4	internal/api/projects.go	39	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskapipro-v4	internal/api/projects.go	43	status	run	writeJSON(w, http.StatusCreated, p)
+taskapipro-v4	internal/api/projects.go	55	boundary	run	if limit < 0 {
+taskapipro-v4	internal/api/projects.go	63	boundary	run	if offset < 0 {
+taskapipro-v4	internal/api/projects.go	70	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskapipro-v4	internal/api/projects.go	73	status	run	writeJSON(w, http.StatusOK, projects)
+taskapipro-v4	internal/api/projects.go	83	status	run	writeJSON(w, http.StatusNotFound, nil)
+taskapipro-v4	internal/api/projects.go	85	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskapipro-v4	internal/api/projects.go	89	status	run	writeJSON(w, http.StatusOK, p)
+taskapipro-v4	internal/api/projects.go	99	status	run	writeJSON(w, http.StatusNotFound, nil)
+taskapipro-v4	internal/api/projects.go	101	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskapipro-v4	internal/api/projects.go	105	status	run	writeJSON(w, http.StatusNoContent, nil)
+taskapipro-v4	internal/api/response.go	10	header	run	w.Header().Set("Content-Type", "application/json")
+taskapipro-v4	internal/api/router.go	23	status	COLD	writeJSON(w, http.StatusOK, "ok")
+taskapipro-v4	internal/api/router.go	26	status	COLD	writeJSON(w, http.StatusOK, "ready")
+taskapipro-v4	internal/api/tasks.go	28	status	run	writeError(w, http.StatusBadRequest, "invalid request body")
+taskapipro-v4	internal/api/tasks.go	35	status	run	writeError(w, http.StatusBadRequest, "invalid task")
+taskapipro-v4	internal/api/tasks.go	37	status	run	writeError(w, http.StatusConflict, "task already exists")
+taskapipro-v4	internal/api/tasks.go	39	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskapipro-v4	internal/api/tasks.go	43	status	run	writeJSON(w, http.StatusCreated, t)
+taskapipro-v4	internal/api/tasks.go	56	boundary	run	if limit < 0 {
+taskapipro-v4	internal/api/tasks.go	64	boundary	run	if offset < 0 {
+taskapipro-v4	internal/api/tasks.go	71	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskapipro-v4	internal/api/tasks.go	74	status	run	writeJSON(w, http.StatusOK, tasks)
+taskapipro-v4	internal/api/tasks.go	84	status	run	writeJSON(w, http.StatusNotFound, nil)
+taskapipro-v4	internal/api/tasks.go	86	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskapipro-v4	internal/api/tasks.go	90	status	run	writeJSON(w, http.StatusOK, t)
+taskapipro-v4	internal/api/tasks.go	100	status	COLD	writeJSON(w, http.StatusNotFound, nil)
+taskapipro-v4	internal/api/tasks.go	102	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskapipro-v4	internal/api/tasks.go	106	status	run	writeJSON(w, http.StatusNoContent, nil)
+taskapipro-v4	internal/config/config.go	36	wrap	run	return Config{}, fmt.Errorf("invalid READ_TIMEOUT: %w", err)
+taskapipro-v4	internal/config/config.go	44	wrap	COLD	return Config{}, fmt.Errorf("invalid WRITE_TIMEOUT: %w", err)
+taskapipro-v4	internal/config/config.go	52	wrap	COLD	return Config{}, fmt.Errorf("invalid SHUTDOWN_TIMEOUT: %w", err)
+taskapipro-v4	internal/config/config.go	60	wrap	COLD	return Config{}, fmt.Errorf("invalid DEFAULT_PAGE_SIZE: %w", err)
+taskapipro-v4	internal/config/config.go	68	wrap	COLD	return Config{}, fmt.Errorf("invalid MAX_PAGE_SIZE: %w", err)
+taskapipro-v4	internal/config/config.go	85	boundary	run	if c.MaxPageSize <= 0 {
+taskapipro-v4	internal/config/config.go	88	boundary	run	if c.DefaultPageSize <= 0 {
+taskapipro-v4	internal/models/models.go	28	wrap	run	return fmt.Errorf("%w: title is required", ErrInvalid)
+taskapipro-v4	internal/models/models.go	31	wrap	run	return fmt.Errorf("%w: bad status %q", ErrInvalid, t.Status)
+taskapipro-v4	internal/models/models.go	39	wrap	run	return fmt.Errorf("%w: name is required", ErrInvalid)
+taskapipro-v4	internal/service/service.go	118	boundary	run	if offset >= len(items) {
+taskapipro-v4	internal/service/service.go	121	boundary	run	if offset < 0 {
+taskapipro-v4	internal/service/service.go	124	boundary	run	if limit <= 0 || limit > len(items)-offset {
+taskflow-v4	httpjson.go	10	header	run	w.Header().Set("Content-Type", "application/json")
+taskflow-v4	middleware.go	16	boundary	run	for i := len(mws) - 1; i >= 0; i-- {
+taskflow-v4	middleware.go	38	status	run	rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+taskflow-v4	middleware.go	51	status	run	http.Error(w, "internal server error", http.StatusInternalServerError)
+taskflow-v4	models.go	24	wrap	run	return fmt.Errorf("%w: title is required", ErrValidation)
+taskflow-v4	models.go	27	wrap	run	return fmt.Errorf("%w: bad status %q", ErrValidation, t.Status)
+taskflow-v4	models.go	35	wrap	run	return fmt.Errorf("%w: name is required", ErrValidation)
+taskflow-v4	pagination.go	24	boundary	run	} else if offset < 0 {
+taskflow-v4	pagination.go	33	boundary	run	if offset >= len(items) {
+taskflow-v4	pagination.go	36	boundary	run	if offset < 0 {
+taskflow-v4	pagination.go	39	boundary	run	if limit <= 0 || limit > len(items)-offset {
+taskflow-v4	projects_handler.go	22	status	run	writeError(w, http.StatusBadRequest, "malformed request body")
+taskflow-v4	projects_handler.go	27	status	run	writeError(w, http.StatusBadRequest, err.Error())
+taskflow-v4	projects_handler.go	29	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskflow-v4	projects_handler.go	35	status	run	writeError(w, http.StatusConflict, "project already exists")
+taskflow-v4	projects_handler.go	37	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskflow-v4	projects_handler.go	41	status	run	writeJSON(w, http.StatusCreated, p)
+taskflow-v4	projects_handler.go	49	status	run	writeJSON(w, http.StatusOK, paginatedProjects)
+taskflow-v4	projects_handler.go	58	status	run	writeJSON(w, http.StatusNotFound, nil)
+taskflow-v4	projects_handler.go	60	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskflow-v4	projects_handler.go	64	status	run	writeJSON(w, http.StatusOK, p)
+taskflow-v4	projects_handler.go	72	status	run	writeJSON(w, http.StatusNotFound, nil)
+taskflow-v4	projects_handler.go	74	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskflow-v4	projects_handler.go	78	status	run	writeJSON(w, http.StatusNoContent, nil)
+taskflow-v4	tasks_handler.go	22	status	run	writeError(w, http.StatusBadRequest, "malformed request body")
+taskflow-v4	tasks_handler.go	27	status	run	writeError(w, http.StatusBadRequest, err.Error())
+taskflow-v4	tasks_handler.go	29	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskflow-v4	tasks_handler.go	35	status	run	writeError(w, http.StatusConflict, "task already exists")
+taskflow-v4	tasks_handler.go	37	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskflow-v4	tasks_handler.go	41	status	run	writeJSON(w, http.StatusCreated, t)
+taskflow-v4	tasks_handler.go	49	status	run	writeJSON(w, http.StatusOK, paginatedTasks)
+taskflow-v4	tasks_handler.go	58	status	run	writeJSON(w, http.StatusNotFound, nil)
+taskflow-v4	tasks_handler.go	60	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskflow-v4	tasks_handler.go	64	status	run	writeJSON(w, http.StatusOK, t)
+taskflow-v4	tasks_handler.go	72	status	COLD	writeJSON(w, http.StatusNotFound, nil)
+taskflow-v4	tasks_handler.go	74	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+taskflow-v4	tasks_handler.go	78	status	run	writeJSON(w, http.StatusNoContent, nil)
+tasks-api-v4	handlers.go	24	status	run	writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invali
+tasks-api-v4	handlers.go	28	status	run	writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Err
+tasks-api-v4	handlers.go	33	status	COLD	writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Err
+tasks-api-v4	handlers.go	35	status	COLD	writeJSON(w, http.StatusInternalServerError, map[string]string{"error"
+tasks-api-v4	handlers.go	39	status	run	writeJSON(w, http.StatusCreated, t)
+tasks-api-v4	handlers.go	45	status	run	writeJSON(w, http.StatusOK, tasks)
+tasks-api-v4	handlers.go	52	status	COLD	writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invali
+tasks-api-v4	handlers.go	58	status	run	writeJSON(w, http.StatusNotFound, map[string]string{"error": "task not
+tasks-api-v4	handlers.go	60	status	COLD	writeJSON(w, http.StatusInternalServerError, map[string]string{"error"
+tasks-api-v4	handlers.go	64	status	run	writeJSON(w, http.StatusOK, task)
+tasks-api-v4	handlers.go	71	status	COLD	writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invali
+tasks-api-v4	handlers.go	76	status	COLD	writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invali
+tasks-api-v4	handlers.go	80	status	run	writeJSON(w, http.StatusBadRequest, map[string]string{"error": err.Err
+tasks-api-v4	handlers.go	86	status	run	writeJSON(w, http.StatusNotFound, map[string]string{"error": "task not
+tasks-api-v4	handlers.go	88	status	COLD	writeJSON(w, http.StatusInternalServerError, map[string]string{"error"
+tasks-api-v4	handlers.go	92	status	run	writeJSON(w, http.StatusOK, t)
+tasks-api-v4	handlers.go	99	status	COLD	writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invali
+tasks-api-v4	handlers.go	104	status	run	writeJSON(w, http.StatusNotFound, map[string]string{"error": "task not
+tasks-api-v4	handlers.go	106	status	COLD	writeJSON(w, http.StatusInternalServerError, map[string]string{"error"
+tasks-api-v4	handlers.go	110	status	run	writeJSON(w, http.StatusNoContent, nil)
+tasks-api-v4	handlers.go	115	header	run	w.Header().Set("Content-Type", "application/json")
+tasks-api-v4	task.go	21	wrap	run	return fmt.Errorf("%w", ErrInvalidTask)
+usersapi-v4	handlers.go	23	status	run	writeJSON(w, http.StatusBadRequest, nil)
+usersapi-v4	handlers.go	28	status	run	writeJSON(w, http.StatusConflict, nil)
+usersapi-v4	handlers.go	30	status	COLD	writeJSON(w, http.StatusInternalServerError, nil)
+usersapi-v4	handlers.go	34	status	run	writeJSON(w, http.StatusCreated, u)
+usersapi-v4	handlers.go	43	status	run	writeJSON(w, http.StatusNotFound, nil)
+usersapi-v4	handlers.go	45	status	COLD	writeJSON(w, http.StatusInternalServerError, nil)
+usersapi-v4	handlers.go	49	status	run	writeJSON(w, http.StatusOK, u)
+usersapi-v4	handlers.go	55	status	run	writeJSON(w, http.StatusOK, users)
+usersapi-v4	handlers.go	63	status	run	writeJSON(w, http.StatusNotFound, nil)
+usersapi-v4	handlers.go	65	status	COLD	writeJSON(w, http.StatusInternalServerError, nil)
+usersapi-v4	handlers.go	69	status	run	writeJSON(w, http.StatusNoContent, nil)
+usersapi-v4	handlers.go	74	header	run	w.Header().Set("Content-Type", "application/json")
+usersapi-v4	middleware.go	16	boundary	run	for i := len(mws) - 1; i >= 0; i-- {
+usersapi-v4	middleware.go	38	status	run	rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+usersapi-v4	middleware.go	51	status	run	http.Error(w, "internal server error", http.StatusInternalServerError)
+workapi-v4	internal/api/middleware.go	15	boundary	run	for i := len(mws) - 1; i >= 0; i-- {
+workapi-v4	internal/api/middleware.go	38	status	run	rec := &statusRecorder{ResponseWriter: w, status: http.StatusOK}
+workapi-v4	internal/api/middleware.go	53	status	COLD	http.Error(w, "internal server error", http.StatusInternalServerError)
+workapi-v4	internal/api/response.go	10	header	run	w.Header().Set("Content-Type", "application/json")
+workapi-v4	internal/api/router.go	23	status	run	writeJSON(w, http.StatusOK, "ok")
+workapi-v4	internal/api/router.go	27	status	run	writeJSON(w, http.StatusOK, "ready")
+workapi-v4	internal/api/tasks.go	28	status	run	writeError(w, http.StatusBadRequest, "malformed request body")
+workapi-v4	internal/api/tasks.go	35	status	run	writeError(w, http.StatusBadRequest, "invalid task")
+workapi-v4	internal/api/tasks.go	37	status	run	writeError(w, http.StatusConflict, "task already exists")
+workapi-v4	internal/api/tasks.go	39	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+workapi-v4	internal/api/tasks.go	43	status	run	writeJSON(w, http.StatusCreated, t)
+workapi-v4	internal/api/tasks.go	65	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+workapi-v4	internal/api/tasks.go	68	status	run	writeJSON(w, http.StatusOK, tasks)
+workapi-v4	internal/api/tasks.go	78	status	run	writeJSON(w, http.StatusNotFound, nil)
+workapi-v4	internal/api/tasks.go	80	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+workapi-v4	internal/api/tasks.go	84	status	run	writeJSON(w, http.StatusOK, t)
+workapi-v4	internal/api/tasks.go	93	status	COLD	writeJSON(w, http.StatusNotFound, nil)
+workapi-v4	internal/api/tasks.go	95	status	COLD	writeError(w, http.StatusInternalServerError, "internal server error")
+workapi-v4	internal/api/tasks.go	99	status	run	writeJSON(w, http.StatusNoContent, nil)
+workapi-v4	internal/config/config.go	42	wrap	run	return Config{}, fmt.Errorf("invalid READ_TIMEOUT: %w", err)
+workapi-v4	internal/config/config.go	49	wrap	COLD	return Config{}, fmt.Errorf("invalid WRITE_TIMEOUT: %w", err)
+workapi-v4	internal/config/config.go	56	wrap	COLD	return Config{}, fmt.Errorf("invalid SHUTDOWN_TIMEOUT: %w", err)
+workapi-v4	internal/config/config.go	66	wrap	run	return Config{}, fmt.Errorf("invalid QUEUE_SIZE: %w", err)
+workapi-v4	internal/config/config.go	84	boundary	run	if c.QueueSize <= 0 {
+workapi-v4	internal/models/models.go	27	wrap	run	return fmt.Errorf("%w: title is required", ErrInvalid)
+workapi-v4	internal/models/models.go	30	wrap	run	return fmt.Errorf("%w: bad status %q", ErrInvalid, t.Status)
+workapi-v4	internal/service/service.go	83	boundary	run	if offset >= len(items) {
+workapi-v4	internal/service/service.go	86	boundary	run	if offset < 0 {
+workapi-v4	internal/service/service.go	89	boundary	run	if limit <= 0 || limit > len(items)-offset {
