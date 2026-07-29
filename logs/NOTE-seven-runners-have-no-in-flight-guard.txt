@@ -1,0 +1,56 @@
+NOTE — seven scripts start a generation with no guard, and two of them cannot be fixed today
+=============================================================================================
+
+Audited 11:06 on 29 July after finding _chain_run.sh unguarded by pre-flighting a queued
+step. One missing guard found by luck is a reason to look for the rest.
+
+    script                        in-flight guard   scheduler guard
+    ----------------------------  ---------------   ---------------
+    _ab_run.sh                          NO                NO
+    _ab_run_v5.sh                       NO                NO      <- the sweep's workhorse
+    _post_rebuild_measure.sh            NO                NO
+    _taskflow_chain_run.sh              NO                NO
+    _taskflow_ct_run.sh                 NO                NO
+    _taskflow_projsort_run.sh           NO                NO
+    _tasksapi_ct_run.sh                 NO                NO
+    farm_traces.sh                      NO                NO
+    ---- guarded ----
+    _chain_run.sh, _sweep_v5.sh, _resweep_v4.sh, _rebuild_corpus.sh, _run_queue*.sh,
+    _chain_sweep.sh, _run_stragglers.sh, _bitset_witness_run.sh, _tasksapi_empty_run.sh,
+    _shortener_mirrors_run.sh, _sweep_v5_finish.sh, _sweep_v5_ledger.sh,
+    _redraw_taskapipro_once.sh
+
+WHY I AM NOT FIXING THEM ALL RIGHT NOW — the reason is not caution, it is a hazard
+
+    BASH READS A SCRIPT INCREMENTALLY WHILE IT RUNS.
+
+_ab_run_v5.sh is EXECUTING at this moment: _sweep_v5_finish.sh invoked it for workapi and
+that shell is mid-script. Editing the file now can change what the running interpreter reads
+next — bash seeks by byte offset, so inserting lines above the current position shifts
+everything and the process resumes in the middle of a different line. The failure is silent,
+arbitrary, and would land inside a generation that is 9 files deep.
+
+That applies to exactly two files here: _ab_run_v5.sh and _sweep_v5_finish.sh. It is the
+same class of rule as "do not touch src/ while draws are owed", arrived at from a different
+direction, and it is sharper: src/ edits corrupt a COMPARISON, this corrupts a RUNNING
+PROCESS.
+
+THE OTHER SIX ARE SAFE TO EDIT AND ARE NOT WORTH EDITING TODAY. _post_rebuild_measure,
+_taskflow_ct_run, _taskflow_projsort_run, _tasksapi_ct_run and farm_traces are one-off
+scripts from earlier experiments; _ab_run.sh is the v4 twin of the workhorse. None is in the
+current queue. Adding guards to five dormant scripts is churn, and churn during a running
+campaign is how the campaign acquires an unrelated bug.
+
+WHAT ACTUALLY MATTERS, RANKED
+  1. _ab_run_v5.sh — guard it AFTER the draws drain. It is called by three schedulers and by
+     hand, it is the one that will still be used next week, and an unguarded workhorse is the
+     one that eventually races something.
+  2. _ab_run.sh — same, lower priority, v4 is finished.
+  3. The rest — guard opportunistically or not at all.
+
+⚠️ AND NOTE WHAT THE GUARDED SCRIPTS DO NOT PROTECT AGAINST. Every guard in this repo checks
+for a running guildlm-build. None checks whether a MUTATION SWEEP is running, and
+_hole_hunt runs `go test` per mutation on the same CPU. I ran a targeted sweep against a
+live generation at 11:00 and it timed out; the generation was unharmed, by luck rather than
+by design. The reverse guard — a generation refusing to start while a sweep runs — does not
+exist in either direction.
