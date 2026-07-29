@@ -60,3 +60,49 @@ the imports break anyway.
 reach a test. It does not merely reach a test's SETUP, as recorded at 15:42 — it reaches the
 IMPORT STATEMENTS OF THREE IMPLEMENTATION FILES. The blast radius of one entry is the whole
 artifact, and nothing in the campaign's model of specs predicted that.
+
+
+TWO DEFECTS, TWO DIFFERENT CAUSES (16:14) — separated by chain5's round 3
+=========================================================================
+chain5 runs the PRE-EDIT spec, and its round 3 reports:
+
+    internal/api/projects.go:77:55: too many arguments in call to h.svc.List
+        have (context.Context, int, int, string)
+        want (context.Context, int, int)
+
+The same mirrored `status` argument the v5 draws hit at 71:55. Different line — the files
+differ slightly — same defect. So it appears WITHOUT the projects-entry edit.
+
+    THE IMPORT-PATH DEFECT   caused by the spec edit. 0 in both pre-edit draws, 4 in both
+                             post-edit draws, server held fixed. Tracks the spec.
+    THE MIRRORED ARGUMENT    caused by the WIDENED REPAIR ROUND. Present in chain5 with the
+                             edit reverted. Tracks the loop, not the spec.
+
+I had been treating these as one story since 13:52. They are two, with different causes, and
+only the first belongs to the twelve lines.
+
+WHY chain5 WIDENED WHEN chain4 DID NOT — the day difference is the trigger
+chain4, same pre-edit spec, converged GREEN after one deterministic fix round. It never
+widened, so it never acquired the mirrored argument.
+
+The difference is the one I found at 15:49 and corrected the over-claim for:
+
+    chain4  projects twins  seeds 1 asserts 1   CANNOT-FAIL  -> PASSES, nothing to chase
+    chain5  projects twins  seeds 1 asserts 2   CANNOT-PASS  -> FAILS, round 2 chases it
+
+A witness that cannot fail passes silently; a witness that cannot pass fails loudly. chain4
+got the harmless one and sailed through. chain5 got the loud one, entered the fix loop
+properly, widened into implementation files to chase a TEST-side defect, and the widening
+manufactured the mirrored argument.
+
+    So the day/server difference did not break anything by itself. It flipped a broken
+    witness from the silent kind to the loud kind, and the loud kind triggers a repair
+    regime that introduces a genuine defect.
+
+That is a chain worth stating plainly: an unmeasured day-to-day variation changed which of
+two broken shapes a test took, and that choice determined whether the artifact compiled.
+
+⚠️ AND IT VINDICATES THE 15:49 CORRECTION. I nearly wrote that the server was exonerated
+outright. It is exonerated for the tasks seed counts and it is NOT irrelevant — the projects
+assertion moved 1 -> 2 across days, and that move is what sent chain5 down a path chain4
+never took.
