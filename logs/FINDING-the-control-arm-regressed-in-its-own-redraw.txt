@@ -231,3 +231,48 @@ have replaced `limit = h.defaultPageSize` with a literal, or restructured the cl
 helper — either of which removes the site the closure is graded on, silently, while every
 number in this file kept reporting on something that no longer exists. The check costs one
 diff. Not doing it is how a measurement outlives its subject.
+
+
+CHECKPOINT 4 (10:40) — THREE OF FIVE ROUNDS WENT ON DEFECTS THE LOOP CREATED ITSELF
+===================================================================================
+Five of six rounds spent. internal/api has not compiled once. Both defaults twins are
+BYTE-IDENTICAL to the as-drawn snapshot — checked by hashing the function bodies, not by
+eye. The fix loop has never touched them.
+
+WHERE THE BUDGET WENT, round by round, with each defect's origin:
+
+  1  taskapipro/internal/models not in std          GENERATION   unprefixed import path
+  2  undefined: w  (projects_test.go:183)           GENERATION   as-drawn had `w =`
+  3  too many arguments in call to h.svc.List       SELF         widened round mirrored
+                                                                 tasks.go into projects.go,
+                                                                 carrying a status arg the
+                                                                 projects service lacks.
+                                                                 As-drawn compiled here.
+  4  declared and not used: status                  SELF         round 3's half-repair —
+                                                                 removed the argument from
+                                                                 the call, left the decl
+  5  undefined: w  (projects_test.go:183) AGAIN     SELF         model fix reverted the
+                                                                 gate's round-2 repair
+
+    Two rounds on defects the DRAW shipped. Three on defects the LOOP shipped.
+
+AND THE REAL DEFECT NEVER SURFACED. Twin A cannot pass — one item seeded, exactly 2
+asserted — so it would have failed loudly the moment the package built, and the loop would
+have seen it and had something to repair. It never built. Five rounds of compile churn,
+three of them self-inflicted, consumed the budget before a single assertion ran.
+
+    The fix loop repairs what it observes failing. An assertion defect sitting behind a
+    build failure is invisible to it, and a loop that generates build failures faster
+    than it clears them never gets far enough down the stack to see one.
+
+THE (a)-vs-(b) PREDICTION IS HEADING TO VOID, NOT WRONG. I predicted that when Twin A was
+repaired the loop would change the literal (65%) rather than add POSTs. Twin A has not been
+repaired, has not been read, has not run. Outcome (c) — which I first wrote as budget
+exhaustion, walked back, then restated as recurrence — is what actually happened, and by
+the third mechanism rather than either of the first two: crowd-out.
+
+⚠️ ONE ROUND LEFT, and the prediction is not yet void. If round 6 clears the build, the
+twins run, both fail, and the loop gets exactly one round to react — which is the narrowest
+possible version of the experiment and still counts. Read the twins after the RESULT line
+either way; a NOT-GREEN verdict is compatible with the twins being touched and with their
+never having been seen, and only the diff distinguishes those.
