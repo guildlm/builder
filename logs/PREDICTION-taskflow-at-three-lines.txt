@@ -1,0 +1,40 @@
+PREDICTION — taskflow at THREE lines: does the effect start small, or is there a threshold?
+=============================================================================================
+
+22:32 on 29 July, before the draw. Open item 2: monotonicity. What is measured on taskflow —
+the only spec with a rich row set (49 rows, 19 shapes) — is:
+
+    +1  line (the rename)   CODE 1, and it IS the target. No collateral.
+    +12 lines               CODE 6 as-drawn, 2 verdicts moved, 2 groups changed site count.
+
+    Nothing between. So "one line is surgical and twelve are not" is consistent with a smooth
+    ramp AND with a threshold somewhere in between, and those are different claims about how
+    dangerous a small spec edit is.
+
+THE DRAW: taskflow's HEAD spec + the LAST THREE LINES of specs/_inert_twelve_lines.txt,
+inserted at the same place as the +12 arm (the projects_test.go entry). A contiguous subset of
+already-tracked prose, ending at a sentence boundary, so the prose FAMILY is held constant and
+only length varies. Control is generated/taskflow-chain6 — same condition, same server, and it
+carries a snapshot, so the comparison is as-drawn on both sides.
+
+BRANCHES, graded as-drawn via .pre-fix.json on both arms
+  A  >=1 CODE difference in a file the three lines do not mention
+     -> the effect starts below twelve. A three-line spec edit already rewrites unrelated code,
+        which makes essentially every spec edit in this repo a perturbation.
+  B  0 CODE differences outside the target
+     -> there is a threshold between 3 and 12. Small edits are safe, and the practical rule
+        becomes about SIZE rather than about editing at all.
+  C  the artifact dies -> would be startling at this dose; report as such.
+
+PREDICT  A 55% · B 40% · C 5%.
+A is barely ahead and the near-even split is the honest state: +1 produced NO collateral at
+all, which is real evidence for a floor, while +12 produced six CODE files, which is a lot to
+appear all at once. I do not have a mechanism that predicts either shape.
+
+⚠️ THIS IS THE MOST DECISION-RELEVANT BRANCH SPLIT OF THE THREAD. Everything measured so far
+says "adding bulk perturbs". B would say small edits are safe and the rule is a size budget.
+A would say there is no safe edit and the only defence is to re-measure after every spec
+change. Those imply different working practices, so the answer matters beyond the campaign.
+
+⚠️ AND ONE PAIR EITHER WAY. Same caveat as every arm today: one spec, one dose, one draw
+against one control, on a server that has not restarted since 09:29.
