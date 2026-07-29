@@ -1,0 +1,3 @@
+      NOTHING IN A PASSING RUN DISTINGUISHES A REPORTING ASSERTION FROM A SHADOWED ONE.
+      Give the loop variable, the table row and the helper argument their own names —
+      tc, row, want, got — and leave t meaning exactly one thing in the whole file.

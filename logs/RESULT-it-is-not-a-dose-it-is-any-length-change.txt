@@ -1,0 +1,57 @@
+RESULT — THREE lines perturb MORE than twelve. It is not a dose.
+=================================================================
+
+22:58 on 29 July. taskflow + the last three lines of the tracked inert block, against
+chain6, both snapshotted so the comparison is as-drawn on both sides. Predicted A 55% · B 40%.
+A landed, and it landed harder than either branch described.
+
+    +1  (rename)          CODE 1 — the TARGET only, NO collateral
+    +3  (chain6 vs dose3) CODE 8 · PROSE 2 · IDENTICAL 5
+    +12 (chain6 vs dose)  CODE 6 · PROSE 4 · IDENTICAL 5
+
+    THREE LINES PERTURBED MORE FILES THAN TWELVE. Not a smooth ramp, not a threshold — not
+    ordered by dose at all. Branch B (a safe small edit) is dead, and so is the framing both
+    branches shared.
+
+THE PERTURBED SET IS DIFFERENT, NOT JUST BIGGER
+    both doses     middleware.go · pagination_test.go · projects_handler.go ·
+                   taskflow_test.go · tasks_handler.go
+    +3 only        httpjson.go · router.go · projects_test.go
+    +12 only       store.go
+
+    Five files move at both doses; four move at one and not the other. So the edit does not
+    perturb "more" or "less" — it RE-ROLLS which design decisions come out differently.
+
+AND THE RENAME EXPLAINS ITSELF, WHICH REFRAMES THE WHOLE SERIES
+    TestProjectListSorted   21 characters
+    TestSortedProjectList   21 characters
+
+The one-line rename that produced NO collateral replaced text with text OF EXACTLY THE SAME
+LENGTH. Every arm that produced collateral ADDED lines.
+
+    HYPOTHESIS, fitting all three points: it is not the number of lines, it is whether the
+    spec's LENGTH changes at all. A same-length substitution leaves the draw alone; adding
+    anything re-decides unrelated files.
+
+    ⚠️ THREE DATA POINTS AND ONE HYPOTHESIS. It is not established. Two cheap tests would
+    separate it, and NEITHER IS RUN:
+        · a one-line addition (+1 line, not a substitution) — if it perturbs, length is the
+          variable and dose is irrelevant;
+        · a rename of DIFFERENT length (e.g. TestSorted -> TestProjectsAreSortedByIdentifier)
+          — if it perturbs, substitution is not safe, only equal length is.
+
+WHAT THIS DOES TO THE PRACTICAL RULE
+The pre-registered stakes were: branch B means "small edits are safe, budget the size", branch
+A means "no safe edit, re-measure after every change". A landed, and the non-monotonicity makes
+it stronger than stated — there is no size below which the effect disappears, because three
+lines behaved worse than twelve.
+
+    So the working rule is not a budget. It is: ANY SPEC EDIT THAT CHANGES LENGTH INVALIDATES
+    EVERY MEASUREMENT TAKEN BEFORE IT, on files the edit does not mention, and the only defence
+    is to re-measure. For the campaign that is the difference between "our closures worked" and
+    "we cannot tell".
+
+⚠️ ONE DRAW PER DOSE. Each arm is a single draw against a single control. Same-condition
+variance is zero on this spec (chain5 vs chain6, 12 of 12 identical), so each arm's differences
+are real — but the ORDERING of 8 against 6 rests on one draw each and should not be read as
+"three lines are worse than twelve". What it rules out is that MORE lines mean MORE damage.
