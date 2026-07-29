@@ -328,3 +328,32 @@ the first three were.
 THE ONE DRAW THAT SETTLES IT, unchanged and now precisely motivated: add ONLY ids to
 taskapipro's paging entries. That fills the empty cell — enumerated, NOT semantically forced
 — and it is the only cell that distinguishes (b) from (c). Everything else is re-reading.
+
+
+VERIFIED, NOT PARAPHRASED (11:23) — the freshreq safety claim I made two hours ago
+==================================================================================
+The workapi checklist above asserts that the drained-body gate cannot damage the Delete-404
+test, and cites freshreq.go's docstring for it. Docstrings describe intent. Checked the
+implementation instead:
+
+    // hasBody reports whether the third argument is anything other than the literal
+    // nil. Only a request WITH a body can be drained.
+    func hasBody(call *ast.CallExpr) bool {
+        id, ok := call.Args[2].(*ast.Ident)
+        return !(ok && id.Name == "nil")
+    }
+
+DELETE /tasks/nope passes nil as the third argument, so hasBody is false and the gate does
+not fire on it. The claim holds in code, not just in prose.
+
+And the second half — that mutations are replayed so a rebuilt request does not lose its
+auth header — is not merely supported by the source, it is the source's own worked example:
+line 54 names `req.Header.Set("Authorization", "Bearer secret")` verbatim as the thing that
+must survive a rebuild. That is workapi's exact header.
+
+⚠️ WHY BOTHER, GIVEN THE DOCSTRING SAID SO. Today has produced two tools whose stated
+behaviour and actual behaviour differed: _reachability printed "(tracked — a changed verdict
+shows as a diff)" about a file git ignored, and _resweep_report accepted --self-test while
+having none. Both were believed on their own description. A third check cost two minutes and
+this one came back clean, which is the outcome that makes the habit worth keeping rather
+than the one that justifies it.
