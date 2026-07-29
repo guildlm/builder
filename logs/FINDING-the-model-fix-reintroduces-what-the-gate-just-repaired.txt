@@ -1,0 +1,78 @@
+FINDING — the model's fix round reintroduces the compile error the gate just repaired
+=====================================================================================
+
+Observed 29 July ~11:45 on the taskapipro-v5 fix loop, live. This is a BUILDER pathology,
+not a spec one, and it is why two of six rounds went by without the paging twins ever being
+evaluated.
+
+THE CYCLE, one round long
+
+    round N   deterministic gate repairs `w = httptest.NewRecorder()` -> `w := ...`
+              model fix round rewrites the same file and restores `w = ...`
+    round N+1 build fails: "undefined: w"
+              deterministic gate repairs it again
+              model fix round rewrites the file again
+    ...
+
+ROUND 1, from the log, in order:
+    deterministic fix in internal/api/projects_test.go        (x2)
+    deterministic fix in internal/api/router_test.go          (x2)
+    rebuilt a request that was served twice (drained body)    (both files)
+    deterministic fix in internal/api/router_test.go
+    deterministic fix in internal/api/projects_test.go
+    fixing internal/api/router_test.go     <- MODEL, best-of-N: kept candidate 1 of 2
+    fixing internal/api/projects_test.go   <- MODEL, best-of-N: kept candidate 1 of 2
+
+ROUND 2 opens with:
+    vet: internal/api/projects_test.go:183:2: undefined: w
+    FAIL guildlm.dev/taskapipro/internal/api [build failed]
+
+The deterministic pass in round 1 had already fixed that exact line. The only writer between
+that repair and this error is the model's fix. Round 2 was then spent re-repairing it.
+
+DIRECTLY OBSERVED FOR router_test.go, NOT INFERRED. A diff of the as-drawn snapshot against
+the tree taken at 11:20 — after round 1's model fix — shows:
+
+    168c174
+    <     w := httptest.NewRecorder()          (as drawn)
+    ---
+    >     w = httptest.NewRecorder()           (after the model's fix round)
+
+The as-drawn file had the CORRECT `:=` at that line and the model changed it to `=`. So for
+router_test.go this is an observation. For projects_test.go it is an inference from the same
+timeline and the same shape, and it is labelled as one.
+
+    The model's repair of one part of a file silently reverts the gate's repair of another
+    part, because the model rewrites the WHOLE FILE and its rewrite is drawn from the
+    version it was shown.
+
+WHY IT COSTS EXACTLY ONE ROUND EACH TIME
+The gate runs BEFORE the model within a round. So the sequence per round is repair, then
+regress, and the regression is not seen until the next round's build. The gate always wins
+eventually and the loop does converge — it simply pays a full round per cycle, and rounds
+are the scarce resource (budget 6, scaled from the flag's 5 by file count).
+
+WHAT IT DOES TO THE EXPERIMENT IN FLIGHT
+Outcome (c) is live again, in the form I did not anticipate. I wrote it as "the loop
+exhausts its rounds on compile errors", walked it back when the gate cleared them for free,
+and the truth is a third thing: the compile errors ARE cheap, and they RECUR, and each
+recurrence costs a round. Two of six are gone and `internal/api` has not built once, so the
+twins have never run. If this continues the tree ships NOT-GREEN with the twins exactly as
+drawn and the (a)-vs-(b) prediction is void rather than graded.
+
+    I have now been wrong about this budget three times: the number (5 vs 6), the unit
+    (a round is not a model call), and the failure mode (not exhaustion, recurrence).
+    Each correction came from reading the log rather than reasoning about the design.
+
+⚠️ WHAT THIS IS NOT. It is not evidence that the gate is wrong or that best-of-N is wrong.
+The gate's repair is correct every time it runs. The model is not asked to preserve it —
+it is handed a file and asked to fix a failure, and `w =` versus `w :=` is invisible next
+to the failure it was actually shown. Nothing in the loop tells the model that a line it is
+about to rewrite was itself a repair.
+
+⚠️ AND IT IS ONE SPEC, ONE RUN. taskapipro is the largest spec in the corpus, its api
+package holds four files, and it is the only artifact where I have watched a fix loop line
+by line. Whether this cycle is common or is a taskapipro accident is not established here —
+the cheap check is to grep the other 20 v5 logs for a defect that appears in round N+1 after
+being repaired in round N, and that check is written down rather than run because the
+corpus is still moving.
