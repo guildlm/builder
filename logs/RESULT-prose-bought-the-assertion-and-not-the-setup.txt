@@ -1,0 +1,108 @@
+RESULT — prediction 1 graded: BOTH HALVES WRONG, and the real answer is the split itself
+=========================================================================================
+
+Graded 29 July ~10:20 from taskapipro-v5's projects_test.go and router_test.go, both read
+AS DRAWN and snapshotted before the fix loop touched them. chain4 is the before-state.
+
+THE PREDICTIONS, from PREDICTION-the-two-specs-the-reboot-owed-me.txt
+    "the projects paging test POSTs THREE projects and asserts EXACTLY 2"      70%   WRONG
+    "the three paging sites in projects.go flip SURVIVED -> CAUGHT"            60%   WRONG
+
+It POSTs ONE. And the sites cannot flip to CAUGHT, because the test as drawn cannot pass at
+all — one project in the store, assert exactly 2.
+
+I also predicted what a split verdict would MEAN and got the direction backwards. The
+prediction file says a split "would mean prose bought the SETUP and not the ASSERTION". The
+measurement says the exact opposite, and that is the finding.
+
+
+THE FOUR TWINS, BEFORE AND AFTER, ALL READ AS DRAWN
+----------------------------------------------------
+
+  chain4 — BEFORE the projects repair
+    TestListDefaultsToTheConfiguredPageSize          (2,100)   POSTs=3   assert 2   CAUGHT
+    TestListCapsAtTheConfiguredMaxPageSize           (20,2)    POSTs=3   assert 2   CAUGHT
+    TestProjectListDefaultsToTheConfiguredPageSize   (2,100)   POSTs=1   assert 1   SURVIVED
+    TestProjectListCapsAtTheConfiguredMaxPageSize    (20,2)    POSTs=1   assert 1   SURVIVED
+
+  taskapipro-v5 — AFTER (projects entry given its own measured reason; tasks entry UNCHANGED)
+    TestListDefaultsToTheConfiguredPageSize          (2,100)   POSTs=1   assert 2   cannot pass
+    TestListCapsAtTheConfiguredMaxPageSize           (20,2)    POSTs=2   assert 2   cannot fail
+    TestProjectListDefaultsToTheConfiguredPageSize   (2,100)   POSTs=1   assert 2   cannot pass
+    TestProjectListCapsAtTheConfiguredMaxPageSize    (20,2)    POSTs=2   assert 2   cannot fail
+
+Router arguments: 4 of 4 correct, both draws. Those were never in doubt and are what the
+spec argues hardest for.
+
+
+WHAT MOVED AND WHAT DID NOT
+----------------------------
+THE REPAIR WORKED — ON THE ASSERTION. The projects twins went from `assert 1` to `assert 2`.
+That is precisely what the newly attached reason demanded ("assert EXACTLY 2"), and it is
+the half that made chain4's projects witness unable to fail. Prose changed it.
+
+THE REPAIR DID NOT TOUCH THE SETUP. The same reason says "POST THREE projects, NOT ONE" and
+spends ten lines on why. The draw POSTed one, and two for the caps twin. Prose did not
+change it.
+
+AND THE CONTROL REGRESSED ON EXACTLY THE SAME AXIS. The tasks entry was NOT EDITED between
+these two draws. It produced POSTs=3 on chain4 and POSTs=1 and 2 on v5. Same sentence, same
+model, same flags — the setup count moved anyway, and moved to the same wrong values the
+repaired projects arm landed on.
+
+    Assertions are stable across draws and repairable by prose.
+    Setup counts are neither.
+
+The tasks regression is the decisive half, because it holds the spec text FIXED. Any story
+in which the projects failure is about what the projects entry says has to explain why the
+unedited tasks entry failed identically on the same axis in the same file-pair.
+
+
+WHY THE MIRRORING MATTERS
+--------------------------
+In v5 the four twins are structurally IDENTICAL — same router arguments, same POST counts
+(1 for defaults, 2 for caps), same assertion, and even the same compile defect: both caps
+twins assign to an undeclared `w` after declaring `w1` and `w2`. projects_test.go reads as
+router_test.go rewritten with /projects and models.Project substituted.
+
+On chain4 they did NOT mirror: tasks POSTed 3 and asserted 2, projects POSTed 1 and asserted
+1. So mirroring is not a constant of the generator — but when it happens, the second file
+inherits the first file's setup, correct or not, and a per-test reason in the second entry
+does not override what was inherited.
+
+That is a testable claim and it predicts something specific: fixing the TASKS entry should
+move the PROJECTS twins too, without touching the projects entry at all. Nothing has tested
+that.
+
+
+CONSEQUENCES FOR THE WEEK'S CLAIMS
+-----------------------------------
+1. "An attached reason is a per-test cost payable at every test" — SURVIVES, NARROWED. It
+   buys the assertion. It does not buy the setup, and it does not make either durable.
+   FINDING-the-test-description-is-the-unit-of-transfer.txt stands with this bound added.
+
+2. "The projects paging SURVIVED because its entry lacked a reason" — REFUTED AS A COMPLETE
+   EXPLANATION. The reason was the difference in the ASSERTION (1 vs 2). It was never the
+   difference in the POST count, because the tasks arm lost that with its reason intact.
+
+3. THE CLOSURE GRADES FROM THIS WEEK MEASURE THE DRAW THEY WERE MADE ON. This is the thing
+   the redraw existed to find out, and the answer for these four sites is: not durable. The
+   grades are not wrong about what they measured; they are wrong as claims about the spec.
+
+4. ⚠️ AN EXACT QUANTITY STILL HAS NO WORKING MECHANISM. The prediction file offered the
+   alternative — "an exact quantity needs a mechanism other than prose" — and this promotes
+   it from an alternative to the live hypothesis. Candidates: a fixture the test must call
+   (seedN(h, 3)), a named constant, or a Phase-1 gate that counts setup calls against the
+   asserted bound. The gate is the only one that cannot be ignored by a draw, and this repo
+   already has the pattern in _fix_bad_format_verb.
+
+WHAT THIS DOES NOT SAY
+-----------------------
+Nothing about workapi's Delete-404 (still queued) or taskflow's rename (still queued).
+Nothing about presence — all four twins were WRITTEN, with correct names, in the right
+files. This is entirely a mode-2 result.
+
+⚠️ AND THE TREE HAS NOT RUN. Both caps twins carry a compile error and three api files carry
+a wrong import path, so no verdict here comes from execution. Every claim above is read off
+the source as drawn. That is the correct evidence for questions about what the model WROTE,
+and it is not evidence about what the suite DOES.
