@@ -1,0 +1,83 @@
+RESULT — BRANCH A. The twelve added lines cause the import defect; the server is exonerated
+=============================================================================================
+
+19:21 on 29 July. The pristine pre-edit draw completed (3501s) and the question open since
+15:58 is answered on a pair that holds the server fixed — which nothing managed all day.
+
+    ✓ PREDICTED A at 70%.  Secondary prediction (reproduces chain5) at 75%: also HIT.
+
+THE PRIMARY VERDICT, from the pre-repair snapshot
+    ✓ CORRECT — all 5 first-party imports under internal/api carry `guildlm.dev/taskapipro/`
+
+        internal/api/projects.go   "guildlm.dev/taskapipro/internal/models"
+        internal/api/projects.go   "guildlm.dev/taskapipro/internal/service"
+        internal/api/router.go     "guildlm.dev/taskapipro/internal/service"
+        internal/api/tasks.go      "guildlm.dev/taskapipro/internal/models"
+        internal/api/tasks.go      "guildlm.dev/taskapipro/internal/service"
+
+THE TABLE, COMPLETE, WITH THE SERVER HELD FIXED ACROSS THE MIDDLE THREE ROWS
+    draw       projects entry        server        as-drawn internal/api imports
+    preedit    PRE-edit, no lines    29 Jul/4439   CORRECT      <- NEW, from .pre-fix.json
+    v5 (1st)   +12 REAL lines        29 Jul/4439   UNPREFIXED
+    v5 (2nd)   +12 REAL lines        29 Jul/4439   UNPREFIXED
+    inert      +12 INERT lines       29 Jul/4439   UNPREFIXED
+    chain4     PRE-edit, no lines    28 Jul/other  CORRECT
+
+    Same server process, same flags, same day. The ONLY difference between row 1 and rows
+    2-4 is whether twelve lines were added to the projects test entry. Rows 2 and 3 differ
+    from row 4 only in what those lines SAY, and all three carry the defect.
+
+    THEREFORE: ADDING TWELVE LINES CAUSES THE IMPORT DEFECT. The server does not. What the
+    lines say is irrelevant.
+
+⚠️ THE DRAW WOULD HAVE ANSWERED NOTHING WITHOUT THE SNAPSHOT, EXACTLY AS PREDICTED
+The secondary grader:
+
+    ⚠ UNMEASURED — round 1 failed elsewhere and internal/api never appears; its imports were
+      never evaluated. This arm cannot be scored.
+
+That is chain5's outcome, reproduced. The 18:10 analysis — that this draw would recreate
+chain5's masking and return a non-answer — was correct, and it is why the snapshot was landed
+FIRST rather than the draw being fired on the old plan. Compiler output could not see this;
+the source could.
+
+AND THE SECONDARY PREDICTION CONFIRMS THE INFERENCE TO chain5
+    7 files untouched in both draws · 7 identical · 0 differ
+
+This draw reproduces chain5 exactly, so chain5's as-drawn imports were CORRECT too. The arm
+that came back masked at 15:09 is no longer a hole in the table — it is filled by a draw of
+the same condition that carries a snapshot.
+
+⚠️ ONE CROSS-INSTRUMENT SEAM, STATED RATHER THAN GLOSSED. Row 1's verdict comes from the
+SNAPSHOT; rows 2-5 come from ROUND-1 COMPILER OUTPUT, because those draws predate
+`.pre-fix.json`. Both are pre-repair evidence about what the model wrote — the round-1 error
+names `internal/api/projects.go:7:2`, a line in the as-drawn file — so they measure the same
+thing by different routes. It is not the same instrument, and no future comparison should have
+to rely on that equivalence: from now on every draw carries a snapshot.
+
+WHAT THE FIX LOOP DID TO THIS TREE, now visible for the first time
+    ASSERTIONS 1 · FORMAT-ONLY 10 · UNTOUCHED 10
+
+    internal/store/memory_test.go   2 assertion lines removed, 2 added
+    ten files changed with every assertion line identical — goimports-class
+    ten files never touched at all
+
+Only ONE file in twenty-one had an assertion moved by the loop. For the other twenty the tree
+can be read as the draw. That is the number every comparison this afternoon had to assume and
+could not check.
+
+WHAT THIS RESTORES, PRECISELY
+The 15:58 headline — "adding twelve lines to the projects entry caused three implementation
+files to lose their module prefix" — is restored as to CAUSE. It was withdrawn to
+"unattributable" at 17:26 when chain5 turned out to be masked, and the control it needed did
+not exist until now.
+
+⚠️ WHAT IT STILL DOES NOT RESTORE. The twin-quantity rows retracted at 16:48 stay retracted:
+those were read off post-repair trees and this draw does not speak to them. And the stub-file
+regression (empty internal/store/memory.go in three v5 trees) is NOT caused by the twelve
+lines — chain5 and this pre-edit draw both produce it — so that belongs to the still-open
+spec-or-server question, separately.
+
+⚠️ N=1 PER ARM ON ONE SPEC. One pre-edit draw against two post-edit draws and one inert. The
+inference is strong because the arms are byte-identical in the files nobody repaired, not
+because the sample is large.

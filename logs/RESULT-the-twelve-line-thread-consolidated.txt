@@ -58,7 +58,17 @@ WHAT IS SUGGESTIVE AND NOT ESTABLISHED
 WHAT IS STILL OPEN
 ===================
 
-6. WHETHER IT IS THE SPEC OR THE SERVER. Every draw that has ever shown the import defect ran
+6. ✅ ANSWERED 19:21 — IT IS THE SPEC. The pristine pre-edit draw on 4439 wrote CORRECT
+   prefixed imports (all 5, read from .pre-fix.json), against UNPREFIXED in both +12 draws and
+   the inert arm on the same server. Server held fixed, spec the only difference. The draw ALSO
+   graded UNMEASURED on compiler output — chain5's masking, reproduced exactly as predicted at
+   18:10 — so the snapshot is the only reason it answered. And it reproduces chain5 on all 7
+   untouched files, which fills chain5's hole in the table.
+   See RESULT-the-twelve-lines-cause-the-import-defect.txt.
+   ⚠️ The STUB-FILE regression is NOT this: chain5 and the pre-edit draw both leave
+   internal/store/memory.go empty, so that stays open and separate.
+
+6b. (superseded) WHETHER IT IS THE SPEC OR THE SERVER. Every draw that has ever shown the import defect ran
    on process 4439; the only measured clean pre-edit arm (chain4) ran on another server on
    another day. "Twelve lines cause it" and "this server writes this code" fit every row.
    ⚠️ THE DRAW IN FLIGHT ANSWERS THIS. The pristine pre-edit draw on 4439, graded from
