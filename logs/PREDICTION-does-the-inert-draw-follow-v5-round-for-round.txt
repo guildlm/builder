@@ -60,7 +60,7 @@ rather than proof of a mechanism, and the honest follow-up to a match is a secon
 which is not authorised here.
 
 
-ADDED 17:52, STILL BEFORE ROUND 3 EXISTS (verified: 0 round-3 markers) — a second discriminator
+ADDED 17:50, STILL BEFORE ROUND 3 EXISTS (verified: 0 round-3 markers) — a second discriminator
 ================================================================================================
 Found while checking something else: the mirrored-argument defect and its half-repair BOTH sit
 exactly six lines apart between the arms.
