@@ -34,7 +34,11 @@ import sys
 
 # NOTESTS: a tree with no _test.go survives every mutation, which is not a verdict
 # about defence — see _teeth_suite.verdict_for.
-DEAD = ("BASELINE-RED", "NOAPPLY", "SKIP", "NOTESTS")
+# MUTANT-BROKEN joins the dead verdicts: a mutation the compiler rejects is not a
+# measurement of anything, so it can neither gain nor lose a defence across a redraw.
+# No row carries it yet — it was added to _teeth_suite on 29 July — so this is a no-op
+# for every comparison already published and correct for the next sweep.
+DEAD = ("BASELINE-RED", "NOAPPLY", "SKIP", "NOTESTS", "MUTANT-BROKEN")
 
 # THE GENERATION SUFFIX IS METADATA, NOT IDENTITY — and this was wrong until 29 July.
 #

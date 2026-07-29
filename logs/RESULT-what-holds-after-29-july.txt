@@ -73,7 +73,7 @@ IV. THE LARGEST FINDING, AND IT RELOCATES MOST OF THE MORNING
 --------------------------------------------------------------
 15e25f3 added twelve lines to taskapipro's PROJECTS entry, intending to fix two tests.
 
-    BROKE the imports in three files     0 errors -> 4          MEASURED, round-1 output
+    BROKE the imports in three files     0 errors -> 4          ⚠ NOT THE EDIT'S CONTENT
     the tree never compiled              7 rounds, both draws    MEASURED, an outcome
     the capstone lost taskapipro         62 of 314 rows, 20%     MEASURED, a consequence
 
@@ -83,6 +83,13 @@ IV. THE LARGEST FINDING, AND IT RELOCATES MOST OF THE MORNING
     Those compare a tree that took ONE deterministic fix and converged (chain4) against a
     tree whose two test files were model-rewritten in rounds 1, 2 and 5 and never compiled
     (v5). Not the same kind of measurement; the difference is not attributable to the edit.
+
+⚠️ AND THE CONTROL ARM LANDED AT 17:36, BRANCH A. Twelve lines of INERT prose — reasoning for
+a variable-naming rule, mentioning nothing the defect touches — produce the SAME defect,
+byte-for-byte: same file, same two packages, same count. So the CONTENT of the twelve lines is
+ruled out. What is NOT ruled out is the SERVER: all three DEFECT draws ran on process 4439 and
+the only measured FINE ran on a different server on a different day. One draw settles it — the
+UNMODIFIED pre-edit spec on 4439. See RESULT-inert-prose-breaks-the-imports-too.txt.
 
 Evidence for what stands: round-1 logs across four draws — chain4 PRE 0 errors, chain5 PRE 0,
 v5 POST 4, v5-2nd POST 4 — with the server held fixed across the last three. chain4, pre-edit,

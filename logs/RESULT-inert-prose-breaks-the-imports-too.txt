@@ -1,0 +1,74 @@
+RESULT — BRANCH A. Twelve lines of INERT prose break the imports exactly as the real twelve did
+================================================================================================
+
+17:36 on 29 July. The control arm launched at 16:41 reached round 1 and the outcome variable is
+settled. Predicted A at 60%; A landed.
+
+THE MEASUREMENT
+    draw       projects entry            server        round-1 verdict
+    chain4     PRE-edit                  28 Jul        FINE, measured
+    chain5     PRE-edit                  29 Jul/4439   ⚠ UNMEASURED (internal/api never reached)
+    v5 (1st)   POST-edit (+12 real)      29 Jul/4439   DEFECT, 4 error lines
+    v5 (2nd)   POST-edit (+12 real)      29 Jul/4439   DEFECT, 4 error lines
+    inert      PRE-edit (+12 INERT)      29 Jul/4439   DEFECT, 4 error lines   <- NEW
+
+And not merely "also broken" — BYTE-FOR-BYTE THE SAME FAILURE:
+
+    ! internal/api/projects.go:7:2: package taskapipro/internal/models is not in std
+    ! internal/api/projects.go:8:2: package taskapipro/internal/service is not in std
+    (each reported twice, then FAIL guildlm.dev/taskapipro/cmd/server [setup failed])
+
+Same file, same two packages, same duplication, same trailing setup-failure line as both
+post-edit draws. Three independent draws, two different bodies of prose, one identical defect.
+
+WHAT THIS ESTABLISHES — the content of the twelve lines is RULED OUT
+The inert twelve lines give reasoning for the `Never name a local variable t` rule already in
+that entry. They do not mention imports, module paths, handlers, stores, page sizes or
+anything the defect touches, and they add no requirement. The defect appeared anyway,
+identically.
+
+    The hypothesis on the table since 13:56 — that some property of what those twelve lines
+    SAID reached three implementation files' import statements — is dead. It is not the words.
+
+⚠️ WHAT IT DOES NOT ESTABLISH, AND THE PREDICTION'S OWN BRANCH TEXT OVERREACHED HERE
+Branch A was written as "LENGTH/POSITION IS SUFFICIENT". The branch prediction was right; that
+interpretation is not licensed by this draw. SERVER remains a complete alternative explanation
+for every row in the table:
+
+    every DEFECT draw ran on server 4439
+    the only measured FINE ran on a DIFFERENT server, on a different day
+
+This draw varied the CONTENT while holding the server fixed. That is exactly the right design
+for killing the content hypothesis and it is silent on the server one. Both "twelve more lines
+in that entry" and "this server process" fit all five rows.
+
+    So: CONTENT is out. LENGTH/POSITION versus SERVER/DAY is still confounded, and the
+    twelve-line finding's headline — "the import defect tracks the SPEC" — is still resting on
+    a comparison where spec and server differ together.
+
+THE CLEAN NEXT DRAW, and it is one draw
+Draw the UNMODIFIED pre-edit spec — no added lines at all — on server 4439.
+
+    FINE, measured  -> the added LINES cause it. Spec attribution recovers, and the
+                       twelve-line finding's headline is restored on a controlled pair.
+    DEFECT          -> the SERVER causes it. The twelve-line edit is exonerated of the import
+                       defect entirely, and today's largest finding loses its remaining half.
+    UNMEASURED      -> a different package failed first. Says nothing; redraw.
+
+That is precisely the draw chain5 was supposed to be. It was masked, which is why this is
+still open. It must be graded with `_grade_import_defect.py`, not by counting.
+
+⚠️ AND IT NEEDS THE PRE-EDIT SPEC DERIVED, NOT HAND-COPIED. specs/taskapipro.yaml is at the
+post-edit state. `git show 15e25f3^:specs/taskapipro.yaml` is the arm; _inert_prose_draw.sh
+shows the pattern, including refusing unless the diff is exactly what it claims.
+
+WHAT THE RUNNER PRINTED, AND WHY IT IS IGNORED
+_inert_prose_draw.sh will print its own branch line when it finishes. It was written before
+the masking problem was known and is wrong in two of four cases — recorded in the prediction
+file. Its verdict is not used here. What it did that could not be redone later is the part
+that mattered: it derived the variant spec from git, refused unless the diff was +12/-0 with
+exactly one file entry changed, and captured the log.
+
+STILL RUNNING at the time of writing: the draw is in its fix rounds. GREEN/NOT-GREEN is NOT
+the outcome variable and does not bear on any of the above — round-1 output is complete and
+cannot change.

@@ -536,6 +536,10 @@ def _go_test(work: Path):
     return subprocess.run(_GO_TEST, cwd=work, capture_output=True, text=True)
 
 
+def _go_build(work: Path):
+    return subprocess.run(["go", "build", "./..."], cwd=work, capture_output=True, text=True)
+
+
 _FAILED_TEST = re.compile(r"^\s*--- FAIL: (\w+)", re.M)
 
 
@@ -585,6 +589,35 @@ def verdict_for(art: Path, rel: str, mutate, extra: dict | None = None) -> tuple
             return "BASELINE-RED", ("unmutated artifact already fails — verdict void, fix "
                                     "baseline first" + (f": {tail}" if tail else ""))
         (work / rel).write_text(mutated)
+        # A MUTANT THAT DOES NOT COMPILE PROVES NOTHING ABOUT THE TESTS.
+        #
+        # `go test` exits non-zero when the package fails to BUILD, exactly as it does when an
+        # assertion fails, and the code below reads any non-zero as CAUGHT — "suite red —
+        # defended". For a mutant the compiler rejects, the suite never ran. The compiler
+        # caught it, and the compiler catches it in every project regardless of what the tests
+        # assert, which is the opposite of the thing this instrument exists to measure.
+        #
+        # NOT HYPOTHETICAL, and found by asking rather than by it going wrong (29 July): two
+        # entries in MUTATIONS produce SYNTACTICALLY INVALID Go in both generations —
+        #     eventbus   bus.go:42:23        syntax error: unexpected { at end of statement
+        #     ratelimit  middleware.go:22:3  syntax error: unexpected newline in argument list
+        # Their `_drop_line` patterns remove part of a multi-line statement. Each would have
+        # been scored CAUGHT under the description "the invariant is defended". They are not
+        # weak mutants; they are broken ones, and standard mutation testing excludes
+        # non-compiling mutants as INVALID rather than counting them as killed.
+        #
+        # Reported, never silently folded into CAUGHT — the same rule the deadlock gate and
+        # the NOTESTS case taught. A separate verdict means a broken mutation shows up as a
+        # thing to FIX instead of inflating the number this whole instrument is here to keep
+        # honest.
+        built = _go_build(work)
+        if built.returncode != 0:
+            why = (built.stderr + built.stdout).strip().splitlines()
+            first = next((l.strip() for l in why if l.strip().startswith("./")), "")
+            kind = "has a syntax error" if "syntax error" in " ".join(why) else "does not compile"
+            return "MUTANT-BROKEN", (f"the mutated tree {kind} — the COMPILER rejects it, so a "
+                                     f"red suite says nothing about what the tests defend"
+                                     + (f": {first[:120]}" if first else ""))
         r = _go_test(work)
     if r.returncode == 0:
         return "SURVIVED", "GREEN on broken code — UNDEFENDED"
@@ -659,6 +692,28 @@ def self_test() -> int:
         got, note = verdict_for(art, "t.go", break_double)
         if got != "NOTESTS":
             failures.append(f"a tree with no _test.go must be NOTESTS, got {got} ({note})")
+
+    # FIFTH OUTCOME, added 29 July: a mutation that produces code the COMPILER rejects.
+    # `go test` exits non-zero on a build failure exactly as it does on a failed assertion,
+    # so such a mutant used to read CAUGHT — "the invariant is defended" — when the suite
+    # never ran at all. Two entries in MUTATIONS do this today (eventbus bus.go, ratelimit
+    # middleware.go); their _drop_line patterns cut part of a multi-line statement.
+    #
+    # The planted mutation below deletes the closing brace, which is the cheapest way to make
+    # a file that cannot parse. A DEFENDED test is used deliberately: the point is that the
+    # verdict must NOT be CAUGHT even though a real test would have caught a real mutation
+    # here — that is exactly the confusion being separated.
+    break_syntax = lambda text: text.replace("return n * 2\n}", "return n * 2")  # noqa: E731
+    with tempfile.TemporaryDirectory() as td:
+        art = Path(td) / "art"
+        art.mkdir()
+        (art / "go.mod").write_text(_MOD)
+        (art / "t.go").write_text(_IMPL)
+        (art / "t_test.go").write_text(_DEFENDED)
+        got, note = verdict_for(art, "t.go", break_syntax)
+        if got != "MUTANT-BROKEN":
+            failures.append(f"a mutant the compiler rejects must be MUTANT-BROKEN, not "
+                            f"credited to the tests. got {got} ({note})")
 
     for f in failures:
         print(f"FAIL: {f}")
