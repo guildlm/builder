@@ -66,3 +66,50 @@ THE FOURTH NAME-SHAPE DATA POINT TODAY, and the first that is a repair rather th
 
     Names are not inert labels to this model. The outlier in a list is the one that does not
     come back intact, and the shape of the outlier decides how it fails.
+
+
+THE TREE LANDED GREEN (13:26) — and the recovered test RUNS
+============================================================
+    guildlm-build exit rc=0 (1404s)
+    converged to green after fix round 1
+    Generated taskflow into ./generated/taskflow-chain4
+
+Independent verify on the landed tree, run separately from the builder's own:
+
+    go build ./...   rc=0
+    go vet ./...     rc=0
+    go test ./...    rc=0     ok  guildlm.dev/taskflow  0.244s
+
+So TestProjectListSorted is not merely PRESENT — it compiles, it runs, and it passes. One
+fix round, 23 minutes, and the eleventh test that five previous draws omitted is in a green
+tree.
+
+WHY THIS MATTERS BEYOND THE NAMING RESULT
+Four of the five artifacts drawn today shipped NOT-GREEN — taskapipro, workapi, ledger, and
+before them taskapi and expreval. This one converged in a single round. Same model, same
+server, same flags, same afternoon.
+
+    taskflow is a 16-file flat artifact. taskapipro is 21 files across six packages,
+    workapi 21 across seven, ledger 19 across seven. The three that failed today are the
+    three with the deepest package structure, and each failed on a CROSS-PACKAGE symbol:
+    an import path, an undeclared sentinel, a name bound in another file's scope.
+
+That is an observation and not yet a claim — five artifacts is not a sample, and taskapi is
+a counterexample in the making (it failed on a nil-slice defect in one package). But it is
+the shape the day kept producing, and it is worth a proper count before the next campaign
+decides where to spend effort.
+
+WHAT IS NOW CLOSED FROM THE SAVE POINT'S PENDING LIST
+    shortener  setup-step prohibition          DONE (prohibition ignored, value won)
+    usersapi   empty-list closure              DONE (CAUGHT on a fresh draw)
+    taskapi    empty-list closures x2          DONE (fired against a real defect)
+    taskapi    healthz withdrawal              DONE (worked)
+    taskapipro projects paging reason          DONE (both halves wrong; the split is the
+                                                     finding, and mirroring confounds it)
+    workapi    Delete-404 closure              DONE (CAUGHT, byte-identical to chain2)
+    taskflow   TestProjectListSorted rename    DONE (present, green, runs)
+    ledger     omitted from the sweep          DONE (drawn; shipped NOT-GREEN)
+
+Every item on that list is now graded. The one remaining queued action is the single
+permitted taskapipro redraw, which is a separate experiment and explicitly not part of the
+capstone.
