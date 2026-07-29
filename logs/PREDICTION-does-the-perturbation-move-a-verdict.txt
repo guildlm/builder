@@ -1,0 +1,46 @@
+PREDICTION — does the jsoncodec perturbation move a mutation VERDICT?
+======================================================================
+
+20:50 on 29 July, before the sweep. The last step named in
+RESULT-spec-growth-perturbs-a-spec-nobody-edited.txt, and the one that turns the capstone's
+artefact reading from concrete into measured.
+
+WHAT IS KNOWN. Twelve inert lines added to jsoncodec's event_test.go entry changed event.go,
+its only implementation file: the control declares an unused `type Alias Event` and the
+perturbed draw does not. Both draws were first-try green, zero fix rounds, so both trees are
+pure generation.
+
+jsoncodec's six live mutation rows are ALL in event.go:
+    json tag "name" renamed   SURVIVED · CAUGHT · CAUGHT
+    json tag "at"   renamed   SURVIVED · CAUGHT · CAUGHT
+
+THE SWEEP: `_hole_hunt.py --all-sites` over both arms, then compare the two row sets.
+
+BRANCHES
+  A  the verdict multiset is IDENTICAL between arms
+     -> the perturbation changes CODE without changing what the suite defends. Spec growth
+        rewrites files but does not, here, move a mutation verdict. That would BOUND the
+        capstone worry considerably: growth perturbs, but the perturbation has to reach an
+        invariant to matter, and this one did not.
+  B  any verdict differs
+     -> spec growth alone moves mutation verdicts. The capstone's 6-up/2-down becomes, in
+        substantial part, an artefact of the campaign having grown its own specs.
+  C  the site COUNT differs between arms
+     -> the arms are not comparable by ordinal at all, which is its own finding and the
+        _redraw_diff site-count warning's whole reason for existing.
+
+PREDICT A, 75%.
+The removed declaration is `type Alias Event`, which carries no json tags and is never
+referenced. The mutations rename json tags on the wire struct; nothing about an unused type
+alias should change whether a renamed tag is caught. And the site count should be unchanged
+for the same reason, so C is unlikely too.
+
+⚠️ WHY RUN IT IF A IS EXPECTED. Because A is the branch that BOUNDS today's biggest claim, and
+an expected result that bounds a claim is worth more than a surprising one that does not. If
+growth perturbs code but rarely reaches a verdict, the capstone's flips are less likely to be
+artefacts and the campaign's headline recovers some ground. That is a conclusion I would like
+to be able to state, and it needs the measurement either way.
+
+⚠️ AND ONE ARTIFACT IS ONE ARTIFACT. Six rows in one spec. A null here does not show that
+growth never moves verdicts — only that it did not move these six. The specs whose growth
+coincided with the capstone's flips grew 43-73 lines, three to six times this dose.
