@@ -173,3 +173,35 @@ This is the third distinct way a grade could have come out clean and meant nothi
 a static instrument disagreeing with mutation (registered as a prediction), a witness that
 cannot pass being read as CAUGHT (guarded in the grader), and now a mutation landing on a
 twin line in a different function. All three produce well-formed verdicts.
+
+
+CORRECTION (11:50) — `undefined: fake` is NOT a dropped symbol
+===============================================================
+At 11:41 I wrote that round 2's `undefined: fake` was "a second dropped symbol that restore
+by name didn't catch", by analogy with failStore. Read the code instead of the analogy:
+
+    func TestCreateStoreError(t *testing.T) {
+        svc := NewTaskService(failStore{}, &fakeEnqueuer{})     <- constructed ANONYMOUSLY
+        ...
+        if len(fake.Events) != 0 {                              <- reaches for a name that
+                                                                   was never bound here
+
+`fake` exists, but as a LOCAL at line 21 of a DIFFERENT test function. Nothing was dropped by
+any rewrite. The draw wrote a test that constructs its double inline and then inspects it
+through a name belonging to another function's scope.
+
+So it is a generation defect of a different kind — an assertion that needs a handle the setup
+never created — and it has nothing to do with the candidate-guard behaviour I was describing.
+The failStore case genuinely was a dropped declaration, restored by name; this one is not the
+same thing and I attached it to that story because it appeared in the adjacent round.
+
+    Two errors in consecutive rounds of one run, and I assumed the second was a sequel to
+    the first. why_dirty's own docstring warns about exactly this: "a rejection landed in
+    the same round as an `undefined: failStore`, the two looked consistent, and I was one
+    inference from crediting the rule I had just written. Consistent is not proof."
+
+I quoted that warning at 11:37 and made the same move three minutes later.
+
+WHAT IS UNAFFECTED: everything about Delete-404. This is internal/service; the closure is in
+internal/api, which reports `ok` and has run its tests. The stall finding is also unaffected —
+rounds 2 and 3 do carry the identical actionable error, whatever its cause.
