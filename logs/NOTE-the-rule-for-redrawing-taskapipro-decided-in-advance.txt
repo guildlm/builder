@@ -1,0 +1,50 @@
+NOTE — whether to redraw taskapipro, and the reporting rule, both decided BEFORE the redraw
+============================================================================================
+
+Written 10:57 on 29 July, immediately after taskapipro-v5 landed NOT-GREEN and before any
+second draw exists. The rule is written first on purpose: a decision to redraw made after
+seeing a bad result, with the reporting rule chosen afterwards, is indistinguishable from
+re-rolling until the number is agreeable.
+
+THE PROBLEM
+taskapipro-v4 is 62 rows — the LARGEST artifact in the 314-row baseline, and the one with
+the most closure activity this week. taskapipro-v5 does not compile, so all 62 rows come
+back BASELINE-RED and the capstone diff loses its biggest contributor.
+
+AND THE FAILURE IS SUBSTANTIALLY NOT ABOUT THE SPEC. Five of seven fix rounds chased defects
+the LOOP introduced: a mirrored status argument, its half-repair, and a gate repair the model
+reverted twice. The draw's own defects were two — an import path and one undeclared variable.
+A tree that failed because the repair loop fought itself is a poor measurement of whether the
+SPEC repairs improved the corpus, which is the only question the capstone asks.
+
+Prior draws of this spec: chain4 GREEN in 2 rounds, draw4 GREEN in 2 rounds with 0 model
+calls. So this is not a spec that cannot land; it is a spec that landed twice recently.
+
+THE DECISION: draw taskapipro ONCE more, after ledger, and NOT AGAIN.
+
+THE REPORTING RULE, FIXED NOW, whichever way it goes:
+
+  * BOTH draws are reported. The headline says "taskapipro required two draws; one compiled"
+    or "neither compiled". The first draw is not deleted, not hidden, and not described as a
+    false start.
+  * The existing tree is preserved as generated/taskapipro-v5-red-evidence — which does NOT
+    match the `*-v5` glob, so hole_hunt sweeps exactly one taskapipro either way.
+  * If the second draw is ALSO red, the honest capstone number is 110 of 314 rows dead and
+    taskapipro is reported as uncomparable. No third draw.
+  * If the second draw is GREEN, its rows enter the diff AND this note is cited beside them,
+    because a 1-of-2 success rate is a different fact from a 1-of-1.
+  * ONE draw. If a second green is wanted for confidence that is a separate, declared
+    experiment, not a continuation of this one.
+
+WHY ONE AND NOT THREE. Two draws distinguish "this spec cannot land" from "this draw was
+unlucky", which is the only thing in doubt. A third draw would start estimating a rate, and
+a rate estimated by drawing until something compiles is not a rate.
+
+WHAT WOULD MAKE THIS WRONG. If the second draw is green and I report only the green one, or
+report the pair without the denominator, this note is the evidence against that. It is
+tracked for that reason.
+
+⚠️ SEQUENCING: after ledger, not before. The ledger draw recovers 31 rows that are currently
+missing for a reason with no ambiguity at all — the spec was left out of the sweep list — and
+that is a stronger claim on the GPU than a second attempt at an artifact that already has a
+recorded outcome.
