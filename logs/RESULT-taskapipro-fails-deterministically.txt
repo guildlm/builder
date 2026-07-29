@@ -1,0 +1,74 @@
+RESULT — taskapipro's failure is deterministic, and it includes the repair loop's own mistakes
+===============================================================================================
+
+The one permitted redraw (logs/NOTE-the-rule-for-redrawing-taskapipro-decided-in-advance.txt)
+was launched at 13:27 to answer: can this spec land at all, or was the 09:30 draw unlucky?
+
+Through three fix rounds, every observation has reproduced TO THE CHARACTER.
+
+WHAT REPRODUCED, in order
+
+  THE DRAW ITSELF — as-drawn against as-drawn, using the 09:59 snapshot
+    internal/service/service.go   "guildlm.dev/taskapipro/internal/models"   right, both
+    internal/api/tasks.go         "taskapipro/internal/models"               wrong, both
+    internal/api/projects.go      "taskapipro/internal/models"               wrong, both
+    internal/api/router.go        "taskapipro/internal/service"              wrong, both
+
+  ALL FOUR PAGING TWINS — _twin_witness, both draws
+    TestListDefaults...       seeds=1 asserts=2   CANNOT-PASS
+    TestListCapsAt...         seeds=2 asserts=2   CANNOT-FAIL
+    TestProjectListDefaults.. seeds=1 asserts=2   CANNOT-PASS
+    TestProjectListCapsAt..   seeds=2 asserts=2   CANNOT-FAIL
+    0 of 4 discriminate, twice
+
+  ROUND 1 — the same two compile errors, same file, same lines 7 and 8, same failing package
+    internal/api/projects.go:7:2  package taskapipro/internal/models is not in std
+    internal/api/projects.go:8:2  package taskapipro/internal/service is not in std
+    FAIL guildlm.dev/taskapipro/cmd/server [setup failed]
+
+  ROUND 2 — same file, same LINE AND COLUMN
+    vet: internal/api/projects_test.go:183:2: undefined: w
+
+  ROUND 3 — same file, same LINE AND COLUMN, same signatures
+    internal/api/projects.go:71:55: too many arguments in call to h.svc.List
+        have (context.Context, int, int, string)
+        want (context.Context, int, int)
+
+THE THIRD ONE IS THE RESULT
+Round 3's defect is NOT in either draw. Both as-drawn trees call
+`h.svc.List(r.Context(), limit, offset)` — three arguments, correct against
+ProjectService.List. The fourth argument is introduced by a WIDENED REPAIR ROUND that mirrors
+tasks.go into projects.go and carries across a parameter the projects service does not take.
+
+    The loop's own mistake reproduced at the same line and the same column, on an
+    independent draw four hours later.
+
+So the mirroring mechanism is not an anecdote observed once in repair. It is reproducible on
+demand, at a fixed location, from a fixed starting position.
+
+WHAT THIS ANSWERS, AND WHAT IT REPLACES
+The redraw was framed as "unlucky draw or unlandable spec". Neither, exactly:
+
+    taskapipro's failure is DETERMINISTIC under these conditions. Two draws, two identical
+    trajectories through three rounds. Luck was not involved at any point.
+
+That is a better answer than a green tree would have been. A green second draw would have
+said "sometimes it lands" and left the failure unexplained; this says the failure has a
+mechanism, and names three of its steps.
+
+⚠️ WHAT "THESE CONDITIONS" MEANS, AND IT IS LOAD-BEARING
+Both draws ran on the SAME server process, started 09:29 today. chain4, on 28 July, produced
+DIFFERENT seed counts (3,3 rather than 1,2) from byte-identical spec text. So determinism
+holds WITHIN a condition and does not hold ACROSS conditions, and the variable that changed
+between 28 and 29 July is still unidentified — server process or the projects-entry edit at
+15e25f3, per RESULT-prose-bought-the-assertion-and-not-the-setup.txt. This result is scoped
+to today's condition and says nothing about the general case.
+
+⚠️ AND THE RUN IS NOT FINISHED. Round 3 of 6. Draw 1 went on to spend rounds 4, 5 and 6 on the
+half-repair of this same defect, the reverted `undefined: w`, and back to the mirrored
+argument, ending on the one it created at round 3. Whether draw 2 completes identically is
+unknown; three rounds is what is established.
+
+REPORTING THE PAIR, AS THE RULE REQUIRES: taskapipro required two draws. Draw 1 shipped
+NOT-GREEN after seven rounds. Draw 2 is at round 3 of 6 having reproduced draw 1 exactly.
+Neither draw's rows enter the capstone diff, per the same rule.
