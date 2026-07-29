@@ -1,0 +1,59 @@
+RESULT — BRANCH B. "Copies vs interprets" is dead too. Two mechanism stories in one hour.
+==========================================================================================
+
+00:39 on 30 July. Changed ONE CHARACTER inside a fixture the spec introduces with "Write
+EXACTLY this, and decode nothing else" — `"title":"a"` -> `"title":"z"` — byte count unchanged
+at 22410, and verified before drawing that no assertion anywhere reads the title value.
+Predicted A 60% (the hypothesis survives) · B 40%. B LANDED.
+
+    CODE 4 · IDENTICAL 6 · PROSE 5
+
+    CODE   middleware_chain_test.go   799 vs  857
+    CODE   projects_handler.go       2152 vs 2269
+    CODE   store.go                  2881 vs 2460
+    CODE   tasks_handler.go          2077 vs 2194
+
+    COLLATERAL: all four. And taskflow_test.go — the file the edit actually lands in — differs
+    only in PROSE. The one character went in, the edit landed (`"title":"z"` is in the drawn
+    file), and four OTHER files came out as different programs.
+
+WHAT IS NOW DEAD
+    23:38  "LENGTH is the variable — preserve the byte count and you are safe"
+           falsified 00:03 by an equal-length PROSE swap that rewrote six files.
+    00:03  "COPIES vs INTERPRETS — safe when the edit changes something the model copies
+            verbatim, perturbing when it changes something it interprets"
+           falsified 00:39 by a one-character change to a verbatim fixture that rewrote four.
+
+    Both stories fit every arm that existed when I wrote them, and both failed the first test
+    designed against them. That is overfitting to small n, twice, and it is the most useful
+    thing to record here: A MECHANISM THAT FITS N POINTS AND HAS NOT BEEN TESTED ON N+1 IS A
+    DESCRIPTION, NOT A MECHANISM.
+
+WHAT THE EIGHT ARMS ACTUALLY SAY, with no story attached
+    test-NAME word-order swap (21 -> 21)      CODE 1, target only, no collateral   SAFE
+    test-NAME word-order swap (19 -> 19)      CODE 1, target only, no collateral   SAFE
+    PROSE word-order swap     (10 -> 10)      CODE 6                               PERTURBS
+    VERBATIM fixture, 1 char  (equal length)  CODE 4                               PERTURBS
+    +1  line addition                         CODE 3                               PERTURBS
+    +3  line addition                         CODE 8                               PERTURBS
+    +12 line addition                         CODE 6                               PERTURBS
+    (+48 on ratelimit killed the artifact; replicated)
+
+    SIX arms perturb. TWO do not, and both are word-order swaps of a test name.
+
+THE HONEST POSITION
+    Nothing is reliably safe. The only operation that has not perturbed is a test-name
+    word-order swap, on TWO arms, with no surviving explanation for why it should be special —
+    and I have now been wrong twice about what makes something special. Two nulls with a dead
+    mechanism behind them is weak evidence, not a rule.
+
+    ⚠️ THE NEXT TEST IS A THIRD NAME SWAP, and its purpose is to find out whether the two
+    nulls were luck. If a third name swap perturbs, then EVERY spec edit re-rolls the program
+    and the practical rule is simply: re-measure after any change, no exceptions.
+
+WHAT SURVIVES FOR THE CAMPAIGN, unchanged by any of this
+Its closure edits ADDED 43-73 lines. Additions perturb on three arms plus a killed artifact,
+and that has never been in doubt. So the campaign's before/after comparisons remain
+unattributable regardless of which mechanism story is right. The part now in question is the
+GOOD news — "its renames are safe, those measurements stand" — which rested on the same two
+arms and the same dead reasoning.
