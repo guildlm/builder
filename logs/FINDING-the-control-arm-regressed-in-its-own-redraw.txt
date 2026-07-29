@@ -158,3 +158,40 @@ NOTE-do-not-touch-src-until-the-draws-drain.txt — but the estimate drops sharp
 THE TWINS ARE UNCHANGED SO FAR. _twin_witness.py on the tree mid-loop: still 0 of 4, same
 seeds (1, 2, 1, 2), same bounds (2, 2, 2, 2). The model-driven round on router_test.go is
 running now, and it is what grades (a) vs (b).
+
+
+CHECKPOINT 2 (~11:25) — THE BUDGET IS 6, NOT 5, AND A ROUND IS NOT WHAT I ASSUMED
+=================================================================================
+Two corrections to my own arithmetic, both read off the log rather than inferred.
+
+    [guildlm-build] fix-round budget scaled to 6 for 21 files
+    [guildlm-build] compile/test FAILED, fix round 1/6
+
+1. THE BUDGET IS NOT --max-fix-rounds 5. The runner scales it by file count: 6 for a
+   21-file spec. I quoted 5 from _ab_run_v5.sh's flag and never checked whether the flag
+   was the final word. It is a floor the builder raises, not the number in effect.
+
+2. A ROUND IS NOT A MODEL CALL. Round 1 ran the tests, applied ~20 DETERMINISTIC fixes
+   across nine files, and THEN made model fix calls on the two test files — all inside
+   round 1. So deterministic repairs ride along inside a round rather than consuming
+   rounds of their own. My walk-back in checkpoint 1 was right for the right reason, and
+   the original (c) worry was wrong for a reason I had not identified: not "compile errors
+   are cheap" but "the round is the unit of iteration, and everything in it happens once".
+
+WHAT ROUND 1 WAS ACTUALLY CHASING — the defect found by hand at 10:40:
+
+    ! internal/api/projects.go:7:2: package taskapipro/internal/models is not in std
+    ! internal/api/projects.go:8:2: package taskapipro/internal/service is not in std
+    ! FAIL  guildlm.dev/taskapipro/cmd/server [setup failed]
+
+The unprefixed import path, exactly as recorded, and a deterministic fix owns it
+(_fix_module_prefix is in the gate list). Nothing in round 1 concerned the twins, because
+a package that does not compile never runs a test — the assertion failures cannot surface
+until the imports clear.
+
+THE TWINS ARE STILL UNTOUCHED. _twin_witness after the router_test.go model round: still
+0 of 4, seeds 1,2,1,2. The model's only edit to router_test.go was `w :=` back to `w =` on
+line 168 — one line, and not in either twin.
+
+    The experiment that grades (a) against (b) has not started yet. Round 1 was spent
+    reaching the starting line.
