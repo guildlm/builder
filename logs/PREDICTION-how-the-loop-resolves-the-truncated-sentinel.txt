@@ -1,0 +1,52 @@
+PREDICTION — which of three repairs the loop picks for the truncated sentinel
+=============================================================================
+
+Registered 12:38 on 29 July, mid fix-round-2, while both halves of the mismatch are still
+unrepaired. Resolves in minutes.
+
+THE STATE
+
+    internal/models/models.go:16    ErrInsufficient = errors.New("insufficient funds")
+    internal/api/response.go:30     case errors.Is(err, models.ErrInsufficientFunds):
+
+The spec asks for ErrInsufficientFunds in both places. The declaration was truncated; the use
+was not. The loop announced:
+
+    widening fix targets to internal/models — undefined models.ErrInsufficientFunds
+    (missing from its package)
+
+THE THREE WAYS OUT, and they are not equally good
+
+  (a) RENAME the declaration to ErrInsufficientFunds.
+      Spec-correct. One identifier changes, everything downstream already expects it.
+
+  (b) CHANGE THE USE in response.go to models.ErrInsufficient.
+      Compiles. Diverges from the spec's named contract, and the 422 mapping still works
+      because the service presumably returns the same value the declaration holds.
+      Harmless at runtime, wrong against the written contract.
+
+  (c) ADD a second sentinel so both exist.
+      Compiles, and is the dangerous one. If the service returns ErrInsufficient while
+      response.go matches ErrInsufficientFunds, the 422 case NEVER FIRES and insufficient
+      funds falls through to the default 500. Green build, green suite — ledger has no test
+      naming 422, per this morning's finding — and a wrong status code in production.
+
+PREDICT: (a) rename                                        ~55%
+PREDICT: (c) add a second sentinel                         ~25%
+PREDICT: (b) change the use                                ~20%
+
+Leaning to (a) because the widening message names the symbol and its package, which is the
+loop knowing exactly what is missing and where — a targeted widening, unlike taskapipro's
+"persistent runtime failure" shotgun. A targeted widening that names an identifier is most
+likely to supply that identifier.
+
+WHY (c) IS WORTH WATCHING EVEN AT 25%. It is the only outcome that produces a GREEN tree with
+a BROKEN contract, and it would be invisible to every instrument here: the sweep mutates
+status codes and would find the 422 line unreachable — INERT or SURVIVED — without ever
+saying why. It is also this campaign's exact founding shape, arriving through a repair rather
+than a draw, for the second time today after the drained-body gate weakened
+TestCreateUnauthorized.
+
+VOID: if the run is killed or the machine sleeps. Grade by reading both files, not the RESULT
+line — a green ledger is compatible with (a), (b) and (c), and only the source distinguishes
+them.
