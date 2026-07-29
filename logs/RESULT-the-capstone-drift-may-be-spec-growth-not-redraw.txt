@@ -1,0 +1,79 @@
+RESULT — every capstone flip is in a spec that GREW, and +12 lines demonstrably rewrites code
+===============================================================================================
+
+20:33 on 29 July. The dose finding has a consequence for the campaign's own headline that had
+not been checked.
+
+THE CAMPAIGN'S HEADLINE (16:35): "REDRAW DRIFT IS WORTH ABOUT 6 UP AND 2 DOWN at this corpus
+size. That is the number the campaign never had, and it is the baseline every future closure
+claim must beat."
+
+WHAT THE SPECS DID BETWEEN THE TWO SWEEPS
+Net lines added to each spec between the v4 era and the v5 sweep (07-26 to 07-29 12:00):
+
+    taskapipro +140 · taskflow +73 · tasks-api +53 · taskapi +46 · usersapi +45 · workapi +44
+    shortener +43 · bitset +13 · jsonapi +5 · logstats +3 · demo-small +3 · numkit +1
+    workerpool +1 · jsoncodec, kvservice, priorityqueue, ratelimit: 0
+
+The closure campaign WAS those additions. And twelve added lines are now measured, on two
+specs with a zero-variance floor under both, to rewrite four of twelve files in CODE.
+
+    Every flip-bearing spec grew 43 to 73 lines. Three to six times the dose that
+    demonstrably rewrites unrelated implementation files.
+
+THE SPLIT
+    artifact       live rows   flips   spec net +lines
+    taskflow            47        4          73
+    tasks-api           26        1          53
+    usersapi            16        1          45
+    shortener           14        2          43
+    jsonapi              8        0           5
+    jsoncodec            6        0           0
+    ratelimit            5        0           0
+    logstats             5        0           3
+    kvservice            4        0           0
+    bitset               3        0          13
+    taskapipro           3        0         140
+    priorityqueue        1        0           0
+    numkit               1        0           1
+    workapi              1        0          44
+
+    specs that grew >=40 lines   6 artifacts · 107 live rows · 8 flips   7.5%
+    specs that grew  <40 lines   8 artifacts ·  33 live rows · 0 flips   0.0%
+
+    ALL EIGHT FLIPS ARE IN SPECS THAT GREW. Not one flip in the thirty-three rows whose specs
+    were essentially untouched.
+
+WHAT THIS DOES TO THE HEADLINE
+"Redraw drift" was measured across a corpus in which most of the flip-bearing specs had been
+substantially rewritten. With the spec held constant, the observed drift across 33 live rows
+is ZERO — which is exactly what every same-condition draw comparison today has shown
+(taskapipro 0 of 8 and 0 of 7, taskflow 0 of 12).
+
+    SO 6-UP-AND-2-DOWN IS NOT A MEASUREMENT OF REDRAW DRIFT. It is a measurement of
+    SPEC-EDIT drift, and the campaign's own baseline for "what a redraw moves on its own"
+    should be closer to zero.
+
+⚠️ AND IT IS CONFOUNDED IN A WAY THAT CANNOT BE UNDONE FROM THIS DATA. The specs grew BECAUSE
+closures were added to them. So "grew >=40 lines" is the same set as "the campaign worked on
+it". A flip in taskflow may be:
+        (a) the closure taking effect — the intended result; or
+        (b) 73 added lines perturbing an unrelated file — an artefact;
+and nothing measured here separates them. That is the finding: THE CAMPAIGN CANNOT
+DISTINGUISH ITS OWN SUCCESSES FROM ITS OWN PERTURBATION, and until today it had no reason to
+think there was a perturbation to worry about.
+
+⚠️ THE ZERO IS SUGGESTIVE, NOT SIGNIFICANT. If the 7.5% rate applied to the unchanged-spec
+rows, 33 rows would yield 2.5 expected flips and P(observing 0) = 0.077. That does not exclude
+the null at any conventional threshold. What carries the argument is not the p-value but the
+DIRECT measurement: +12 lines changes code in four of twelve files, with zero variance under
+it, on two independent specs.
+
+WHAT WOULD SETTLE IT, and neither is run
+  1. Redraw an artifact whose spec did NOT change (jsoncodec, kvservice, priorityqueue,
+     ratelimit — all 0 lines) and sweep it. Predicted 0 flips. That measures redraw drift
+     with the spec genuinely held constant, which the capstone never did.
+  2. Add twelve INERT lines to one of those specs and sweep. If flips appear, spec growth
+     alone moves mutation verdicts — which would make the artefact reading the leading one.
+
+    (2) is the sharper test and it is one draw plus one targeted sweep.
