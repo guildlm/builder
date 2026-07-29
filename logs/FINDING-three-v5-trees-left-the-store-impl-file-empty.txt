@@ -97,6 +97,27 @@ AND IT REPLICATES ACROSS THREE SPECS, not four draws of one (checked 19:43)
    4439 draw, across THREE different specs with three different store entries, and every
    correct draw is on another process. Six stubs, four correct, no exceptions either way.
 
+NARROWED 19:46 — IT IS NOT "EMPTY FILES ON 4439", IT IS THE STORE SPLIT
+   Corpus-wide, every stub is the SAME PATH: internal/store/memory.go. Nothing else, in any
+   tree, in any generation. And taskflow — four draws including two on 4439 — has NO stub
+   files at all.
+
+   taskflow is SINGLE-PACKAGE. The three affected specs all describe the same two-file
+   arrangement: store.go declares the Store INTERFACE and its sentinels, memory.go implements
+   it in the same package. On 4439 the model collapses that split, writing both into store.go
+   and leaving memory.go with its package clause.
+
+       So the regression is not "empty files get written". It is "the interface/implementation
+       split across two files in one package is not honoured", which is a much narrower claim
+       and a testable one: any spec with that shape should show it on 4439, and a spec without
+       it cannot.
+
+   ⚠️ AND IT BEARS ON THE DOSE EXPERIMENT RUNNING NOW. Its branch-B counter-argument was that
+   taskapipro's perturbation landed in internal/config and internal/service — OTHER packages —
+   and taskflow has none, so the mechanism may have nowhere to land. taskflow showing no 4439
+   regression EITHER is consistent with that, and it means a null dose result would be
+   confounded with layout rather than refuting dose. Recorded before that draw finishes.
+
 ⚠️ SERVER AND DAY ARE NOT SEPARATED. Process 4439 started 09:29 on 29 July, so every 4439 draw
 is also a 29-July draw and every other-server draw is 19 or 28 July. This says the cause is
 not the spec; it does not say whether it is the server process, the machine's state, or
