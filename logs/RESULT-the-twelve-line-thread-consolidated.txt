@@ -54,10 +54,19 @@ WHAT IS ESTABLISHED
    internal/store/memory.go empty, so that stays open and separate.
 
 
+6. ✅ THE DOSE EFFECT GENERALISES (answered 19:57). taskflow + the same twelve inert lines
+   against its own control, same server: 12 comparable files, CODE 4 · PROSE 4 · IDENTICAL 4.
+   Four IMPLEMENTATION files wrote different programs, and the file the lines were added to
+   (projects_test.go) differs only in PROSE. So a second spec, on a BETTER denominator than
+   taskapipro's seven, shows the same thing. The layout defence is closed: taskflow is
+   single-package and the effect appears anyway.
+   See RESULT-the-dose-effect-generalises.txt.
+
+
 WHAT IS SUGGESTIVE AND NOT ESTABLISHED
 =======================================
 
-6. A ONE-LINE EDIT IS SURGICAL WHERE TWELVE ADDED LINES ARE NOT.
+6b. A ONE-LINE EDIT IS SURGICAL WHERE TWELVE ADDED LINES ARE NOT.
    Both arms re-measured 19:37 with the same instrument (_untouched_diff.py), so the contrast
    is not an artefact of two hand-rolled comparisons:
 
