@@ -125,4 +125,33 @@ def main() -> int:
 
 
 if __name__ == "__main__":
+    # REFUSE FLAGS THIS TOOL DOES NOT IMPLEMENT, LOUDLY — especially --self-test.
+    #
+    # This file has no self-test. Before this guard it ACCEPTED --self-test by ignoring it,
+    # ran the full report, printed a page of real numbers and exited 0. Sweeping every
+    # instrument with --self-test and reading the last line — which is exactly how the
+    # pre-capstone check was run on 29 July — returned "the dead 500-else class dominates
+    # that." for this tool and would have been filed as a pass.
+    #
+    # It is the _bound_probe trap inverted. There, a shared dispatch made one tool's
+    # --self-test print ANOTHER tool's OK line; the note in _hole_hunt calls a green that
+    # belongs to another tool the worst kind. Here the green belongs to no tool at all: the
+    # output is the tool doing its real job, which looks more convincing than a pass line.
+    #
+    # Exiting 2 on an unknown flag is the whole fix. A tool that has no self-test must SAY
+    # SO when asked, because "ran without complaining" is the one answer that cannot be
+    # distinguished from "passed".
+    #
+    # It still needs a real self-test, and that is queued for the same edit that gives it
+    # generation-normalised keying — see
+    # FINDING-the-capstone-comparison-could-not-compare-generations.txt. Widening its CLI is
+    # what would ARM the cross-generation join bug, so neither happens before the other.
+    _unknown = [a for a in sys.argv[1:] if a.startswith("-")]
+    if _unknown:
+        print(f"REFUSING: {__file__.split('/')[-1]} takes no flags; got {' '.join(_unknown)}.",
+              file=sys.stderr)
+        print("It has NO self-test. Running it with an unrecognised flag used to produce a "
+              "full report\nand exit 0, which is indistinguishable from a pass.",
+              file=sys.stderr)
+        raise SystemExit(2)
     raise SystemExit(main())
