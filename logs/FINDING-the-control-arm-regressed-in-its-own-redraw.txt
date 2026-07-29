@@ -316,3 +316,51 @@ draws, one file right and three files wrong, every time.
 ⚠️ BOUNDED: one file of the three confirmed so far. projects.go and router.go are files 15
 and 16 and have not been written. If either comes back CORRECT in draw 2, the defect is
 partial rather than package-wide and this note needs revising.
+
+
+ALL FOUR FILES MATCH — the defect is package-localized and fully reproducible (13:56)
+=====================================================================================
+
+    file                          draw 1 (as drawn)               draw 2 (as drawn)
+    internal/service/service.go   "guildlm.dev/taskapipro/..."    "guildlm.dev/taskapipro/..."
+    internal/api/tasks.go         "taskapipro/internal/models"    "taskapipro/internal/models"
+    internal/api/projects.go      "taskapipro/internal/models"    "taskapipro/internal/models"
+    internal/api/router.go        "taskapipro/internal/service"   "taskapipro/internal/service"
+
+Four files, four exact matches, two independent draws. One package always right, one package
+always wrong, and the same import named in each.
+
+    This is not a stochastic slip. It is a deterministic property of how this spec's api
+    entries are read, and it survives a full redraw unchanged.
+
+THE SPEC WORDING IS THE ONLY DIFFERENCE I CAN SEE, AND IT IS SUGGESTIVE RATHER THAN PROVEN
+
+    internal/service/service.go entry:
+        "package service. ... Import context and the store and models packages."
+                                ^^^^^^ names the packages as a LIST, in prose, plainly
+
+    internal/api/tasks.go entry:
+        "package api. TaskHandler holding a service.TaskService (import the service
+         package) ..."
+                                ^^^^^^ names it PARENTHETICALLY, inline, attached to a
+                                       type reference rather than as its own instruction
+
+Both say "import X". Neither gives the full path. But service.go's entry opens with a
+standalone import sentence and the api entries mention imports as an aside inside a sentence
+about something else.
+
+    HYPOTHESIS, LABELLED: an import named in its own sentence gets the module's declared
+    path; an import mentioned parenthetically gets the bare package name. That is a story
+    that fits four files and two draws, and it is exactly the kind of story I have had to
+    retract three times today.
+
+THE TEST IS ONE SPEC EDIT AND ONE DRAW: give internal/api/tasks.go's entry a standalone
+import sentence — "Import the models and service packages." — changing nothing else, and
+redraw. If the path comes back prefixed, the sentence form is the mechanism. If not, it is
+something else and the hypothesis dies cheaply.
+
+⚠️ IT IS ALSO WORTH NOTING WHAT DOES NOT EXPLAIN IT. The spec states the full module path in
+go.mod's entry and store.go's entry. Neither service.go nor the api files are told it. So
+"the entry that states the path produces it" — the transfer-unit law — is not the mechanism
+here, and I recorded that at 10:02 before this reproduction existed. The reproduction makes
+the gap worth closing rather than merely noting.
