@@ -1,0 +1,22 @@
+THE -v5 CORPUS WAS DRAWN ACROSS TWO SERVER PROCESSES — read this beside the redraw diff
+=======================================================================================
+
+Specs 1-20 (shortener .. demo-small) were generated 2026-07-29 00:11-02:08 against one
+mlx_lm.server process. At 02:08 the machine slept/rebooted mid-taskapipro. Specs 21-22
+(taskapipro, workapi) were drawn later the same day against a SECOND server process, same
+model and same flags, by _sweep_v5_finish.sh.
+
+WHY THIS IS WRITTEN DOWN RATHER THAN SHRUGGED OFF: _iso_taskapipro.sh exists in this repo
+because a red was once attributed to a spec when the honest candidate was drift between two
+server processes. The same confound is live here, on the same spec, by coincidence.
+
+HOW MUCH IT ACTUALLY THREATENS: the two questions these draws exist to answer are
+structural and binary, not margin calls.
+  - taskapipro: does the projects paging test POST THREE and assert 2, or POST one and
+    assert 1? A server restart does not change what a test posts.
+  - workapi: is the Delete-404 assertion present? Same.
+A GREEN/NOT-GREEN verdict, by contrast, IS the kind of margin call that drift can move, so
+treat these two specs' green status as weaker evidence than the other twenty's.
+
+WHAT WOULD MAKE IT ZERO: redrawing all 22 against one process, ~6 hours. Not worth it for
+this; worth it before any claim that rests on the pass RATE of the v5 corpus as a whole.

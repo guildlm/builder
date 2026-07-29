@@ -68,3 +68,12 @@ logs/*
 # reported "nothing to commit, working tree clean" for a file that had just been created,
 # which is exactly the silent-ignore failure the hole-hunt-rows note above describes.
 !logs/RESULT-*.txt
+# ...and the NOTES, the fourth member of the family. A NOTE records a CONDITION the
+# measurement was taken under — "these two of twenty-two specs were drawn against a second
+# server process after a reboot" — which is regenerable from nothing, because the condition
+# is gone the moment the run ends. It is the caveat that has to travel attached to a number
+# or it is not a caveat, it is a thing someone finds later. Same silent-ignore catch as the
+# four above, on the fourth consecutive occasion: `git add` refused the path and printed the
+# hint, which is louder than the "nothing to commit" that caught the others and is the only
+# reason this rule exists before the number it qualifies was read rather than after.
+!logs/NOTE-*.txt
