@@ -152,8 +152,14 @@ if __name__ == "__main__":
         raise SystemExit(self_test())
     trees = [pathlib.Path(a) for a in sys.argv[1:] if not a.startswith("-")]
     if not trees:
+        # `-prevN` is a SUPERSEDED draw, preserved rather than deleted by _ab_run/_ab_run_v5
+        # (29 Jul) so a re-run stops destroying the evidence behind a graded RESULT. This is
+        # the second tool that globs generated/ broadly and therefore has to know about them;
+        # _cross_draw was the first. Auditing a superseded draw is not WRONG — it is a real
+        # tree — but it silently doubles the corpus with artifacts nobody is reasoning about.
         trees = sorted(p for p in pathlib.Path("generated").glob("*")
-                       if p.is_dir() and not p.name.startswith("_"))
+                       if p.is_dir() and not p.name.startswith("_")
+                       and not re.search(r"-prev\d+$", p.name))
     audited = flagged = 0
     for tree in trees:
         rows = audit_tree(tree)

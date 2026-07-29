@@ -1,0 +1,81 @@
+NOTE — the second separating draw is NOT ready, and the three lines that would make it ready
+=============================================================================================
+
+17:13 on 29 July, while the inert-prose control arm generates. Went to write the runner for
+the queued experiment — "is the projects assertion 1-vs-2 a server/day effect or sampling?" —
+and it cannot be run yet. Scoping instead of running, and recording why, because the reason
+generalises to every future draw comparison.
+
+WHY IT CANNOT BE RUN
+The experiment compares an assertion count between draws. Today established that such a count,
+read off a tree, is a POST-REPAIR count. The two draws already on record:
+
+    chain4   28 Jul, other server   asserts 1   deterministic fix only, converged   CLEAN
+    chain5   29 Jul, server 4439    asserts 2   round 1 FAILED TO COMPILE, so the twins
+                                                were first observed in round 2 — after a
+                                                deterministic fix, a drained-body rebuild
+                                                AND a model rewrite of that file    SPOILED
+
+    So the existing pair cannot answer it, and neither can any new draw PAIRED WITH chain5.
+
+And a fresh pair is not safe either. Whether a draw's twin values survive to be measured
+depends on whether round 1 happens to compile — which is not controllable and not observable
+in advance. A two-draw experiment has a real chance of producing two spoiled trees and a
+confident-looking table that means nothing. That is the failure this whole day has been about.
+
+    RUNNING IT NOW WOULD MOST LIKELY BUY ANOTHER UNINTERPRETABLE RESULT. Not a bad result —
+    an uninterpretable one, which costs the same GPU hours and reads like evidence.
+
+WHAT WOULD MAKE IT READY — three lines at the head of _fix_loop
+`_fix_loop` (src/builder.py:5166) receives `written: dict[str, str]` — every generated file's
+path and contents — BEFORE its first `check(out)` call. At that moment the dict IS the
+as-drawn state, exactly, with no snapshot race and no filesystem walk:
+
+    # At the head of _fix_loop, before `ok, output = check(out)`:
+    (out / ".pre-fix.json").write_text(json.dumps(written, indent=1, sort_keys=True))
+
+WHY A DOTFILE INSIDE THE TREE, and the alternatives that are worse
+  * A SIBLING DIRECTORY (`<out>-asdrawn`) doubles the corpus on disk and adds another name
+    every broad glob has to learn to skip — `_cross_draw` already needed teaching about
+    `-prevN` today, and that skip was harmless only by accident.
+  * A FILE UNDER logs/ makes the builder know about this repo's log layout, which it does not
+    and should not.
+  * `.pre-fix.json` travels WITH the tree, needs no configuration, and is invisible to every
+    consumer in this repo: _hole_hunt walks `rglob("*.go")`, _twin_witness `rglob("*_test.go")`,
+    _cross_draw `rglob("*.go")` plus copytree (which copies it harmlessly — `go test` ignores
+    an unreferenced dotfile). Checked, not assumed.
+
+NAMED `.pre-fix`, NOT `.as-drawn`, because `_fix_loop` has two callers: `build`
+(generate-then-fix) and `maintain` (edit-then-fix). "As drawn" is wrong for the second and a
+name that is wrong for half its callers is how a field gets misread later.
+
+WHAT IT BUYS, beyond this one experiment
+  * Every twin/seed/assertion quantity becomes measurable as-drawn, not post-repair. That is
+    the measurement whose absence retracted two claims today.
+  * `_provenance_census` stops depending on mtime heuristics. It currently matches build logs
+    to trees by the newest .go file, cannot match 11 v4 trees at all because they were
+    restored wholesale, and needed two bug fixes today to match the other twelve.
+  * A diff of `.pre-fix.json` against the final tree says exactly what the fix loop changed —
+    which is the question behind "did the repair work on the assertion, or mirror it?", still
+    unidentifiable after a full day.
+
+⚠️ NOT MADE YET, and the reason is not caution for its own sake. src/ is an editable install:
+editing it changes what the NEXT draw does, and a draw is in flight. The risk to the running
+process is near zero — Python imported the module at startup — but the benefit of doing it now
+rather than in thirty minutes is also zero, and "near zero risk for zero benefit" is not a
+trade worth making while a control arm is running. It lands when the draw does.
+
+SEQUENCE, once the control draw completes
+  1. Grade the control arm's A/B/C branch from its round-1 import count. It is the running
+     experiment and it comes first.
+  2. Land the `.pre-fix.json` line. Verify on a small spec that the file appears, contains
+     every generated path, and that a sweep of that tree is unchanged.
+  3. THEN run the separating pair — two draws of the pre-edit spec on the same server — and
+     read the twins from `.pre-fix.json` on both sides rather than from the trees.
+     Same-server disagreement => SAMPLING, and the day/server story becomes unnecessary.
+     Same-server agreement => weak evidence for a server/day effect at n=2, and say so.
+
+⚠️ AND THE PRE-EDIT SPEC IS NOT ON DISK. specs/taskapipro.yaml is at the post-edit state
+(15e25f3). Both draws must be run from a derived spec, the way _inert_prose_draw.sh derives
+its variant from `git show 15e25f3^` and refuses unless the diff is exactly what it claims.
+Do not hand-copy it.
