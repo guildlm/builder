@@ -58,9 +58,18 @@ WHAT IS SUGGESTIVE AND NOT ESTABLISHED
 =======================================
 
 6. A ONE-LINE EDIT IS SURGICAL WHERE TWELVE ADDED LINES ARE NOT.
-   taskflow's rename (11520cc), draws either side on the same server: 11 of 12 untouched files
-   identical, and the twelfth is the file the rename is about, differing by exactly the renamed
-   function.
+   Both arms re-measured 19:37 with the same instrument (_untouched_diff.py), so the contrast
+   is not an artefact of two hand-rolled comparisons:
+
+     taskflow, ONE-LINE rename   12 untouched · CODE 1 · IDENTICAL 11
+     taskapipro, +12 lines        7 untouched · CODE 3 · PROSE 1 · IDENTICAL 3
+
+   AND THE DISTINCTION IS TARGETED-VERSUS-COLLATERAL, not just the count. taskflow's single
+   CODE difference IS the change that was asked for — projects_test.go, the renamed function,
+   same byte length on both sides. taskapipro's three are config.go, service.go and
+   models_test.go, and the twelve lines live in the projects TEST entry: NONE of the three is
+   the file they were added to. The tool cannot compute that difference — it does not know what
+   was targeted — so it is read off the spec diff by hand.
    ⚠️ DIFFERENT SPECS. taskflow for the one-line arm, taskapipro for the twelve-line arm. A
    one-line change to taskapipro has never been drawn and neither has a twelve-line addition to
    taskflow. Suggestive of a dose relationship; not a measurement of one.
