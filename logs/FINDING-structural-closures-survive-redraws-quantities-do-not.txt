@@ -164,3 +164,53 @@ so in one sentence: "Validate's contract is about a Config value; test it on a C
 ⚠️ NOT A CLOSURE, AND NOT COUNTED AS ONE. Nothing was mutated here and no grade was taken.
 This is a spec instruction being followed, observed in passing, which is weaker evidence
 than a mutation verdict and is recorded as such.
+
+
+SHARPENING (11:15) — IT IS NOT THE COMPILER, AND THE BETTER WORD IS PRESENCE
+============================================================================
+"Structural closures survive" invites a trivial reading: they survive because the compiler
+enforces them. Tested it, and that reading is wrong.
+
+The empty-list closures are structural and NOTHING enforces them:
+
+    usersapi-v5    if strings.TrimSpace(w.Body.String()) != "[]" {
+    tasks-api-v5   if strings.TrimSpace(rec.Body.String()) != "[]" {
+
+Both present, both graded (usersapi CAUGHT by mutation, taskapi's pair fired against a real
+defect). Delete that line and the test still compiles and still passes — it is simply
+weaker. No compiler, no caller, no signature holds it there. It survived anyway.
+
+So the durable class is not "what the compiler checks". The better distinction:
+
+    PRESENCE of a distinguishable element      durable
+      a line, an argument, a field, an assertion, a lock type, a constructor choice.
+      The spec can NAME it, the draw can be checked for it, and a sibling file that
+      mirrors this one carries it across intact.
+
+    MAGNITUDE inside an element that exists either way      NOT durable
+      how many times a POST repeats, how many items are seeded. There is no line to be
+      present or absent — the test POSTs in both versions. Nothing names it, nothing
+      carries it, and mirroring copies the shape while the number rides along unchecked.
+
+That is why prose bought the router arguments, the lock type, the constructor choice and the
+raw-body assertion, and did not buy the seed count. It is not about compilers. It is about
+whether the thing being asked for is a NOUN the sentence can point at.
+
+AND IT UNIFIES THIS WITH THE ASSERTION-SHAPE FINDING
+FINDING-the-only-assertion-rule-is-what-freed-the-setup-count.txt says a per-item assertion
+pins the setup and a bare count does not. That is the same law: naming the items CONVERTS A
+MAGNITUDE INTO A SET OF PRESENCES.
+
+    len(got) != 2                                    one assertion, a magnitude, unpinned
+    got[0].ID=="1" && got[1].ID=="2" && "3" absent   three named things that must be there
+
+Three items become three presences, and presence is the class that survives. lrucache,
+taskflow and ratelimit all do exactly this — per-key, per-index, per-ordinal — and all three
+got their counts right. The repair proposed in that file is not a trick, then; it is the
+general mechanism for making a quantity durable, and it predicts its own success for a
+stated reason rather than by analogy.
+
+⚠️ STILL ONE FAILING INSTANCE. taskapipro is the only artifact on the wrong side, and it is
+also the only one whose spec forbids extra assertions, so shape and prohibition remain
+confounded there. The falsification test is unchanged and unrun: rewrite the entry to name
+the items, redraw, and see whether seeds become 3.
