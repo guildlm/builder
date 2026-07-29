@@ -1,0 +1,54 @@
+FINDING — three v5 trees left internal/store/memory.go as a bare package clause
+================================================================================
+
+18:33 on 29 July. Found by asking where the relocated mutation site went, and it closes that
+question completely.
+
+    ledger-v5      internal/store/memory.go   14 bytes
+    taskapipro-v5  internal/store/memory.go   14 bytes
+    workapi-v5     internal/store/memory.go   14 bytes
+
+Fourteen bytes is `package store` and a newline. Those are the ONLY three stub files in the
+entire -v4/-v5 corpus, and they are exactly the three artifacts whose `reverse sort by ID` row
+vanished from the capstone's comparable set at 18:06.
+
+    The site did not disappear. THE CODE MOVED FILE — the store implementation went into
+    store.go, which is where the sweep found the site in v5 and where v4 did not have one.
+
+THE SPEC SAYS OTHERWISE, AND THE SPEC DID NOT CHANGE
+specs/taskapipro.yaml assigns the two files distinct jobs:
+
+    internal/store/store.go   the Store INTERFACE, sentinels, context-aware method set
+    internal/store/memory.go  "Goroutine-safe in-memory Store impl ... MemStore struct with
+                               two maps guarded by one sync.RWMutex ... IMPLEMENT ALL EIGHT"
+
+Neither entry has been touched since the v4 draw — checked every commit to that spec since
+19 July. So the SAME spec text produced:
+
+    19 July  MemStore in memory.go            correct
+    29 July  memory.go empty, impl in store.go  in all three draws
+
+⚠️ AND IT IS NOT THE TWELVE LINES. chain5 — the PRE-edit spec, no added lines, same server —
+does it too: store.go 2832B/123L, memory.go 14B/1L, identical to v5 and to the inert draw. All
+three 29-July taskapipro draws produce the empty memory.go; only the 19-July v4 draw does not.
+So this belongs to the same unresolved SPEC-or-SERVER question as the import defect, and not
+to the twelve-line edit.
+
+WHY NOTHING CAUGHT IT
+A stub file compiles, vets and tests clean. `go build` is happy. The suite is green. The
+mutation sweep finds no sites in a file with no code and therefore reports nothing about it —
+absence of rows reads as absence of holes. And the spec audits in this repo check test NAMES
+and promised guards, not whether the file a spec entry describes actually received its content.
+
+    Every instrument passed an artifact that had silently reorganised itself, and the only
+    reason it surfaced is that a row stopped joining across generations.
+
+THE SAME SHAPE, SEEN EARLIER AND MISREAD AS NOISE. `_iso-workapi-without-3` was recorded at
+18:04 as "structural generation variance" — memory.go 1160, 1160, and 14 bytes across three
+draws. That 14-byte draw is this exact layout. It was variance WITHIN that group, and it is
+the CONSISTENT outcome for taskapipro on 29 July, which means the layout is a shape the model
+reaches for rather than a one-off.
+
+INSTRUMENT: `_stub_files.py`, with a self-test that keeps the false-positive direction closed —
+a short file with any real declaration, an import, or a var block must NOT be flagged, because
+this is not a "file is small" check. Three hits corpus-wide, exit 1.
