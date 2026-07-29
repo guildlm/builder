@@ -34,9 +34,9 @@ MATCHING A LOG TO A TREE, and a wrong match is a silent wrong answer
 There are 407 ab-*.log files and up to four per (artifact, generation) across different dates.
 The build log is written throughout the run and closed at the end, so its mtime lands within
 seconds of the tree's newest file. Verified: generated/bitset-v4's newest file is 07-26 16:11
-and ab-bitset-v4-07261610.log is 07-26 16:11. The gap is PRINTED on every row and a gap over
-the threshold is reported UNKNOWN rather than guessed — the whole point is to stop attributing
-things to the wrong run.
+and ab-bitset-v4-07261610.log is 07-26 16:11. The gap is PRINTED on every matched row, and
+anything unmatched says WHY on its own line — RESTORED, no ab-log, or nearest-log-is-N-hours —
+rather than being guessed at. The whole point is to stop attributing things to the wrong run.
 """
 from __future__ import annotations
 
@@ -59,7 +59,7 @@ EXHAUSTED = re.compile(r"^\[guildlm-build\] exhausted (\d+) fix rounds", re.M)
 
 
 def tree_mtime(tree: pathlib.Path) -> tuple[float | None, bool]:
-    """When the draw stopped writing .go files, and whether the tree was RESTORED wholesale.
+    """When the draw stopped writing .go files, and whether every .go shares ONE second.
 
     TWO THINGS THE OBVIOUS VERSION GETS WRONG, both found by the tool reporting UNKNOWN for
     12 of 23 artifacts and the count being too high to accept.
