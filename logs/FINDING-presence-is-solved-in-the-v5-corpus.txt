@@ -1,0 +1,62 @@
+FINDING — the "spec names a test, model doesn't write it" failure is at ZERO in v5
+==================================================================================
+
+Measured 29 July while taskapipro-v5 was at file 14 of 21, so 20 of the eventual 23 trees
+were available and frozen. Presence only — this says nothing about whether the tests that
+ARE there can fail.
+
+    174 spec-named tests, 20 trees, 1 reported missing — and that one is a false positive.
+
+    taskflow-v5   MISSING 1: TestProjectListSorted
+                  flagged SPEC-NEWER by the tool itself: the tree was drawn 00:39, the
+                  spec renamed 00:42. A name added after a draw cannot be in it.
+
+Every other tree: all spec-named tests present. bitset, demo-small, eventbus, expreval,
+genericset, jsonapi, jsoncodec, kvservice, logstats, lrucache, numkit, priorityqueue,
+ratelimit, shortener, taskapi, tasks-api, usersapi, walkv, workerpool. taskapipro-v5 was
+correctly SKIPPED as mid-generation and is not in the denominator.
+
+THE DENOMINATOR IS THE POINT. "0 missing" over 12 names and over 174 are different
+sentences, and this project has already published the wrong one of those once. The largest
+contributors are taskapi 38, taskflow 33, tasks-api 22, shortener 14, usersapi 13.
+
+THE GATE HAS TEETH — PROBED, NOT ASSUMED
+A check that has never failed is not evidence. So it was made to fail on purpose: a copy of
+usersapi-v5 in scratch, control run first (clean), then ONE spec-named test renamed away:
+
+    control                          usersapi-v5   all spec-named tests present
+    TestListEmptyIsEmptyArray gone   usersapi-v5   MISSING 1: TestListEmptyIsEmptyArray
+
+Right name, right count, and clean before the mutation. The 19-of-20 above is a measurement
+rather than a silent pass.
+
+THE TOOL OVER-DETECTS, WHICH MAKES THIS STRONGER NOT WEAKER
+_named_present extracts every /Test[A-Z]\w*/ in the spec text, so a test merely REFERRED to
+in prose — taskflow's reason paragraph cites TestListSorted while describing a different
+test — is checked as if declared. So 174 is an upper bound on declared tests, the tool
+looked for MORE names than the specs actually promise, and it still found everything. Had
+over-detection been harmful it would show up as false MISSINGs; there were none in 174.
+
+WHAT THIS DOES AND DOES NOT CLAIM
+It closes failure mode 1 (the named test is not written) for the current corpus. It says
+NOTHING about mode 2 (written, but the witness cannot fail) or mode 3 (present, asserting,
+but the line never runs) — mode 2 is exactly what the sweep and the redraw diff measure,
+and it is where taskapipro's projects paging twins have been sitting all week: present,
+conforming, unable to discriminate.
+
+Read alongside FINDING-presence-and-discrimination-are-different-failures.txt: the two
+mechanisms are separate, and this is the score for the one of them that looks finished.
+
+⚠️ THE HONEST BOUND: mode 1 was ALWAYS stochastic, not deterministic — taskapi's
+TestMalformedJSON was absent from two draws and present in a third, taskapipro's
+TestListSorted absent from draw 1 and present in draws 2 and 3. That is the whole reason
+_named_present is a PER-DRAW check. So "zero in v5" is one corpus-wide sample of a
+stochastic quantity, not proof the failure is extinct. The claim that survives is: at this
+corpus size, on this draw, the rate is 0/174 — where it used to be visible at N=3 on single
+specs. The next redraw is what turns that into a rate rather than a reading.
+
+⚠️ AND THE ONE REAL DROP IS STILL A DROP. taskflow's exclusion above is about the NEW name.
+The OLD name, TestListProjectsSorted, was genuinely absent from taskflow-v5 — checked
+directly: projects_test.go holds 10 of the spec's 11 tests, all TestProject*, no sorted
+test under any spelling. So the corpus contains exactly one genuine mode-1 failure and it
+is the one with a retest already queued.
