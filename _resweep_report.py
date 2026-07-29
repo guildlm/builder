@@ -32,6 +32,7 @@ m survivors, at least m-k WARM ones survived.
 from __future__ import annotations
 
 import collections
+import re
 import pathlib
 import subprocess
 import sys
@@ -41,6 +42,63 @@ LOGS = pathlib.Path(__file__).resolve().parent / "logs"
 
 def rows(p: pathlib.Path) -> list[list[str]]:
     return [ln.split("\t") for ln in p.read_text().splitlines() if ln.strip()]
+
+
+_GEN = re.compile(r"-v\d+$")
+
+
+def _base(art: str) -> str:
+    """`taskapipro-v4` -> `taskapipro`. The join's two halves need not share a generation.
+
+    THE BUG THIS CLOSES, before it ever fired. The WARM+SURVIVED join keys (artifact, file)
+    from reachability rows AND from sweep rows. Reachability rows say `taskapipro-v4`; a v5
+    sweep says `taskapipro-v5`. Keyed raw, every cold.get() misses, NO COLD IS SUBTRACTED,
+    and the "at least N sites executed and undefended" lower bound silently INFLATES to the
+    full SURVIVED count — the one number this report exists to make small.
+
+    Worse than _redraw_diff's version of the same mistake, which at least printed NOTHING
+    WAS COMPARED in capitals. This one prints a bigger number and looks like a finding.
+
+    It never fired because the paths below are hardcoded to two v4 files. Recorded 29 July
+    in FINDING-the-capstone-comparison-could-not-compare-generations.txt, with the note that
+    widening the CLI is what would ARM it — so the keying is fixed FIRST, and a self-test
+    lands in the same edit rather than after.
+
+    NARROW ON PURPOSE, matching _redraw_diff.base_artifact: only a trailing -v<digits> is
+    stripped. -chain4, -witness and -empty are different EXPERIMENTS on one spec, not
+    generations of one artifact, and collapsing them would join a closure's purpose-built
+    draw to a corpus draw.
+    """
+    return _GEN.sub("", art)
+
+
+def self_test() -> int:
+    """Prove the join survives a generation mismatch, and that nothing else collapses."""
+    fails = []
+    if _base("taskapipro-v4") != "taskapipro":
+        fails.append("a -v4 suffix must be stripped")
+    if _base("taskapipro-v5") != _base("taskapipro-v4"):
+        fails.append("v4 and v5 of one artifact must key alike — this is the whole point")
+    if _base("tasks-api-v4") != "tasks-api":
+        fails.append("a hyphenated artifact must keep its hyphens")
+    if _base("taskapipro-chain4") != "taskapipro-chain4":
+        fails.append("-chain4 is another experiment, not another generation")
+    if _base("workapi-v12") != "workapi":
+        fails.append("multi-digit generations must strip too")
+    # The join itself: cold rows from one generation, survivors from another, must subtract.
+    cold = collections.Counter()
+    cold[(_base("taskapipro-v4"), "internal/api/tasks.go")] = 2
+    surv = collections.Counter()
+    surv[(_base("taskapipro-v5"), "internal/api/tasks.go")] = 5
+    key = (_base("taskapipro-v5"), "internal/api/tasks.go")
+    if surv[key] - cold.get(key, 0) != 3:
+        fails.append("a cross-generation join must subtract cold sites, not miss them")
+    for f in fails:
+        print(f"  FAIL: {f}")
+    print("self-test: " + ("FAILED" if fails else
+                           "ok — generations key alike, hyphens and -chain survive, "
+                           "and a cross-generation join subtracts"))
+    return 1 if fails else 0
 
 
 def main() -> int:
@@ -87,14 +145,14 @@ def main() -> int:
     cold = collections.Counter()
     for r in rows(LOGS / "reachability-rows.tsv"):
         if len(r) >= 5 and r[4] == "COLD":
-            cold[(r[0], r[1])] += 1
+            cold[(_base(r[0]), r[1])] += 1
     # SURVIVED* is the LABELLED-BENIGN class — a statusRecorder default that a logging
     # middleware records before the handler writes anything, so mutating it changes log output
     # and nothing else. It has cost a code-read twice. Counting it in the "sharp set" would
     # inflate the one number this report exists to make small, which is the over-reporting
     # this session has spent all night finding in other tools.
     benign = sum(1 for r in after if r[3] == "SURVIVED*")
-    surv = collections.Counter((r[0], r[1]) for r in after if r[3] == "SURVIVED")
+    surv = collections.Counter((_base(r[0]), r[1]) for r in after if r[3] == "SURVIVED")
     print("\nWARM + SURVIVED (LOWER BOUND) — a test runs the line and asserts nothing:")
     total = 0
     for key in sorted(surv):
@@ -146,6 +204,8 @@ if __name__ == "__main__":
     # generation-normalised keying — see
     # FINDING-the-capstone-comparison-could-not-compare-generations.txt. Widening its CLI is
     # what would ARM the cross-generation join bug, so neither happens before the other.
+    if "--self-test" in sys.argv:
+        raise SystemExit(self_test())
     _unknown = [a for a in sys.argv[1:] if a.startswith("-")]
     if _unknown:
         print(f"REFUSING: {__file__.split('/')[-1]} takes no flags; got {' '.join(_unknown)}.",
