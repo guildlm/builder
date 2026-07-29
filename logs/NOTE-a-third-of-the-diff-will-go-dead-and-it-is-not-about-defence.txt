@@ -1,0 +1,61 @@
+NOTE — read this BEFORE the v4-vs-v5 diff: up to a third of the rows go DEAD for a reason
+that has nothing to do with defence
+==========================================================================================
+
+Written 10:45 on 29 July, before hole_hunt has swept anything, so it cannot be a
+rationalisation of a number I have already seen.
+
+THE MECHANISM
+_hole_hunt cannot grade a tree that does not pass its own tests. Every probe on a red
+artifact returns BASELINE-RED, and the tool says so plainly:
+
+    0 of 1 probes could answer · 1 BASELINE-RED (artifact already failing: expreval-v5)
+    NOTHING WAS MEASURED — every probe hit a red baseline or failed to apply.
+    This is not 'no holes found'.
+
+That is correct behaviour and it is exactly what makes the diff misreadable.
+
+THE ARITHMETIC, from the tracked baseline
+
+    taskapi-v4       40 rows      taskapi-v5   shipped NOT-GREEN
+    expreval-v4       8 rows      expreval-v5  shipped NOT-GREEN
+                     -------
+                     48 of 314 baseline rows = 15%, already certain
+
+    taskapipro-v4    62 rows      taskapipro-v5 is at fix round 5 of 6 and has not compiled
+                     -------      once; NOT-GREEN is the likely outcome
+                    110 of 314 = 35% if it ships red
+
+So somewhere between a seventh and a third of the comparable set will show a LIVE verdict in
+v4 and a DEAD one in v5. Not one of those rows is a defence that weakened. They are trees
+that stopped compiling.
+
+WHAT THE DIFF WILL DO WITH THEM, AND WHY IT IS NOT ENOUGH
+_redraw_diff already separates this. It counts DEAD->LIVE and LIVE->DEAD on their own line
+and labels them "artifacts changing state, not defences changing", and a NOAPPLY ->
+BASELINE-RED flip is excluded from the live count entirely. The tool is not going to lie.
+
+The risk is the HEADLINE. "N of M comparable rows flipped" invites reading M as the corpus,
+and a third of M being dead means the campaign's closing number rests on a much smaller
+base than it appears to. The count that matters is:
+
+    rows LIVE in BOTH sweeps — the only ones where CAUGHT -> SURVIVED can even be observed.
+
+Report that first, before any flip count, and state the three red artifacts by name.
+
+AND THE DIRECTION MATTERS MORE THAN THE COUNT
+taskapi's 40 rows going dead is not a neutral loss. taskapi-v5 is red BECAUSE the empty-list
+closure fired against a real nil-slice defect — the defence working exactly as designed. So
+those 40 rows are unmeasurable in v5 as a DIRECT CONSEQUENCE of a closure succeeding. A
+naive reading — "40 rows we can no longer grade" — inverts a success into an absence.
+
+    The one artifact where a closure caught a genuine bug is the one that contributes
+    nothing to the capstone comparison, because catching the bug is what made it red.
+
+That is worth stating as a limitation of mutation sweeps generally: they can only measure
+suites that pass, so a suite that is currently DOING ITS JOB is invisible to them.
+
+⚠️ DO NOT "FIX" THIS BY REPAIRING THE RED TREES. Hand-patching taskapi-v5 to green would
+make its rows gradeable and would destroy the thing they would be graded on — the defect is
+what the closure caught. If a comparable number for taskapi is wanted it needs a fresh draw,
+not a repair.
