@@ -1,0 +1,49 @@
+PREDICTION — does adding twelve lines perturb a spec the campaign NEVER edited?
+================================================================================
+
+20:38 on 29 July, before the draws. This is the sharper of the two settling experiments named
+in RESULT-the-capstone-drift-may-be-spec-growth-not-redraw.txt.
+
+WHY IT MATTERS. All eight capstone flips sit in specs that grew 43-73 lines; the 33 live rows
+in specs that grew 0-5 lines produced none. But growth and "the campaign worked on it" are the
+same set, so a flip may be the closure working or the growth perturbing. Adding twelve INERT
+lines to a spec nobody edited breaks that tie: inert prose closes nothing, so any perturbation
+is growth alone.
+
+THE DESIGN, and why it is two draws and not one
+jsoncodec's spec has not changed at all (0 net lines) and its v5 tree has 6 live mutation
+rows. But jsoncodec-v5 was drawn at 01:55, BEFORE server 4439 started at 09:29 — so comparing
+a new draw against it would confound the twelve lines with the server, which is the exact trap
+that cost the import table an arm today. So both arms are drawn now, back to back, on 4439:
+
+    generated/jsoncodec-ctl    unmodified spec
+    generated/jsoncodec-grow   spec + the same twelve inert lines, in the event_test.go entry
+
+jsoncodec is THREE files (go.mod, event.go, event_test.go), so both draws are cheap.
+
+BRANCHES, graded by _untouched_diff.py
+  A  >=1 CODE difference in a file the twelve lines do not mention (i.e. event.go)
+     -> spec growth alone perturbs generated code, in a spec with no closures and no history
+        of editing. The artefact reading of the capstone becomes the leading one.
+  B  0 CODE differences
+     -> the perturbation needs something jsoncodec lacks. Given taskflow (16 files) and
+        taskapipro (21) both showed it and jsoncodec has THREE, the obvious candidate is
+        surface: there may simply be nowhere for it to land.
+  C  the arms differ in files the loop repaired, leaving nothing comparable -> report as such.
+
+PREDICT A, 55%. Genuinely uncertain, and the low confidence is the honest part.
+  For A: the effect has appeared in both specs tried, was indifferent to what the lines said,
+  and had a zero-variance floor under it each time.
+  For B: jsoncodec has ONE implementation file. The taskflow perturbation touched four files
+  and the taskapipro one three; here the entire non-test surface is a single file. If the
+  mechanism is "the model re-decides some design question elsewhere in the project", a
+  three-file project may not have an elsewhere.
+
+⚠️ A NULL HERE WOULD NOT UNDO THE DOSE FINDING. That rests on two specs with measured
+zero-variance floors. It would bound it: the effect needs a project of some size, and the
+campaign's small specs were never at risk. That is a USEFUL null, and worth as much as A.
+
+⚠️ AND IT DOES NOT BY ITSELF SETTLE THE CAPSTONE QUESTION. Perturbing a FILE is not the same
+as flipping a mutation VERDICT. If A lands, the follow-on is a targeted sweep of both arms to
+see whether any of jsoncodec's 6 rows actually change verdict — that is what would make the
+artefact reading of the capstone concrete rather than plausible. NOT run as part of this.
