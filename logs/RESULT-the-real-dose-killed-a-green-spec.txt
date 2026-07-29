@@ -1,0 +1,69 @@
+RESULT — 48 inert lines turned a first-try-green spec into an exhausted, NOT-GREEN one
+========================================================================================
+
+21:20 on 29 July. Two ratelimit draws back to back on 4439: control unmodified, treatment with
+48 lines of inert prose — the tracked twelve-line block at the end of four entries, inside the
+campaign's real 43-73 range.
+
+    ratelimit-ctl    0 fix rounds · compile/test passed        FIRST-TRY GREEN
+    ratelimit-dose   5 rounds, exhausted 6 (5 budgeted)        NOT-GREEN
+
+    verdicts   ctl    api.go CAUGHT×2 · middleware.go CAUGHT, SURVIVED, CAUGHT, CAUGHT
+               dose   every row BASELINE-RED — the artifact does not run, so nothing is
+                      measurable about what it defends
+
+⚠️ THE PREDICTION IS VOID, AND I MADE THE EXACT MISTAKE I RECORDED THIS MORNING
+Branches A/B/C all assumed both arms would be green enough to compare verdicts. A dead artifact
+was not among them. Four predictions went VOID today for omitting the "nothing happens" branch,
+and the rule I wrote from that — PUT THE NOTHING-HAPPENS BRANCH IN THE PREDICTION SET — I then
+failed to apply to its mirror image: the artifact-dies branch. Graded VOID on its own terms.
+
+    The result is nonetheless the strongest in this thread, and it is not what the branches
+    were looking for.
+
+THE AS-DRAWN COMPARISON, which is the valid one — both arms carry .pre-fix.json
+    6 common .go files · CODE 4 · PROSE 1 · IDENTICAL 1
+
+    CODE   bucket.go          763 vs 943    entry TOUCHED
+    CODE   registry.go        667 vs 973    entry TOUCHED
+    CODE   ratelimit_test.go 3367 vs 3561   entry TOUCHED
+    CODE   middleware.go      804 vs 914    entry NOT TOUCHED  <- collateral, at the real dose
+    PROSE  api.go             469 vs 633    entry NOT TOUCHED
+    IDENTICAL  main.go                      entry TOUCHED
+
+    Collateral CODE reaches middleware.go — one of the two files carrying every measured row —
+    even though its entry is byte-identical between the two specs. That is the 12-line
+    finding reproduced at 4x the dose, on a third spec.
+
+WHAT ACTUALLY BROKE, and it is not the collateral
+Round 1 of the dose draw, as-drawn:
+
+    ! ratelimit_test.go:35: fourth Allow() should be false
+    ! ratelimit_test.go:54: after idle: 3rd should be FALSE — capped at capacity, not 3600
+
+The token-bucket implementation fails the spec's own capacity tests, and six rounds could not
+repair it. bucket.go's entry WAS one of the four that received twelve lines — so the fatal
+defect is in a touched entry, while the collateral effect landed in middleware.go.
+
+    So the dose did two separable things: it perturbed an untouched file (middleware.go), and
+    it changed the implementation of a touched one badly enough to fail and stay failed.
+
+⚠️ AND THIS IS HOW ROWS BECOME BASELINE-RED
+The campaign's capstone lost 177 of 314 rows to five NOT-GREEN artifacts. Spec growth for
+those five:
+
+    taskapipro +140 · taskapi +46 · workapi +44 · expreval +0 · ledger +0
+
+    Three of the five red artifacts are the three most-grown specs in the corpus. The other
+    two grew nothing, so growth is NOT the only route to red — but no artifact that stayed
+    green grew more than 13 lines, and every artifact that grew more than 40 lines except
+    usersapi and shortener went red.
+
+    That is a correlation across a handful of artifacts and it is NOT a controlled result.
+    What makes it worth stating is that this draw is the controlled version at n=1: same spec,
+    same server, back to back, forty-eight inert lines that close nothing, green becomes red.
+
+⚠️ WHAT IT DOES NOT SHOW. That the campaign's red artifacts died OF growth — expreval and
+ledger died at zero growth, so there are other routes. And one ratelimit pair is one pair.
+The honest claim is that spec growth at the campaign's real dose is SUFFICIENT to kill a
+first-try-green artifact, demonstrated once, not that it killed any particular one.
