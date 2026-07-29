@@ -1,0 +1,99 @@
+FINDING — an attached reason buys WHAT a test asserts, not WHETHER it is written
+================================================================================
+
+Written 29 July while taskapipro-v5 was at file 13 of 21 — BEFORE the draw that grades
+prediction 1 landed. Nothing here is post-hoc; the retest it refines has not run.
+
+This decomposes a claim I had been treating as one thing. "Named invariant fails" has two
+failure modes (recorded in the suite-teeth memory as modes 1 and 2), and this week's
+mechanism — attach the reason to the test — addresses ONE of them. The corpus already
+contains the controlled comparison and I had not read it as one.
+
+
+THE 2x2, ALL CELLS MEASURED, NONE OF THEM NEW RUNS
+--------------------------------------------------
+
+                          name fits the file's      name breaks it
+                          convention
+                      +-------------------------+------------------------+
+  reason ATTACHED     | taskapipro tasks paging | taskflow projects-sort |
+  to the test         | WRITTEN + DISCRIMINATES | NOT WRITTEN AT ALL     |
+                      | -> CAUGHT               | -> absent 4+ draws     |
+                      +-------------------------+------------------------+
+  reason NOT          | taskapipro projects     |                        |
+  attached            | paging                  |  (no instance)         |
+                      | WRITTEN, cannot fail    |                        |
+                      | -> SURVIVED x3          |                        |
+                      +-------------------------+------------------------+
+
+The top-right cell is the one that matters and it is the one I had not connected.
+specs/taskflow.yaml has carried an attached reason for the projects-sorted test the whole
+time — and a good one, naming the exact consequence:
+
+    "ListProjects sorts its own copy, and TestListSorted only pins the TASKS sort — the
+     projects sort can be reversed or dropped entirely and every other test still passes."
+
+That is precisely the form that made taskapipro's tasks twin discriminate. The test is
+still absent from four consecutive draws, taskflow-v5 included.
+
+    A reason attached to a test cannot improve an assertion in a test that is not there.
+
+So: reason governs DISCRIMINATION. Something else governs PRESENCE. They are not
+substitutes and a spec repair aimed at one does nothing for the other.
+
+
+WHAT GOVERNS PRESENCE — SHARPER THAN "THE ODD NAME OUT"
+-------------------------------------------------------
+The recorded hypothesis was "the one name breaking a file's convention is the one that goes
+missing". The corpus says something more specific.
+
+taskflow-v5/projects_test.go: the spec asks for ELEVEN test functions. TEN are written.
+
+    TestProjectCreateDuplicate  TestProjectCreateGet    TestProjectCreateInvalid
+    TestProjectDelete           TestProjectDeleteMissing TestProjectGetMissing
+    TestProjectGetReturns200    TestProjectList          TestProjectListReturns200
+    TestProjectMalformedJSON
+
+Ten of ten written names begin TestProject. The eleventh was named TestListProjectsSorted.
+
+It does not merely break the pattern — its prefix ASSIGNS IT TO THE WRONG GROUP. In this
+artifact TestList* denotes TASK tests and TestProject* denotes PROJECT tests, and the two
+groups live in different files. TestListProjectsSorted is a projects test wearing a tasks
+prefix, in the projects file.
+
+And the collision is real, not notional: TestListSorted ALREADY EXISTS, in the sibling file
+taskflow_test.go, asserting the tasks sort — spec line 217, written correctly every time.
+So the dropped entry is a near-homonym of a test that already exists in the group its name
+points at. Dropping it as a duplicate is the locally reasonable act.
+
+    The name did not just look wrong. It named something already written.
+
+taskapipro is the control and it is clean: projects_test.go carries eleven TestProject*
+names and router_test.go carries thirteen TestList*/TestCreate*/TestGet* names, no
+crossover, and the projects paging twins ARE written — TestProjectListDefaultsToThe...
+and TestProjectListCapsAtThe... Present, conforming, and non-discriminating. Exactly the
+opposite cell from taskflow.
+
+
+WHAT THIS DOES TO THE PENDING RETESTS
+--------------------------------------
+It does NOT change either prediction — both are already written and stand as recorded in
+PREDICTION-the-two-specs-the-reboot-owed-me.txt. It changes what each one can conclude:
+
+  * The taskflow rename is a CLEANER experiment than I credited. Commit f0ba8f9 changed
+    exactly ONE LINE — the name, nothing else. The attached reason was already present in
+    the draw that dropped the test. So a positive result isolates name shape with reason
+    held constant, which is the single-variable change this repo demands and rarely gets.
+    Recording, before the result: the collision mechanism above is a better story than the
+    one I priced at 65%, and had I seen it first I would have written a higher number. The
+    65% stands. If it lands, the honest note is that the prediction was right for a weaker
+    reason than the one now on the table.
+
+  * The taskapipro retest is a test of DISCRIMINATION ONLY. Its projects tests have always
+    been written. Prediction 1 correctly splits into "POSTs three" and "sites flip", and
+    neither is about presence. A null result there says nothing about taskflow, and a null
+    result on taskflow says nothing about taskapipro — different cells.
+
+THE MISSING CELL: no instance yet of a non-conforming name with NO attached reason. Nothing
+needs it — the two live cells already separate the mechanisms — but if presence and
+discrimination ever have to be traded off, that is the draw that prices it.
