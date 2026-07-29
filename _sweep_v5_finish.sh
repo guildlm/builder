@@ -79,7 +79,20 @@ if [[ "${1:-}" == "--check" ]]; then
   exit 0
 fi
 
-cat > logs/NOTE-v5-drawn-across-two-server-processes.txt <<'NOTE'
+# WRITE THE NOTE ONLY IF IT DOES NOT EXIST OR HAS NOT BEEN EDITED.
+#
+# `cat >` onto a TRACKED evidence file is an unconditional overwrite. Today the heredoc and
+# the file are byte-identical, so re-running is idempotent and harmless — which is exactly
+# what makes it easy to leave alone. The bug is LATENT: the moment anyone appends a
+# correction to that note, the next finish run discards it silently, and a note is the one
+# kind of file whose whole value is the corrections that accumulate on it.
+#
+# Guarded BEFORE appending today's correction, not after, because appending is what ARMS it.
+# Same sequencing the cross-generation join bug got: the change that arms a defect does not
+# land before the guard that stops it.
+_NOTE=logs/NOTE-v5-drawn-across-two-server-processes.txt
+_TMP=$(mktemp)
+cat > "$_TMP" <<'NOTE'
 THE -v5 CORPUS WAS DRAWN ACROSS TWO SERVER PROCESSES — read this beside the redraw diff
 =======================================================================================
 
@@ -103,6 +116,19 @@ treat these two specs' green status as weaker evidence than the other twenty's.
 WHAT WOULD MAKE IT ZERO: redrawing all 22 against one process, ~6 hours. Not worth it for
 this; worth it before any claim that rests on the pass RATE of the v5 corpus as a whole.
 NOTE
+
+if [[ ! -e "$_NOTE" ]]; then
+  mv "$_TMP" "$_NOTE"
+  echo "wrote $_NOTE"
+elif cmp -s "$_TMP" "$_NOTE"; then
+  rm -f "$_TMP"
+  echo "$_NOTE already matches — left alone"
+else
+  rm -f "$_TMP"
+  echo "⚠ NOT OVERWRITING $_NOTE — it has been edited since this script wrote it."
+  echo "  A note's value is the corrections that accumulate on it. Reconcile by hand if the"
+  echo "  script's version has something the file lacks."
+fi
 echo "wrote logs/NOTE-v5-drawn-across-two-server-processes.txt"
 
 echo "=== v5 sweep FINISH (specs 21-22) starts $(date) -> $SWEEP_LOG ==="

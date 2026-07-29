@@ -20,3 +20,37 @@ treat these two specs' green status as weaker evidence than the other twenty's.
 
 WHAT WOULD MAKE IT ZERO: redrawing all 22 against one process, ~6 hours. Not worth it for
 this; worth it before any claim that rests on the pass RATE of the v5 corpus as a whole.
+
+
+APPENDED 29 JULY 17:08 — the reassurance in this note is UNTESTED, and one of the two
+questions it calls safe was never answered
+========================================================================================
+This note argues the two-server confound does not matter because the questions are
+structural: "does the projects paging test POST THREE and assert 2, or POST one and assert
+1? A SERVER RESTART DOES NOT CHANGE WHAT A TEST POSTS."
+
+That sentence is an assumption stated as a reason not to worry, and today's work bears on it
+twice, both times unfavourably.
+
+  1. THE ASSERTION DID DIFFER ACROSS DAYS. chain4 (28 Jul) wrote seeds 1 / asserts 1 and
+     chain5 (29 Jul) wrote seeds 1 / asserts 2 from the SAME pre-edit spec. That looks like
+     a direct counterexample — except it is confounded: chain5's round 1 failed to compile,
+     so its twins were first observed only after the loop had rewritten that file three ways.
+     So the sentence is not refuted. It is UNTESTED, and the one comparison that spoke to it
+     cannot be read either way. See
+     FINDING-twelve-lines-in-one-entry-broke-three-other-files.txt, second correction.
+
+  2. THE taskapipro QUESTION WAS NEVER ANSWERED AT ALL. This note says a GREEN/NOT-GREEN
+     verdict is the margin call and the structural question is safe. Both taskapipro draws
+     exhausted seven fix rounds without ever compiling internal/api, so no paging test ever
+     RAN, and the tree that survives is post-three-model-rewrites. The structural question
+     was not answered by the draw this note was written to defend.
+
+WHAT STILL STANDS: workapi's Delete-404 was answered, and answered cleanly — byte-identical
+to the chain2 draw, ran and passed four times, CAUGHT under a function-scoped mutation. One
+of the two.
+
+THE GENERAL POINT, which is why this is appended rather than left: "a restart cannot change
+X" is a claim about the pipeline, and this repo has spent a day discovering that claims about
+the pipeline are exactly the ones that turn out to be untested. The honest form is "X is
+structural and I have not measured whether a restart moves it".
