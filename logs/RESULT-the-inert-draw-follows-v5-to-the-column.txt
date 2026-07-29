@@ -65,7 +65,7 @@ building in place pollutes an artifact. A greenness check is a measurement, and 
 on a copy.
 
 
-WHY THE LINES MATCH: THE GENERATED CODE IS THE SAME (18:01)
+WHY THE LINES MATCH: THE GENERATED CODE IS THE SAME (18:00)
 ============================================================
 The trajectory matching to the column suggested the obvious question — how different are the
 two trees actually? It can be asked cleanly for the files NEITHER draw ever repaired, because
@@ -106,3 +106,41 @@ the third distinct question this week that `<out>/.pre-fix.json` would answer ou
 on one server producing near-identical code is equally consistent with "the server state
 dominates" and with "the spec dominates and the content of twelve lines does not". Only the
 pristine pre-edit draw separates those.
+
+
+THE CONTROL THAT CHANGES THE READING (18:02) — sampling noise is ZERO
+=====================================================================
+The paragraph above nearly went out with a hedge: two files differing by a comment and an
+error string could just be draw-to-draw sampling. That is answerable, because two draws of the
+IDENTICAL spec are both on disk — taskapipro-v5-red-evidence (draw 1, 09:30) and
+taskapipro-v5 (draw 2, 13:27), same spec, same server 4439, same flags.
+
+    IDENTICAL SPEC, two independent draws     8 of 8 untouched files identical · 0 differ
+    +12 lines of DIFFERENT prose              6 of 8 identical · 2 differ
+
+    SAMPLING VARIATION IS NOT SMALL HERE. IT IS ZERO.
+
+So the reading inverts. Those two cosmetic differences are not noise that survived a small
+sample — they are a REAL, ATTRIBUTABLE EFFECT of the twelve lines' content, and they are the
+only effect it has:
+
+    generation is DETERMINISTIC — the same spec produces the same bytes, twice, across four
+    hours and two independent runs
+
+    twelve lines of unrelated prose reach the output and change EXACTLY two things: one
+    comment's word order and one Fatalf message's wording. No identifier, no expression, no
+    statement, no import, in any of the eight files.
+
+    THE CONTENT IS NOT INERT. It is CONFINED TO PROSE. That is a sharper and more interesting
+    claim than "irrelevant", and it is only sayable because the control put a zero on the
+    other side.
+
+⚠️ WHAT THIS DOES TO THE HEADLINE. "The content of the twelve lines is irrelevant" (17:36) was
+right about the defects and slightly wrong as stated. The content demonstrably reaches the
+generated text. What it does not reach — across eight files, with a zero-variance control — is
+a single line of CODE. The defect structure is untouched because the code is untouched.
+
+⚠️ AND IT MAKES THE 12 REPAIRED FILES THE WHOLE REMAINING QUESTION. If the same spec gives the
+same bytes, then any difference between the arms in projects.go or projects_test.go is
+attributable too — and those are exactly the files whose as-drawn contents were never
+persisted. `<out>/.pre-fix.json` would have made this measurable rather than blocked.
