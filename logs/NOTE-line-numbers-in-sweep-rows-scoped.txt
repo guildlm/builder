@@ -1,0 +1,62 @@
+NOTE — adding the line number to sweep rows: scoped, not yet made
+=================================================================
+
+16:33 on 29 July. The standing instruction says do this BEFORE the next sweep PAIR and never
+between one. The capstone pair is complete, so the timing is now correct. Scoping it first
+because seven sites derive the line differently and a wrong derivation corrupts a future join
+silently.
+
+WHAT IT BUYS, precisely
+_resweep_report's WARM+SURVIVED join matches sweep survivors to reachability COLD sites by
+(artifact, file). Sweep rows carry no line, so a file with mixed cold and warm sites can only
+be BOUNDED — "if a file+shape has k cold sites and m survivors, at least m-k warm ones
+survived". With a line number the join becomes exact.
+
+    It does NOT fix _redraw_diff's ordinal problem. Line numbers SHIFT between draws when a
+    file gains a line above a site, so they are worse than ordinals for matching sites across
+    generations. That defect is separately handled by the site-count warning added at 13:10.
+    Do not conflate the two.
+
+THE SEVEN SITES, and where the line comes from
+
+    _hole_hunt.py:132   error wrapping     NO index — uses text.index(orig), a CHARACTER
+                                           offset. Needs text[:off].count("\n") + 1.
+    _hole_hunt.py:170   reverse sort       replace_at(idx, ...)  -> idx available
+    _hole_hunt.py:217   json field tag     NO index — uses (start, end) byte offsets from
+                                           the tag regex. Same conversion as 132.
+    _hole_hunt.py:315   status code        for idx, ...          -> idx available
+    _hole_hunt.py:326   clamp value        clamp_value_row(art, rel, idx + 1, body)
+                                           -> ALREADY receives idx+1; the row builder
+                                              inside it must pass it through.
+    _hole_hunt.py:331   boundary compare   replace_at(idx, ...)  -> idx available
+    _hole_hunt.py:354   response header    replace_at(idx, ...)  -> idx available
+
+    Five direct, two needing offset->line conversion.
+
+APPEND AS THE FIFTH COLUMN, NEVER INSERT
+_resweep_report reads r[3] for the verdict and _redraw_diff parses positionally. A column
+added at the END leaves every existing consumer correct; a column inserted anywhere else
+silently reassigns the verdict field. That is the whole reason this is scoped rather than
+typed.
+
+WHAT ELSE MUST CHANGE IN THE SAME EDIT
+  * _redraw_diff.load hard-fails on len(parts) != 4. Must accept 4 OR 5 — the tracked v4 and
+    v5 rows files are 4-column and must stay readable.
+  * the per-row print in _hole_hunt (7 places, same lines) should show the line too, or the
+    stdout and the file disagree.
+
+HOW IT MUST BE VALIDATED, and this is the part with no shortcut
+A wrong line number is invisible: the row still has five fields and the join still runs. The
+only check is to sweep one tree and confirm, BY HAND, that a sample of rows points at the line
+the mutation actually edited. Targeted sweeps are read-only by design, so validation reads
+stdout rather than the rows file.
+
+    Budget it as: seven edits, two conversions, one consumer fix, one targeted sweep, and a
+    hand-check of at least one row per shape. Not a five-minute change, and the failure mode
+    is a join that looks exact and is not.
+
+NOT MADE TODAY. The campaign's results landed clean an hour ago, this pays off only on a
+sweep that is not scheduled, and I have made three population errors and two instrument bugs
+today — the last of which (_twin_witness counting a gofmt trailing comma) was found only
+because the tool contradicted a green tree. This change has no such contradiction available
+to catch it.
