@@ -1,0 +1,89 @@
+FINDING — "assert ONLY the length" is the instruction that let the setup count drift
+=====================================================================================
+
+Measured 29 July ~11:35 across THREE artifacts, chosen because the structural-vs-quantity
+law predicted they would differ. They do, and the spec text explains it exactly.
+
+The previous finding said quantities are the fragile class because nothing holds them in
+place. This says WHAT would have held this one, and which sentence removed it.
+
+
+THREE QUANTITY-BOUND WITNESSES, AND WHAT THEIR SPECS ASKED FOR
+---------------------------------------------------------------
+
+lrucache TestEvictsLeastRecentlyUsed        capacity 2, 3 Puts       CORRECT
+  spec gives LITERAL CODE:
+     "c := New(2); c.Put("a", 1); c.Put("b", 2); c.Put("c", 3); // capacity 2, so "a"
+      ... is evicted. assert Get("a") ok false; Get("b") ok true; Get("c") ok true;
+      assert c.Len() == 2."
+  The assertions NAME three keys. You cannot assert about "c" without having Put "c".
+
+taskflow TestListSorted                     seeds 3, asserts 3       CORRECT
+  spec describes PER-ITEM assertions:
+     "Assert len(got) == 3 AND the ids come back ASCENDING: got[0].ID == "1",
+      got[1].ID == "2", got[2].ID == "3"."
+  Again the assertion names each item. Three named ids require three seeded items.
+
+taskapipro TestListDefaultsToTheConfiguredPageSize   seeds 1, asserts 2   WRONG
+  spec restricts to a BARE COUNT:
+     "POST THREE tasks, then GET /tasks with NO limit parameter and assert,
+      AS THIS TEST'S ONLY ASSERTION, that EXACTLY 2 come back."
+  The assertion names nothing. `len(resp) != 2` is satisfiable — or not — by any store
+  contents whatsoever, so nothing in the test's own text requires three POSTs.
+
+    A per-item assertion makes the setup STRUCTURAL: the item must exist to be named.
+    A bare count assertion leaves the setup FREE, and free is what drifted.
+
+That is the previous finding's mechanism, and it converts it into a spec-side repair
+instead of a gate.
+
+
+THE UNCOMFORTABLE PART: THE RULE THAT BROKE IT IS A RULE I ADDED ON PURPOSE
+---------------------------------------------------------------------------
+"as this test's ONLY assertion" is not sloppiness. It is the fix for the shortener defect
+recorded this week — a draw asserted on a SETUP STEP, expected something other than 301,
+and the suite went red against a correct handler. The remedy was to make each test assert
+ONE outcome and forbid the rest.
+
+Both rules are good advice. Together they are a contradiction:
+
+    focus rule    "assert ONE outcome, nothing else"      -> removes per-item assertions
+    witness rule  "the assertion must name the items"     -> requires per-item assertions
+
+and the focus rule won, because it is the one written into the entry. The paging witnesses
+were weakened by a discipline introduced to stop a different failure, and nothing announced
+the trade because each rule is individually correct and they live in different entries of
+different specs.
+
+    Two spec rules, each measured and each right, whose intersection is a test that
+    cannot fail.
+
+
+THE GRADIENT, AND THE CHEAP FIX
+--------------------------------
+    literal setup code            lrucache    correct   strongest, least general
+    per-item assertions described taskflow    correct   general, and cheap
+    bare count + ONLY-assertion   taskapipro  wrong
+
+The repair is to move the taskapipro twins one step up the gradient: keep the focus rule's
+INTENT (do not assert on setup steps) while requiring the assertion to name what came back.
+
+    instead of: assert, as this test's ONLY assertion, that EXACTLY 2 come back
+    write:      POST ids "1","2","3"; assert the response holds EXACTLY the first two —
+                len == 2, got[0].ID == "1", got[1].ID == "2" — and that "3" is absent.
+
+That is still one outcome, still no assertion on a setup step, and it cannot be written
+without three items in the store. It costs a sentence.
+
+⚠️ THIS DOES NOT RETIRE THE GATE. NOTE-the-paging-seed-gate-has-a-precedent-and-a-trap.txt
+still stands, for the reason its precedent gives: a nudge is not a gate, and this repair is
+a nudge. The difference is that it is a nudge with a MECHANISM — it changes what the test
+must contain rather than asking for a number — and it is testable in one draw against the
+gate's several days. Do the sentence first; it may make the gate unnecessary, and if it
+does not, the gate is better justified for having been tried.
+
+⚠️ BOUNDS. Three witnesses, three artifacts, one draw each. The lrucache and taskflow rows
+were checked BECAUSE the law predicted them, not gathered to support it — but they are
+still only two confirmations, and neither is a paging test. The prediction that makes this
+falsifiable: rewrite the taskapipro entry as above, redraw, and the seeds should become 3.
+If they do not, the assertion shape is not what governs the setup and this is wrong.
