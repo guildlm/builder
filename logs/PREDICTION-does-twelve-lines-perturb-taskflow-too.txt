@@ -1,0 +1,47 @@
+PREDICTION — does adding twelve lines perturb a SECOND spec, or only taskapipro?
+=================================================================================
+
+19:32 on 29 July, before the draw. This supplies the cell that makes the dose claim a
+measurement instead of a suggestion.
+
+WHAT IS KNOWN
+    taskapipro, +12 lines vs none   (chain5 vs v5, same server)   4 of 7 differ: 3 CODE, 1 PROSE
+    taskflow,   ONE-LINE rename     (chain4 vs chain5, same server) 1 of 12 differ, the TARGET
+                                                                     file only, by exactly the
+                                                                     renamed function
+Different specs. A one-line change to taskapipro has never been drawn; neither has a
+twelve-line addition to taskflow. So "one line is surgical, twelve are collateral" conflates
+dose with spec.
+
+THIS DRAW: taskflow's HEAD spec plus the SAME twelve inert lines used on taskapipro, inserted
+into the projects_test.go entry, on server 4439. The control is generated/taskflow-chain5,
+drawn 15:06 today from that exact HEAD spec on that exact process. One difference.
+
+BRANCHES, graded by _untouched_diff.py
+  A  >=1 CODE difference in a file the twelve lines do not mention
+     -> the effect is about DOSE, not about taskapipro. Adding bulk to any spec entry
+        rewrites unrelated files, and every spec edit in this repo carries that risk.
+  B  0 CODE differences (IDENTICAL throughout, or PROSE only)
+     -> the effect is taskapipro-SPECIFIC. The dose reading is wrong and something about
+        that spec — its size, its multi-package layout, its 21 files against taskflow's 16 —
+        is what makes it fragile.
+  C  nothing comparable, or the draw fails before writing a tree -> report as such.
+
+PREDICT A, 60%. Weakly, and the weakness is the point of running it.
+  For A: on taskapipro the effect was large, reproduced across three draws, and completely
+  indifferent to what the twelve lines said. Nothing in that suggests a mechanism that would
+  care which spec it is.
+  For B: taskflow is a SINGLE-PACKAGE spec that converges in one fix round, where taskapipro
+  is multi-package and burns seven. The taskapipro perturbation showed up in internal/config
+  and internal/service — files in OTHER packages. taskflow has no other packages, so the
+  mechanism may have nowhere to land.
+
+    That second argument is strong enough that I would not be surprised by B, and it also
+    means B would NOT be a clean refutation of dose — it would be confounded with layout.
+    Stating that before the result: if B lands, the honest follow-up is a twelve-line
+    addition to a DIFFERENT multi-package spec, not a claim that dose is disproved.
+
+⚠️ N=1 PER ARM, and the control is a single prior draw. taskapipro's zero-variance result
+makes a single control defensible for that spec; taskflow has never had two same-condition
+draws compared, so its sampling variance is UNMEASURED. If the dose draw differs from chain5
+in ways that look like noise, that reading cannot be excluded.
