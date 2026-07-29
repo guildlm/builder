@@ -48,3 +48,39 @@ tracked for that reason.
 missing for a reason with no ambiguity at all — the spec was left out of the sweep list — and
 that is a stronger claim on the GPU than a second attempt at an artifact that already has a
 recorded outcome.
+
+
+ORDERING RESOLVED (12:24) — SWEEP FIRST, REDRAW AFTER, AND THE REDRAW IS NOT PART OF THE
+CAPSTONE
+=========================================================================================
+The readiness check surfaced a question this note did not answer: taskapipro-v5 is red and
+its 62 rows will sweep as BASELINE-RED. Should the permitted redraw happen BEFORE the
+capstone sweep, so those rows might be live?
+
+It is a real trade. Redrawing first costs ~1 hour and could recover 62 rows — 20% of the
+baseline — into the live-in-both denominator. Sweeping first gets the capstone number in ~25
+minutes but bakes in the red tree, and a targeted re-sweep cannot fix that later because
+targeted hole_hunt runs are read-only by design; only a whole-corpus run writes the rows file.
+
+DECIDED: SWEEP FIRST. The capstone measures the corpus THE SWEEP PRODUCED.
+
+    Redrawing a red artifact before measuring, so that the measurement comes out better, is
+    the re-rolling hazard this note was written to prevent. It does not stop being that
+    because the reason is "a bigger denominator" instead of "a nicer number".
+
+The capstone question is "is the corpus drawn from the repaired specs better than the corpus
+drawn from the old ones". A corpus containing four red trees IS the corpus the repaired specs
+produced today. Swapping one of them for a second attempt answers a different question and
+answers it with a hand-picked sample.
+
+SO THE TWO EXPERIMENTS ARE SEPARATE, and saying so keeps both honest:
+  CAPSTONE      v4 vs v5 as drawn. 146 dead rows, four red artifacts named, live-in-both
+                reported first. That is the result, unflattering denominator included.
+  REDRAW        a separate question — "can taskapipro land at all, or was the 29 July draw
+                unlucky?" — answered by one more draw, both outcomes reported, per the rule
+                at the top of this file. Its rows do NOT enter the capstone diff.
+
+⚠️ AND IF THE REDRAW COMES BACK GREEN, THE TEMPTATION RETURNS: re-sweep and quote the better
+denominator. The answer is the same and is now written down twice. A second whole-corpus
+sweep after a hand-picked redraw is a corpus with one artifact selected for having worked,
+which is not the corpus the specs produce.
