@@ -117,7 +117,7 @@ files:
   - path: internal/models/models.go
     purpose: >-
       package models. Imports guildlm.dev/ledger/internal/money.
-      `Account{ID string, Name string}`.
+      `Account{ID string, Name string}`, with JSON tags.
       `Posting{AccountID string, Amount money.Money}` — a POSITIVE amount adds
       to that account, a NEGATIVE amount subtracts from it.
       `Transaction{ID string, Memo string, Postings []Posting}`.
