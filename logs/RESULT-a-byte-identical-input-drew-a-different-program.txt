@@ -1,0 +1,87 @@
+RESULT — the same spec, a different server process, and a DIFFERENT PROGRAM
+===========================================================================
+Draw finished 09:46 on 30 July, 871s. Graded immediately. Pre-registration:
+logs/PREREG-cross-server-control-replication.txt, written before the draw launched at 09:31:27.
+
+    ✗ PREDICTED: 65% byte-identical, "the process is inert". WRONG, and not marginally.
+
+THE ARM
+    spec      specs/taskflow.yaml, UNMODIFIED at HEAD. No variant. No edit of any kind.
+    control   generated/taskflow-chain6, drawn 29 Jul 20:02:57-20:26:24 on server 4439
+    draw      generated/taskflow-xserver, drawn 30 Jul 09:31-09:46 on server 2212
+    changed   the serving process (and the reboot that forced it)
+
+    Premise verified before the verdict existed: 11520cc landed 29 Jul 14:48:16, chain6 was
+    drawn 5h later, chain6's snapshot carries TestSortedProjectList and neither rival name, and
+    that is exactly what the HEAD spec asks for. The two draws were given the same bytes.
+
+THE VERDICT — 16 common files
+    CODE 4 · IDENTICAL 9 · PROSE 3
+    FUNCTION-LEVEL COLLATERAL: 3
+        NewRouter                                       router.go
+        TestChainAppliesEveryMiddlewareOutermostFirst   middleware_chain_test.go
+        TestWireFieldNames                              taskflow_test.go
+    PROSE-only drift in 3 more files the input does not distinguish:
+        pagination.go · pagination_test.go · projects_test.go
+
+    Nothing was edited. Every one of those differences is what changed when the process changed.
+
+⚠️ WHAT THIS DOES **NOT** ESTABLISH, AND IT IS THE WHOLE POINT OF THE NEXT DRAW
+This does not show that the server process is a condition. It shows that TWO DRAWS OF THE SAME
+SPEC DIFFER. Those are different claims, and the second one has a much cheaper explanation:
+
+    (b) the pipeline is simply not deterministic, within a process or across one.
+
+If (b) is true, no server hypothesis is needed and something far worse follows — every
+"perturbed" verdict in the closed ten-arm distribution was read against a noise floor nobody
+ever took. The floor draw (taskflow HEAD, a THIRD time, on 2212, against xserver) was
+pre-committed at 09:37 while this draw was at 11 of 16 files and the verdict was unknown. It is
+running now.
+
+⚠️ ALSO NOT A CLEAN "PROCESS" MANIPULATION. The reboot changed more than a pid. chain6 was drawn
+on a server that had been up 10.5 hours with a warm multi-sequence prompt cache; xserver was
+drawn on one that had been up 2 minutes with an empty one, on a freshly booted machine, on a
+different day. "The process" here is a BUNDLE — process identity, cache state, uptime, memory
+pressure, day — and this arm cannot take it apart. Calling it "the server" would be naming one
+strand of a rope and reporting it as the rope.
+
+    A visible piece of that bundle: 871s here against 1407s for chain6, a 38% faster draw for
+    the same 16 files. The conditions were not equal in a way that shows up on a clock.
+
+THE ONE THING IT DOES SETTLE
+The precaution was RIGHT. "If mlx_lm.server has restarted, this becomes a THIRD condition rather
+than a control" was written into _pristine_pre_edit_draw.sh as a guess and enforced for a day
+without evidence. It has now been tested once and survived: reusing a 4439 control against a
+2212 draw would have manufactured 4 CODE files and 3 functions of difference out of nothing, and
+every one of them would have read as a result. The save point's refusal to reuse old controls
+after a restart cost two extra draws and was worth them.
+
+A HINT ABOUT WHICH WAY THE FLOOR DRAW WILL GO — stated as a hint, because it is indirect
+name5 vs chain6 is a SAME-PROCESS pair with DIFFERENT specs (a one-line rename): 15 of 16 files
+byte-identical, and the sixteenth differed only by the name it was told to change.
+xserver vs chain6 is a DIFFERENT-PROCESS pair with the SAME spec: 9 of 16 identical, 4 files of
+different program.
+
+    A different spec on one process agreed more closely than an identical spec across two. That
+    points at a low floor and a real process effect — reading (a). It is not proof: name5's
+    agreement was measured on a pair that shared a process AND ran minutes apart, so it bounds
+    the floor only under conditions the floor draw is about to test directly.
+
+PREDICTION LEDGER — seven attempts, one hit
+    23:38  "LENGTH is the variable"                     falsified 00:03
+    00:03  "COPIED verbatim vs INTERPRETED"             falsified 00:39
+    00:46  "the CATEGORY is real, p=0.036"              falsified 01:04
+    01:22  A 45 / B 55, shaded against the base rate    the only hit
+    01:37  "collateral appears, 70%"                    wrong (clean null)
+    02:01  "collateral appears, 65%" (base rate)        wrong (clean null)
+    09:3x  "65% byte-identical across a restart"        WRONG — 4 CODE files, 3 functions
+
+    Reasoned predictions: 0 for 4. The reasoning this time leaned on the strongest evidence
+    available — that within-process redraws with different cache states came back byte-identical
+    — and drew the wrong conclusion from it anyway, because that evidence was about a pair
+    sharing a process and I extended it across a restart it never covered.
+
+    ⚠️ AND THE ERROR HAS THE SAME SIGN AS THE FIRST THREE. 01:25 recorded it: "I kept expecting
+    things to be safe." That was said of spec edits; it has now happened for the apparatus. Four
+    of the five wrong predictions predicted stability and got change. The one hit came from
+    deliberately betting against that bias.
