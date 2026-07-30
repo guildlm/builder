@@ -1,0 +1,65 @@
+PREREG — a THIRD process on the SAME BOOT: is it process identity, or the reboot?
+================================================================================
+Written 10:10, 30 July, before the server is restarted and before any third draw exists.
+
+WHAT TODAY ESTABLISHED, AND THE ONE THING IT COULD NOT
+    within-process determinism   measured twice, on two processes, both ZERO
+                                 4439 warm->warm over 2h15m; 2212 cold->warmed across a 24%
+                                 throughput delta
+    cross-process difference     4 CODE files, 3 functions — and REPRODUCIBLE: two 2212 draws in
+                                 different process states differ from chain6 in exactly the same
+                                 way, same files, same functions, same character counts
+
+So each process is internally deterministic and the two processes deterministically write
+DIFFERENT programs from identical input. What separates 4439 from 2212 is a BUNDLE:
+
+    process identity  ·  a machine REBOOT  ·  a different DAY
+
+Warmth, cache state and uptime were removed from that bundle today. The other three were not.
+
+THE ARM — one draw, and it splits the bundle
+Restart mlx_lm.server on the SAME BOOT (the machine came up 09:20:52 and has not gone down), then
+draw specs/taskflow.yaml UNMODIFIED again. Everything except process identity is held: same boot,
+same day, same machine state, same model files, same spec bytes.
+
+    tree3 == xserver tree   -> PROCESS IDENTITY IS INERT. A fresh process on this boot reproduces
+                               this boot's output, so the 4439/2212 gap tracks the REBOOT (or the
+                               day), not the fact that it is a different pid. Today's headline
+                               narrows again: "across a reboot", not "across a process".
+    tree3 != xserver tree   -> PROCESS IDENTITY IS THE VARIABLE. Two processes on one boot,
+                               nothing else different, writing different programs. The reboot and
+                               the day are then unnecessary to explain anything.
+
+    And a bonus reading, free: if tree3 != xserver but tree3 == chain6, the output is drawn from
+    a SMALL DISCRETE SET rather than being unique per process — which is what a variant chosen
+    once at load time (a Metal kernel or shader picked by autotuning) would look like. That
+    hypothesis was flagged in the 10:06 RESULT as a candidate to test, and this is the test.
+
+PREDICTION — tree3 != xserver tree (process identity is the variable), 55%
+Deliberately close to a coin flip, and the reason is the ledger rather than the physics.
+
+    The mechanism I can argue for: identical weights, greedy decoding, and a per-process
+    difference that is stable within the process points at something fixed at load time —
+    memory layout and buffer alignment changing float accumulation order in matmuls would do it,
+    and that varies per process regardless of boot.
+
+    ⚠️ BUT REASONED PREDICTIONS ARE 0 FOR 5 TODAY, and that is now the most reliable statistic I
+    have about my own mechanism stories in this system. Every one of the five was an argument
+    that felt sound. So the number is set near 50 not as a ritual hedge but because a 0-for-5
+    track record is evidence, and it outweighs an argument I cannot test from the outside.
+
+    ⚠️ AND I AM NOT SHADING IT. Shaded predictions are 2 for 2, but the 10:06 RESULT recorded why
+    that is misleading: this morning the shading moved the number AWAY from the right answer and
+    scored a hit only because the branch happened to be called correctly. Shading corrects a bias
+    with a measured sign; there is no measured bias for "does a pid matter", so there is nothing
+    to shade against. Applying the spec-edit bias here would repeat exactly the error 10:06 named.
+
+BRANCHES INCLUDING THE ONE THAT SAYS NOTHING
+    UNMEASURED   the draw dies, produces no .pre-fix.json, or the restarted server fails to come
+                 up on :8080. Says nothing about process identity. Redraw.
+    ⚠️ COST OF THE ARM, STATED UP FRONT: restarting kills 2212, and 2212 is currently the pinned
+    control process for the un-fired ledger arm (_ledger_name_arm.sh refuses on any other pid).
+    That is acceptable because the ledger arm needs control and arm on ONE process and has drawn
+    NEITHER yet — it can run wholly on the new process. Nothing else depends on 2212 being alive;
+    xserver and xserver2 are snapshotted on disk. The script's WANT_PID must be re-pinned before
+    the ledger arm is fired, or it will correctly refuse.
