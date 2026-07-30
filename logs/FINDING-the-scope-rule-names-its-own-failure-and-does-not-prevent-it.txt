@@ -1,0 +1,40 @@
+FINDING — the harness already guards against the stub, in words, and it fails 58% of the time
+============================================================================================
+30 July, 17:15. Zero GPU. A read of src/builder.py against the corpus rate measured at 17:05.
+
+THE GUARD EXISTS AND IS IN THE PROMPT
+src/builder.py:995 builds `scope_rule`, injected at line 1083 into every non-test .go generation
+prompt:
+
+    "STAY IN YOUR LANE: write ONLY what THIS file's purpose asks for. The plan above gives the
+     other files their own jobs — if another file is responsible for something (THE IN-MEMORY
+     IMPLEMENTATION, the handlers, the router), do NOT also write it here. Doing its job leaves
+     that file nothing to declare, IT SHIPS EMPTY, and the project no longer matches the plan it
+     was built from."
+
+    It names the in-memory implementation as its example. It names the consequence — the other file
+    ships EMPTY — in those words. It is present for store.go, which is not a test file.
+
+    AND THE STUB HAPPENS IN 58% OF DRAWS (22 of 38 distinct content pairs, measured at 17:05).
+
+    A guard that describes its own failure mode, in the prompt, as an explicit example, and does not
+    prevent it. This is the "a gate that never failed isn't a gate" shape from the other direction:
+    a gate that fails most of the time and was never scored.
+
+THE MECHANISM THIS SUGGESTS — ORDER
+The ledger spec lists internal/store/store.go SIXTH and internal/store/memory.go SEVENTH. Files are
+generated in spec order, and each prompt carries the already-generated siblings' CONTENT (the
+"other files in THIS package" block).
+
+    So store.go is written FIRST. If it writes the MemStore implementation, then memory.go is
+    generated next, sees the implementation already present in its sibling block, and has nothing
+    left to declare — fourteen bytes.
+
+    Arm 4 is exactly this shape: store.go 2219 chars with all seven methods, memory.go 14.
+    The control is the mirror: memory.go 2282 with seven methods, store.go 382.
+
+    ⚠️ STATED AS A MECHANISM CANDIDATE, NOT A MECHANISM. Six mechanism stories have died in this
+    record. What makes this one worth a draw rather than an argument is that it predicts something
+    SPECIFIC and cheap to falsify: swap the two entries so memory.go is generated FIRST, and the
+    stub should either vanish or MOVE TO store.go. "It moves" is a much stronger signal than "it
+    vanishes", because absence at n=1 is what a 42% non-stub base rate produces anyway.
