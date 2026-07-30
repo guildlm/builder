@@ -1,0 +1,102 @@
+RESULT — the third spec's name swap is a CONFIRMED NULL, and the rival hypothesis loses
+========================================================================================
+Graded 12:11 on 30 July from the arm's .pre-fix.json the moment it was written (write-once, so
+as-drawn is final; the fix loop was still running and cannot change it).
+Pre-registration: logs/PREREG-ledger-third-spec-name-swap.txt, committed at 2c70fe2 before the
+control draw started.
+
+    ✗ PREDICTED: the arm PERTURBS, 55%. WRONG.
+
+THE VERDICT
+    19 common files · CODE 1 · IDENTICAL 18
+    edit landed in CODE: YES (internal/service/service_test.go)
+    COLLATERAL: 0 · FUNCTION-LEVEL COLLATERAL: 0
+    internal/service/service_test.go: 0 of 6 funcs differ, nothing outside them either
+
+    ✅ RENAME-ONLY. Every CODE difference IS the declared rename. Neutralise it and all files are
+    code-identical. The tool's strongest null, and explicitly distinct from a file-level null,
+    which only says no other FILE moved.
+
+THE EDIT LANDED — checked while the draw was still running, so a null EDIT could not be mistaken
+for a null RESULT
+    control  TestBalanceMissingAccount x1, TestBalanceAccountMissing x0
+    arm      TestBalanceMissingAccount x0, TestBalanceAccountMissing x1
+Both target files declare 6 functions. This was the pre-registered failure mode that "looks
+identical to the cleanest possible result", and it is ruled out by observation rather than by
+assumption.
+
+1. THE ARM DID ITS JOB — TWO HYPOTHESES DISAGREED AND ONE LOST
+The 02:22 RESULT called this "the first prediction all night with two live hypotheses making
+different calls, which is what an arm should be for."
+
+    "the split is real"          name swaps are ~a coin flip -> predicted 50/50. CONSISTENT.
+    "ratelimit is perturbable"   the taskflow nulls were a property of taskflow, and a second
+                                 spec perturbed the moment it was tried -> predicted a HIT. WRONG.
+
+    A THIRD spec now produces a name-swap null. The nulls are not a taskflow artefact, which is
+    what that rival existed to claim. It is not dead — one arm cannot kill it — but it made a
+    directional call and the call failed.
+
+    Name swaps now stand at 2 perturbed of 5:
+        taskflow   name3 16->16  PERTURBED (7 files, 8 funcs)
+        taskflow   name4 19->19  null
+        taskflow   name5 21->21  null
+        ratelimit  name1 19->19  PERTURBED (1 file, 1 func)
+        ledger     name1 25->25  null            <- THIS ARM, third spec
+    Against "every non-rename edit perturbed, 6 of 6", the split is now 2/5 against 6/6.
+
+2. THIS IS THE FIRST NULL IN THE SERIES WHOSE PREMISE WAS MEASURED
+Every earlier arm assumed that a control and an arm in a fixed condition differ only by the edit.
+That premise was inferred from two different specs agreeing where their prompts agreed. Today it
+was measured directly, twice, on two processes, both zero. Control and arm here were drawn back to
+back on pid 42826.
+
+    So "nothing else moved" is not a belief about this arm. It is a measurement, and this null is
+    stronger than the four nulls that preceded it for that reason alone.
+
+3. THE THROUGHPUT CONFOUND RESOLVED HARMLESSLY — AND PAID A DIVIDEND
+Pre-committed at 11:12, before the verdict: "If it comes back NULL, the confound is harmless — a
+3x throughput swing that changed nothing is one more measurement that throughput is inert."
+
+    control drawn at ~120 tok/s and falling · arm drawn after it, around ~40 tok/s
+    output: rename-only identical across 19 files
+
+    That is a THIRD measurement that machine throughput does not move the output, at a dose more
+    than ten times the 24% that xserver/xserver2 tested. The earlier note warned that
+    extrapolating an inert result from 24% to 3x was exactly the move this record keeps punishing.
+    It no longer needs extrapolating — the 3x dose was run and it was inert too.
+
+    ⚠️ It was luck that this landed on the harmless branch. Had the arm perturbed, the confound
+    would have been a live alternative explanation and the arm would have been worth much less.
+    The pre-commitment is what makes this readable either way rather than a story told afterwards.
+
+4. GREEN WAS NOT THE QUESTION, AND BOTH DRAWS WERE NOT-GREEN
+The control exhausted 6 fix rounds (5 budgeted) and stopped on a repeating error surface. The arm
+was still widening fix targets over a missing models.ErrInsufficientFunds when this was graded —
+the SAME sentinel-name defect ledger has produced before. Neither fact touches the grade: as-drawn
+reads what the model WROTE, and a compiler that never succeeded says nothing about it.
+
+THE PREDICTION LEDGER — ten attempts, three hits
+    23:38  "LENGTH is the variable"                 falsified
+    00:03  "COPIED verbatim vs INTERPRETED"         falsified
+    00:46  "the CATEGORY is real, p=0.036"          falsified
+    01:22  A 45 / B 55, shaded                      HIT
+    01:37  "collateral appears, 70%"                wrong
+    02:01  "collateral appears, 65%" (base rate)    wrong
+    09:3x  "65% byte-identical across a restart"    wrong
+    10:0x  "B == C, 60%"                            HIT
+    10:1x  "tree3 != xserver, 55%"                  HIT
+    10:2x  "ledger PERTURBS, 55%"                   WRONG
+
+⚠️ AND THIS BREAKS THE PATTERN I RECORDED AT 10:40. I wrote then: "the three hits are the three
+predictions set near 50, and every one of the six misses was a confident number." That was true of
+nine attempts and I stated it as a rule. A near-50 prediction has now missed.
+
+    Corrected: near-50 predictions are 3 of 4, confident ones remain 0 of 6. The direction
+    survives; the clean dichotomy does not. Recording it because a pattern announced one arm
+    before it broke is exactly the kind of claim this record exists to catch — and I found it by
+    re-reading my own note, not by anyone challenging it.
+
+    The 55% itself was near-honest: the homogeneous base rate was 50% and I nudged 5 points for
+    ledger's 19 files on evidence I called "weak and pointing the other way". It pointed the other
+    way. The nudge was the wrong 5 points and the base rate alone would have been better.
