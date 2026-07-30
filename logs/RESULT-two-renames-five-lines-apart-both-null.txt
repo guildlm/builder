@@ -72,3 +72,39 @@ THE PREDICTION LEDGER — thirteen attempts, four hits
     That is the third time the same error has appeared in a different costume: heterogeneous base
     rate (02:01), bias imported across domains (10:06), and now a base rate I called homogeneous
     because it was one EDIT KIND while ignoring that it spanned three SPECS.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+CORRECTION, 16:05 — "SPEC IS THE ONLY VARIABLE THAT TRACKS THE SPLIT" DOES NOT SURVIVE THE MEASURE
+════════════════════════════════════════════════════════════════════════════════════════════
+This file concluded: "SPEC is the only variable left that tracks the split, and ledger is now 0 for
+2." Arm 3 forced the perturbed/null binary to be split into three categories, and re-classifying
+all seven name arms under the explicit measure changes that table.
+
+    spec       arm     collateral   beyond-rename   category
+    taskflow   name3        8           YES         COLLATERAL
+    taskflow   name4        0           no          RENAME-ONLY
+    taskflow   name5        0           no          RENAME-ONLY
+    ratelimit  name1        1           YES         COLLATERAL
+    ledger     name1        0           no          RENAME-ONLY
+    ledger     name2        0           no          RENAME-ONLY
+    ledger     name3        0           YES         LOCAL
+
+    by COLLATERAL        taskflow 1 of 3 · ratelimit 1 of 1 · ledger 0 of 3
+    by BEYOND-RENAME     taskflow 1 of 3 · ratelimit 1 of 1 · ledger 1 of 3
+
+    On the second measure taskflow and ledger AGREE at 1 in 3, and the by-spec separation this file
+    claimed largely evaporates. ledger was 0 for 2 only because the measure in use ignored changes
+    confined to the renamed function's own body — and ledger's third rename is exactly that.
+
+    SO THE CLAIM IS CORRECTED TO: name-swap outcomes do NOT clearly separate by spec. Overall the
+    rate is 2 of 7 by collateral and 3 of 7 by beyond-rename, and the per-spec numbers are within
+    noise of each other at n=3, n=1, n=3.
+
+⚠️ AND THE 15:00 CLAIM WAS BUILT ON THE MEASURE I HAD NOT NAMED. I wrote "length does not separate
+them, position does not, SPEC is the only variable left" — a process of elimination whose survivor
+was an artifact of scoring only collateral. The elimination logic was sound; the measure it ran on
+was undeclared, and declaring it removed the survivor.
+
+    LOCAL is currently a SINGLETON — one arm of seven. That is what made it invisible: on six arms
+    the two measures agreed, so nothing forced the distinction, and the first arm that broke the
+    tie also overturned a conclusion drawn from the six.
