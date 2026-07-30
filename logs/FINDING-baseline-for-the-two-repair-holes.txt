@@ -1,0 +1,50 @@
+FINDING — baseline for the two repair holes: 64 of 125 trees ship an empty planned file
+=======================================================================================
+03:30 on 31 July. Zero GPU. The baseline the 03:10 finding said had to exist before either fix is
+applied — because today's standing rule is that instruments do not change until the change can be
+scored against something.
+
+THE CORPUS, static check over every generated tree of the three affected specs
+    125 trees examined
+      64  HAVE an empty planned .go file  (51%)
+      61  do not
+
+    Of the 64 empty-file instances, what would `_fill_empty_planned_files` do TODAY:
+      54  (84%)  `take` is NON-EMPTY — the existing repair identifies symbols to move, and a donor
+                 sibling that actually declares them. HOLE 2 does not block these.
+      10  (16%)  `take` is EMPTY — the pass no-ops silently. EVERY ONE is ledger's
+                 internal/store/memory.go with required={'Store'}, which store.go legitimately owns.
+
+WHAT THAT APPORTIONS
+    HOLE 2 (the regex) accounts for 10 of 64, and they are all one shape: ledger writes the type as
+    `MemStore` in backticks, never "MemStore struct", so _REQUIRED_TYPE_RE cannot see it and the only
+    name it extracts is Store — which the donor is supposed to keep. Narrow, specific, and fixable
+    by broadening the extractor to backticked capitalised identifiers.
+
+    HOLE 1 (green-gating) is where the other 54 live. For those the repair KNOWS what to move and
+    has a donor holding it — so the reason they shipped empty is that the pass either never ran
+    (project not green, `_finish_green` never called) or ran and was reverted because the whole
+    project failed `toolchain.check` afterwards for unrelated reasons.
+
+    ⚠️ I CANNOT SPLIT THOSE TWO SUB-CASES FROM THE CORPUS. Old trees carry no logs, and the only
+    evidence distinguishing "never ran" from "ran and reverted" is the pass's own log lines. Today's
+    five A draws do split: ledger p6/p7/p8 were green and logged the WARNING (pass ran, no-op'd via
+    hole 2); workapi and taskapipro were not green and logged nothing at all (pass never ran). That
+    is n=5 and it is consistent with both holes being live, which is what the 03:10 reading said.
+
+WHAT THE BASELINE IS FOR
+    Fixing HOLE 1 — run the empty-file check regardless of green — has an addressable population of
+    up to 54 of 64 instances. That is the bigger lever by a wide margin.
+    Fixing HOLE 2 — broaden the extractor — addresses 10, and is the only fix that helps ledger,
+    which is the spec this campaign draws most.
+
+    ⚠️ "ADDRESSABLE" IS NOT "WOULD BE FIXED". For the 54, the move is identified but the green-check
+    still has to pass afterwards, and on an already-broken tree it may not. The honest prediction is
+    that fixing hole 1 converts some unknown fraction of 54 from "silent" to "warned", and a smaller
+    fraction from "empty" to "repaired". The warning alone is worth it: today two of five A draws
+    shipped a dead file with NOTHING in the log saying so.
+
+⚠️ NOT APPLYING EITHER FIX TONIGHT. Both touch generation-path code. The baseline now exists, which
+was the precondition — but the session has been running twenty hours, the last three claims I made
+at speed all needed retracting within the hour, and a generation-path edit is the worst possible
+thing to make tired. The next session applies them against these numbers.
