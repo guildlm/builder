@@ -1,0 +1,60 @@
+RESULT — the real finding is CONSOLIDATION, and the "fix" relocates it rather than removing it
+==============================================================================================
+02:15 on 31 July. Written after applying my own 01:55 rule — "check what the fix was supposed to
+ACHIEVE, not the proxy that happened to track it" — to the two specs I had called successes.
+
+WHAT I FOUND WHEN I CHECKED store.go PROPERLY
+    spec        B store.go            interface   sentinels required by its entry
+    ledger      377 chars             in store.go  absent from store.go (A referenced models.* instead)
+    workapi     353 chars             in store.go  ABSENT — A DECLARED them, B moved them to memory.go
+    taskapipro   14 chars ('package store\n')       everything absent
+
+    workapi's store.go entry says in plain words: "Exported sentinels var ErrNotFound and var
+    ErrExists (errors.New)." Draw A declares them there, correctly. Draw B does not — memory.go
+    declares them instead. They relocated with the rest of the package's content.
+
+THE MECHANISM, RESTATED CORRECTLY
+Not "entry order causes the stub". The accurate statement, which fits all five pairs and all three
+specs:
+
+    THE FIRST-GENERATED FILE OF A PAIR ABSORBS THE PACKAGE'S CONTENT.
+    Reordering changes WHICH file absorbs it. It does not make the model split the content.
+
+    store.go first  -> store.go takes implementation + interface + sentinels · memory.go = 14 bytes
+    memory.go first -> memory.go takes implementation (+ sentinels, + interface on taskapipro)
+                       · store.go is thinned to whatever survives
+
+    Go accepts either, because a package does not care which file holds what — which is the
+    29 July finding, and it is why nothing in the pipeline objects in EITHER direction.
+
+SO WHAT IS THE FIX WORTH? Honestly, per spec:
+    ledger      IMPROVEMENT. memory.go goes 14 bytes -> 2373 with 7 methods; store.go keeps its
+                interface and loses only models.* references A had used. Net: a whole missing
+                implementation becomes a complete one.
+    workapi     PARTIAL. memory.go 14 -> 1769 with 5 methods; store.go keeps the interface but
+                LOSES the two sentinels its entry names. A real regression traded for a bigger gain.
+    taskapipro  NO GAIN. 14-byte file either way — only its name changes. Reverted at 01:55.
+
+    ⚠️ I PROMOTED THIS AS "the fix is free". It is not free. It is a trade whose sign differs by
+    spec, and I did not know that until I looked at the second file — six hours after the first pair
+    and forty minutes after declaring three-for-three.
+
+WHAT SURVIVES UNCHANGED
+    Five informative pairs, five processes, three specs: every A stubs memory.go, every B fills it.
+    That is real and it replicated. What was WRONG was calling that "fixed" without asking what
+    happened to the file that stopped being first.
+
+⚠️ THE HONEST STATE OF THE PROMOTION
+    ledger.yaml    reordered — KEEP. Clear net gain.
+    workapi.yaml   reordered — KEEP, with the sentinel regression recorded. ⚠️ Not verified beyond
+                   one pair, and the regression is exactly the kind a second pair might not repeat.
+    taskapipro.yaml REVERTED at 01:55. No gain in either direction.
+
+    The underlying defect — a package's content consolidating into one file — is NOT fixed by
+    ordering and remains open. Ordering only chooses the victim.
+
+⚠️ METHOD, THE THIRD INSTANCE TODAY
+15:00: a metric conflated two measures. 21:40: FUNCTION-LEVEL COLLATERAL missed relocations. 01:35:
+I graded a pair on memory.go alone. Same shape each time — the number I was reading stopped meaning
+what I thought, and each time the instrument had ALREADY printed the contradicting detail. The
+grader listed store.go's relocation in its only_a/only_b lines in every one of these pairs.
