@@ -1,0 +1,63 @@
+FINDING — the "capability limit" is a 1-in-3 coin flip, and the answer was already on disk
+==========================================================================================
+30 July, 12:55. Zero GPU. Found by looking at nine ledger trees that already existed instead of
+drawing a tenth.
+
+THE CLAIM BEING TESTED WAS MY OWN, FROM 45 MINUTES EARLIER
+At 12:49 I wrote that ledger's ErrInsufficient defect "was a coin flip, not a capability wall".
+The evidence was n=2: one control that failed and one arm that succeeded. That is not enough to
+call anything a coin flip, and it was my claim, so it is the one to test.
+
+I was about to spend a ~35 minute draw to get n=3. The answer was on disk at n=9.
+
+THE COUNT — every ledger tree in generated/
+    ErrInsufficientFunds (what the spec asks for)   6   ARM-A · ARM-B · ARM-C · BEFORE-specfix
+                                                        · prose1 · v4
+    ErrInsufficient      (the defect)               3   ctl-proc3 · name1 · v5
+
+    internal/api/response.go uses ErrInsufficientFunds in ALL NINE. The consumer never varies.
+    The entire defect is models.go's declaration coming out short, and it does so 3 times in 9.
+
+    So the model writes the required name TWO TIMES IN THREE. The wall is a 33% miss rate.
+
+THE REQUIREMENT HAS BEEN STABLE — checked, not assumed
+Every revision of specs/ledger.yaml back to 15 July asks for ErrInsufficientFunds (x2 or x4;
+the count changed, the NAME never did). So all nine trees were drawn against the same requirement
+and the comparison is legitimate.
+
+    ⚠️ zsh silently broke the first version of this check: `git show $rev:specs/ledger.yaml` parses
+    the colon as a variable modifier, so every revision reported x0 and it looked like the spec had
+    NEVER required the name. Braces fixed it. A check that returns all-zeros is not evidence of
+    absence — it is a check to re-run.
+
+⚠️ WHAT WEAKENS IT, STATED PLAINLY
+Only THREE of the nine trees carry .pre-fix.json (ctl-proc3, name1, prose1). The other six are
+POST-REPAIR, so in principle a fix round could have corrected the name after the draw, which would
+inflate the 6.
+
+    Against that: the one direct test of whether the fix loop CAN repair this symbol is
+    ctl-proc3, which ran SIX rounds — three of them taking models.go — and never corrected it.
+    A repair mechanism that fails six times out of six on the file in question is unlikely to be
+    the reason the other six trees look correct. And for all three snapshotted trees, the as-drawn
+    name equals the on-disk name.
+
+    So: 6-of-9 is the honest number, with the caveat that 6 of the 9 are unverifiable as-drawn and
+    the number could in principle be as low as... nothing, actually — the three DEFECTIVE trees are
+    all snapshot-verified. The floor on the defect rate is solid; only the ceiling is soft.
+
+WHAT IT CORRECTS
+The campaign wrote this defect up as a capability limit: "the LONGEST name got SHORTENED and was
+never repaired in six rounds", cited as evidence about what a 7B can hold. That framing came from
+draws that happened to miss. The model gets it right two times in three; what six fix rounds
+cannot do is REPAIR it once it has been written, which is a completely different claim about a
+completely different part of the pipeline.
+
+    ⚠️ AND THE SECOND CLAIM SURVIVES INTACT, which is why the distinction matters rather than being
+    a quibble. "The fix loop cannot repair a wrong sentinel name" is supported: 6 rounds, 3 visits
+    to the file, no correction. "The model cannot write the right sentinel name" is refuted at 2/3.
+
+METHOD NOTE — the cheapest instrument today was `ls`
+Nine samples of the exact question, sitting in generated/, while I was writing a pre-registration
+for a draw to collect three. The 29 July lesson was "measure before you conclude". This is its
+sibling: LOOK AT WHAT YOU ALREADY HAVE BEFORE YOU SPEND. Every one of those trees was produced by
+this campaign, for other purposes, and none of them was ever asked this question.
