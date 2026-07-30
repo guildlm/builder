@@ -61,3 +61,41 @@ Nine samples of the exact question, sitting in generated/, while I was writing a
 for a draw to collect three. The 29 July lesson was "measure before you conclude". This is its
 sibling: LOOK AT WHAT YOU ALREADY HAVE BEFORE YOU SPEND. Every one of those trees was produced by
 this campaign, for other purposes, and none of them was ever asked this question.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+CORRECTION, 15:05 — THE RATE ABOVE IS NOT SUPPORTED. THE DENOMINATOR COUNTED TREES, NOT DRAWS.
+════════════════════════════════════════════════════════════════════════════════════════════
+Found while adding arm 2's tree to the tally: the ten ledger trees on disk hold only THREE
+distinct internal/models/models.go contents.
+
+    c5caa732  CORRECT   6 trees: ARM-A, ARM-B, ARM-C, BEFORE-specfix, prose1, v4
+    6595d61b  defect    3 trees: ctl-proc3, name1, name2
+    1ff0c99a  defect    1 tree:  v5
+
+ctl-proc3, name1 and name2 share one file because name1 and name2 are RENAME-ONLY NULLS against
+that control — their models.go is the control's, and that is the *finding* of those arms, not three
+independent observations of the sentinel. I counted it as three.
+
+    WHAT THE HONEST NUMBER IS: it depends on what an independent trial is, and the two extremes
+    bracket it rather than settle it.
+        by distinct CONTENT          1 correct of 3   — understates: six separate generation runs
+                                                        genuinely agreed, and agreement is data
+        by TREE                      6 correct of 10  — overstates: three of the ten are one draw's
+                                                        file, and the arms' near-identical prompts
+                                                        make the rest correlated too
+        excluding by-construction
+        duplicates (name1, name2)    6 correct of 8   — the most defensible of the three, and still
+                                                        built on draws with near-identical prompts
+
+    So "the model writes the required name TWO TIMES IN THREE" is NOT SUPPORTED as stated. What
+    survives is the direction: both outcomes occur across draws, so the defect is a reroll and not
+    a wall. That was the claim worth making and it stands. The RATE was arithmetic over a
+    denominator I did not inspect.
+
+⚠️ THE IRONY IS EXACT AND WORTH KEEPING. This file's own method note says the cheapest instrument
+of the day was `ls` — and the error is that I ran `ls`, counted the directories it printed, and
+never asked whether two of those directories held the same file. The 12:55 version even flagged
+that six of nine were unverifiable as-drawn while missing that three of them were the same draw.
+
+    The rule this earns: BEFORE A COUNT BECOMES A RATE, HASH THE THING BEING COUNTED. A denominator
+    of filesystem entries is not a denominator of observations.
