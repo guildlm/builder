@@ -125,6 +125,25 @@ a baseline that was inferred rather than taken.
     IDENTICAL -> that follow-up is unnecessary. A draw that reproduces chain6 across a reboot has
     already demonstrated determinism across the strictly harder condition.
 
+SECOND AMENDMENT, 09:52, floor draw at 6 of 16, verdict unknown — WHAT THE FLOOR CAN BE APPLIED TO
+The floor is being measured on 2212. Every arm in the closed ten-arm distribution was drawn on
+4439. Using a 2212 floor to reinterpret 4439 arms assumes the floor is a property of the PIPELINE
+rather than of the process — which is exactly the thing under test. The assumption is not free:
+
+    floor IDENTICAL on 2212  -> says the pipeline CAN be deterministic within a process. It does
+                                not prove 4439 was. But the ten arms were each control-vs-arm on
+                                one process, so if within-process determinism holds in general
+                                their verdicts stand, and that is the reading.
+    floor DIFFERS on 2212    -> the ten arms are in question, but the size of the doubt is NOT
+                                readable off this number. A floor measured on a 2-minute-old
+                                server with a cold cache need not be the floor that applied on a
+                                10-hour-old server with a warm one. It would establish THAT a
+                                floor exists, not HOW BIG it was for those arms.
+
+    In the DIFFERS case the honest next step is a floor draw pair on a WARMED 2212 — two draws
+    after the server has served several — not a re-reading of the ten arms against today's number.
+    Recording that now so the cheap version does not look adequate later.
+
 ⚠️ RESOLUTION CAVEAT, PER THE 01:04 STANDARD. "IDENTICAL" is a claim at the resolution of
 _asdrawn_diff.py — files, functions inside differing files, and non-function residue. That is
 the finest instrument here, and it is the one that caught the file-level null that wasn't. It
