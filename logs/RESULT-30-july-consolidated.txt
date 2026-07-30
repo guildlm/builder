@@ -1,0 +1,110 @@
+RESULT — 30 July, consolidated: the apparatus was the experiment
+================================================================
+Written 13:15 while the eighth draw of the day runs. The day was not the one that was planned.
+
+HOW IT STARTED: THE MACHINE REBOOTED AT 09:20:52
+That killed MLX pid 4439, the process every control in the closed ten-arm series was drawn on. The
+save point's "DO NOT RESTART" guard suddenly had nothing to protect. The pre-registered next arm
+(a ledger name swap) assumed those controls. A fresh control was mandatory, which made it the one
+cheap moment to measure a rule that had been enforced for a day on no evidence: "a restart makes a
+draw a THIRD condition rather than a control."
+
+Six draws later that rule is measured, and it was right for reasons nobody had established.
+
+════════ WHAT IS NOW MEASURED ABOUT THE APPARATUS ════════
+
+1. WITHIN A PROCESS, THE PIPELINE IS EXACTLY DETERMINISTIC — measured twice, both zero
+       4439  subst vs name4      byte-identical spec files, 2h15m apart, many draws between   0
+       2212  xserver vs xserver2 same spec, cold vs warmed, 24% throughput apart              0
+   The first pair cost NO GPU: it was already on disk, recorded in the 02:22 write-up as "the null
+   replicates its own original row" and never read as a determinism measurement.
+
+2. ACROSS PROCESSES, THE SAME SPEC WRITES A DIFFERENT PROGRAM — and reproducibly
+       chain6 (4439) vs xserver (2212)   CODE 4, 3 functions
+       chain6 (4439) vs xserver2 (2212)  CODE 4, the SAME files, functions and char counts
+   Two draws on 2212 in different states differ from chain6 identically, because they are the same
+   bytes. Each process is internally deterministic and processes disagree with each other.
+
+3. IT IS THE PROCESS, NOT THE BOOT, NOT THE DAY, NOT WARMTH
+       chain6  <-> xserver   CODE 4   different boot
+       chain6  <-> proc3     CODE 3   different boot
+       xserver <-> proc3     CODE 6   SAME BOOT, SAME DAY, SAME MACHINE  <- furthest pair
+   Holding boot and day and changing only the pid did not shrink the gap; it grew it. Warmth,
+   cache state and uptime were separately excluded: a 24% throughput change produced identical
+   bytes, and later a ~3x change did too.
+
+4. CONSEQUENCE FOR THE CLOSED SERIES: IT SURVIVES
+   All ten arms were control-vs-arm inside ONE process, and the within-process floor is zero. What
+   does NOT survive is any cross-day comparison, and reusing a 4439 control against a 2212 draw
+   would have manufactured 4 files and 3 functions of difference from nothing.
+
+════════ WHAT IS NOW MEASURED ABOUT THE SCIENCE ════════
+
+5. LEDGER NAME SWAP — CONFIRMED NULL, third spec
+   19 files, CODE 1, IDENTICAL 18, collateral 0, RENAME-ONLY. The edit landed (verified mid-draw).
+   Name swaps now 2 perturbed of 5; the nulls are not a taskflow artefact, and the rival
+   "ratelimit is perturbable, taskflow's nulls are taskflow's" made a directional call and lost.
+   First arm in the series whose "nothing else moved" premise was MEASURED rather than assumed.
+
+6. LEDGER PROSE SWAP — A NULL EDIT THAT TURNED THE PROJECT GREEN
+   Target byte-identical (gofmt sorts imports; an import-ORDER instruction has no purchase). One
+   code change three files away: ErrInsufficient -> ErrInsufficientFunds.
+       control rc=1  "exhausted 6 fix rounds, still failing"
+       arm     rc=0  "converged to green after fix round 1"
+   response.go is byte-identical in both. The whole difference between never compiling and
+   compiling is 25 characters in a var block, caused by transposing two words elsewhere.
+
+7. THE "CAPABILITY WALL" IS A 1-IN-3 COIN FLIP — n=9, zero GPU
+   Nine ledger trees on disk: 6 write ErrInsufficientFunds, 3 write the short name. response.go
+   uses the full name in all nine. The campaign had written this up as evidence about what a 7B
+   can hold. ⚠️ The neighbouring claim SURVIVES and the distinction matters: "the FIX LOOP cannot
+   repair a wrong sentinel" is supported (6 rounds, 3 visits, no correction); "the MODEL cannot
+   write it" is refuted at 2/3.
+
+8. EVERY SPEC EDIT IS IN EVERY FILE'S PROMPT (builder.py:1076 + _file_list)
+   A one-line spec edit is nineteen prompt edits. This deflates "propagated" throughout the
+   series' own write-ups — the 19->19 prose echo was not the model following a rename across a
+   file boundary; the rename was already in that file's prompt.
+
+9. FOUR HARNESS EXPLANATIONS FOR THE SPLIT, ALL DEAD
+   reach · truncation · retrieval (top_k shots identical across all five name arms, measured) ·
+   prompt-difference magnitude (backwards: the smaller diff perturbed more). Control and arm share
+   a process and identical prompts give identical bytes, so the only remaining difference is the
+   changed text. The harness is exonerated; the split is in the MODEL.
+   ⚠️ That is where the question moves, not where it is answered.
+
+   AND THE QUESTION INVERTED. "Why does an edit spread?" now has a boring answer (it is in every
+   prompt). "Why does an edit NOT spread?" has none. The nulls were the fragile column this
+   morning and are the only interesting one tonight.
+
+════════ INSTRUMENTS: FIVE DEFECTS, ALL IN MY OWN WORK ════════
+   PREREG files were UNTRACKED — 77/77 PREDICTION tracked, 0/2 PREREG. Sixth staleness of the
+       gitignore exception list, and the first caused by a new NAME for a covered class rather
+       than a new kind. It also silently shrank _check_timestamps.py's denominator (66 -> 67).
+   THE SERVER GUARD could return colima's SSH TUNNEL — `lsof -ti:8080 | head -1` returns two
+       processes in unstable order. Fixed with _server_pid.sh (loopback AND command name).
+   ERROR-SURFACE HASHES are `abs(hash(sig))` — Python's per-process randomised hash. Sound within
+       a run, meaningless across runs; every cross-run comparison of them is void.
+   FUNCTION-LEVEL COLLATERAL MISSES DECLARATIONS — the models.go change that turned ledger green
+       scores 0, because a var block is outside any function. Mirror of the 01:40 granularity
+       finding: a file-level null needs looking inside; a function-level null needs looking
+       outside. Checked across all arms: the three NULL arms have no decl-level changes, so those
+       nulls are genuine.
+   TWO FABRICATED TIMESTAMPS in the pre-registration, one of which postdated the launch it claimed
+       to precede — in the file whose entire value is that ordering.
+
+════════ THE PREDICTION LEDGER — 12 attempts, 4 hits ════════
+   Reasoned mechanism stories: 0 for 5. Base rates over ONE edit kind: the only defensible numbers.
+   Two nudges today, both wrong, both in the direction the argument pointed.
+   ⚠️ The "confident numbers always miss" heuristic is RETIRED: announced at 10:40 on nine
+   attempts, broke at 12:11 (a near-50 missed), broke the other way at 12:49 (a 70 hit). It fit
+   every arm that existed when it was written, which is the fourth time that has happened.
+
+════════ METHOD, THE ACTUAL LESSON OF THE DAY ════════
+Three of the day's results cost no GPU and answered questions the series was treating as needing
+draws: the within-process floor (already on disk), the sentinel base rate (nine trees, already on
+disk), and the retrieval test (a read of the harness). I was writing a pre-registration for a
+35-minute draw to get n=3 on the sentinel question when the answer was sitting at n=9.
+
+    WHEN A QUESTION IS ABOUT THE HARNESS, THE HARNESS IS READABLE.
+    ONLY QUESTIONS ABOUT THE MODEL NEED THE MODEL.
