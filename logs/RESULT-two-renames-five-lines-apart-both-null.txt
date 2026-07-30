@@ -1,0 +1,74 @@
+RESULT — two renames five lines apart, both CONFIRMED NULL: the quietness is not token-level
+============================================================================================
+Graded 15:00 on 30 July from the arm's snapshot. Pre-registration: PREREG-ledger-second-name-swap-
+same-file.txt (6502633), written before the draw.
+
+    ✗ PREDICTED: PERTURBS, 40% (the unadjusted name-swap base rate). WRONG.
+
+THE PAIR — everything held except which name
+    arm 1  line 331  TestBalanceMissingAccount -> TestBalanceAccountMissing  25->25   NULL
+    arm 2  line 336  TestPostUnknownAccount    -> TestPostAccountUnknown     22->22   NULL
+    Same spec, same entry (internal/service/service_test.go), same process (42826), same reused
+    control, both moving TOWARD an existing sibling ordering, both built under the anagram/rename
+    guards. Five lines apart.
+
+ARM 2's VERDICT — and it is cleaner than arm 1's
+    19 files · CODE 1 · IDENTICAL 18 · edit landed: YES · COLLATERAL 0 · FUNCTION COLLATERAL 0
+    ✅ RENAME-ONLY. Target file 3104 -> 3104 chars: EXACTLY the rename and nothing else.
+    (Arm 1's target went 3104 -> 3101 — the rename plus three characters of comment/string drift.
+    Arm 2 has not even that.)
+
+    The edit landed, checked mid-draw: TestPostAccountUnknown x1, old name x0, both files 6 funcs.
+    And the nine files generated BEFORE the target were byte-identical, so anything after it would
+    have been attributable. Nothing was.
+
+WHAT IT SETTLES — the pre-registered reading, unchanged
+"NULL again -> the quietness is a property of this FILE or this SPEC for renames, not of the
+particular tokens." Two different names, five lines apart, identical in kind, both null. Whatever
+makes a rename inert here is not the specific tokens.
+
+    ⚠️ AND IT CUTS AGAINST THE SHARPEST RESULT I WAS HOPING FOR. The perturbs branch would have
+    given two renames five lines apart with opposite outcomes — the cleanest possible token-level
+    demonstration. It did not happen, and the boring branch is the informative one: it localises
+    the effect to the file or the spec, which is a narrowing the token story would not have given.
+
+THE NAME-SWAP COLUMN, NOW 2 OF 6 — and it separates BY SPEC, not by token
+    taskflow   name3  16->16   PERTURBED
+    taskflow   name4  19->19   null
+    taskflow   name5  21->21   null
+    ratelimit  name1  19->19   PERTURBED
+    ledger     name1  25->25   null
+    ledger     name2  22->22   null
+    ------------------------------------------------
+    by spec:   taskflow 1 of 3 · ratelimit 1 of 1 · ledger 0 of 2
+
+    Length does not separate them (19->19 appears on both sides). Position does not (arms 1 and 2
+    are five lines apart with the same outcome). SPEC is the only variable left that tracks the
+    split, and ledger is now 0 for 2.
+
+    ⚠️ BUT "LEDGER IS QUIET" IS ALREADY FALSIFIED FOR NON-RENAME EDITS. The prose swap perturbed
+    ledger and turned it green. So the claim can only be "ledger is quiet FOR RENAMES", which is a
+    narrower and stranger thing than a quiet spec — and it is 0 of 2, which is two coin flips.
+
+⚠️ WHAT THIS ARM CANNOT DO, STATED BEFORE THE NEXT ONE IS DESIGNED
+Both arms are in ONE FILE. "File-level" and "spec-level" are still tied together, and the
+pre-registered follow-up is the same swap in a DIFFERENT ledger file:
+    perturbs -> the effect is FILE-level; service_test.go is quiet and others are not
+    null     -> the effect is SPEC-level for renames
+
+THE PREDICTION LEDGER — thirteen attempts, four hits
+    reasoned mechanism stories                       0 for 5
+    base rates over ONE edit kind, unadjusted        0 for 1  (this arm, 40%)
+    nudged base rates                                0 for 2  (both nudges wrong, both today)
+    near-50 numbers                                  3 for 5
+
+    ⚠️ THE UNADJUSTED BASE RATE ALSO MISSED, WHICH MATTERS BECAUSE I SPENT THE MORNING CONCLUDING
+    IT WAS THE ONLY DEFENSIBLE NUMBER. It was 40% for perturbation over a pool of five name swaps
+    drawn from THREE DIFFERENT SPECS — and the table above says spec is exactly the variable that
+    tracks the outcome. So it was a base rate over a heterogeneous pool again, which is the failure
+    02:01 named and I repeated at 13:05 while explicitly congratulating myself for not decorating
+    it. The homogeneous pool for this arm was "ledger renames", n=1, all null.
+
+    That is the third time the same error has appeared in a different costume: heterogeneous base
+    rate (02:01), bias imported across domains (10:06), and now a base rate I called homogeneous
+    because it was one EDIT KIND while ignoring that it spanned three SPECS.
