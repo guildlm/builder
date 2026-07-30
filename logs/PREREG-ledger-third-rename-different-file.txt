@@ -1,0 +1,62 @@
+PREREG — the SAME swap in a DIFFERENT ledger file: is the quietness FILE-level or SPEC-level?
+=============================================================================================
+Written 15:10 on 30 July, before the draw. This is the follow-up pre-registered in
+PREREG-ledger-second-name-swap-same-file.txt and restated in the 15:00 RESULT.
+
+THE STATE IT RESOLVES
+    ledger renames    arm 1 (line 331) NULL · arm 2 (line 336) NULL — both in
+                      internal/service/service_test.go, five lines apart
+    name swaps overall 2 of 6, and they separate BY SPEC:
+                      taskflow 1 of 3 · ratelimit 1 of 1 · ledger 0 of 2
+
+Arms 1 and 2 are in ONE FILE, so "this file is quiet" and "this spec is quiet for renames" are
+tied together and neither can be read off. This arm unties them.
+
+    PERTURBS -> FILE-level. service_test.go is quiet; other ledger files are not. "ledger is quiet
+                for renames" dies, and the effect localises to something about that file.
+    NULL     -> SPEC-level for renames. Three ledger renames, two files, all inert, while a
+                non-rename edit on the same spec perturbed AND turned it green. That combination
+                — quiet for renames, live for everything else, within one spec — is the strangest
+                shape the series would have produced and would deserve a fourth arm.
+
+THE ARM
+    edit      line 457, internal/api/middleware_test.go's entry:
+              TestRecoverMiddleware -> TestMiddlewareRecover, 21 -> 21
+              24735 chars and 24813 bytes both sides, 1 substitution, 0 left behind
+    control   generated/ledger-ctl-proc3, reused (server still 42826, verified)
+    arm       generated/ledger-name3
+    grader    --target=internal/api/middleware_test.go --rename=TestRecoverMiddleware:TestMiddlewareRecover
+
+WHY THIS FILE AND THIS NAME, of twenty-one candidates the scan produced
+    - DIFFERENT PACKAGE from arms 1 and 2 (internal/api, not internal/service), so "file" is
+      varied as far as this spec allows without changing the edit kind.
+    - It is the CLOSEST ANALOGUE TO THE ONE TAXFLOW RENAME THAT PERTURBED. name3 was
+      TestRecoverPanic -> TestPanicRecover in middleware_recover_test.go: the same file ROLE, the
+      same swap shape (Recover traded with its neighbouring noun). If file role carries the
+      effect, this is where it should show.
+    - Candidates that break a sibling naming convention were rejected (TestListAccountsSorted ->
+      TestAccountsListSorted breaks the TestList* family), as were ones that do not preserve
+      meaning (TestCreateGetAccount -> TestGetCreateAccount reverses the order of operations).
+
+PREDICTION — PERTURBS, 30%
+    The homogeneous pool is "ledger renames": n=2, both null, so the naive base rate is 0% and
+    0% is not a usable estimate at n=2. Laplace-smoothing it, (0+1)/(2+2) = 25%. The cross-spec
+    rate for name swaps is 2/6 = 33%. 30% sits between them.
+
+    ⚠️ THIS IS A SHADE AND I SAID AT 13:05 I WOULD STOP SHADING. The difference, stated so it can
+    be judged: the two shades that failed today moved a number AWAY from a defensible estimate on
+    an argument (+5 for file count, 85->60 for a bias from another domain). This one moves a
+    number that CANNOT BE USED (0% from n=2) to the nearest defensible one. If that is a
+    distinction without a difference, this prediction should be scored as another failed shade.
+
+    ⚠️ AND THE 15:00 LESSON APPLIES TO MY OWN POOL CHOICE. I called 40% "the homogeneous base
+    rate" and it spanned three specs, which is exactly the variable that tracks the outcome. So
+    "ledger renames" is the right pool here — but it is n=2, and choosing a pool small enough to
+    be homogeneous is the same trade that made the last one wrong in the other direction.
+
+BRANCHES
+    PERTURBS   file-level. Follow-up: a second rename in THIS file, mirroring arms 1/2.
+    NULL       spec-level for renames. Follow-up: a rename on a FOURTH spec, to see whether
+               "quiet for renames" is a property some specs simply have.
+    NULL EDIT  target identical. Unlikely — arms 1 and 2 both landed in their target file.
+    UNMEASURED no snapshot. Redraw.
