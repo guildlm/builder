@@ -1,0 +1,82 @@
+RESULT — arm 3 perturbed the renamed function and nothing else, which my binary had no slot for
+===============================================================================================
+Graded 15:55 on 30 July from the snapshot. Pre-registration: PREREG-ledger-third-rename-different-
+file.txt, written before the draw.
+
+    PREDICTED: PERTURBS, 30%. ⚠️ WHETHER THAT IS A HIT DEPENDS ON A DEFINITION I HAD BEEN USING
+    TWO WAYS WITHOUT NOTICING. See below. I am not claiming it.
+
+THE VERDICT
+    19 files · CODE 1 · IDENTICAL 18 · edit landed: YES
+    COLLATERAL: 0 · FUNCTION-LEVEL COLLATERAL: 0
+    "the rename does NOT account for everything: 1 file(s) still differ in code after neutralising
+     it" · "the RENAMED function's own body also changed"
+
+    The first sixteen files were byte-identical BEFORE the target was written — so the changed plan
+    block sat in sixteen prompts and moved nothing. The eighteenth file, the target, changed:
+
+        control   panicky := http.HandlerFunc(func(http.ResponseWriter, *http.Request) {
+                      panic("boom")
+                  })
+                  h := Chain(panicky, Recover)
+        arm       h := Recover(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+                      panic("boom")
+                  }))
+
+    A different program: the arm dropped Chain and wrapped with Recover directly.
+
+    ⚠️ AND IT IS A SPEC REGRESSION, NOT JUST A DIFFERENCE. The entry says "Chain an
+    http.HandlerFunc that panics with Recover". The control does that. The arm bypasses Chain
+    entirely, so the test no longer exercises the function the spec names — while still asserting
+    500 and still passing. A renamed test quietly stopped covering Chain.
+
+════════ THE REAL FINDING: "PERTURBED" HAS MEANT TWO THINGS ════════
+The closed series scored arms by COLLATERAL — did files or functions the edit does not name write
+different code. By that measure this arm is a NULL: collateral 0, exactly like arms 1 and 2, and
+ledger is 0 for 3.
+
+This sub-series scored arms by RENAME-ONLY — is every difference accounted for by the declared
+rename. By that measure this arm PERTURBS: arms 1 and 2 were rename-only, this one is not.
+
+    Both are reasonable. They are not the same measure, and I have been writing "perturbed" for
+    both since the sub-series started. On every arm before this one they agreed, so the conflation
+    cost nothing and was invisible. This arm is the first where they disagree, and it disagrees
+    maximally: null on one, perturbed on the other.
+
+    ⚠️ SO THE PRE-REGISTERED BRANCHES DO NOT DECIDE. "PERTURBS -> FILE-level, ledger is not quiet
+    for renames" and "NULL -> SPEC-level" both fire, on different definitions, from one draw. That
+    is a defect in how I wrote the branches, not an ambiguity in the data — the data is clean and
+    fully described above.
+
+    THE HONEST STATE OF THE FILE-VS-SPEC QUESTION: UNRESOLVED. It needs re-asking with the measure
+    named in advance.
+
+WHAT IS UNAMBIGUOUS, ON EITHER MEASURE
+    1. THE PLAN-BLOCK CHANGE ALONE MOVED NOTHING, sixteen files running. The prose arm's identical
+       condition perturbed models.go at file 4. Same mechanism available, opposite outcome — so the
+       plan block being changed is not sufficient for collateral, which is new and is measured
+       rather than argued.
+    2. LEDGER RENAMES PRODUCE ZERO COLLATERAL, 3 for 3, across two files and two packages.
+    3. A RENAME CAN REWRITE ITS OWN TEST'S BODY WITHOUT TOUCHING ANYTHING ELSE. A category the
+       series did not have. Previous "perturbing" renames (taskflow name3, ratelimit name1) moved
+       OTHER functions; this one moved only itself.
+
+A THIRD CATEGORY, NAMED SO THE TABLE CAN HOLD IT
+    RENAME-ONLY      nothing differs but the name              arms 1, 2
+    LOCAL            the renamed function's own body differs,
+                     no other file or function moves           arm 3   <- NEW
+    COLLATERAL       other files or functions write different
+                     code                                      taskflow name3, ratelimit name1
+
+THE PREDICTION LEDGER — fourteen attempts, four hits and one unscorable
+    The 30% was a shade I defended at 15:10 as moving an unusable 0%-from-n=2 to the nearest
+    defensible number. It cannot be scored, because the outcome it was predicting is exactly the
+    outcome whose classification I had left ambiguous. Recording it as UNSCORABLE rather than
+    claiming it, since the version that would score as a hit is the one I only pinned down after
+    seeing the result.
+
+    ⚠️ That is the fourth prediction-methodology failure today, and unlike the other three it is
+    not about the NUMBER. Heterogeneous base rate (02:01), bias imported across domains (10:06),
+    a pool called homogeneous that spanned three specs (15:00) — and now a prediction whose
+    OUTCOME SPACE was underspecified. A number is worthless if the branches it maps onto are not
+    disjoint and exhaustive, and I checked that for "null edit" this morning and not for this.
