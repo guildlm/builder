@@ -50,3 +50,42 @@ PREDICTION
     makes the repair APPLICABLE on ledger. Whether the repair then survives toolchain.check is a
     third question and neither fix answers it. Saying so now, because "the fix works" was the exact
     over-claim I had to retract at 01:55 and again at 02:15.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+AMENDED 05:00 — FIX 2 ABSORBS A var/const PATTERN. Simulated, still no code changed, no draws.
+════════════════════════════════════════════════════════════════════════════════════════════
+The 04:45 result found that the ownership tool I built was redundant AND blind to `var ErrNotFound`
+— the same blind spot as _REQUIRED_TYPE_RE. Its conclusion was that the right response is one more
+pattern in FIX 2, not a fourth arm. Simulated:
+
+    extractor                          movable of 64   take EMPTY
+    now  (Name struct|interface)             54            10
+    +backticked capitalised                  62             2
+    +backticked +\b(?:var|const)\s+([A-Z]\w*)  63             1
+
+    And on workapi's store.go entry, which is the case that started this:
+        now          {'Store'}
+        +backtick    {'Store'}
+        +var/const   {'ErrExists', 'ErrNotFound', 'Store'}   <- the sentinels become visible
+
+BLAST RADIUS OF THE var/const PART — four entries, all correct
+    workapi     internal/models/models.go   + ErrInvalid
+    workapi     internal/store/store.go     + ErrExists, ErrNotFound
+    taskapipro  internal/models/models.go   + ErrInvalid
+    taskapipro  internal/store/store.go     + ErrExists, ErrNotFound
+
+    Each is a sentinel that entry names in plain words and that file genuinely should declare. Added
+    to the five the backtick part claims, the full widening touches NINE entries across three specs
+    and over-claims in none of them, checked one by one.
+
+REVISED SCORING FOR FIX 2 — declared before the edit
+    take EMPTY must fall from 10 to 1. Not 0: the survivor is taskapipro-pairB-t1's store.go, which
+    wants Store while its donor memory.go is ALSO promised Store, so the "only take what the donor
+    was not asked to declare" rule correctly refuses. That is not a regex failure and no extractor
+    change should fix it — if a widening DOES drive it to 0, the widening has broken the ownership
+    rule and must be rejected.
+
+    ⚠️ THAT IS THE USEFUL PART OF THIS AMENDMENT. At 04:05 I predicted 10 -> 0 and got 2, and scored
+    it a careless endpoint. Now the endpoint is derived rather than guessed: 1, with a named reason,
+    and a reject condition if the number goes lower. Predicting the number and then asking what the
+    number CANNOT reach is the rule that produced this.
