@@ -52,6 +52,38 @@ PREDICTION — the arm PERTURBS, 55%
     sound. The base rate is the most defensible number available and the honest thing is to sit
     near it rather than decorate it.
 
+CONDITION RECORDED BEFORE THE VERDICT — throughput is collapsing across this arm
+Measured 11:12, control draw at 17 of 19, nothing graded. Prefill rate over the session:
+
+    xserver          09:31    286.1 tok/s
+    xserver2         09:46    216.6
+    proc3            10:12    187.7   (last run of that draw: 117.1)
+    ledger control   10:42+   118.8   (last run: 41.5)
+
+Roughly 7x down from session start and still falling INSIDE the current draw. Consistent with
+sustained-load throttling after two hours of continuous GPU work.
+
+    ⚠️ THE CONFOUND THIS CREATES, STATED PLAINLY: the control is being drawn at ~120 tok/s and
+    falling; the arm will be drawn afterwards, slower still, perhaps 3x slower than its own
+    control. Control and arm are meant to differ in ONE thing — the renamed test — and they will
+    also differ in machine throughput.
+
+    WHY IT IS PROBABLY BENIGN, AND WHY "PROBABLY" IS THE RIGHT WORD. The xserver/xserver2 pair
+    measured this variable directly: a 24% throughput change produced BYTE-IDENTICAL output. So
+    throughput is a proven-inert variable at that magnitude. A 3x change is not 24%, and
+    extrapolating an inert result to a larger dose is exactly the move this record keeps
+    punishing. What is measured is that it was inert at 24%; what is assumed is that it stays
+    inert at 3x.
+
+    NOT MITIGATED BY RESTARTING. Restarting the server would restore throughput and DESTROY the
+    arm: control and arm must share one process, the control is already drawn on 42826, and a
+    fresh process is a different condition — proven today to write a different program from
+    identical input. Slow and valid beats fast and confounded.
+
+    IF THE ARM COMES BACK PERTURBED, this is a live alternative explanation and must be named in
+    the RESULT rather than discovered later. If it comes back NULL, the confound is harmless —
+    a 3x throughput swing that changed nothing is one more measurement that throughput is inert.
+
 BRANCHES, INCLUDING THE TWO THAT ARE NOT RESULTS
     PERTURBS     "the split" survives a third spec at coin-flip odds, or "ledger is perturbable"
                  gains a case. One arm cannot separate those two; it can only fail to kill either.
