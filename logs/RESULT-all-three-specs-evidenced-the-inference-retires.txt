@@ -1,0 +1,51 @@
+RESULT — taskapipro closes the gap: all three promoted specs are now measured
+============================================================================
+Decisive files graded 01:35 on 31 July. Pre-registration: logs/PREREG-taskapipro-order-pair.txt.
+
+    ✓ PREDICTED: given A stubs, B is FULL — 85%. HIT.
+
+THE PAIR — and B is the SHIPPED ARTIFACT, not a stand-in
+    server 50703, one process, two draws back to back
+    A = specs/taskapipro-origorder.yaml   memory.go   14 chars STUB · store.go 2649 (9 funcs)
+    B = specs/taskapipro.yaml             memory.go 2650 chars, 9 funcs · store.go (interface)
+
+    B is the spec exactly as promoted at 22:40. That is only possible because the original was
+    preserved as -origorder rather than the file being edited in place — the promotion would
+    otherwise have destroyed the control needed to check it.
+
+FIVE INFORMATIVE PAIRS, FIVE PROCESSES, THREE SPECS, ZERO EXCEPTIONS
+    spec         pair  A memory.go / store.go        B memory.go / store.go
+    ledger       p6    14 STUB / 2588 (7 funcs)      2373 (7 funcs) / 377
+    ledger       p7    14 STUB / 2265                2374 (7 funcs) / 379
+    ledger       p8    14 STUB / 2620                2373 (7 funcs) / 377
+    workapi      w1    14 STUB / 1907 (5 funcs)      1769 (5 funcs) / 353
+    taskapipro   t1    14 STUB / 2649 (9 funcs)      2650 (9 funcs) / —
+    ledger       p5    A FULL -> discarded by the gate after one draw, as designed
+
+    Every informative pair: A stubs, B does not. The prohibition — B CANNOT stub, because memory.go
+    is written before store.go can take its job — has had FIVE exposures and never fired.
+
+    The method count varies by spec (7 / 5 / 9) and the relocation is a wholesale mirror every time:
+    the same set of declarations, in the other file.
+
+WHAT THIS SPECIFICALLY RETIRES
+At 22:40 I promoted the fix to three specs with two evidenced and ONE INFERRED, and recorded that
+distinction rather than letting the promotion imply three measurements. taskapipro is now measured.
+The inference is retired; all three are evidence.
+
+    ⚠️ AND IT NEARLY WAS NOT WORTH RUNNING, by my own rule. taskapipro has the LOWEST stub rate of
+    the three (35%), so the gate was expected to discard ~2 processes in 3, and a single non-stub B
+    is only ~1.5:1 there. The 18:30 asymmetry rule says test where the baseline is extreme; this was
+    the opposite. It was run anyway because I had CHANGED that spec on no evidence, and "get some or
+    say so" is not a power calculation. It stubbed on the first attempt, so the cost never
+    materialised — but the reason for running it was integrity, not expected value.
+
+⚠️ WHAT REMAINS UNCHANGED
+    NOT about green. taskapipro A exhausted 6 rounds at rc=1 after 5600s, the longest draw of the
+    night. Placement and convergence are independent; every pair is scored on placement from the
+    as-drawn snapshot.
+    THE COST STANDS, NARROWED. ledger A converged 3/3 vs B 1/3; workapi tied 0/1 both ways. Where a
+    stub made a tree LOOK easy, removing it surfaces real work; where the tree was already failing,
+    the reorder is free.
+    NOT the whole 58%. Order explains the stub. It does not explain why the rate differs by spec
+    (35 / 67 / 80) — still unidentified, still underpowered at n=3 specs.
