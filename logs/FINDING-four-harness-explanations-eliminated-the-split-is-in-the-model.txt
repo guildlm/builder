@@ -1,0 +1,69 @@
+FINDING — four harness explanations eliminated; the perturbed/null split is in the MODEL
+========================================================================================
+30 July, 13:00. Zero GPU. All four checks are reads of code or of artifacts that already existed.
+
+THE PHENOMENON, RESTATED AFTER TODAY INVERTED IT
+Five equal-length name swaps: 2 perturbed the program, 3 did not. Seven non-rename edits: 7
+perturbed. This morning the interesting column was "why does an edit spread?" — that now has a
+boring answer (builder.py:1076 puts every file's purpose into every file's prompt, so a spec edit
+is nineteen prompt edits and spreading is the DEFAULT). The interesting column is the NULLS.
+
+FOUR CANDIDATE EXPLANATIONS, ALL DEAD
+    1. REACH — "the edit was too far from that file to be in its prompt."
+       Dead. _file_list renders EVERY file's path and full purpose into EVERY generation prompt.
+       ledger's edit sat in all nineteen prompts and eighteen files came out byte-identical.
+
+    2. TRUNCATION — "long specs get their purposes trimmed, capping an edit's reach."
+       Dead. Nothing in builder.py trims purpose text; every "truncat" in the file is about a
+       truncated model response or a truncated import path.
+
+    3. RETRIEVAL — "the changed name pulls different few-shot examples."
+       Dead, and this one was worth measuring rather than arguing, because a name swap DOES change
+       the retrieval token set (an identifier is one token to [a-z0-9]+, so reordering words inside
+       it swaps one token for another). Ran Retriever.top_k on the control and arm selector for all
+       five name arms:
+
+            taskflow  name3   PERTURBED   shots identical
+            taskflow  name4   null        shots identical
+            taskflow  name5   null        shots identical
+            ratelimit name1   PERTURBED   shots identical
+            ledger    name1   null        shots identical
+
+       Identical in all five, on both sides of the split. One token moving inside a long purpose
+       does not shift a top-2 Jaccard ranking.
+
+       ⚠️ CORRECTION TO MY OWN 12:38 NOTE, which said the name arms differ from the prose arms
+       because their token set changes. The SET changes; the SHOTS do not. I recorded the set
+       difference and let it imply a retrieval difference without measuring it. Measured now: no.
+
+    4. PROMPT-DIFFERENCE MAGNITUDE — "bigger prompt change, bigger output change."
+       Dead, and backwards. taskflow's prose swap left the retrieval set identical and differed in
+       two transposed words — and perturbed 6 files and 8 functions. The ledger name swap moved a
+       retrieval token as well and changed 0 files.
+
+WHAT IS LEFT, AND IT IS A NARROWING RATHER THAN AN ANSWER
+Control and arm share a process. Within-process determinism is measured at zero, twice, on two
+processes, one pair spanning a 24% throughput change and one spanning ~3x. Identical prompts give
+identical bytes. So every structural difference between a null arm and a perturbing arm has now
+been ruled out, and the only remaining difference between the two runs is THE CHANGED TEXT ITSELF.
+
+    THE HARNESS IS EXONERATED. Whatever makes one equal-length rename rewrite eight functions and
+    another rewrite nothing is a property of how the MODEL responds to that specific token change,
+    not of retrieval, prompt assembly, reach, or the machine.
+
+    ⚠️ THAT IS NOT A MECHANISM AND MUST NOT BE WRITTEN UP AS ONE. "It is the model" is where the
+    question moves, not where it is answered. It is worth stating only because four cheap
+    structural answers existed, all of them plausible, and all four are now gone — which is what
+    makes the remaining question worth expensive work instead of another grep.
+
+WHAT WOULD ACTUALLY TEST THE REMAINING QUESTION
+Nothing on disk can. It needs draws that vary the TEXT systematically while holding everything
+else — the same rename applied at different positions in the same file, or the same word pair
+swapped in entries of different lengths. That is a different and more expensive series than the
+one that has been running, and it should not start until the current series is written up.
+
+METHOD NOTE — the third free result in an hour
+The 6-of-9 sentinel base rate, this retrieval test, and the prompt-construction read were all
+answers to questions the series had been treating as needing draws. None cost GPU. The pattern:
+when a question is about the HARNESS, the harness is readable; only questions about the MODEL need
+the model.
