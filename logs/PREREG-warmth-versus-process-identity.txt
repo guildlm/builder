@@ -59,6 +59,25 @@ transition specifically, since that pair was warm->warm throughout.
     Consequence pre-committed: if B == C lands, that is NOT a vindication of the reasoning. It is
     one hit for a shaded prediction, and the shading is the part to keep.
 
+THE MANIPULATION IS REAL AND MEASURED — added while C was at 15 of 16, still ungraded
+"Warmed" was an assumption about 2212's state. It is now a measurement, taken from the server's
+own prefill logs, which are independent of anything the grader will say:
+
+    B xserver  (cold start)   15 prefill runs   mean 286.1 tok/s   max 426.7
+    C xserver2 (warmed)       14 prefill runs   mean 216.6 tok/s   max 281.5
+
+    The warmed process is 24% SLOWER, and its best run is a third off the cold one's best.
+
+That is the OPPOSITE of the naive "warm cache means faster" story, and the direction does not
+matter here. What matters is that B and C are demonstrably different process STATES rather than
+two draws that merely happened at different times. So B vs C is not a null manipulation:
+
+    B == C  now means determinism survived a process whose throughput moved 24%. That is a much
+            stronger claim than "two draws minutes apart agreed", and it makes cache/memory state
+            a poor candidate for the 4-file cross-process gap.
+    B != C  now has a named candidate cause sitting in the same file as the result, instead of
+            an unexplained difference.
+
 ⚠️ WHAT NEITHER BRANCH LICENSES
 Nothing here touches the ten-arm distribution. Those arms were control-vs-arm within one process
 on 4439, and the 4439 within-process floor is measured at zero. Whatever warmth or process
