@@ -1,0 +1,51 @@
+PREREG — arm 5: swap the generation ORDER of store.go and memory.go
+==================================================================
+Written 17:25 on 30 July, before the draw. Outcome space declared disjoint and exhaustive, because
+arm 3's pre-registration failed on exactly that and arm 4's branches were wrong about direction.
+
+THE HYPOTHESIS BEING TESTED (from the 17:15 FINDING)
+The ledger spec lists internal/store/store.go SIXTH and internal/store/memory.go SEVENTH. Files
+generate in spec order and each prompt carries already-generated siblings' CONTENT. So store.go goes
+first; when it writes the MemStore implementation, memory.go is generated next, finds the
+implementation already in its sibling block, and ships fourteen bytes.
+
+    The harness already forbids this in words — scope_rule (builder.py:995, injected at 1083) names
+    "the in-memory implementation" as its example and says doing another file's job "leaves that file
+    nothing to declare, it ships EMPTY". It fails in 58% of draws corpus-wide, 67% for ledger.
+
+THE MANIPULATION — the cleanest in the series
+    specs/ledger-order1.yaml: the two entry BLOCKS transposed. Nothing else.
+        24735 chars == 24735 · 24813 bytes == 24813 · whole-file character multiset UNCHANGED
+        · same 19 entries, same set, only the order of two ADJACENT entries swapped
+    No word changed, no character added or removed. The only thing that differs is which file the
+    model is asked to write first.
+    control generated/ledger-ctl-proc3 (reused, server still 42826) · arm generated/ledger-order1
+
+OUTCOME SPACE — disjoint, exhaustive, decided now
+    (a) NO-STUB, IMPL IN memory.go      memory.go substantial, store.go small (~382, the interface).
+                                        Matches the control's shape. Consistent with the order
+                                        mechanism, but WEAK on its own: ledger draws non-stub 33% of
+                                        the time anyway, so one clean draw is not proof.
+    (b) STUB PERSISTS in memory.go      memory.go ~14 bytes despite going FIRST. FALSIFIES the order
+                                        mechanism outright — being generated first did not protect
+                                        it. This is the informative failure.
+    (c) STUB MOVED to store.go          store.go ~14 bytes, memory.go carrying impl AND interface.
+                                        STRONGEST confirmation: the defect follows the SECOND
+                                        position rather than the file, which no base rate explains.
+    (d) NEITHER FILE STUBBED, both substantial and duplicating each other. Reports as (a) for the
+        stub question but flags a new failure — the duplication scope_rule also forbids.
+    UNMEASURED  no snapshot. Redraw.
+
+    ⚠️ I WILL NOT COUNT (a) AS CONFIRMATION. Pre-committing because (a) is the outcome I expect and
+    the one a 33% base rate hands me for free. Only (c) confirms at n=1; (a) requires repetition
+    across several trivially-different variants, which is a multi-draw experiment I have not run.
+
+PREDICTION — (a) or (c), i.e. memory.go NOT a stub: 65%
+    Reasoning: memory.go generated first has no sibling implementation to defer to, and its own
+    purpose describes the MemStore in detail, so it should write it; store.go then sees it and has
+    only the interface left, which is its actual job.
+
+    ⚠️ THIS IS A MECHANISM PREDICTION AND MECHANISM PREDICTIONS ARE 0 FOR 6 IN THIS RECORD. Stated
+    at 65% without adjustment, because both attempts to adjust a number today made it worse. The
+    0-for-6 is recorded as the caveat rather than baked into the figure — if it misses, that is the
+    seventh mechanism story to die and the lesson is the count, not this arm.
