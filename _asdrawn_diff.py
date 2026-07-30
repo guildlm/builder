@@ -441,6 +441,28 @@ def main(argv: list[str]) -> int:
         else:
             print(f"\n  the rename does NOT account for everything: {len(survivors)} file(s) "
                   f"still differ in code after neutralising it — {survivors}")
+        # THE CATEGORY LINE. Added 30 July 16:15, and it exists because this tool has been
+        # printing BOTH measures since it was written while its reader took one and drew
+        # conclusions as if it were the other. On six consecutive arms the two agreed, so nothing
+        # forced the distinction; the seventh disagreed maximally — collateral 0 with the renamed
+        # function's own body rewritten — and it overturned a by-spec conclusion drawn from the six.
+        #
+        #   RENAME-ONLY  nothing differs but the declared name
+        #   LOCAL        the renamed function's own body differs; no other file or function moves
+        #   COLLATERAL   a file or function the edit does not name wrote different code
+        #
+        # The three are disjoint and exhaustive for a rename arm, which the old perturbed/null
+        # binary was not. A pre-registration that says "perturbs" without naming which of these it
+        # means is unscorable, and one was.
+        n_coll = len(fn_collateral)
+        if n_coll:
+            cat = "COLLATERAL"
+        elif survivors:
+            cat = "LOCAL"
+        else:
+            cat = "RENAME-ONLY"
+        print(f"  CATEGORY: {cat}   (collateral {n_coll} · beyond-rename "
+              f"{'YES' if survivors else 'no'})")
     # A prose difference in a file the edit does not name is not a program change, but it is not
     # nothing either: it is the edit propagating as WORDING. Worth its own line, because the
     # series' CODE/PROSE split otherwise files it under "no difference".
