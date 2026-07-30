@@ -1,0 +1,21 @@
+NOTE — conditions and voids, 30 July, server 2212
+=================================================
+
+09:58 · STUB REGRESSION probe on the cross-process pair: VOID, not null.
+Ran _stub_files.py on taskflow-chain6 (4439) and taskflow-xserver (2212), the same-spec
+cross-process pair. Both "no stub files". That answers NOTHING about open question #3.
+
+    taskflow is a FLAT 16-file spec. It has no internal/store/memory.go. The regression is
+    three v5 trees — ledger, taskapipro, workapi — writing that file as 14 bytes of bare
+    `package store` while the spec describes eight methods. A spec with no such file cannot
+    exhibit it, so a clean result here is the probe not applying, not the defect being absent.
+
+    This is the VOID branch the 29 July record demanded be added to every prediction set:
+    "four predictions went VOID because the machine never reached the question." Recording it
+    as a void rather than letting "both clean" read as evidence.
+
+    ✅ USEFUL CONSEQUENCE: ledger IS one of the three affected specs, and the ledger control
+    draw is already required for the pre-registered name-swap arm. That draw therefore does
+    double duty — it is the arm's control AND the first 2212 sample of a spec that showed the
+    regression on 4439. It still will not separate server from day (2212 and 30 July change
+    together), but it is the sample that does not currently exist, at no extra GPU cost.
