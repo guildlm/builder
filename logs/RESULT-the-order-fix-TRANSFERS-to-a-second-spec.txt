@@ -1,0 +1,62 @@
+RESULT — the order fix TRANSFERS: workapi behaves exactly like ledger
+=====================================================================
+Decisive files graded 23:05 on 30 July. Pre-registration: logs/PREREG-workapi-order-transfer.txt,
+written before the draw, with workapi chosen for its extreme 80% baseline.
+
+    ✓ PREDICTED: given A stubs, B is FULL — 85%. HIT.
+
+THE PAIR — workapi, server 60783, one process, two back-to-back draws
+    A  original order  store.go 6th, memory.go 7th
+       memory.go   14 chars — 'package store\n'        <- STUB
+       store.go  1907 chars, 5 funcs                    <- implementation landed here
+    B  swapped order   memory.go 6th, store.go 7th
+       memory.go 1769 chars, 5 funcs                    <- implementation where the spec puts it
+       store.go   353 chars, 0 funcs                    <- the interface, its actual job
+
+    Specs differ ONLY in the order of two adjacent entry blocks: 29451 chars == 29451,
+    29561 bytes == 29561, whole-file character multiset UNCHANGED.
+
+THE FULL PICTURE — four informative pairs, four processes, TWO specs
+    spec      pair  server   A memory.go / store.go      B memory.go / store.go
+    ledger    p6    242      14 STUB / 2588 (7 funcs)    2373 (7 funcs) / 377 (0)
+    ledger    p7    34326    14 STUB / 2265              2374 (7 funcs) / 379 (0)
+    ledger    p8    62240    14 STUB / 2620              2373 (7 funcs) / 377 (0)
+    workapi   w1    60783    14 STUB / 1907 (5 funcs)    1769 (5 funcs) / 353 (0)
+    ledger    p5    83476    A FULL -> discarded by the gate after one draw, as designed
+
+    Every informative pair: A stubs, B does not. The prohibition — B CANNOT stub, because memory.go
+    is written before store.go can take its job — has now had FOUR chances on four processes and
+    has never fired.
+
+WHY THE SECOND SPEC MATTERS MORE THAN A FOURTH LEDGER PAIR
+More ledger pairs raise a ratio. workapi answers a different question: whether the finding is about
+LEDGER or about the PIPELINE. It is the pipeline.
+
+    workapi differs from ledger in file count (21 vs 19), in content, in method count (5 vs 7), and
+    in every character of both entries. The ONE thing it shares is the entry ORDER — store.go
+    before memory.go — and it shares the defect, at 80% against ledger's 67%.
+
+    ⚠️ AND THE 80% BASELINE IS WHY ONE PAIR SUFFICES HERE. Per the 18:30 asymmetry rule, a single
+    non-stubbing B against an 80% stub rate is ~5:1 on its own; the same observation on taskapipro
+    (35%) would have been worth almost nothing. Choosing the extreme baseline was the difference
+    between a decisive draw and a wasted one.
+
+THE FIX, NOW EVIDENCED ACROSS TWO SPECS
+    EMIT IMPLEMENTATION ENTRIES BEFORE THE INTERFACE ENTRIES THEY SATISFY.
+
+    No prompt engineering, no model change, no retraining, no cost. ledger, taskapipro and workapi
+    all currently do the opposite — store.go 6th, memory.go 7th — which is exactly why the 107-tree
+    corpus could never test it: the variable was constant across all 38 distinct draws (17:45).
+
+    ⚠️ taskapipro is UNTESTED and remains a prediction. It shares the order and the defect (35%), so
+    the fix should transfer; that is an inference, not a measurement, and its low baseline makes it
+    the most expensive of the three to demonstrate.
+
+WHAT IS STILL NOT CLAIMED
+    NOT about green. p6's B went green; p7's and workapi's A exited rc=1. Placement and compilation
+    are independent, and every pair here is scored on placement from the as-drawn snapshot.
+    NOT the whole 58%. Order explains the stub. It does not explain why the rate differs by spec
+    (35 / 67 / 80) — still unidentified, still underpowered at n=3 specs.
+    NOT a claim that scope_rule is useless. It is a guard that names this exact failure in words and
+    fails anyway; what this shows is that ORDER beats the instruction, not that the instruction is
+    absent.
