@@ -1,0 +1,58 @@
+RESULT — first informative pair: swapping the entry order fixed the stub
+=======================================================================
+Decisive files graded 20:05 on 30 July from disk mid-draw (both are early files; B's fix loop has
+not started). Pre-registration: logs/PREREG-stub-order-paired-experiment.txt.
+
+    ✓ PREDICTED: for the first informative pair, B is FULL — 75%. HIT.
+
+THE PAIR — one process, one variable
+    server pid 242, both draws back to back, specs differing ONLY in the order of two adjacent
+    entry blocks (character multiset identical, 24735 chars, 24813 bytes)
+
+    A  original order   store.go 6th, memory.go 7th
+       memory.go  14 chars — 'package store\n'          <- STUB
+       store.go 2588 chars, 7 funcs                     <- implementation landed here
+       and A exited rc=0: GREEN, with the implementation in the wrong file
+
+    B  swapped order    memory.go 6th, store.go 7th
+       memory.go 2373 chars, 7 funcs                    <- implementation where the spec puts it
+       store.go  377 chars, 0 funcs                     <- the interface, its actual job
+
+    A STUBS · B FULL. On this process, swapping which file is generated first fixed the defect.
+
+WHY THIS PAIR IS EVIDENCE WHERE ARMS 5 AND 6 WERE NOT
+Both of those arms tested a fix against a control that did not exhibit the defect — ledger-ctl-proc3
+does not stub, and arm 6's control already had its JSON tags. A fix cannot be shown to work on a
+case that is not broken. The paired design gates on exactly that: draw A, and refuse to draw B
+unless A actually stubs. Pair p5 was DISCARDED by that gate after one draw instead of two.
+
+HOW STRONG IS IT — stated as a likelihood ratio, not a verdict
+If order were irrelevant, B would be another draw from the same distribution, and ledger stubs in
+roughly 40-67% of draws. So P(B full | order irrelevant) is about 0.33-0.6, against ~1.0 under the
+mechanism. That is roughly 2-3:1 for the mechanism.
+
+    ⚠️ n=1 INFORMATIVE PAIR. Two-to-three-to-one is real evidence and it is not proof. What makes it
+    worth more than the number suggests is the DESIGN: a within-process pair differing only in the
+    order of two blocks, with the character multiset identical, on a process that demonstrably
+    stubs. There is no other variable to attribute it to.
+
+    ⚠️ AND THE STRONG FALSIFIER DID NOT FIRE. The mechanism says B CANNOT stub, because memory.go is
+    written before store.go can take its job. A single B-stubs observation would have killed it
+    outright. It did not happen here; it has one chance per future pair.
+
+WHAT IT MEANS FOR THE 58% STUB CORPUS
+scope_rule (builder.py:995) forbids store.go from writing the implementation, names it as its
+example, says the other file "ships EMPTY" — and fails in 58% of draws. This result says the failure
+is not the model ignoring an instruction in the abstract: it is ORDER. The file generated first
+takes the implementation, and the instruction does not stop it.
+
+    ⚠️ IF THIS REPLICATES, THE FIX IS FREE AND MECHANICAL: emit implementation entries before the
+    interface entries they satisfy, in every spec. No prompt engineering, no model change. Three
+    specs currently order them the other way — ledger, taskapipro and workapi all put store.go
+    sixth and memory.go seventh (17:45 finding), which is why the corpus could never test it.
+
+NEXT — repetition is the whole job now
+One more informative pair is worth more than any other draw available. Expect to discard some:
+today's ledger draws run about 1 stub in 4, so the gate will reject roughly three processes for
+every informative pair. That cost is recorded and the stopping rule was pre-committed at 20:20: if
+pairs keep discarding, say the experiment was not affordable rather than keep spending.
