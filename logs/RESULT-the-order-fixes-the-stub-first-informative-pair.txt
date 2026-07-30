@@ -56,3 +56,25 @@ One more informative pair is worth more than any other draw available. Expect to
 today's ledger draws run about 1 stub in 4, so the gate will reject roughly three processes for
 every informative pair. That cost is recorded and the stopping rule was pre-committed at 20:20: if
 pairs keep discarding, say the experiment was not affordable rather than keep spending.
+
+FULL AS-DRAWN GRADE, 20:45 — the relocation is an exact mirror
+    A: memory.go   14 (STUB, 0 funcs) · store.go 2588 (7 funcs)
+    B: memory.go 2373 (full, 7 funcs) · store.go  377 (0 funcs)
+
+The SAME SEVEN methods — Balances, CreateAccount, CreateTransaction, GetAccount, ListAccounts,
+ListTransactions, NewMemStore — are pairA-ONLY in store.go and pairB-ONLY in memory.go. Not
+"different code in two files": the identical set of declarations, relocated wholesale, by changing
+which entry is written first.
+
+    ⚠️ AND THE FUNCTION-LEVEL COUNTER MISSES IT AGAIN. The relocation registers as only_a/only_b
+    rather than "changed", so the 7 moved methods contribute 0 to FUNCTION-LEVEL COLLATERAL. The
+    reported 8 is a different set (Balance, Create, Get, List, NewLedger, Validate) — real collateral
+    from the reroll, but not the headline event. Fourth time today this metric has understated a
+    result; the per-file line and the only_a/only_b lists are the honest ones.
+
+COLLATERAL, for completeness: 8 functions and 4 prose-only files. The reorder rerolls the tree like
+every other spec edit — that is expected and is not what the pair measures. The pair measures one
+thing: which file holds the implementation.
+
+NEXT: pair p7 is chained — it waits for this runner, restarts the server for a fresh process, and
+runs the same gated design. Replication is the whole job now.
