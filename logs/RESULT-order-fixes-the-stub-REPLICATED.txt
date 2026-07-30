@@ -1,0 +1,52 @@
+RESULT — the order effect REPLICATES: two informative pairs, both A-stub / B-full
+=================================================================================
+p7 decisive files graded 21:05 on 30 July from disk mid-draw. Pre-registration:
+logs/PREREG-stub-order-paired-experiment.txt.
+
+TWO INFORMATIVE PAIRS, TWO PROCESSES, SAME RESULT
+    pair p6  server 242     A memory.go   14 STUB · store.go 2588 (7 funcs)
+                            B memory.go 2373 (7 funcs) · store.go  377 (0 funcs)
+    pair p7  server 34326   A memory.go   14 STUB · store.go 2265 (impl)
+                            B memory.go 2374 (7 funcs) · store.go  379 (0 funcs)
+    pair p5  server 83476   A FULL -> DISCARDED by the gate after one draw, as designed
+
+Each pair: one process, two draws back to back, specs differing ONLY in the order of two adjacent
+entry blocks — identical character multiset, 24735 chars, 24813 bytes.
+
+STRENGTH — now stated for two pairs
+If order were irrelevant, each B would be another draw from a distribution that stubs 40-67% of the
+time, so each pair is ~2-3:1 and two independent pairs are roughly 4-9:1. That is meaningful and it
+is still not proof. What carries more weight than the ratio is that the STRONG FALSIFIER has had
+TWO chances and did not fire: the mechanism says B CANNOT stub, because memory.go is written before
+store.go can take its job, and a single B-stubs observation kills it outright.
+
+A DETAIL THAT WAS NOT PREDICTED AND IS WORTH RECORDING
+    swapped-order memory.go:  2373 (p6) · 2374 (p7) · 2374 (arm 5, a third process)
+    original-order store.go:  2588 (p6) · 2265 (p7)
+
+Three different processes produce a swapped-order memory.go within ONE CHARACTER of each other,
+while the original-order store.go that swallows the implementation varies by 300+. So the CORRECT
+placement is highly reproducible across processes and the DEFECTIVE one is not — which is the
+opposite of what "the whole tree rerolls per process" would suggest for an arbitrary file, and it
+was not something I looked for.
+
+    ⚠️ n=3 and noticed after the fact. Recorded as an observation to check on future pairs, not as
+    a finding, and explicitly NOT folded into the order claim.
+
+ALSO REPLICATED — the best-of-N gate rejects at the same point
+Both B draws logged "rejected gen candidate 1: missing promised Store" at the same position in the
+sequence. Two for two suggests it is a systematic consequence of generating memory.go before
+store.go, not noise: the first candidate for one of the store files omits the promised symbol and
+the gate catches it. The gate is doing its job in the swapped order; the point is that it fires
+there at all.
+
+WHAT IS NOW SUPPORTED
+The memory.go stub — the MAJORITY outcome at 58% deduped across 107 trees, forbidden in words by
+scope_rule which names it as its own example — is caused by ENTRY ORDER. The file generated first
+takes the implementation, and the instruction does not stop it.
+
+    THE FIX IS FREE AND MECHANICAL: emit implementation entries before the interface entries they
+    satisfy. All three affected specs currently do the opposite (store.go 6th, memory.go 7th), which
+    is exactly why the 107-tree corpus could never test it — the variable was constant.
+
+NEXT: pair p8, chained. A third pair takes this to ~8-27:1 and gives the falsifier a third chance.
