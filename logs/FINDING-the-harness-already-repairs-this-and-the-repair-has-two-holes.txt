@@ -1,0 +1,71 @@
+FINDING — the harness ALREADY repairs the stub. The repair has two holes, each sufficient.
+==========================================================================================
+03:10 on 31 July. Zero GPU. Found by reading src/builder.py after the 02:40 finding reframed the
+question from "how do we instruct the model" to "what else could do the work".
+
+THE REPAIR EXISTS AND IS WIRED IN
+    src/builder.py:1573  `_fill_empty_planned_files(spec, written, out, toolchain)`
+    Walks `empty_go_files(written)` — files that declare NOTHING, a bare `package store`. For each,
+    computes what its purpose promised, finds the sibling in the same package that declares those
+    symbols, and moves them back with tools/movedecls.go. Reverts if the project stops being green.
+    tools/movedecls.go EXISTS. The pass is not disabled.
+
+    Its own docstring names this exact defect: "When the model implements a sibling's job in its own
+    file, the sibling ends up with nothing left to declare and ships as a bare `package store` — and
+    Go, which does not care which file in a package holds what, greens anyway. Four of the suite's
+    multi-package artifacts carried a dead file like this and nothing ever said so."
+
+    Somebody already found this, already understood it, and already built the fix. It still ships.
+
+HOLE 1 — IT ONLY RUNS INSIDE _finish_green()
+    ledger  A p6/p7/p8  converged to green  ->  "WARNING: ... shipped EMPTY" fired, 1 each
+    workapi A w1        exhausted 7 rounds  ->  0 warnings
+    taskapipro A t1     exhausted 7 rounds  ->  0 warnings
+
+    `_fill_empty_planned_files` and the WARNING loop both live in `_finish_green()`. A project that
+    never converges gets NEITHER. So on a not-green draw the empty file ships completely unremarked
+    — no repair attempted, no warning logged, nothing in the record saying the plan was not met.
+
+    ⚠️ That is the worse of the two holes: the defect is silent exactly when the tree is already in
+    trouble, which is when a reader is least likely to notice one more thing wrong.
+
+HOLE 2 — WHEN IT DOES RUN, IT CAN COMPUTE AN EMPTY MOVE SET
+    `_required_decls` uses _REQUIRED_TYPE_RE = r"(?<![.\w])([A-Z]\w*)\s+(?i:struct|interface)\b" —
+    a name FOLLOWED BY the word struct or interface. Applied to the three memory.go entries:
+
+        ledger      memory.go requires {Store}            store.go requires {Store}   take = {}
+        workapi     memory.go requires {MemStore, Store}  store.go requires {Store}   take = {MemStore}
+        taskapipro  memory.go requires {MemStore, Store}  store.go requires {Store}   take = {MemStore}
+
+    ledger's memory.go entry says "`MemStore` — the in-memory implementation of the Store interface".
+    MemStore is never followed by "struct", so the regex never sees it; the only name it extracts is
+    Store, from "the Store interface" — which store.go legitimately owns, so `take` is empty and the
+    pass skips silently (that branch has no log line).
+
+    So on ledger — the one spec where the pass DID run, three times, on green trees — it had nothing
+    to move, because the symbol it needed was written in prose the extractor cannot parse.
+
+BOTH HOLES ARE INDEPENDENT AND EACH IS SUFFICIENT
+    ledger      green, pass ran, take empty        -> stub ships (warned)
+    workapi     not green, pass never ran          -> stub ships (silent)
+    taskapipro  not green, pass never ran          -> stub ships (silent)
+
+    All five A draws shipped a 14-byte memory.go on disk, verified: as-drawn 14 -> shipped 14.
+
+WHAT THIS CHANGES
+The stub is NOT simply "the model consolidates and nothing catches it". The harness catches it in
+principle and has a working repair. What fails is the plumbing: the repair is gated behind success,
+and its symbol extractor reads only one prose shape.
+
+    TWO CONCRETE FIXES, both small and both testable against the corpus:
+      1. Run the empty-file check (at minimum the WARNING, ideally the repair) REGARDLESS of green.
+         A not-green project is not a reason to skip the plan-conformance check — it is a reason to
+         want it.
+      2. Broaden _required_decls beyond "Name struct|interface": ledger's own spec writes the type
+         as `MemStore` in backticks. Backticked capitalised identifiers in a purpose are exactly the
+         "this file defines X" signal the regex is trying to catch.
+
+    ⚠️ NEITHER IS APPLIED YET. Both touch generation-path code mid-experiment, and today's rule is
+    that instruments do not change until the baseline for the change exists. The baseline here is
+    cheap — the corpus has 107 trees and the check is static — so this is the next arm, not a patch
+    to make at 3am.
