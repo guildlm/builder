@@ -54,6 +54,29 @@ Deliberately close to a coin flip, and the reason is the ledger rather than the 
     with a measured sign; there is no measured bias for "does a pid matter", so there is nothing
     to shade against. Applying the spec-edit bias here would repeat exactly the error 10:06 named.
 
+WHICH ARM COMES NEXT, DECIDED NOW — added 10:18, draw at 6 of 16, ungraded
+The apparatus questions have eaten four draws and the ORIGINAL science (the ledger name swap) has
+still not been fired. Deciding the follow-up before the verdict stops "one more apparatus draw"
+from being chosen because the result was interesting.
+
+    tree3 == xserver        -> pid inert, the gap tracks the boot. The apparatus is understood
+       (pid inert)             well enough to work in: one process, control and arm inside it.
+                               NEXT ARM: the ledger name swap. Fire _ledger_name_arm.sh.
+
+    tree3 novel             -> each process is unique. Also enough to work in — same rule, one
+       (unique per process)    process per arm — and a fourth draw would only re-confirm it.
+                               NEXT ARM: the ledger name swap. Fire _ledger_name_arm.sh.
+
+    tree3 == chain6         -> THE ONLY BRANCH THAT BUYS ANOTHER APPARATUS DRAW. Output coming
+       (discrete set)          from a small discrete set is a much stronger and stranger claim
+                               than "processes differ", and it is one draw from being testable:
+                               a FOURTH process either lands in {chain6, xserver} again or does
+                               not. That is worth the GPU; "processes differ, again" is not.
+                               NEXT ARM: a fourth process draw, then ledger.
+
+    So: two of three branches go straight to ledger. Written down because the interesting-looking
+    branch is the one I would otherwise be tempted to chase in all three.
+
 BRANCHES INCLUDING THE ONE THAT SAYS NOTHING
     UNMEASURED   the draw dies, produces no .pre-fix.json, or the restarted server fails to come
                  up on :8080. Says nothing about process identity. Redraw.
