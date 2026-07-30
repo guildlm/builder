@@ -110,6 +110,16 @@ files:
       A valid status correctly returns nil and would fail this function's assertion.
       This package has NO Project type — do not test one. Write every struct value
       with FIELD NAMES. Imports errors and testing only.
+  - path: internal/store/store.go
+    purpose: >-
+      package store. Import the models package (guildlm.dev/workapi/internal/
+      models) and use models.Task qualified. Exported sentinels var ErrNotFound
+      and var ErrExists (errors.New). A CONTEXT-AWARE Store INTERFACE (every
+      method takes context.Context as its FIRST parameter): CreateTask(ctx
+      context.Context, t models.Task) error, GetTask(ctx context.Context, id
+      string) (models.Task, error), ListTasks(ctx context.Context)
+      ([]models.Task, error), DeleteTask(ctx context.Context, id string) error.
+      Imports context, errors, and the models package only.
   - path: internal/store/memory.go
     purpose: >-
       package store. Goroutine-safe in-memory Store impl (same package —
@@ -122,16 +132,6 @@ files:
       (no stub, no ErrNotImplemented, no panic, no TODO). Use models types
       (import models). var _ Store = (*MemStore)(nil). Imports context, sort,
       sync, and the models package.
-  - path: internal/store/store.go
-    purpose: >-
-      package store. Import the models package (guildlm.dev/workapi/internal/
-      models) and use models.Task qualified. Exported sentinels var ErrNotFound
-      and var ErrExists (errors.New). A CONTEXT-AWARE Store INTERFACE (every
-      method takes context.Context as its FIRST parameter): CreateTask(ctx
-      context.Context, t models.Task) error, GetTask(ctx context.Context, id
-      string) (models.Task, error), ListTasks(ctx context.Context)
-      ([]models.Task, error), DeleteTask(ctx context.Context, id string) error.
-      Imports context, errors, and the models package only.
   - path: internal/store/memory_test.go
     purpose: >-
       package store. Tests for MemStore (same package; use models via import).

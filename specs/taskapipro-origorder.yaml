@@ -113,6 +113,17 @@ files:
       TestProjectValidateEmptyName: a Project with an empty Name returns an error
       that errors.Is(err, ErrInvalid).
       Write every struct value with FIELD NAMES. Imports errors and testing only.
+  - path: internal/store/store.go
+    purpose: >-
+      package store. Import the models package (guildlm.dev/taskapipro/internal/
+      models) and use models.Task/models.Project qualified. Exported sentinels
+      var ErrNotFound and var ErrExists (errors.New). A CONTEXT-AWARE Store
+      INTERFACE (every method takes context.Context as its FIRST parameter, the
+      production repository convention): CreateTask(ctx context.Context, t
+      models.Task) error, GetTask(ctx context.Context, id string) (models.Task,
+      error), ListTasks(ctx context.Context) ([]models.Task, error),
+      DeleteTask(ctx context.Context, id string) error, and the same four for
+      Project. Imports context, errors, and the models package only.
   - path: internal/store/memory.go
     purpose: >-
       package store. Goroutine-safe in-memory Store impl (same package —
@@ -128,17 +139,6 @@ files:
       placeholder (no ErrNotImplemented, no panic, no TODO). Use models types
       (import models). var _ Store = (*MemStore)(nil). Imports context, sort,
       sync, and the models package.
-  - path: internal/store/store.go
-    purpose: >-
-      package store. Import the models package (guildlm.dev/taskapipro/internal/
-      models) and use models.Task/models.Project qualified. Exported sentinels
-      var ErrNotFound and var ErrExists (errors.New). A CONTEXT-AWARE Store
-      INTERFACE (every method takes context.Context as its FIRST parameter, the
-      production repository convention): CreateTask(ctx context.Context, t
-      models.Task) error, GetTask(ctx context.Context, id string) (models.Task,
-      error), ListTasks(ctx context.Context) ([]models.Task, error),
-      DeleteTask(ctx context.Context, id string) error, and the same four for
-      Project. Imports context, errors, and the models package only.
   - path: internal/store/memory_test.go
     purpose: >-
       package store. Tests for MemStore (same package; use models via import).

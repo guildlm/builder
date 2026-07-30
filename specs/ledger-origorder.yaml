@@ -156,6 +156,25 @@ files:
       Transaction whose receiver is conventionally `t`, so in TESTS use `tc` for
       a table case and keep `t *testing.T` untouched.
 
+  - path: internal/store/store.go
+    purpose: >-
+      package store. The Store INTERFACE only — no implementation in this file.
+      Imports guildlm.dev/ledger/internal/models. Methods, and these are the
+      only ones:
+      CreateAccount(models.Account) error
+      GetAccount(id string) (models.Account, error)
+      ListAccounts() []models.Account
+      CreateTransaction(models.Transaction) error
+      ListTransactions() []models.Transaction
+      Balances() map[string]money.Money
+      Imports guildlm.dev/ledger/internal/money too.
+      CONCURRENCY INVARIANT for whichever file implements these on MemStore:
+      CreateTransaction holds the write lock (mu.Lock) and, while holding it, MUST
+      check each account by reading `s.accounts[id]` DIRECTLY (return
+      models.ErrNotFound if absent) — it must NEVER call GetAccount, Balance, or any
+      method that takes mu.RLock(), because sync.RWMutex is NOT reentrant and
+      Lock-then-RLock on the same mutex deadlocks the goroutine forever.
+
   - path: internal/store/memory.go
     purpose: >-
       package store. `MemStore` — the in-memory implementation of the Store
@@ -196,25 +215,6 @@ files:
           }
 
       Balances returns a COPY of the map, never the live one.
-
-  - path: internal/store/store.go
-    purpose: >-
-      package store. The Store INTERFACE only — no implementation in this file.
-      Imports guildlm.dev/ledger/internal/models. Methods, and these are the
-      only ones:
-      CreateAccount(models.Account) error
-      GetAccount(id string) (models.Account, error)
-      ListAccounts() []models.Account
-      CreateTransaction(models.Transaction) error
-      ListTransactions() []models.Transaction
-      Balances() map[string]money.Money
-      Imports guildlm.dev/ledger/internal/money too.
-      CONCURRENCY INVARIANT for whichever file implements these on MemStore:
-      CreateTransaction holds the write lock (mu.Lock) and, while holding it, MUST
-      check each account by reading `s.accounts[id]` DIRECTLY (return
-      models.ErrNotFound if absent) — it must NEVER call GetAccount, Balance, or any
-      method that takes mu.RLock(), because sync.RWMutex is NOT reentrant and
-      Lock-then-RLock on the same mutex deadlocks the goroutine forever.
 
   - path: internal/store/memory_test.go
     purpose: >-
