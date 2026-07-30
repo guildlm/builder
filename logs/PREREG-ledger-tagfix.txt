@@ -1,0 +1,52 @@
+PREREG — arm 6: apply the one-phrase fix and verify it
+======================================================
+Written 19:15 on 30 July, before the draw. This is ENGINEERING, not a hypothesis test, and the
+distinction is the point of writing it down.
+
+WHY THIS IS NOT A HYPOTHESIS TEST
+The 19:05 resolution already established the rule from the corpus by reading, not drawing:
+    taskapipro "with JSON tags"      -> 10 of 10 tagged
+    workapi    "with JSON tags" x2   -> 14 of 14 tagged
+    ledger     never mentions tags   ->  2 of 4 UNTAGGED
+Twenty-four of twenty-four compliance when instructed. The mechanism is not in question; what is in
+question is whether the KNOWN-GOOD instruction transfers to ledger, whose fixtures are the reason
+the omission matters (its own tests POST {"account_id":"cash"}, and Go's case-insensitive match
+cannot bridge account_id -> AccountID across the underscore).
+
+THE EDIT
+    specs/ledger-tagfix.yaml, line 120, models.go's entry:
+        "`Account{ID string, Name string}`."
+     -> "`Account{ID string, Name string}`, with JSON tags."
+    +16 chars (24735 -> 24751). ⚠️ NOT multiset-preserving — this is an ADDITION, the edit class
+    that perturbed 7 of 7 times in this series. The tree WILL be rerolled; that is expected and is
+    not what the arm measures.
+
+    ⚠️ AND IT IS A VARIANT, NOT AN EDIT TO specs/ledger.yaml. Editing the real spec would invalidate
+    generated/ledger-ctl-proc3 as the control for arms 1-5. Promoting the fix is a separate,
+    deliberate decision to be made after it is seen to work — not a side effect of testing it.
+
+PREDICTION — tags present in models.go, 95%
+    Not a shaded number and not a mechanism story: it is the observed compliance rate of the same
+    instruction in two other specs, 24 for 24, applied to a third.
+
+    ⚠️ THE INFORMATIVE BRANCH IS THE FAILURE, and per the 18:30 asymmetry note that is the whole
+    reason this arm is worth drawing at all:
+        TAGS PRESENT  expected. Confirms transfer, weakly on its own — ledger tags itself ~50% of
+                      the time unprompted, so one tagged draw is 2:1 evidence, not proof. The fix
+                      is still correct to promote, because the corpus evidence is the 24/24, not
+                      this draw.
+        TAGS ABSENT   the first instruction-failure in 25 and a genuinely surprising event. It
+                      would mean ledger's entry resists an instruction the other two specs get for
+                      free, and the one-phrase fix is not a fix. THIS is what the draw buys.
+
+BRANCHES
+    TAGS PRESENT (7 expected)  fix transfers. Recommend promoting to specs/ledger.yaml, and note
+                               that doing so requires a fresh control for future ledger arms.
+    TAGS ABSENT                fix does not transfer. Do NOT promote. Investigate what about
+                               ledger's entry defeats it.
+    PARTIAL (some structs)     un-pre-registered until now: tags on Account but not Posting or
+                               Transaction. The phrase is attached to Account's clause only, so
+                               this is a real possibility and would mean the instruction is LOCAL
+                               to the struct it modifies — which taskapipro/workapi cannot show,
+                               because they attach it to every struct.
+    UNMEASURED                 no snapshot. Redraw.
