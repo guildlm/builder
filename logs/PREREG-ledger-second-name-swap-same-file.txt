@@ -1,0 +1,49 @@
+PREREG — the SAME manipulation, a DIFFERENT name, in the SAME file
+==================================================================
+Written 13:05 on 30 July, before the draw. This is the arm the 13:00 FINDING says the series needs
+next: vary the TEXT while holding everything else.
+
+WHY
+Four harness explanations for the perturbed/null split are dead (reach, truncation, retrieval,
+prompt-difference magnitude). What is left is the changed text itself. This arm holds spec, file,
+entry, process and control constant, and varies ONLY WHICH NAME is swapped.
+
+    arm 1 (graded, NULL)  line 331  TestBalanceMissingAccount -> TestBalanceAccountMissing  25->25
+    arm 2 (this one)      line 336  TestPostUnknownAccount    -> TestPostAccountUnknown     22->22
+
+    Five lines apart, both inside internal/service/service_test.go's entry. Both move TOWARD an
+    existing sibling ordering (TestGetAccountMissing), so the f0ba8f9 convention-breaking confound
+    is out of both. Both built by _mkvariant_rename.py: 24735 chars and 24813 bytes each side,
+    1 substitution, 0 left behind.
+
+    NULL AGAIN  -> the quietness is a property of this FILE or this SPEC for renames, not of the
+                   particular tokens. That is a real narrowing and it is testable further (same
+                   swap in a different ledger file).
+    PERTURBS    -> the tokens matter. Two renames five lines apart, identical in kind, opposite in
+                   outcome, would be the sharpest single demonstration in the series that the split
+                   is token-level — and it would make "name swaps are a coin flip" literal rather
+                   than a summary over heterogeneous specs.
+
+COSTS ONE DRAW. generated/ledger-ctl-proc3 is reused; server still pid 42826, verified.
+
+PREDICTION — PERTURBS, 40%
+The homogeneous base rate for name swaps is 2 of 5. I am using it unadjusted.
+
+    ⚠️ NO NUDGE THIS TIME, DELIBERATELY. Both nudges I have made today were wrong and both were
+    wrong in the direction the argument pointed: +5 for ledger's file count (it pointed the other
+    way), and shading 85->60 for a bias measured on a different question. The base rate over ONE
+    edit kind is the most defensible number available and decorating it has cost accuracy twice.
+
+    ⚠️ AND THE "CONFIDENT NUMBERS ALWAYS MISS" HEURISTIC IS RETIRED. It was announced at 10:40 on
+    nine attempts, broke at 12:11 when a near-50 missed, and broke the other way at 12:49 when a
+    70 hit. It should not be cited again.
+
+BRANCHES
+    PERTURBS   the split is token-level. Follow-up: the same swap kind in a DIFFERENT ledger file,
+               to separate "these tokens" from "this file".
+    NULL       quietness is file- or spec-level for renames. Follow-up: same, but the reading
+               reverses — a null in a different file would make it spec-level.
+    NULL EDIT  target internal/service/service_test.go identical. Unlikely here: arm 1's rename DID
+               land in this exact file, so the mechanism that ate the prose swap (gofmt sorting
+               imports) has no analogue for a test name.
+    UNMEASURED no snapshot. Redraw.
