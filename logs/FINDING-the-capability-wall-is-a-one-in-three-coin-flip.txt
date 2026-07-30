@@ -1,3 +1,7 @@
+⚠️⚠️ THIS FILENAME IS WRONG. "one-in-three" was retracted at 15:05 — see the CORRECTION at the
+bottom. The rate is not supported; only the DIRECTION is (both outcomes occur, so the defect is a
+reroll rather than a wall). The name is kept because commits reference it.
+
 FINDING — the "capability limit" is a 1-in-3 coin flip, and the answer was already on disk
 ==========================================================================================
 30 July, 12:55. Zero GPU. Found by looking at nine ledger trees that already existed instead of
