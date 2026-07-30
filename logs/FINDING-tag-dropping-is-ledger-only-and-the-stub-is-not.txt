@@ -1,0 +1,46 @@
+FINDING — a SECOND latent defect, and unlike the stub it is spec-specific
+========================================================================
+30 July, 18:25. Zero GPU. Found because arm 5 stripped models.go's JSON tags exactly as arm 4 had,
+from a completely different edit — which made "did arm 4's edit cause it?" worth asking of the corpus.
+
+THE ANSWER: NEITHER EDIT CAUSED IT, AND IT ONLY HAPPENS TO LEDGER
+Deduplicated by models.go content:
+
+    spec         distinct models.go   UNTAGGED   tagged
+    ledger              4                2          2      <- order1 · (prose2 + v5)
+    taskapipro         10                0         10      (6 tags, every draw)
+    workapi            14                0         14      (5 or 3 tags, every draw)
+
+Twenty-four distinct draws across taskapipro and workapi, and not one drops its tags. Ledger drops
+them in half its distinct contents.
+
+    ⚠️ AND IT IS NOT PROCESS-DETERMINED. Process 42826 produced BOTH: the ctl/name1/name2/name3
+    group is tagged, order1 and prose2 are not. Same server, same day, same control.
+
+WHY THIS MATTERS — IT IS A DIFFERENT SHAPE FROM THE STUB
+    the STUB        happens in ALL THREE specs (35% / 67% / 80%), non-monotonic in every spec
+                    property I measured, underpowered at n=3 specs
+    TAG-DROPPING    happens in ONE spec and never in the other two, across 24 distinct draws
+
+    That is a clean binary contrast where the stub gave a muddy gradient. It is the first
+    spec-level effect in this record that is not within noise.
+
+    ⚠️ AND IT IS A REAL BREAK, measured earlier today: the spec's own examples POST
+    {"account_id":"cash","amount":500}, and Go's case-insensitive JSON matching cannot bridge
+    account_id -> AccountID because of the underscore. Untagged, every posting silently loses its
+    account. Ledger is the spec whose test fixtures use snake_case keys.
+
+A MECHANISM CANDIDATE, FLAGGED AS UNTESTED
+Ledger's models.go entry is 2281 characters. taskapipro's is 1007, workapi's 787. The long entry
+gives detailed instructions and never mentions tags; the short ones leave more to the model's
+defaults, and idiomatic Go writes tags. So a LONGER, more prescriptive entry may suppress
+un-asked-for idiom.
+
+    ⚠️ MECHANISM STORIES ARE 0 FOR 6 IN THIS RECORD and this one fits three points, which is where
+    the last one died. It is written down as a candidate with a cheap falsification — add "with
+    json tags" to ledger's models.go entry, or lengthen taskapipro's — and NOT as a finding.
+
+WHAT IT DOES NOT SAY
+It does not explain the stub. The stub is in all three specs; tag-dropping is in one. Two latent
+defects in the same file with different distributions means "models.go is unreliable" is too coarse
+to be useful — they need separate rates and separate causes.
