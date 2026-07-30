@@ -1,0 +1,58 @@
+RESULT — FIX 2 simulated without touching code: take-EMPTY falls 10 -> 2
+=======================================================================
+04:05 on 31 July. Zero GPU, zero code changed. Pre-registration:
+logs/PREREG-fix-the-two-repair-holes.txt, which specified this exact evaluation and said it needs
+no draws.
+
+    ✗ PREDICTED: take EMPTY falls from 10 to 0, 80%. It falls to 2. Direction and magnitude right,
+      the literal claim wrong.
+
+THE SIMULATION
+Widened extractor = current `_REQUIRED_TYPE_RE` OR a capitalised identifier inside backticks.
+Re-ran the 03:30 static check over the same 125 trees with both versions:
+
+    now   take non-empty 54 · take EMPTY 10
+    wide  take non-empty 62 · take EMPTY  2
+
+    Eight of the ten blocked instances become repairable. All ten were ledger's memory.go, whose
+    entry names the type as `MemStore` in backticks — precisely the shape the current regex cannot
+    see.
+
+THE BLAST RADIUS IS SMALL AND, ON INSPECTION, CORRECT
+Only FIVE entries in three specs gain any symbol, all ledger:
+    internal/store/memory.go        + MemStore
+    internal/service/service.go     + Ledger
+    internal/api/middleware.go      + Logging, Recover
+    internal/api/accounts.go        + AccountHandler
+    internal/api/transactions.go    + TransactionHandler
+
+    Every one is a type that file genuinely should declare. The widening does not start claiming
+    symbols a file was never meant to own, which was the risk the pre-registration named as the
+    reason this change is not local — it feeds generation prompts, the fix loop and the
+    redeclaration stripper, not just the repair.
+
+THE TWO THAT REMAIN, and neither is a regex problem
+    taskapipro-pairB-t1  internal/store/store.go  wants={Store}
+        This is MY OWN artifact from tonight — the reordered draw where store.go ended up the empty
+        one. It wants Store, and memory.go (the donor) is ALSO promised Store by its purpose, so the
+        "only take what the donor was not asked to declare" rule correctly refuses. Not a defect in
+        the extractor: the spec genuinely assigns Store to both entries' prose.
+    workapi-chain  internal/api/middleware.go  wants={}
+        Its purpose names no type at all in either shape. Nothing to extract, so nothing to move.
+        A spec-text gap, not a code gap.
+
+WHAT THIS ESTABLISHES BEFORE ANY EDIT
+    - the proposed change does what it was proposed to do, at 8 of 10
+    - it does not over-claim, checked entry by entry across all three specs
+    - the residue is two cases with distinct, non-regex causes, both identified
+
+    ⚠️ AND IT IS STILL NOT APPLIED. The measurement is the cheap half; the edit touches four call
+    sites and needs `./_selftest_all.sh --fast` at 34 ran / 0 failed alongside it. Doing the
+    measurement tonight and the edit next session is the split the 03:45 pre-registration asked for,
+    and the reason stands: three claims made at speed tonight were retracted within the hour.
+
+⚠️ SCORING MY OWN PREDICTION HONESTLY. I said 10 -> 0 at 80%. The right answer was 10 -> 2, and the
+two survivors were findable in advance — one is an artifact I generated four hours ago and the other
+has an empty purpose. I predicted the mechanism correctly and the endpoint carelessly, which is the
+same error as claiming "the fix transfers" from one file's size at 01:35. Predict the number, then
+ask what the number CANNOT reach.
