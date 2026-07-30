@@ -47,6 +47,18 @@ THE ARM — no spec edit at all
               non-function residue. NO --target: there is no target, the input is byte-identical.
     changed   exactly one thing: the operating system process serving the model.
 
+    PREMISE VERIFIED, NOT ASSUMED (checked while the draw was at 15 of 16, verdict unknown).
+    "chain6 was drawn from this same HEAD spec" was prose I had taken from the 02:22 RESULT. If
+    11520cc had landed AFTER chain6 was drawn, the control would carry a DIFFERENT spec and this
+    arm would be a spec edit wearing a server arm's label — the exact confound it exists to rule
+    out, and invisible afterwards.
+        11520cc committed   29 Jul 14:48:16
+        chain6 drawn        29 Jul 20:02:57 -> 20:26:24   (5h after)
+        chain6 snapshot contains TestSortedProjectList=yes, TestProjectListSorted=no
+        HEAD spec asks for  TestSortedProjectList x1, and neither rival name
+    The control was drawn from the spec now on disk, and that spec has not moved since 14:48
+    on 29 July. The input is identical.
+
     This is the first arm in the series whose INPUT is unchanged. Every one of the ten graded
     arms perturbed an input and asked what moved. This one perturbs nothing and asks whether
     the apparatus holds still.
