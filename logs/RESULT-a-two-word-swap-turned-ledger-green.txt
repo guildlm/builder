@@ -1,0 +1,97 @@
+RESULT — a two-word transposition that never landed turned ledger GREEN
+=======================================================================
+Arm finished 12:49 on 30 July, 2035s, rc=0. Pre-registration: PREREG-ledger-inert-prose-swap.txt
+(fe6ad42), with the null-EDIT branch split into (a)/(b) at d6cec73 while the arm was at 3 of 19.
+
+    ✓ COARSE PREDICTION "the arm PERTURBS", 70%: a program DID change. HIT.
+    ✗ FINE FORECAST at 12:26: (b) 25% · true null edit (a) 60% · conventional 15%.
+      The outcome is (b) — the branch I ranked second-lowest.
+
+THE VERDICT
+    19 common files · CODE 1 · IDENTICAL 17 · PROSE 1
+    ⚠ edit did NOT land: internal/money/money.go is IDENTICAL — a NULL EDIT
+    COLLATERAL: 1 — internal/models/models.go
+    FUNCTION-LEVEL COLLATERAL: 0 — see the blind spot below, this number is misleading here
+    PROSE-only: internal/service/service_test.go
+
+    THE ONE CODE CHANGE, in a file the edit never mentions:
+        control   ErrInsufficient      = errors.New("insufficient funds")
+        arm       ErrInsufficientFunds = errors.New("insufficient funds")
+
+AND IT TURNED THE PROJECT GREEN
+    control   rc=1 · "exhausted 6 fix rounds (5 budgeted), still failing"
+    arm       rc=0 · "converged to green after fix round 1 (deterministic)"
+
+    The control reproduced ledger's documented defect exactly: models.go declares the shortened
+    ErrInsufficient, internal/api/response.go uses ErrInsufficientFunds, nothing compiles. The
+    campaign recorded that defect as surviving SIX fix rounds with the model taking models.go
+    three times and never correcting the name — and wrote it up as a capability limit.
+
+    The arm declares the correct name. response.go is BYTE-IDENTICAL between the two draws. So
+    the entire difference between a project that never compiles and one that compiles on the
+    first deterministic fix is twenty-five characters in a var block — caused by transposing two
+    words in a DIFFERENT file's import sentence.
+
+        "import exactly strconv, strings"  ->  "import exactly strings, strconv"
+
+    ⚠️ THE EDIT ITSELF HAD NO EFFECT WHERE IT WAS AIMED. money.go is byte-identical; gofmt sorts
+    imports, so an import-ORDER instruction has no purchase at all. The edit did nothing where it
+    was pointed and repaired a defect three files away.
+
+⚠️ IT IS NOT A FIX AND MUST NOT BE READ AS ONE
+Nothing about transposing an import list makes sentinel names correct. This is a REROLL that
+landed better — the same class as the 6-up/2-down redraw drift measured on 29 July. The claim is
+about FRAGILITY: a defect described as a capability wall was a coin flip, and an edit that cannot
+possibly be about sentinel naming flipped it.
+
+⚠️ INSTRUMENT BLIND SPOT — the headline number says 0 and the most consequential change in the
+   whole series is what it missed
+_asdrawn_diff.py counts FUNCTION-LEVEL COLLATERAL. The models.go change is a `var (...)`
+declaration, OUTSIDE any function, so it scores 0 — while the per-file line does say
+"OUTSIDE any func (+25 chars: imports, type or var decls)".
+
+    Checked across every arm rather than assumed:
+        name3, prose, verbatim, dose   had outside-func changes AND non-zero function collateral
+                                       (8, 8, 5, 16) — magnitude undercounted, verdicts unaffected
+        name4, name5, ledger name arm  NO outside-func changes — those nulls are genuine at
+                                       declaration level too, which is the important check
+        THIS ARM                       the FIRST case where the headline 0 actively misleads
+
+    This is the exact mirror of the 01:40 granularity finding. That one said a FILE-level null is
+    untrustworthy until you look inside the file. This one says a FUNCTION-level null is
+    untrustworthy until you look OUTSIDE the functions. Both were found the same way: a number
+    that read as "nothing happened" next to evidence that something had.
+
+    NOT FIXED TODAY. Changing the instrument means re-taking baselines, and the per-file line
+    already carries the information. Any future arm must read that line, not the headline.
+
+WHAT IT DOES TO THE OPEN QUESTION
+The arm was fired to separate "name swaps are safe" from "ledger is a quiet spec". It does:
+
+    LEDGER IS NOT QUIET. A non-rename edit on ledger changed the program — and changed whether it
+    compiles at all. The 12:11 name-swap null is therefore about RENAMES, not about the spec.
+
+    So the split survives on a third spec with both edit kinds:
+        ledger  name swap (25->25)      NULL, rename-only, 18 of 19 files untouched
+        ledger  prose transposition     PERTURBED — and flipped the build
+
+    ⚠️ WITH ONE CAVEAT THAT WEAKENS IT: this arm is a NULL EDIT. The edit never landed in its
+    target, so what perturbed the program was not "an edit to money.go" but "a changed plan block
+    seen by every other file's prompt". That is a real perturbation and it belongs in the
+    non-rename column, but it is a different causal path from the dose arms, where the target
+    itself changed. The column is now 7 of 7 and one of the seven got there sideways.
+
+THE PREDICTION LEDGER — eleven attempts, four hits (one contested)
+    ...  (the first ten as recorded in RESULT-process-identity-is-the-variable-and-the-boot-is-not)
+    12:2x  "ledger prose swap PERTURBS, 70%"        HIT on the coarse call
+    12:26  "(b) at 25%, null edit at 60%"           the outcome was the 25% branch
+
+    ⚠️ SCORING IT HONESTLY RATHER THAN FLATTERINGLY. The coarse 70% is a hit: a program changed.
+    But the tool labels this arm a NULL EDIT, and had I only written "perturbs" I would now be
+    claiming a clean hit for an arm whose edit never landed. The finer forecast — written before
+    the other 16 files existed — is the one that actually engaged with the outcome, and it put
+    this branch at 25%. Both are recorded; the second is the more informative miss.
+
+    The 10:40 "confident numbers always miss" pattern: 70% was a confident number and its coarse
+    call landed. That pattern, already corrected once at 12:11, is now 1-for-1 against itself in
+    two consecutive arms. It should stop being cited.
