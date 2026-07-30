@@ -87,3 +87,43 @@ carried 7 tags, and the arm's models.go is the same file, byte for byte.
 ⚠️ SEPARATELY AND STILL INTERESTING: six of six files byte-identical from a +16-character ADDITION.
 Additions perturbed 7 of 7 earlier in this series. If the whole tree comes back identical this is
 the first non-perturbing addition and deserves its own row — noted now, graded when the draw ends.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+FINAL GRADE, 20:15 — a NULL EDIT, and the SMALLEST perturbation any spec edit has produced here
+════════════════════════════════════════════════════════════════════════════════════════════
+    19 files · CODE 1 · IDENTICAL 17 · PROSE 1
+    ⚠ target internal/models/models.go IDENTICAL -> NULL EDIT, as the 19:45 correction predicted
+    COLLATERAL 1: cmd/server/main.go · FUNCTION-LEVEL COLLATERAL 1: main
+
+WHAT THE ARM ACTUALLY MEASURED
+Nothing about the fix. The control already tagged, the target came back byte-identical, and the
+instruction was inert on this draw. Everything claimed at 19:35 is withdrawn above and stays
+withdrawn; the recommendation to promote the phrase rests on the corpus (24 of 24), not on this.
+
+THE ONE THING IT DID BUY — a magnitude row the series was missing
+    edit                                      chars   CODE files   func collateral
+    taskflow dose1   +1 line                    +~40       3             8
+    taskflow dose3   +3 lines                  +~120       8            10
+    taskflow dose    +12 lines                 +~480       6            16
+    ratelimit +48 lines                       +~1900       4             7
+    arm 4  import-name transposition              0        5             2*
+    arm 5  entry-block transposition              0        4             5
+    arm 6  "with JSON tags"                     +16        1             1
+
+    * arm 4's function count understates badly — seven methods relocated and a file stubbed, which
+      register as only_a/only_b rather than "changed". Its FILE count is the honest one.
+
+    ADDITIONS NOW PERTURB 8 OF 8 — the column survives. But arm 6 is the SMALLEST perturbation of
+    any spec edit in this series, and it is an addition, while two zero-character transpositions
+    sit at 4 and 5 files.
+
+    ⚠️ SO EDIT SIZE PREDICTS NOTHING ABOUT PERTURBATION SIZE, in either direction. +16 characters
+    moved one file; 0 characters moved five. This is the third independent statement of the same
+    shape today — after "inertness of the text does not predict the size" (arms 4 and 5) and "the
+    smaller prompt difference perturbed more" (prose vs name arms). Three routes to one conclusion:
+    the magnitude of a spec edit carries no information about the magnitude of its effect.
+
+WHAT WOULD ACTUALLY TEST THE FIX, restated so it is not lost
+The instruction added to a spec+condition that draws UNTAGGED. Nothing on disk pairs an untagged
+control with an instructed variant, and building one means drawing a fresh untagged control first —
+which is itself a coin flip at ledger's ~50%. That is a real multi-draw experiment. This was not it.
