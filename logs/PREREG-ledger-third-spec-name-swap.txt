@@ -1,0 +1,74 @@
+PREREG — the ledger name swap: a THIRD spec, and the first arm two hypotheses split on
+=====================================================================================
+Written 10:24 on 30 July, while the third-process draw is at 11 of 16 and ungraded. This arm is
+independent of that verdict — it fires in two of the three branches, and its control and arm both
+live on one process either way. Nothing about it is contingent on what proc3 says.
+
+Originally pre-registered at 02:22 as "the next arm". Six apparatus draws intervened.
+
+THE ARM
+    spec      specs/ledger.yaml  (control)
+              specs/ledger-name1.yaml  (arm) — built by _mkvariant_rename.py, which refuses
+              rather than writing a broken variant
+    edit      TestBalanceMissingAccount -> TestBalanceAccountMissing
+              25 -> 25 chars · 24735 chars and 24813 bytes on BOTH sides · 1 substitution,
+              0 left behind · target lives in internal/service/service_test.go
+    control   generated/ledger-ctl-proc3   } BOTH drawn on pid 42826, back to back, one launch
+    arm       generated/ledger-name1       } (_ledger_name_arm.sh)
+    grader    _asdrawn_diff.py --target=internal/service/service_test.go
+              --rename=TestBalanceMissingAccount:TestBalanceAccountMissing
+
+WHY THIS CANDIDATE OF THE THREE ledger OFFERED
+All three are equal-length word-order swaps. This one was chosen because it moves TOWARD an
+existing sibling ordering — TestGetAccountMissing already exists in the spec — rather than away
+from one. That keeps the f0ba8f9 convention-breaking confound OUT of an arm that is supposed to
+measure only "does an equal-length rename perturb". The other two (ValidateBlankName ->
+ValidateNameBlank, CreateAccountDuplicate -> CreateDuplicateAccount) both break a sibling pattern.
+
+THE TWO LIVE HYPOTHESES, AND THEY DISAGREE — which is the point
+    "the split is real"          name swaps perturb about half the time, everything else always.
+                                 Predicts a coin flip on this arm.
+    "ratelimit is perturbable"   the taskflow nulls were a property of taskflow, and a second
+                                 spec perturbed the moment it was tried. Predicts a hit.
+
+WHAT TODAY CHANGED ABOUT READING IT — this arm is cleaner than any of the ten before it
+Within-process determinism is now measured directly, twice, on two processes, both zero — one
+pair spanning a 24% throughput change. So for a control and an arm drawn back to back on ONE
+process, ANY difference is the edit. That was assumed for the closed ten arms and inferred from
+two different specs agreeing; here it is measured. It is the first arm in the series where the
+"nothing else moved" premise is a measurement rather than a belief.
+
+PREDICTION — the arm PERTURBS, 55%
+    The homogeneous base rate is 50%: name swaps have gone 2 perturbed of 4 (name3 hit,
+    ratelimit-name1 hit, name4 and name5 null). Unlike the 65% that failed at 02:01, this base
+    rate is taken over ONE edit kind, which is the thing 02:01 said was missing.
+
+    Nudged to 55 and no further, for ledger's larger surface: 19 files against taskflow's 16 and
+    ratelimit's 7. ⚠️ AND THE EVIDENCE FOR THAT NUDGE IS WEAK AND POINTS THE OTHER WAY — the
+    7-file spec perturbed and the 16-file spec was mostly null. n is 4. The nudge is 5 points
+    because that is about what an argument I cannot support is worth.
+
+    ⚠️ NOT REASONED FURTHER, DELIBERATELY. Reasoned predictions are 0 for 5 today. Every one felt
+    sound. The base rate is the most defensible number available and the honest thing is to sit
+    near it rather than decorate it.
+
+BRANCHES, INCLUDING THE TWO THAT ARE NOT RESULTS
+    PERTURBS     "the split" survives a third spec at coin-flip odds, or "ledger is perturbable"
+                 gains a case. One arm cannot separate those two; it can only fail to kill either.
+    NULL         the split's coin-flip reading gains its third null and the rival loses ground.
+    NULL EDIT    the target file does not differ at all -> the edit did not LAND, the arm measures
+                 nothing, and it is reported as a null EDIT, not a null RESULT. _asdrawn_diff.py
+                 makes exactly this distinction with --target and it is not a formality: an
+                 unlanded edit looks identical to the cleanest possible result.
+    UNMEASURED   either draw dies or produces no .pre-fix.json. Says nothing. Redraw.
+
+⚠️ GREEN IS NOT THE QUESTION. ledger drew NOT-GREEN before: the spec asks for
+ErrInsufficientFunds, a draw wrote ErrInsufficient, and six fix rounds never repaired it.
+As-drawn grading reads .pre-fix.json — what the MODEL WROTE — and a compiler that never ran says
+nothing about it. A NOT-GREEN pair is still a gradable pair, and the runner says so on its way out.
+
+⚠️ SECOND THING THIS DRAW BUYS, FREE. ledger is one of the three specs that showed the STUB
+regression (internal/store/memory.go at 14 bytes of bare `package store` while the spec describes
+eight methods). The control draw is the first sample of an affected spec on any process other than
+4439. It will NOT separate server from day — those still move together — but the sample does not
+currently exist. Recorded so a clean control is not mistaken later for a resolution of open #3.
