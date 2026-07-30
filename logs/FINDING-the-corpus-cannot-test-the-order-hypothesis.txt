@@ -36,3 +36,26 @@ TWO CONSEQUENCES, ONE FOR EACH DIRECTION
 ⚠️ WHAT THIS DOES NOT DO. It does not weaken the 17:15 finding that scope_rule fails 58% of the
 time — that is a measured rate against a guard whose text names this exact failure. It only means
 the ORDER explanation for why it fails has one supporting draw and no corpus backing.
+
+ADDENDUM, 17:55 — AND THE SPEC-TO-SPEC QUESTION IS UNDERPOWERED AT n=3 SPECS
+Consequence 2 above says the corpus CAN speak to the 35%->80% variation because, unlike order, it
+varies. It varies across exactly THREE specs, and I checked the obvious candidates:
+
+    spec         stub   store.go entry   memory.go entry   ratio   store entry names impl?
+    taskapipro    35%        737              1007         1.37    'method'
+    ledger        67%       1012              2281         2.25    'implement','MemStore','method'
+    workapi       80%        644               787         1.22    'method'
+
+Rates 35/67/80 against ratios 1.37/2.25/1.22 — non-monotonic, as is entry length in either column,
+as is the impl-word count (ledger names the implementation MOST explicitly in store.go's entry and
+sits in the MIDDLE). No candidate orders the three points.
+
+    ⚠️ AND I AM NOT GOING TO FIT ONE. Three points admit a story for almost any variable, and six
+    mechanism stories have died in this record by being exactly that — an account that fit every
+    observation available when it was written. "Consequence 2 is answerable from the corpus" was too
+    optimistic: the corpus has three values of the spec variable, which is enough to SEE a difference
+    and not enough to attribute it.
+
+    What would power it: more specs with memory.go/store.go pairs, or a within-spec contrast where
+    something other than order varies. workapi alone has 15 distinct pairs, which is the only place
+    in the corpus with enough draws to look inside — noted as the next free analysis, not run here.
