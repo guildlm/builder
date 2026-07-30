@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# THE THIRD-SPEC NAME SWAP: control and arm, both on 2212, back to back.
+# THE THIRD-SPEC NAME SWAP: control and arm, both on ONE process, back to back.
 #
 # Pre-registered at 02:22 on 30 July as the next arm after the series closed. Under the split
 # ("name swaps are a coin flip, every other edit kind perturbed 6 of 6") this should be ~50/50.
@@ -11,8 +11,8 @@
 # there means the noise floor is unmeasured and a coin-flip arm cannot be read against it.
 # See logs/PREREG-cross-server-control-replication.txt, the 09:37 amendment.
 #
-# TWO DRAWS, SEQUENTIAL, ONE LAUNCH. ledger has no snapshotted control on 2212 — it had none on
-# 4439 either, which is why this arm cost two draws when it was first proposed. They run back to
+# TWO DRAWS, SEQUENTIAL, ONE LAUNCH. ledger has no snapshotted control on ANY process — none on 4439,
+# none on 2212 either, which is why this arm cost two draws when it was first proposed. They run back to
 # back rather than in parallel: two generations sharing one GPU is the CPU contention this repo
 # has no guard for, and neither of them would be a control afterwards.
 set -uo pipefail
@@ -20,16 +20,15 @@ cd "$(dirname "$0")"
 
 CTL_SPEC="specs/ledger.yaml"
 ARM_SPEC="specs/ledger-name1.yaml"
-CTL_OUT="./generated/ledger-ctl2212"
+CTL_OUT="./generated/ledger-ctl-proc3"
 ARM_OUT="./generated/ledger-name1"
 TARGET="internal/service/service_test.go"
 OLD=TestBalanceMissingAccount
 NEW=TestBalanceAccountMissing
-WANT_PID=2212
-WANT_START="Thu Jul 30 09:29:30 2026"
+WANT_PID=42826
+WANT_START="Thu Jul 30 10:09:48 2026"
 
-PID=$(lsof -ti:8080 2>/dev/null | head -1)
-[[ -z "$PID" ]] && { echo "REFUSING: nothing is listening on :8080."; exit 4; }
+PID=$(./_server_pid.sh) || exit 4   # NOT `lsof -ti:8080 | head -1`: see _server_pid.sh
 START=$(ps -o lstart= -p "$PID" 2>/dev/null | sed 's/^ *//; s/ *$//')
 if [[ "$PID" != "$WANT_PID" || "$START" != "$WANT_START" ]]; then
   echo "REFUSING: :8080 is not the process this arm is pinned to."

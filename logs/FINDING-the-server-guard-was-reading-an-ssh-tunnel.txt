@@ -1,0 +1,66 @@
+FINDING — the guard that pins the server process could return an SSH tunnel
+===========================================================================
+30 July, 10:10. Found by restarting the server and watching the guard name a pid that was not it.
+
+WHAT
+Every draw script pins the model server with the same expression:
+
+    PID=$(lsof -ti:8080 2>/dev/null | head -1)
+
+TWO processes bind port 8080 on this machine:
+
+    ssh    3077    *:8080             colima's forward, started 09:34:46
+    Python 42826   127.0.0.1:8080     the model server
+
+`lsof -ti:8080` returns BOTH. `head -1` takes whichever it listed first, and THE ORDER IS NOT
+STABLE: the expression returned the model server for every draw this morning, and returned the
+SSH TUNNEL at 10:10 when asked the identical question in the identical way.
+
+WHY IT MATTERS MORE THAN IT LOOKS
+The guard's own comment states its purpose: "a restart is invisible in every other check, because
+the port answers either way." It exists because the pid+start-time pair is the ONLY thing that can
+tell one server process from another, and today proved that mattered — two processes write
+different programs from identical input.
+
+    So the check whose whole job is "which process is this?" was deciding it by reading whichever
+    pid lsof happened to list first. On a bad ordering it compares an SSH forward's pid against
+    WANT_PID, refuses, and reports "the server is not the process this experiment is controlled
+    against" — about the right server. On the reverse ordering it passes for the right reason by
+    luck. Both outcomes look exactly like the guard working.
+
+⚠️ NO DRAW WAS CORRUPTED, AND THAT IS NOT THE GUARD'S DOING
+The MLX server's own log carries every request of every draw, and a generation routed to colima's
+forward would have failed outright rather than quietly — there is no chat-completions API on the
+other end. The draws are sound and independently confirmable.
+
+    But the timing is uncomfortably close. The colima listener appeared at 09:34:46, which is
+    AFTER the xserver draw started (09:31:27) and BEFORE xserver2 (09:46:58). So xserver2 — one of
+    the two draws the within-process determinism result rests on — was guarded by a coin flip that
+    happened to land right. The result stands because the server log proves which process served
+    it, not because the guard checked.
+
+THE FIX — ask a narrower question, in one place
+_server_pid.sh, used by every draw script from now on. It checks TWO things, because either alone
+passes something the other rejects:
+
+    - the listener on 127.0.0.1 specifically, not "port 8080 on any interface". The model server
+      binds loopback; the tunnel binds *. That separates them today.
+    - AND the command must contain mlx_lm.server, so a future loopback listener cannot
+      impersonate it.
+
+It refuses on zero matches, refuses on MORE than one match (two model servers on one port is not
+a condition any experiment can be controlled against, and picking one would be the arbitrary
+choice this script exists to remove), and prints what it found when it refuses.
+
+    Demonstrated at 10:11: ./_server_pid.sh -> 42826, `lsof -ti:8080 | head -1` -> 3077.
+
+⚠️ THE PATTERN, AGAIN, AND IT IS THE THIRD TODAY
+This is the same shape as the untracked PREREGs and the character-count-labelled-"bytes": a check
+that is true of what it examined and false of what it implies. The gitignore exception list was
+correct about the names it listed. The byte guard was correct about the number it compared. This
+guard was correct about the pid it read. Each was wrong about the QUESTION it appeared to answer.
+
+    The repo has a name for the general case — _selftest_all.sh's "a green that is true of what it
+    checked and false of what it implies" — and three fresh instances in one morning suggests the
+    naming has not been enough. The thing that caught all three was asking what the check would do
+    if the world were slightly different, not reading the check.
