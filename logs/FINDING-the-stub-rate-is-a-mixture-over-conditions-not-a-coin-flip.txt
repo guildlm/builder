@@ -1,0 +1,56 @@
+FINDING — the 58% stub rate is a MIXTURE over conditions, not a per-draw coin flip
+=================================================================================
+30 July, 18:05. Zero GPU. The within-workapi analysis flagged at 17:55 as "the next free analysis".
+It corrects my own framing from 17:05 and 16:50.
+
+WHAT I HAD BEEN SAYING
+17:05: "a coin flip the campaign has been drawing on all month." 16:50: "the defect is a REROLL, not
+a property of a server or a day." Both invited the reading that each draw independently stubs with
+p≈0.58.
+
+WHAT THE REPLICATE GROUPS SAY
+Grouping workapi trees by name with the trailing replicate index stripped — same condition, N draws:
+
+    _cachefix-workapi       n= 3   full full full
+    _fail-workapi           n=10   STUB x10
+    _iso-workapi-with       n= 3   full full full
+    _iso-workapi-without    n= 3   full full STUB      <-- MIXED
+    workapi (2..27)         n=26   STUB x26
+    workapi-chain           n= 2   full full
+    workapi-split-green     n= 2   STUB STUB
+
+    ⚠️ ONE GROUP EXCLUDED: "workapi-v" (v4, v5) came out mixed, but v4 and v5 are different SPEC
+    VERSIONS, not replicates — my index-stripping grouped them wrongly. Caught by reading the names
+    rather than trusting the grouping rule. So it is 7 real groups, not 8.
+
+    SIX OF SEVEN GROUPS ARE UNIFORM. Ten consecutive stubs. Twenty-six consecutive stubs. Under an
+    independent p=0.58 per draw, 26 uniform outcomes has probability ~2^-26 for a fair coin and is
+    still vanishing at 0.58. That is not a coin flip; within a condition the outcome is mostly
+    DETERMINED.
+
+THE CORRECTED CLAIM
+The stub outcome is largely a property of the CONDITION (spec version + process + whatever else a
+run fixes), not of the individual draw. Some conditions stub every time; some never do. The 58%
+corpus figure is an AVERAGE OVER CONDITIONS, weighted by how many trees each condition happens to
+have left on disk — it is not the probability that any given draw stubs.
+
+    ⚠️ AND THAT MEANS THE 58% IS NOT A RATE ANYONE SHOULD PLAN AGAINST. It answers "what fraction of
+    the artifacts on this disk are stubbed", which is a fact about the corpus. It does not answer
+    "how likely is my next draw to stub", which is what "coin flip" implies and what I implied.
+
+WHAT SURVIVES, AND IT IS THE PART THAT MATTERED
+    1. THE STUB IS COMMON, not three unlucky trees. Six of seven workapi conditions stub uniformly
+       or not at all, and most of them stub. That is worse than a coin flip for anyone relying on
+       memory.go, not better.
+    2. IT IS NOT A SERVER OR A DAY PROPERTY. _iso-workapi-without gives 2 full and 1 STUB across
+       three replicates of ONE condition — so something below the condition level still varies, and
+       today's measurement says what: replicates run as separate PROCESSES, and processes write
+       different programs from identical input. That is the mixing mechanism, already measured.
+    3. ARM 4 STANDS. An inert edit flipped ledger from non-stub to stub on ONE process — i.e. an
+       edit can move a condition across the boundary. Condition-determinism and edit-sensitivity are
+       compatible: the condition determines the outcome, and an edit changes the condition.
+
+⚠️ THIS IS THE SECOND TIME TODAY A RATE I PUBLISHED HAD THE WRONG DENOMINATOR IN A DIFFERENT WAY.
+12:55 counted directories instead of draws (retracted 15:05, fixed by hashing). 17:05 deduplicated
+by content and got the arithmetic right — and still described a mixture as a per-draw probability.
+Hashing fixed WHAT was counted; it did not fix what the count MEANS. A rate needs both.
