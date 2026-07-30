@@ -1,0 +1,65 @@
+FINDING — the stub is the MAJORITY outcome, not three unlucky trees
+==================================================================
+30 July, 17:05. Zero GPU. 107 trees already on disk, none of them ever asked this question.
+
+WHAT THE 29 JULY FINDING SAID
+"Three v5 trees — ledger, taskapipro and workapi — have internal/store/memory.go at FOURTEEN BYTES,
+`package store` and a newline, while the spec entry describes a goroutine-safe Store implementation
+with eight methods. The implementation was written into store.go instead." Written up as a discovery
+about three artifacts, found by chance while chasing a relocated mutation site.
+
+WHAT THE CORPUS SAYS
+Every tree of the three affected specs, checked for memory.go:
+
+    by TREE                     STUB  full  rate
+      ledger                      5     7   41%
+      taskapipro                 11    31   26%
+      workapi                    41    12   77%
+      ALL                        57    50   53%
+
+    ⚠️ THAT COUNTS TREES, WHICH IS THE ERROR I CORRECTED AT 15:05 AND ALMOST REPEATED HERE.
+    workapi2..workapi27 is a 26-tree numbered sweep; counting it as 26 observations would inflate
+    workapi enormously. Deduplicated by the (memory.go, store.go) CONTENT PAIR — the pair, because
+    every stub is the same fourteen bytes and only store.go distinguishes where the code went:
+
+    by DISTINCT (memory.go, store.go) PAIR     STUB  full  rate
+      workapi                                   12     3   80%
+      ledger                                     4     2   67%
+      taskapipro                                 6    11   35%
+      ALL                                       22    16   58%
+
+    The dedup MOVED THE NUMBER BARELY (53% -> 58%) because correlated blocks sit on both sides —
+    workapi has a 10-tree "full" block and a 12-tree "stub" block. Checking cost one command and
+    the alternative was publishing a rate I had just been burned for.
+
+THE CLAIM
+The stub is not an edge case. It is the majority outcome for workapi (80%) and ledger (67%), and
+roughly three in five draws overall. A defect written up as "three trees" is a coin flip the
+campaign has been drawing on all month.
+
+⚠️ WHAT WEAKENS IT
+Only TWO of the 107 are as-drawn snapshots (ledger-prose2, taskapipro-preedit); the rest are
+post-repair. Normally that would sink the measurement.
+
+    It does not here, and the reason is the original finding's OWN central point: "a stub compiles,
+    vets and tests clean... it is invisible to every other instrument here." A fix loop only runs on
+    failures, so it never has a reason to touch a stub, and it cannot create one either. Post-repair
+    state therefore preserves this property in both directions. That is an argument, not a
+    measurement — but it is the argument the 29 July finding itself established.
+
+⚠️ AND THE ONE DIRECT TEST AGREES: ledger-prose2's as-drawn snapshot is the stub, and its 6 fix
+rounds never repaired it — consistent with a loop that cannot see it.
+
+WHY IT MATTERS BEYOND ITS OWN ROW
+    1. Every measurement keyed on (artifact, FILE) silently stops joining when the implementation
+       relocates. The 29 July note said so; nobody then knew it applied to over half the corpus.
+    2. It dissolves open question #3 twice over. That question asked "server or day?" for the stub.
+       Today's arm 4 produced a stub from an inert edit on the same process that had produced five
+       non-stub trees, and now the corpus says the outcome is near coin-flip across a month of
+       draws on many servers and many days. There was never a stable cause to find.
+    3. It re-frames what "the spec describes memory.go's contents" buys. Nothing, 58% of the time.
+
+METHOD — the third free result of the day, and the first where I remembered the last lesson
+The within-process floor, the sentinel rate, and now this: all answered from artifacts already on
+disk. The sentinel rate is also where I published a denominator of directories at 12:55 and had to
+retract it at 15:05. This time the dedup came BEFORE the number rather than two hours after.
