@@ -1,0 +1,67 @@
+FINDING — every spec edit is in EVERY file's generation prompt, by construction
+==============================================================================
+30 July, 12:30. Found by asking a structural question about the pipeline instead of inferring it
+from a diff, while the ledger prose arm was at 3 of 19 and ungraded.
+
+WHAT THE CODE SAYS
+src/builder.py:1076, inside the per-file GENERATION prompt:
+
+    f"TARGET_FILE: {task.spec.path}\n"
+    f"Purpose of this file: {task.spec.purpose}\n\n"
+    f"All files in this project:\n{_file_list(spec)}\n"
+
+and src/builder.py:1265:
+
+    def _file_list(spec: Spec) -> str:
+        return "\n".join(f"  - {f.path}: {f.purpose}" for f in spec.files) + "\n\n"
+
+_file_list renders EVERY file's path AND ITS FULL PURPOSE TEXT. So when generating file 17, the
+model is shown file 2's purpose verbatim. A one-line edit anywhere in the spec is present in all
+nineteen prompts, not just in the prompt for the file it belongs to.
+
+⚠️ THIS CORRECTS MY OWN REASONING FROM 12:26, ONE TURN EARLIER
+I wrote, in the pre-registration: "If only its own entry, then money.go's identical output means
+every later prompt is identical too, and (a) follows by construction — (b) would be impossible."
+That branch is dead. The whole spec's purposes are in every prompt, so an identical target file
+does NOT make the later prompts identical. Outcome (b) — collateral with no visible change in the
+target — is structurally available, and I had it as the unlikely branch partly for a reason that
+was wrong.
+
+    I am NOT revising the committed forecast ((b) ~25%, true null edit ~60%, conventional
+    perturbation ~15%). It was recorded before this check and it gets scored as written. Noting
+    only that one of its supports has been removed, which is different from changing the number.
+
+WHY THIS MATTERS FAR BEYOND THIS ARM — IT DEFLATES THE WORD "PROPAGATED"
+The nine-arm collateral series has been reporting results in the shape "the edit propagated to a
+file it does not mention", and the 19->19 taskflow arm's PROSE ECHO was written up as the model
+"following a rename across a file boundary". That language implies inference or leakage.
+
+    There is nothing to infer. The renamed identifier was sitting in that file's own prompt, in
+    the plan block, as part of another entry's purpose text. The model did not carry the change
+    across a boundary — the change was already on its side of the boundary.
+
+    So "collateral" in this series measures: given that the changed text is in the prompt for
+    every file, how often does the OUTPUT of an unrelated file change too? That is a real and
+    interesting question. It is a much smaller and less mysterious one than the write-ups implied,
+    and every one of those write-ups is mine.
+
+WHAT IT EXPLAINS, AND WHAT IT STILL DOES NOT
+    EXPLAINS why the non-rename column is 6 of 6. The edited text is in nineteen prompts; a spec
+             edit is nineteen prompt edits. Perturbation everywhere is the DEFAULT expectation,
+             not a surprise needing a mechanism.
+    EXPLAINS the prose echo without any cross-file inference.
+    DOES NOT explain the NULLS, and they are now the interesting column. Five arms changed the
+             text in every prompt and produced byte-identical programs anyway — the ledger name
+             swap left 18 of 19 files untouched while its edit sat in all 19 prompts. That is the
+             phenomenon that needs explaining now, and it is the opposite of the one I have been
+             chasing all series.
+
+    ⚠️ THE SERIES' QUESTION WAS BACKWARDS. "Why did this edit spread?" has a boring answer: it was
+    in every prompt. "Why did this edit NOT spread?" does not.
+
+WHAT I HAVE NOT CHECKED, STATED SO IT IS NOT ASSUMED
+    - whether the FIX prompts also carry _file_list (line 5797 builds a different prompt with
+      TARGET_FILE and Purpose; not inspected)
+    - whether retrieval shots or the sibling-content block vary with the edit
+    - whether purposes are truncated for long specs, which would cap how far an edit reaches
+    Each is one grep and none of them changes the finding above, which rests on line 1076 alone.
