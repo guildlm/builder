@@ -58,3 +58,35 @@ WHAT SURVIVES UNCHANGED
 I graded a pair on memory.go alone. Same shape each time — the number I was reading stopped meaning
 what I thought, and each time the instrument had ALREADY printed the contradicting detail. The
 grader listed store.go's relocation in its only_a/only_b lines in every one of these pairs.
+
+RE-EXAMINED, 04:20 — the two kept reorders survive the new framing, and the metric layering matters
+At 22:40 I promoted the reorder under "order causes the stub". At 02:15 I replaced that with
+"consolidation — order only chooses the victim". A decision made under a framing that has since been
+replaced deserves re-checking rather than inheriting.
+
+    ledger      A empty=[memory.go] -> B empty=NONE            ELIMINATED
+    workapi     A empty=[memory.go] -> B empty=NONE            ELIMINATED
+    taskapipro  A empty=[memory.go] -> B empty=[store.go]      MOVED
+
+    On two specs of three the reorder does NOT merely move the empty file — there is no empty file
+    left. On the third it relocates it. So both decisions stand: keep ledger and workapi reordered,
+    revert taskapipro. Right answers, now for a reason stated under the current framing.
+
+⚠️ AND THE TWO METRICS DISAGREE, WHICH IS THE POINT
+    EMPTY-FILE metric   ledger ELIMINATED · workapi ELIMINATED · taskapipro MOVED
+    OWNERSHIP metric    ledger mostly correct · workapi LOSES two required sentinels to memory.go ·
+                        taskapipro loses everything
+
+    workapi's B has no empty file AND still violates its own spec: store.go keeps the interface but
+    the sentinels its entry names in plain words moved next door. "No empty file" is the coarser
+    question and it is the one the harness's own check (`empty_go_files`) asks.
+
+    So the harness would score workapi's B as clean. It is not clean. That is a THIRD instance of
+    the day's recurring shape — a check true of what it examined and false of what it implies — and
+    this time it is the check I spent the night proposing to strengthen. Fixing hole 1 makes the
+    empty-file warning fire more often; it does not make the warning ask the right question.
+
+    RECORDED, NOT ACTED ON: an ownership check ("does each file declare what its entry names?") is
+    strictly stronger than the empty-file check and is computable from data already in hand —
+    `_required_decls` per entry against `top_level_decls|method_decls` per file. That is a fourth
+    arm, and it belongs after the two already pre-registered.
