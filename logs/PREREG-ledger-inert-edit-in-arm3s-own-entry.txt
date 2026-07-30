@@ -1,0 +1,58 @@
+PREREG — arm 4: is LOCAL reproducible, or did the rename specifically cause it?
+==============================================================================
+Written 16:20 on 30 July, before the draw. MEASURE DECLARED IN ADVANCE, because arm 3's
+pre-registration failed on exactly that.
+
+WHAT ARM 3 LEFT
+Arm 3 renamed the single test in internal/api/middleware_test.go and the renamed function's own body
+came back a DIFFERENT PROGRAM — Chain(panicky, Recover) became Recover(http.HandlerFunc(...)),
+dropping the Chain call the spec names — with ZERO collateral anywhere else. That is category LOCAL,
+and it is a singleton: 1 of 7 rename arms.
+
+Two readings, and arm 3 cannot separate them:
+    (a) THE RENAME DID IT. Changing that test's name changed how the test is written.
+    (b) THAT FILE'S BODY IS UNSTABLE. Any perturbation rerolls it, and the rename was incidental.
+
+THE ARM — perturb the SAME entry with NO rename
+    spec      specs/ledger-prose2.yaml (via _mkvariant_swap.py, anagram guard)
+    edit      line 460, INSIDE internal/api/middleware_test.go's own entry:
+              "Imports net/http, net/http/httptest, testing."
+           -> "Imports net/http/httptest, net/http, testing."
+              24735 chars / 24813 bytes both sides · whole-file character multiset UNCHANGED
+              · unique (the other two occurrences read "Imports bytes, encoding/json, net/http,...")
+    control   generated/ledger-ctl-proc3, reused (server still 42826)
+    arm       generated/ledger-prose2
+    grader    _asdrawn_diff.py --target=internal/api/middleware_test.go   (NO --rename: no rename)
+
+    Inertness argued: Go sorts imports and gofmt reorders them regardless; the sentence names a SET.
+    Same reasoning as the 12:20 prose arm — where the target file came back byte-identical, so this
+    edit kind is KNOWN to be normalisable away. That is the point: it perturbs the prompt without
+    instructing any change.
+
+MEASURE, DECLARED — the four outcomes are disjoint and exhaustive
+    T-IDENTICAL + no collateral  target byte-identical, nothing else moves. Reading: (a) — the
+                                 rename caused arm 3's LOCAL; an inert edit in the same entry does
+                                 not disturb the body.
+    T-CHANGED   + no collateral  the target's body differs with nothing else moving. Reading: (b) —
+                                 that file's body rerolls under ANY perturbation, and arm 3's
+                                 "LOCAL" says nothing about renames. This would also make LOCAL
+                                 reproducible, taking it from singleton to 2 of 8.
+    any collateral               a file or function the edit does not name changed. Reading: this
+                                 entry's edits reach further than arm 3's did, and the comparison
+                                 to arm 3 is no longer clean — report it, do not fold it into
+                                 either reading.
+    UNMEASURED                   no snapshot. Redraw.
+
+    ⚠️ "T-IDENTICAL" IS NOT A NULL EDIT HERE, and that is why the measure is named this way. The
+    12:20 prose arm's target was byte-identical AND it perturbed models.go — so target-identical and
+    "the arm measured nothing" are different things, and the grader reports them separately.
+
+PREDICTION — T-CHANGED, 45%
+    Honest reasoning and its weakness both stated. FOR: the 12:20 prose arm proved an inert
+    transposition in this spec can change a program (models.go), so this edit kind is not toothless
+    here. AGAINST: that same arm left its own target byte-identical, and 16 of 19 files in arm 3 were
+    identical, so most files in this spec absorb a changed plan block without moving.
+
+    ⚠️ NO CLAIM THAT 45% IS PRINCIPLED. There is no homogeneous pool: n=1 for "inert edit inside the
+    entry of a file whose body has already been seen to reroll". It is a coin flip with a reason to
+    lean neither way, and today's record says that is exactly when I should not decorate it.
