@@ -1,0 +1,38 @@
+FINDING — entry order is CONSTANT across all three affected specs, so the corpus cannot test it
+==============================================================================================
+30 July, 17:45. Zero GPU. Checked immediately after arm 5's decisive files landed, to see whether
+the 107-tree corpus could substitute for the multi-draw experiment arm 5 needs.
+
+IT CANNOT, AND THE REASON IS CLEAN
+    spec         store.go   memory.go   stub rate (deduped)
+    ledger       entry 6    entry 7     67%
+    taskapipro   entry 6    entry 7     35%
+    workapi      entry 6    entry 7     80%
+
+Order is IDENTICAL in all three: store.go sixth, memory.go seventh, everywhere. So the corpus holds
+the variable fixed at one value across 38 distinct draws. It contains no information about order —
+not weak information, none — and no amount of re-analysis will extract any.
+
+    ⚠️ THAT IS THE OPPOSITE OF WHAT I WENT LOOKING FOR. The 17:05 and 12:55 results both came from
+    asking the corpus a question the campaign thought needed GPU. This time the corpus is structurally
+    incapable of answering, and the useful move was finding that out in one command rather than
+    building an analysis on top of a constant.
+
+TWO CONSEQUENCES, ONE FOR EACH DIRECTION
+    1. ARM 5 IS THE ENTIRE EVIDENCE BASE FOR THE ORDER HYPOTHESIS, at n=1. And its outcome is (a) —
+       memory.go full (2374 chars, 7 funcs) when generated first, store.go the interface it is
+       supposed to be (377 chars, 0 funcs, declaring Store). Consistent with the mechanism.
+       ⚠️ AND I PRE-COMMITTED NOT TO COUNT IT: "(a) is the outcome I expect and the one a 33%
+       non-stub base rate hands me for free. Only (c) confirms at n=1." (c) — the stub MOVING to
+       store.go — did not happen. So the hypothesis stands where it stood: plausible, specific,
+       and untested. It needs N trivially-different variants per order, which is hours of GPU.
+
+    2. THE SPEC-TO-SPEC VARIATION IS NOT ORDER-DRIVEN, and that is a NEW open question. With order
+       held constant the rate still ranges 35% -> 80%, a factor of 2.3. Something about these specs
+       other than the order of these two entries makes workapi more than twice as likely to stub as
+       taskapipro. That cause is unidentified and the corpus CAN speak to it, because unlike order
+       it varies.
+
+⚠️ WHAT THIS DOES NOT DO. It does not weaken the 17:15 finding that scope_rule fails 58% of the
+time — that is a measured rate against a guard whose text names this exact failure. It only means
+the ORDER explanation for why it fails has one supporting draw and no corpus backing.
