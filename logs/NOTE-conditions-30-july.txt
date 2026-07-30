@@ -46,3 +46,34 @@ v5 trees while the spec describes a full MemStore. _stub_files.py: no stubs in t
     Balance(id) method. That is a candidate defect in this draw, noted only so it is not mistaken
     for a clean bill of health. ledger has drawn NOT-GREEN before and green is not this arm's
     question — the name swap is graded as-drawn from .pre-fix.json either way.
+
+11:14 · CORRECTION — the throughput collapse is CONTENTION, not thermal throttling.
+At 11:12 I recorded the 7x prefill slowdown as "consistent with sustained-load throttling after
+two hours of continuous GPU work". That was a guess and it is wrong. Measured at 11:14:
+
+    pmset -g therm : "No thermal warning level has been recorded"
+                     "No performance warning level has been recorded"
+    load average   : 14.85
+    godot                                     89.1% CPU
+    com.apple.Virtualization.VirtualMachine   78.5% CPU, 23% MEM   (colima's VM)
+    WindowServer                              39.9%
+    claude x3                                 ~30% each
+    memory free    : 77%, 0 pageouts
+
+The machine is not hot, it is BUSY. Two large unrelated processes — a Godot editor and colima's
+Linux VM — are taking ~170% CPU between them. colima is also what put the ssh listener on :8080
+that broke the server guard at 10:10, so the same background service has now interfered with this
+session twice, in two unrelated ways.
+
+    ⚠️ NOT ACTED ON. Both are the user's own applications and killing them is not mine to do —
+    Godot may hold unsaved work. Recorded so the condition is attributable rather than mysterious,
+    and so the earlier "thermal" line is not left standing as fact.
+
+    WHAT IT CHANGES ABOUT THE ARM: nothing that the 11:12 note did not already cover. Contention
+    and throttling are the same class of variable — machine throughput — and that variable was
+    measured inert at 24% by the xserver/xserver2 pair. Knowing the cause does not make the
+    extrapolation to 3x any safer; it only makes the confound nameable.
+
+    WHAT IT CHANGES PRACTICALLY: the slowdown is recoverable rather than physical. Closing Godot
+    and colima would restore most of the throughput. That is the user's call, and it must NOT be
+    done mid-arm anyway — the control is already drawn on 42826 and the arm must share it.
