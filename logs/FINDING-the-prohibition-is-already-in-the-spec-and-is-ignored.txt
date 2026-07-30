@@ -1,0 +1,63 @@
+FINDING — the instruction I was about to add is ALREADY THERE, and it is ignored 3 of 3
+=======================================================================================
+02:40 on 31 July. Zero GPU. Found by reading the spec entry before writing an arm to add an
+instruction to it.
+
+WHAT I WAS ABOUT TO DO
+Design an arm adding an explicit, file-specific prohibition to ledger's store.go entry — "declare
+ONLY the interface and sentinels; do NOT write the implementation here" — on the theory that
+scope_rule's generic version fails because it is generic.
+
+WHAT THE SPEC ALREADY SAYS
+    ledger, internal/store/store.go, first line of its purpose:
+        "package store. The Store INTERFACE only — no implementation in this file."
+
+    It is explicit. It is file-specific. It is the first thing in the entry. And:
+
+    p6 store.go declares 7 funcs -> NewMemStore, CreateAccount, GetAccount, ListAccounts,
+                                    CreateTransaction, ListTransactions, Balances
+    p7 store.go declares 7 funcs -> the same seven
+    p8 store.go declares 7 funcs -> the same seven
+
+    Three draws, three processes, all with "no implementation in this file" in the entry, all
+    writing NewMemStore and six methods into that exact file. Not partial compliance — the whole
+    implementation, every time.
+
+AND THE OTHER TWO SPECS DO NOT EVEN ASK
+    ledger      explicit prohibition: "INTERFACE only", "no implementation in this file"
+    workapi     no prohibition
+    taskapipro  no prohibition
+
+    So ledger is the ONE spec that forbids consolidation at the entry level, and ledger consolidates
+    exactly like the two that do not. The prohibition buys nothing measurable.
+
+THE CONTRAST THAT MAKES THIS USEFUL
+Compliance in this pipeline is not uniformly bad — it is SHAPED:
+
+    POSITIVE, ADDITIVE   "with JSON tags"                     24 of 24 complied
+    NEGATIVE, EXCLUSIVE  "INTERFACE only — no implementation"  0 of 3 complied
+
+    The model reliably does an extra thing it is told to do, and reliably fails to REFRAIN from a
+    thing it is told to omit. That is a much sharper statement than "instructions sometimes fail",
+    and it is consistent with everything else today: scope_rule is also a prohibition, and it also
+    fails, at 58%.
+
+    ⚠️ n is small on the negative side (3 draws, one spec) and the two sides are not matched
+    experiments — "with JSON tags" and "no implementation here" differ in more than polarity. Stated
+    as the shape the evidence takes, not as a law about prompts.
+
+WHAT IT KILLS, AND WHAT THAT SAVED
+The arm I was designing is dead before it cost anything: adding the instruction cannot be the fix,
+because the instruction is already there and already ignored. Reading the entry took one command;
+the arm would have taken two draws and ~90 minutes to arrive at the same place.
+
+    That is the third free result today from asking the artefact instead of the GPU — after the
+    within-process floor and the JSON-tag resolution. The pattern holds: when a question is about
+    what the harness or the spec SAYS, reading answers it.
+
+WHAT IS NOW THE OPEN QUESTION
+Not "how do we tell the model to split the package" — it has been told, in the clearest terms
+available, and it does not. Something other than instruction has to do the work: separate
+generation calls that cannot see the sibling's slot, a post-generation relocation pass, or a gate
+that rejects a draw whose file declares symbols another entry claims. The last is checkable against
+the corpus and costs nothing to prototype — `_asdrawn_diff` already computes per-file declarations.
