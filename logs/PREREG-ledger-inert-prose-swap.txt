@@ -1,0 +1,82 @@
+PREREG — a NON-RENAME edit on ledger: is the split real, or is ledger just a stable spec?
+=========================================================================================
+Written 12:20 on 30 July, before the draw. The ledger name swap graded a CONFIRMED NULL at 12:11.
+
+THE HOLE THIS ARM FILLS, AND IT IS IN MY OWN 12:11 RESULT
+That result said the null cost the rival hypothesis ("ratelimit is perturbable, taskflow's nulls
+were taskflow's") a directional call. True. But it leaves a rival I did NOT name there, and it
+explains the same null just as well:
+
+    "LEDGER IS A STABLE SPEC." Not "name swaps are safe" — ledger specifically, whatever you do
+    to it. One data point from one spec cannot distinguish "this EDIT KIND is safe here" from
+    "this SPEC is quiet". Every ledger observation I have is a single null.
+
+The split — name swaps 2 of 5, everything else 6 of 6 — predicts these come apart. If a
+non-rename edit on ledger PERTURBS, "ledger is quiet" dies and the split survives on a third spec
+with BOTH edit kinds. If it is ALSO null, the split loses its third spec entirely: ledger's null
+becomes a property of the spec and the name-swap row shrinks back to two specs.
+
+    This is the symmetric arm to the one just run, and the same logic that made that one worth
+    firing makes this one worth firing.
+
+COSTS ONE DRAW, NOT TWO. generated/ledger-ctl-proc3 already exists on pid 42826 with a snapshot,
+and the server is still 42826 (verified 12:18). Control and arm share a process, which is the
+requirement. Reusing it is legitimate — the 4439 controls were abandoned because the PROCESS died,
+not because controls expire.
+
+THE ARM
+    spec      specs/ledger-prose1.yaml, from _mkvariant_swap.py (new tool, self-test 8 cases)
+    edit      line 24, inside internal/money/money.go's purpose:
+                  "import exactly strconv, strings," -> "import exactly strings, strconv,"
+              24735 chars and 24813 bytes on BOTH sides · whole-file character multiset UNCHANGED
+              · 1 substitution · both words are 7 characters, so even token positions hold
+    control   generated/ledger-ctl-proc3   (already drawn, 19-file snapshot, NOT-GREEN — irrelevant)
+    arm       generated/ledger-prose1
+    grader    _asdrawn_diff.py --target=internal/money/money.go   (NO --rename: nothing is renamed)
+
+WHY THIS EDIT AND NOT A LINE ADDITION
+It is the closest possible analogue to the name swap just run — equal length, semantics-preserving,
+a reordering of two words — differing ONLY in WHERE it sits: prose describing imports, rather than
+a test's name. That isolates location from size. A line addition would change size too and confound
+the comparison with the dose arms.
+
+    Inertness argued, not assumed: Go sorts imports and gofmt would reorder them regardless, and
+    the spec's sentence names a SET ("import exactly X, Y, Z"). The order carries no meaning.
+    ⚠️ The tool cannot check this — it only guarantees no character was added, dropped or altered.
+    The semantic judgement is mine and is recorded here so it can be held against me.
+
+    The taskflow analogue of this exact manipulation — "(sync, sort, errors as needed)" ->
+    "(sort, sync, ...)" — PERTURBED, 6 CODE files and 8 functions.
+
+PREDICTION — the arm PERTURBS, 70%
+Higher than any number I have written since the confident ones started failing, and stated with
+the reason it is high rather than hedged into meaninglessness:
+
+    the non-rename row is 6 of 6, across two specs and four distinct edit kinds, including a
+    single character inside a verbatim fixture. It is the least equivocal column in the series.
+    The taskflow arm with this exact manipulation perturbed.
+
+    ⚠️ AGAINST IT: confident predictions are 0 for 6 today, and the one thing every miss shares is
+    that the reasoning felt strong. 70 is deliberately below the 6/6 base rate for that reason,
+    and if it misses, the correct reading is NOT "ledger is quiet" on one arm — it is that the
+    6/6 column has its first exception and both hypotheses need re-examining.
+
+BRANCHES
+    PERTURBS    "ledger is a stable spec" dies. The split survives on a third spec with both edit
+                kinds, and the 12:11 null becomes evidence about RENAMES rather than about ledger.
+    NULL        the first exception to 6/6, AND the strongest support "ledger is quiet" could get.
+                One arm cannot choose between those two readings and I am NOT pre-committing to
+                either — the follow-up would be a third ledger edit of a DIFFERENT kind (a line
+                addition), because "quiet spec" predicts null again and "6/6 has an exception"
+                predicts a hit.
+    NULL EDIT   the target file internal/money/money.go does not differ at all -> the edit never
+                landed and the arm measures nothing. Reported as a null EDIT, not a null RESULT.
+                ⚠️ MORE LIKELY HERE THAN IN THE NAME ARM: an import-order instruction may leave no
+                trace at all, because gofmt sorts imports. If money.go's import block is identical
+                and nothing else moved, that is this branch, not a result.
+    UNMEASURED  draw dies or no .pre-fix.json. Redraw.
+
+⚠️ CONDITIONS. Throughput is still degraded by contention (godot + colima, ~170% CPU between them;
+not thermal, pmset shows no warnings). The control was drawn at ~120 tok/s, this arm will draw
+slower. Throughput has now been measured inert at 24% AND at ~3x, the second time by the ledger
+name arm itself, so this is recorded as a condition rather than as a live confound.
