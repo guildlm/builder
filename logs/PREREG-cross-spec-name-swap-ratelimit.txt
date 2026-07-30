@@ -1,0 +1,79 @@
+PRE-REGISTRATION — is "7 of 9 arms perturb" a taskflow artefact?
+================================================================
+
+Written 01:22 on 30 July, BEFORE the draw. Every arm of the nine-arm series was on ONE spec.
+This is the first cross-spec test of the manipulation whose result was ambiguous there.
+
+THE ARM
+    spec      specs/ratelimit-name1.yaml  (HEAD + one word-order swap, nothing else)
+    edit      TestContentTypeJSON -> TestJSONContentType   19 -> 19 characters
+              2 occurrences, both swapped, 0 left behind, 2 lines changed
+    guard     10964 bytes BEFORE == 10964 bytes AFTER, at byte level and character level
+              (the char guard alone was not enough: the file has 42 bytes of non-ASCII, so
+               len() and wc -c disagree by 42 and only checking one would have been sloppy)
+    control   generated/ratelimit-ctl, drawn 21:06 on 29 July from HEAD, server 4439,
+              carries .pre-fix.json, and its ratelimit_test.go DECLARES TestContentTypeJSON
+              — so the edit has somewhere to land and "did it land" is answerable
+    grade     as-drawn on both sides via .pre-fix.json; _untouched_diff.py classification
+
+WHY THIS ARM AND NOT FOUR ARMS ON ledger. ledger has three equal-length meaning-preserving
+swaps available and would have been the richer design, but it has NO snapshotted control on
+4439 — so it costs four draws, and the control would have to be drawn first. ratelimit already
+has one. One draw buys the cross-spec question; three more would buy within-spec replication,
+which is the SECOND question, not the first.
+
+WHY ratelimit AND NOT jsoncodec, which also has a snapshotted control: jsoncodec is 2 files.
+The taskflow arms rested on 15. Six is small; two is not a denominator.
+
+PREDICTION
+    A  no collateral — only the target file differs in CODE, or nothing differs      45%
+    B  collateral — at least one file the edit does not mention differs in CODE      55%
+
+    ⚠️ THE PRIOR IS SHADED TOWARD B DELIBERATELY, AGAINST MY OWN INTUITION. On the raw base
+    rate this should be A: name swaps went 2 null of 3 on taskflow, and ratelimit has 6 files
+    where taskflow had 15, so there is less surface on which collateral can even be observed.
+    Both of those point at A.
+
+    I am predicting B anyway because of a measured fact about the PREDICTOR. Three mechanism
+    stories died between 23:38 and 01:04, and all three of my predictions were wrong IN THE
+    SAME DIRECTION — each time I expected something to be safe and it was not. A bias with a
+    consistent sign is correctable, so I am correcting it. If A lands, the bias correction was
+    an overcorrection and that is itself worth knowing.
+
+⚠️ WHAT A NULL HERE CAN AND CANNOT DO, stated before the result so it cannot be inflated after
+    A null CANNOT show ratelimit is safe. Six files, one arm. The +48-line arm on this very
+    spec KILLED the artifact outright (first-try-green -> exhausted, replicated), so this spec
+    is demonstrably perturbable; a null would bound the SIZE of the name-swap effect here, not
+    its existence.
+    A hit CAN do real work: it makes the taskflow distribution cross-spec, and it means the two
+    taskflow nulls were luck rather than a property of name swaps as a class.
+    Either way this is n=1 on a second spec. It does not settle the class.
+
+WHAT IS DELIBERATELY NOT BEING CLAIMED. No mechanism. The 01:04 lesson was to stop proposing
+mechanisms that fit the arms so far and report the raw distribution instead. This arm adds one
+row to a distribution. It is not a test of a theory, because there is no live theory.
+
+
+ADDENDUM 02:01 — the last unresolved row, and a prediction made the new way
+==========================================================================
+Arm: taskflow HEAD + TestSortedProjectList -> TestProjectListSorted, 21 -> 21 chars, 22410
+bytes before and after, 1 substitution, 0 leftovers. Control: taskflow-chain6.
+
+REVERSE DIRECTION, and that is forced rather than chosen. The forward version of this rename
+was COMMITTED into specs/taskflow.yaml at 11520cc, so the control already contains its output
+and the only redrawable direction is back. Worth stating because direction is now a free
+variable nobody has tested: every graded arm so far edited AWAY from HEAD, and this one edits
+away from HEAD too, but toward a name a previous draw produced.
+
+PREDICTION: collateral appears, 65%.
+
+    ⚠️ THIS IS THE BASE RATE, NOT A JUDGEMENT, AND THAT IS DELIBERATE. Of the three name swaps
+    that can be graded at code level, two are hits and one is a null. 2/3 is 67%. I am
+    predicting 65% because that is what the sample says and I have nothing else that works.
+
+    The two previous prereg predictions were reasoned: 01:22 shaded AGAINST the base rate to
+    correct a bias, and 01:37 shaded toward perturbation. The first was wrong at the granularity
+    it named and the second was wrong outright, and together they showed the "bias" they were
+    correcting for was noise. So reasoning is suspended: predict the base rate, state that it is
+    the base rate, and let the arms accumulate. If the base rate itself is wrong, more arms will
+    say so, which is more than any of my three dead mechanisms ever managed.

@@ -1,0 +1,119 @@
+PREREG — is a draw on a NEW server process comparable to one on the old process?
+================================================================================
+written 30 July BEFORE the draw, which launched at 09:31:27. Server 2212 up; nothing drawn on it.
+
+⚠️ THIS HEADER FIRST SAID "written 09:35" AND I NEVER READ A CLOCK. The file was written before
+09:31:27, so the fabricated stamp postdated the launch — it turned a prediction made before the
+draw into one that reads as made after it, which is the exact ordering this file exists to
+establish. Caught by _check_timestamps.py's own rationale, minutes after discovering that the
+tool could not see this file at all (logs/PREREG-*.txt was untracked until 09:39).
+
+WHAT GIT CAN AND CANNOT PROVE HERE, since the file was untracked when it was written:
+    CANNOT  that this file predates the 09:31:27 launch. Nothing timestamps it but my word.
+    CAN     that the 65% prediction existed at commit a2e983d, 09:32:31, which carries it in
+            the message. That is 64 seconds AFTER the launch — and still ~20 minutes before any
+            output of this draw could be compared to anything, since grading runs at the end.
+The prediction therefore predates the EVIDENCE, which is the claim that matters, even though it
+does not provably predate the launch. Stating the weaker true thing rather than the stronger one.
+
+WHY THIS ARM AND NOT THE PRE-REGISTERED ONE
+The 02:22 save point named the next arm: a name swap on a THIRD spec (ledger), needing its
+control drawn first. That plan assumed the controls lived on server 4439.
+
+    At 09:20:52 today the machine rebooted. pid 4439 (up since 29 Jul 09:29:40) died with it.
+    Not a decision — an event. The "DO NOT RESTART" guard protected comparability; the thing
+    it protected is already gone.
+
+The standing rule written into _pristine_pre_edit_draw.sh is explicit about what that costs:
+"If mlx_lm.server has restarted, this becomes a THIRD condition rather than a control, and it
+would look exactly like a result." Under that rule every 4439 control is now unusable and every
+future arm pays for a fresh control.
+
+    ⚠️ THAT RULE HAS NEVER BEEN MEASURED. It was adopted as a precaution, correctly, because an
+    unmeasured confound must be assumed live. But "assume it matters" and "it matters" are
+    different claims, and the whole campaign now depends on which one is true. Nobody has ever
+    drawn the SAME spec on TWO server processes and compared them.
+
+So the reboot is not only a loss. It is the only cheap moment this question is answerable: a
+control draw is now MANDATORY before any arm, and comparing that mandatory draw to the dead
+server's control costs one grader invocation on top.
+
+THE ARM — no spec edit at all
+    spec      specs/taskflow.yaml, UNMODIFIED at HEAD (11520cc). Tree clean; no variant.
+    control   generated/taskflow-chain6 — snapshotted, drawn 29 Jul 20:03-20:26 on 4439, from
+              this same HEAD spec. The control the whole name5 arm was graded against.
+    draw      generated/taskflow-xserver, on 2212 (started Thu Jul 30 09:29:30 2026)
+    grader    _asdrawn_diff.py, as-drawn from both .pre-fix.json snapshots, file + FUNCTION +
+              non-function residue. NO --target: there is no target, the input is byte-identical.
+    changed   exactly one thing: the operating system process serving the model.
+
+    This is the first arm in the series whose INPUT is unchanged. Every one of the ten graded
+    arms perturbed an input and asked what moved. This one perturbs nothing and asks whether
+    the apparatus holds still.
+
+PREDICTION — 65% byte-identical across all 16 files, 35% at least one difference
+Reasoning, and the two live hypotheses disagree:
+
+    H1 "the process is inert"  -> identical. Greedy decoding, same safetensors, same shapes,
+       MLX bit-exact per op. Strongest direct evidence: within 4439, draws minutes apart with
+       DIFFERENT prompt-cache contents came back byte-identical (name5 vs chain6: 15 of 16 files
+       identical, every file ahead of the edit point included). Cache state demonstrably does
+       not move the output, so a cold cache on 2212 should not either.
+
+    H2 "the process is a condition" -> differs. This is open question #3, still unresolved: the
+       import defect was FINE on the 28 Jul server and DEFECT on every 4439 draw, and
+       server-vs-day was never separated. H2 predicts exactly this arm shows drift.
+
+    Why 65 and not higher: ~16 files and thousands of generated tokens is a lot of chances for
+    one near-tie argmax to flip, and one flip cascades into every later file through context.
+    A tree is byte-identical only if EVERY token is. Why not lower: the within-server evidence
+    above is direct and the mechanism for cross-process drift is speculative.
+
+    ⚠️ 65% IS A REASONED PREDICTION AND THOSE ARE 0 FOR 3 TONIGHT. Recorded as a number so it
+    can be scored, not because the reasoning has earned trust. The ledger stands at 1 hit in 6.
+
+BRANCHES, PRE-COMMITTED — including the one that says nothing
+    IDENTICAL   The process is inert AT THIS RESOLUTION. The 4439 controls stay valid comparanda,
+                the ten-arm distribution survives the reboot intact, and open #3 loses its
+                generation-time mechanism (the import defect goes back to day-or-spec).
+                The ledger arm then costs its own control and nothing more.
+    DIFFERS     Comparability is process-bound and the precaution was right. The ten arms still
+                stand — each graded control and arm on ONE process — but every cross-DAY claim
+                in the campaign is void, and #3 resolves toward the server. This is the more
+                expensive outcome and the more informative one.
+    UNMEASURED  Draw dies, or fails to converge, or the snapshot is missing. Says NOTHING about
+                the server. Redraw. (The 29 Jul lesson: four predictions went VOID because the
+                machine never reached the question. The branch is in the set this time.)
+
+AMENDMENT, 09:37 (mtime, not typed — the first draft of this line said 09:47, eight minutes into
+the future), WRITTEN BEFORE THE RESULT — the DIFFERS branch does not identify anything yet
+Committing to this now, while the draw is at 11 of 16 files and the verdict is unknown, because
+choosing it afterwards is choosing it knowing the answer.
+
+If this draw DIFFERS from chain6, two things fit equally and the arm cannot separate them:
+
+    (a) CROSS-PROCESS drift — the server process is a condition, as open #3 suspects.
+    (b) the pipeline is not deterministic AT ALL, within a process or across one, and the
+        premise that a fixed condition reproduces byte-for-byte was never directly measured.
+
+The evidence for within-process determinism is real but INDIRECT: name5 vs chain6 came back 15
+of 16 files byte-identical, every file ahead of the edit point included, which is two different
+specs agreeing wherever their prompts agreed. Nobody has ever drawn the SAME spec twice on ONE
+process and diffed it. The whole series has been reading "differs" as "the edit did it" against
+a baseline that was inferred rather than taken.
+
+    So: DIFFERS -> the next draw is NOT the ledger arm. It is taskflow HEAD a THIRD time, on
+    2212, graded against taskflow-xserver. Same spec, same process, nothing changed at all.
+        identical -> within-process determinism confirmed directly, so the chain6 difference is
+                     genuinely cross-process and (a) stands.
+        differs   -> (b), and it is far larger than (a): every "perturbed" verdict in the ten-arm
+                     distribution was measured against an unmeasured noise floor, and the series
+                     needs a floor before any of it means what it says.
+
+    IDENTICAL -> that follow-up is unnecessary. A draw that reproduces chain6 across a reboot has
+    already demonstrated determinism across the strictly harder condition.
+
+⚠️ RESOLUTION CAVEAT, PER THE 01:04 STANDARD. "IDENTICAL" is a claim at the resolution of
+_asdrawn_diff.py — files, functions inside differing files, and non-function residue. That is
+the finest instrument here, and it is the one that caught the file-level null that wasn't. It
+is still not a claim about anything below function granularity.

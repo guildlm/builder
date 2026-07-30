@@ -94,3 +94,22 @@ logs/*
 # hint, which is louder than the "nothing to commit" that caught the others and is the only
 # reason this rule exists before the number it qualifies was read rather than after.
 !logs/NOTE-*.txt
+# ...and the PREREGS, which are the same thing as a PREDICTION under a different filename — and
+# that is the whole failure. This list has now gone stale SIX times, and every previous note
+# above explains the mechanism as though naming it were the fix. It is not. Five of the six were
+# a new KIND of record; this one is a new NAME for a record already covered in spirit, which is
+# worse, because nothing about writing "PREREG" instead of "PREDICTION" feels like introducing an
+# untracked file class. Both PREREG files on disk were untracked when this was found:
+#   PREREG-cross-spec-name-swap-ratelimit.txt   <- backs a row in the CLOSED ten-arm distribution
+#   PREREG-cross-server-control-replication.txt
+# 77 of 77 PREDICTION-*.txt were tracked. 0 of 2 PREREG-*.txt were.
+#
+# An untracked pre-registration is not a weaker pre-registration, it is NOT ONE: its entire
+# epistemic value is that git can show the prediction predates the result, and that is exactly
+# the property the .gitignore comment at line 28 says these files exist to have. The ratelimit
+# arm's prediction has been uncheckable since it was written.
+#
+# Caught by "nothing to commit, working tree clean" — the sixth consecutive time, and the one
+# failure mode line 48 explicitly warns about reading past. Do not add a seventh note. If a new
+# record filename appears, run `git ls-files --error-unmatch` on it BEFORE it holds a claim.
+!logs/PREREG-*.txt

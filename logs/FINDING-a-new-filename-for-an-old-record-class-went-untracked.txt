@@ -1,0 +1,77 @@
+FINDING — the gitignore exception list went stale a SIXTH time, and this one was a new NAME
+==========================================================================================
+30 July, ~09:39. Found by "nothing to commit, working tree clean" after writing a file.
+
+WHAT
+`logs/*` is ignored with explicit exceptions for PREDICTION-, RESULT-, FINDING-, NOTE-,
+PENDING-, hole-hunt-rows*, reachability-rows*. There was no exception for PREREG-.
+
+    77 of 77  logs/PREDICTION-*.txt   tracked
+     0 of 2   logs/PREREG-*.txt       tracked
+
+The two untracked files:
+    PREREG-cross-spec-name-swap-ratelimit.txt     backs a row in the CLOSED ten-arm distribution
+    PREREG-cross-server-control-replication.txt   backs the arm in flight right now
+
+WHY THIS ONE IS DIFFERENT FROM THE OTHER FIVE, AND WORSE
+Every previous staleness was a new KIND of record — results, findings, notes, row baselines —
+and each earned its own paragraph in .gitignore explaining the mechanism, as though naming it
+were the fix. Five paragraphs, and the list still went stale.
+
+This time nothing new was invented. A PREREG *is* a PREDICTION; I typed a different word for a
+record class already covered in spirit. That is the failure mode the five notes cannot catch,
+because introducing an untracked file class does not FEEL like introducing one — it feels like
+writing the same kind of file you wrote yesterday. The exception list keys on filenames; the
+practice keys on intent; nothing keeps them aligned.
+
+    Same shape as _selftest_all.sh's own reason for existing: a list that is correct when
+    written and goes stale silently, because nobody notices a list that does not grow.
+
+THE SECOND-ORDER EFFECT, WHICH IS THE PART WORTH RECORDING
+_check_timestamps.py audits "every TRACKED logs/*.txt" — `git ls-files logs/*.txt`. So the
+untracked PREREGs were invisible to it. It has been reporting **clean, 66 files** while two
+evidence files sat outside its denominator. After the exception was added: **67 files, still
+clean.**
+
+    A green that is true of what it checked and false of what it implies — the exact phrase
+    _selftest_all.sh was written about, now reproduced by the gitignore instead of by a list.
+    The gitignore hole did not only lose files. It silently shrank another instrument's
+    coverage, and that instrument's own docstring has a section headed "WHAT IT DOES NOT
+    COVER, measured rather than guessed" which did not mention it — because from inside the
+    tool the file simply was not there.
+
+⚠️ HOW MUCH WAS ACTUALLY LOST — LESS THAN IT LOOKED, BY ACCIDENT
+An untracked pre-registration should be worthless: its entire value is git showing the
+prediction predates the result. But the ratelimit prediction survives anyway, because a SECOND
+habit carried it — commit 2561a11, `Thu Jul 30 01:25:21 2026`, states the prediction and its
+reasoning in the message ("Predicting the hit anyway, because three predictions died tonight
+and all three were wrong in the same direction"). Git holds that, timestamped, regardless of
+whether the file was tracked.
+
+    Defence in depth that nobody designed. The commit-message habit exists to explain changes,
+    not to notarise predictions, and it happened to be the thing that made a six-times-repeated
+    gitignore failure cost nothing this time. Worth knowing it is load-bearing, because it is
+    currently the ONLY thing that was.
+
+⚠️ AND IT DID NOT SAVE TODAY'S ARM CLEANLY. The cross-server PREREG was written before the
+09:31:27 launch, but git cannot prove it — the file was untracked until 09:39. What git proves
+is that the 65% prediction existed at commit a2e983d, 09:32:31, 64 seconds AFTER the launch.
+Still ~20 minutes before any output could be compared to anything, so the prediction predates
+the EVIDENCE and the arm stands. But "predates the evidence" is the weaker claim, and it is the
+one that is true.
+
+ALSO CAUGHT IN THE SAME MINUTE — a fabricated timestamp, in the file about fabricated timestamps
+The PREREG header said "written 09:35". Nobody read a clock. The file was written before
+09:31:27, so the invented stamp POSTDATED the launch and turned a before-prediction into one
+that reads as after. The amendment line said "09:47" while the clock said 09:39 — eight minutes
+into the future, the same forward drift as the eighteen fabricated stamps that _check_timestamps
+was built for. Both corrected against the real times.
+
+FIX
+`!logs/PREREG-*.txt`, plus a note in .gitignore that says what the other five do not: do not add
+a seventh paragraph. When a new record filename appears, run
+
+    git ls-files --error-unmatch logs/<NEWNAME>-whatever.txt
+
+BEFORE the file holds a claim. `git check-ignore` is the wrong tool and .gitignore already says
+so at line 69 — it reports pattern matching, not tracking.
