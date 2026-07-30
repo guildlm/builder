@@ -1,0 +1,61 @@
+RESULT — the ownership check I built adds NOTHING, and misses the case that motivated it
+========================================================================================
+04:45 on 31 July. A negative result about my own instrument, found by measuring it instead of
+shipping it.
+
+WHY I BUILT IT
+At 04:20 I found that `empty_go_files` scores workapi's reordered draw CLEAN even though its
+store.go lost the two sentinels its entry names in plain words. I concluded that an OWNERSHIP check
+— does each file declare what its entry names — is "strictly stronger" and built `_entry_ownership.py`
+to prove it.
+
+WHAT MEASURING IT SHOWED
+    both checks flag   62 trees
+    EMPTY only          2   (taskapipro-pairB-t1, workapi-chain)
+    OWNERSHIP only      0
+    neither            61
+
+    The ownership check is a strict SUBSET of the empty-file check. It catches nothing the existing
+    check misses and misses two the existing check catches. "Strictly stronger" was exactly backwards.
+
+AND IT FAILS ITS OWN MOTIVATING CASE
+    _entry_ownership.py specs/workapi-origorder.yaml generated/workapi-pairB-w1  ->  CLEAN
+
+    The tool built to catch the workapi sentinel loss reports that tree clean. Because:
+        promised() on workapi's store.go entry  ->  {'Store'}
+        the entry actually says                 ->  "Exported sentinels var ErrNotFound and var
+                                                     ErrExists (errors.New)"
+
+    My extractor matches a capitalised name FOLLOWED BY struct|interface, or one in backticks.
+    `var ErrNotFound` is neither. So the sentinels are invisible to it — the SAME blind spot as
+    builder.py's `_REQUIRED_TYPE_RE`, which I spent the night documenting as hole 2.
+
+    I inherited the defect I was writing the tool to expose, from the tool I was writing it against.
+
+⚠️ AND I NEARLY PUBLISHED 96%
+The first version reported 120 of 125 trees violating. That was an artefact: it counted every
+cross-reference as an unmet promise, because memory.go's purpose mentions "the Store interface
+declared in store.go" and the extractor credited Store to memory.go. builder.py's repair does the
+subtraction (`take = wanted - _required_decls(donor_purpose)`); my audit did not. With the
+subtraction it falls to 62 of 125 (49%).
+
+    I caught that before recording it, which is the one thing that went right here. 96% would have
+    been the fourth wrong rate of the session.
+
+WHAT THIS IS WORTH
+    NOT the tool. As built it is redundant with `empty_go_files` and blind to var declarations.
+    THE MEASUREMENT. "An ownership check is strictly stronger than an emptiness check" is a
+    reasonable-sounding claim that is FALSE for these three specs — because the thing that makes a
+    file's contents wrong here is almost always that the file is EMPTY, not that it is subtly
+    mis-populated. workapi's B is the only mis-populated case I have found all night, and one case
+    does not justify a second instrument.
+
+    ⚠️ TO ACTUALLY CATCH workapi's B the extractor needs `var Name`/`const Name` patterns, not a new
+    check. That is a one-line addition to the SAME widening already pre-registered as FIX 2 — which
+    is a much smaller change than the tool I just wrote, and the pre-registration should absorb it
+    rather than a fourth arm being invented.
+
+KEPT, WITH ITS VERDICT IN ITS OWN DOCSTRING. The tool stays in the tree because its self-test caught
+a real bug (`rsplit("/",1)[0]` returns the FILENAME for top-level files, so two of them read as
+different packages) and because a future reader proposing "we should check ownership" should find
+this measurement rather than repeat it.
