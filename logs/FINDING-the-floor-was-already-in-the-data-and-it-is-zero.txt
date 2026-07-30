@@ -1,0 +1,76 @@
+FINDING — the within-process floor was already measured, hours ago, and it is ZERO
+==================================================================================
+30 July, ~10:05. Found by re-grading the closed distribution and noticing two arms at distance
+zero from each other. No GPU was spent on this; the draws already existed.
+
+THE PAIR
+    generated/taskflow-subst   drawn 29 Jul 23:21:56
+    generated/taskflow-name4   drawn 30 Jul 01:37:31
+    2h15m apart. Both inside server 4439's life (up 29 Jul 09:29 -> 30 Jul 09:20).
+
+    specs/taskflow-subst.yaml and specs/taskflow-name4.yaml are BYTE-IDENTICAL.
+        md5 63f691381d8db6fc2df7d696df08b7a9 for both
+        both are HEAD + one edit: TestCreateDuplicate -> TestDuplicateCreate, line 175, 19->19
+
+    They are the SAME ARM, drawn twice, on one server process, two and a quarter hours apart.
+    The 02:22 RESULT knew they were a replication — "both have now been redrawn ... and both are
+    nulls" — and read it as confirming the null. Nobody read it as a determinism measurement.
+
+THE RESULT
+    _asdrawn_diff.py: 16 common files · IDENTICAL 16 · "Byte-identical as drawn."
+
+    Not "no code differences". Not "no collateral". Every byte of all sixteen files.
+
+VERIFIED IT IS A REDRAW AND NOT A COPY, because the whole claim dies if it is one
+    both logs show 16 real generations (generate 1/16 ... 16/16), both converged after fix
+    round 1, and the five compiler error lines are byte-identical between the two runs.
+    The full logs differ in exactly two lines: the output directory, and an "error surface" hash.
+
+    ⚠️ AND THAT HASH IS NOT A DIFFERENCE. src/builder.py:5276 computes it as
+    `abs(hash(sig)) & 0xffffffff` — Python's builtin hash(), which is RANDOMIZED PER PROCESS for
+    strings. a271d066 vs 9d41c9ad is two processes hashing identical text, not two different
+    error surfaces. It is used to decide whether a fix round is granted ("ONLY while each check
+    exposes an error surface never seen before"), which is sound WITHIN one run and meaningless
+    ACROSS runs. Any cross-run comparison of error surfaces in this repo's logs is void.
+    Not fixed today: it is load-bearing inside the fix loop and this is not the moment.
+
+WHAT IT SETTLES — the question the running draw was launched to answer
+The 09:37 amendment pre-committed two readings of the cross-server result and said this arm
+could not choose between them:
+
+    (a) CROSS-PROCESS drift is real                          <- SUPPORTED
+    (b) the pipeline is not deterministic at all             <- REFUTED, within a process
+
+        within-process, same spec, 2h15m apart:   0 CODE files, 0 functions, 0 bytes
+        cross-process,  same spec:                4 CODE files, 3 functions
+
+    The premise the whole series rested on — that a fixed condition reproduces byte-for-byte —
+    was inferred from two DIFFERENT specs agreeing where their prompts agreed. It now has a
+    direct measurement, and it holds.
+
+⚠️ n = 1, AND THE 09:52 AMENDMENT ALREADY NAMED THE LIMIT. This is one pair, on 4439, on a
+server that had been up 14 hours and was warm. It does not license "the floor is zero on 2212",
+which is a colder, younger process. The draw running now supplies exactly that second pair and
+is still worth its GPU — it was pre-committed before any of this was known, and the honest thing
+is to let it land rather than declare the question closed by a pair I found afterwards.
+
+THREE MORE THINGS THE PAIRWISE MATRIX SHOWS (11 taskflow trees, CODE files differing)
+1. chain6 IS THE MOST CENTRAL DRAW, mean distance 4.10 to the other ten — the lowest of all
+   eleven. The worry that "collateral vs chain6" might be chain6 being weird is dead: it is the
+   most typical tree in the set, not an outlier. Every arm graded against it was graded against
+   the centre.
+
+2. THE THREE NULL ARMS ARE THE THREE CLOSEST TREES TO chain6 — name4, name5 and subst all sit
+   at distance 1. The nulls are not a grading artefact; they are a tight cluster.
+
+3. TWO DIFFERENT EDITS LANDED IN THE SAME PLACE. name3 (a test rename on line 53) and prose
+   (a word-order swap inside "(sync, sort, errors as needed)" on line 40) produced trees 1 CODE
+   file apart — and that one file is name3's own target. Both sit 6-7 files from chain6.
+   Two unrelated edits, in different files, one of them semantically inert, moved the draw to
+   the SAME destination.
+
+       ⚠️ Stated as a description, not a mechanism. It is one pair, it fits a "the spec either
+       stays put or jumps to a neighbouring tree" story, and this record has killed three
+       mechanism stories in ninety minutes for fitting every arm that existed when written.
+       The dose arms do NOT go there (3, 8 and 6 from chain6, and 8-11 from name3), so whatever
+       it is, it is not one alternative tree.
