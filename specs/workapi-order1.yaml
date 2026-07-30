@@ -1,0 +1,441 @@
+name: workapi
+language: go
+go_module: guildlm.dev/workapi
+description: >-
+  A production-grade, STANDARD-LIBRARY-ONLY Go backend that adds two real
+  concerns on top of a clean-architecture task API: BEARER-TOKEN AUTH on
+  mutating routes, and an asynchronous BACKGROUND WORKER that processes events
+  emitted when a task is created, with GRACEFUL DRAIN on shutdown. No external
+  dependencies: net/http Go 1.22 ServeMux, log/slog, context, encoding/json,
+  sync, sync/atomic. Clean layering, dependencies point inward only: handlers ->
+  service interface -> store interface, and service -> an event-enqueuer
+  interface the worker satisfies. Multi-package layout (cmd/ +
+  internal/{config,models,store,worker,auth,service,api}). Cross-package symbols
+  are used by importing the package and qualifying (models.Task, store.Store,
+  service.TaskService, store.ErrNotFound, worker.Worker, auth.TokenAuth). Only
+  exported names cross package boundaries.
+files:
+  - path: go.mod
+    purpose: >-
+      Go module file. Module path guildlm.dev/workapi, go 1.23. No dependencies.
+      Output as a ```mod block, not Go.
+  - path: internal/config/config.go
+    purpose: >-
+      package config. Config struct { Addr string; ReadTimeout, WriteTimeout,
+      ShutdownTimeout time.Duration; AuthToken string; QueueSize int } and
+      func Load() (Config, error) — it returns TWO values, a Config AND an error.
+      Read EXACTLY these env vars, by these names: ADDR, READ_TIMEOUT,
+      WRITE_TIMEOUT, SHUTDOWN_TIMEOUT, AUTH_TOKEN, QUEUE_SIZE. Defaults: Addr
+      ":8080", timeouts 5s/10s/10s, AuthToken "secret", QueueSize 64.
+      An EMPTY env var is treated EXACTLY like an UNSET one — use the default.
+      Parse durations with time.ParseDuration and QUEUE_SIZE with strconv.Atoi. If
+      a var is PRESENT but FAILS TO PARSE, return the ZERO Config and a NON-NIL
+      error (fmt.Errorf wrapping with %w) — do NOT silently fall back. Finally
+      call c.Validate() and, if it returns an error, return the ZERO Config and
+      that error. A method (c Config) Validate() error returning an error if Addr
+      is empty, AuthToken is empty, or QueueSize <= 0. Imports os, strconv, time,
+      fmt. No other project package.
+  - path: internal/config/config_test.go
+    purpose: >-
+      package config. Load() is the seam every deployment goes through. Write
+      EXACTLY these seven test functions and NO OTHERS — do not invent extra cases.
+      Load() returns TWO values: write `cfg, err := Load()`.
+      Use t.Setenv (never os.Setenv); a test that calls t.Setenv must NOT call
+      t.Parallel. Compare durations against time.Second multiples (5*time.Second),
+      never against integers.
+      TestLoadDefaults — with no environment set, Load() returns a nil error and
+      the documented defaults: Addr ":8080", AuthToken "secret", QueueSize 64.
+      TestLoadFromEnv — t.Setenv ADDR ":9090", READ_TIMEOUT "30s", WRITE_TIMEOUT
+      "40s", SHUTDOWN_TIMEOUT "50s", AUTH_TOKEN "tok" and QUEUE_SIZE "7"; Load()
+      returns a nil error and ALL SIX of those values. The three duration vars are
+      structural MIRRORS of one another — exercise all three, not just the first;
+      a mirror nobody exercises is a branch nobody has shown to work.
+      TestLoadInvalidDuration — t.Setenv READ_TIMEOUT to "not-a-duration"; Load()
+      returns a NON-NIL error (it does not silently fall back).
+      TestLoadInvalidQueueSize — t.Setenv QUEUE_SIZE to "abc"; Load() returns a
+      NON-NIL error.
+      TestValidateEmptyAuthToken — build a Config VALUE DIRECTLY with a
+      field-named literal (Addr ":8080", QueueSize 64, AuthToken "") and call
+      Validate() on it: it must return a non-nil error. Do NOT call Load() here,
+      and do NOT try to reach this state by setting AUTH_TOKEN to "": Load treats
+      an EMPTY env var as UNSET and substitutes the default "secret", so an empty
+      AuthToken is UNREACHABLE through Load by construction — the token would come
+      back "secret", Validate would correctly return nil, and the test would fail
+      against a correct implementation. Validate's contract is about a Config
+      value; test it on a Config value.
+      TestValidateRejectsZeroQueueSize — build a Config VALUE DIRECTLY with a
+      field-named literal (Addr ":8080", AuthToken "tok", QueueSize 0) and call
+      Validate() on it: it must return a non-nil error. ZERO is the case, not a
+      negative number: the guard is `QueueSize <= 0`, and a test that only tries
+      -1 passes against an implementation that wrote `< 0` and silently accepts a
+      queue of size zero. One assertion, on the boundary value itself.
+      TestValidateOK — a sane Config passes Validate(). Build it the same way, as
+      a direct field-named literal.
+      Do NOT write a test that expects Load() to BOTH return an error AND hand
+      back populated defaults: when Load fails it returns the zero Config, so
+      those two expectations contradict each other and no implementation can
+      satisfy both. Imports testing only. Do not name any local variable `t`.
+  - path: internal/models/models.go
+    purpose: >-
+      package models. THREE top-level declarations, ALL of them required — count
+      them in the file before you finish:
+      (1) Task struct {ID, Title, Status string} with JSON tags; valid Status is
+      "todo"|"doing"|"done".
+      (2) Event struct {Type, TaskID string} with JSON tags (Type is e.g.
+      "task.created"). This is the one most easily skipped, and NOTHING downstream
+      compiles without it: service.EventEnqueuer is declared as
+      `Enqueue(e models.Event)` and the worker consumes models.Event.
+      (3) Exported sentinel var ErrInvalid = errors.New("invalid").
+      Plus the method (t Task) Validate() error, wrapping ErrInvalid via
+      fmt.Errorf("%w: ...") on an empty Title or a bad Status.
+      Imports errors, fmt only.
+  - path: internal/models/models_test.go
+    purpose: >-
+      package models. Unit-test the validation rules directly — they are the
+      domain's contract and every other package trusts them.
+      Write SEPARATE FOCUSED TEST FUNCTIONS.
+      ONE TEST FUNCTION, ONE OUTCOME. Every case inside a function must expect the
+      SAME KIND of result, because the assertion is SHARED: a function whose check
+      is "the error must be non-nil" cannot also carry a case that expects nil —
+      that case is unsatisfiable by construction and fails against a CORRECT
+      implementation. If you write a table, every row in it expects the same thing.
+      TestTaskValidateOK: a Task with a non-empty Title returns nil. Assert that
+      for EACH of the three valid statuses "todo", "doing" and "done". Every case
+      in this function expects NIL.
+      TestTaskValidateEmptyTitle: a Task with an empty Title returns an error that
+      errors.Is(err, ErrInvalid).
+      TestTaskValidateBadStatus: a Task whose Status is INVALID (e.g. "banana")
+      returns an error that errors.Is(err, ErrInvalid). Every case in this function
+      expects an ERROR — so NEVER put a valid status ("todo"/"doing"/"done") in it.
+      A valid status correctly returns nil and would fail this function's assertion.
+      This package has NO Project type — do not test one. Write every struct value
+      with FIELD NAMES. Imports errors and testing only.
+  - path: internal/store/memory.go
+    purpose: >-
+      package store. Goroutine-safe in-memory Store impl (same package —
+      reference Store, ErrNotFound, ErrExists directly, do NOT redeclare). Every
+      method takes ctx context.Context first to satisfy the Store interface (the
+      impl may ignore ctx but MUST accept it). MemStore struct with one map
+      guarded by a sync.RWMutex, built by NewMemStore() *MemStore. CreateTask ->
+      ErrExists on dup id; GetTask/DeleteTask -> ErrNotFound when absent;
+      ListTasks returns (items, nil) id-sorted. IMPLEMENT ALL FOUR METHODS FULLY
+      (no stub, no ErrNotImplemented, no panic, no TODO). Use models types
+      (import models). var _ Store = (*MemStore)(nil). Imports context, sort,
+      sync, and the models package.
+  - path: internal/store/store.go
+    purpose: >-
+      package store. Import the models package (guildlm.dev/workapi/internal/
+      models) and use models.Task qualified. Exported sentinels var ErrNotFound
+      and var ErrExists (errors.New). A CONTEXT-AWARE Store INTERFACE (every
+      method takes context.Context as its FIRST parameter): CreateTask(ctx
+      context.Context, t models.Task) error, GetTask(ctx context.Context, id
+      string) (models.Task, error), ListTasks(ctx context.Context)
+      ([]models.Task, error), DeleteTask(ctx context.Context, id string) error.
+      Imports context, errors, and the models package only.
+  - path: internal/store/memory_test.go
+    purpose: >-
+      package store. Tests for MemStore (same package; use models via import).
+      Pass context.Background() to every store method.
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. Each
+      builds its OWN fresh NewMemStore. A fresh store is EMPTY, so any case with a
+      precondition must CREATE it FIRST, in its own body:
+      TestCreateOK: CreateTask a task -> nil error.
+      TestCreateDuplicate: CreateTask ONCE (expect nil), then CreateTask the SAME
+      id AGAIN -> ErrExists (errors.Is). Without the first create there is nothing
+      to duplicate and the second one succeeds.
+      TestGetExisting: CreateTask FIRST, then GetTask that id -> nil error and the
+      stored fields. (On a store nobody wrote to, Get returns ErrNotFound and the
+      case fails no matter how correct MemStore is.)
+      TestGetMissing: on a fresh store, GetTask an id nobody created ->
+      ErrNotFound.
+      TestListSorted: CreateTask two tasks, then ListTasks -> id-sorted.
+      TestDelete: CreateTask FIRST, DeleteTask it -> nil, then GetTask ->
+      ErrNotFound.
+      TestDeleteMissing: on a fresh store, DeleteTask an unknown id -> ErrNotFound.
+      Imports context, errors, testing, and models. Never name a local variable
+      `t`.
+  - path: internal/worker/worker.go
+    purpose: >-
+      package worker. An asynchronous processor for models.Event with a graceful
+      shutdown. Import context, log/slog, sync, sync/atomic, and the models
+      package. Worker struct holding a buffered `chan models.Event`, a
+      *slog.Logger, a sync.WaitGroup, and an atomic counter (atomic.Int64) of
+      processed events. NewWorker(size int, logger *slog.Logger) *Worker
+      allocates the channel with capacity size. Start() launches ONE goroutine
+      (wg.Add(1); go func(){ defer wg.Done(); for e := range ch { process } }())
+      that ranges the channel — ranging a channel exits cleanly when it is closed,
+      which is how drain works. Enqueue(e models.Event) — signature is exactly
+      `Enqueue(e models.Event)` with NO return value (fire-and-forget) — sends e
+      on the channel.
+      process increments the atomic counter and logs the event type at debug.
+      Stop() closes the channel then wg.Wait() so ALL buffered events are
+      processed before it returns (graceful drain). Processed() int64 returns the
+      counter's Load(). Do not use time.Sleep for synchronization.
+  - path: internal/worker/worker_test.go
+    purpose: >-
+      package worker. TWO test functions, both named:
+      TestWorkerDrains: build NewWorker(8, slog.New(slog.NewTextHandler(io.Discard,
+      nil))), Start(), Enqueue N=5 events, Stop(), then assert Processed() == 5 (Stop
+      blocks until every buffered event is processed, so no sleeps or polling are
+      needed).
+      TestEnqueueConcurrent: Enqueue is safe to call from multiple goroutines — spawn
+      several, each Enqueue once, use a sync.WaitGroup to wait, Stop, assert the total.
+      Imports io, log/slog, sync, testing, and the models package. Never name a
+      local variable `t`.
+  - path: internal/auth/auth.go
+    purpose: >-
+      package auth. Bearer-token middleware. Import net/http (and strings).
+      Exported type key struct{} is unexported; use an unexported context key
+      value. TokenAuth(token string) func(http.Handler) http.Handler returns a
+      middleware: read the "Authorization" header, require exactly "Bearer " +
+      token (use strings.TrimPrefix / equality); on mismatch or missing write
+      http.StatusUnauthorized ("unauthorized") and RETURN without calling next;
+      on match call next.ServeHTTP(w, r). Keep it a pure standard-library
+      middleware. Imports net/http, strings only.
+  - path: internal/auth/auth_test.go
+    purpose: >-
+      package auth. ONE named test function:
+      TestTokenAuthMiddleware: a table test with net/http/httptest — wrap a trivial
+      200 handler with TokenAuth("secret"); a request with header "Bearer secret" ->
+      200; a request with "Bearer wrong" -> 401; a request with no Authorization
+      header -> 401. Use httptest.NewRequest and httptest.NewRecorder. Imports net/http,
+      net/http/httptest, testing. Never name a local variable `t`.
+  - path: internal/service/service.go
+    purpose: >-
+      package service. Business-logic layer between handlers and store, and the
+      emitter of events. Import context and the store and models packages. Define
+      an EventEnqueuer INTERFACE { Enqueue(e models.Event) } — the method
+      signature is EXACTLY `Enqueue(e models.Event)` with NO return value, so the
+      worker's Enqueue satisfies it verbatim; the service depends on this small
+      interface, NOT on the worker package. Call events.Enqueue(...) as a plain
+      statement (it returns nothing; do not assign or check a result).
+      Define a TaskService INTERFACE (Create(ctx context.Context, t models.Task)
+      (models.Task, error); Get(ctx, id string) (models.Task, error); List(ctx,
+      limit, offset int, status string) ([]models.Task, error); Delete(ctx, id
+      string) error). Concrete UNEXPORTED taskService struct holding a field
+      `store` of type store.Store (the INTERFACE, by value) and a field `events`
+      of type EventEnqueuer. Constructor exported NewTaskService(s store.Store, e
+      EventEnqueuer) TaskService returning &taskService{store: s, events: e}
+      (struct-literal field names MUST be the declared `store` and `events`).
+      Create: call t.Validate() and on error return (models.Task{}, err); else
+      s.store.CreateTask(ctx, t) and on error return (models.Task{}, err); else
+      events.Enqueue(models.Event{Type: "task.created", TaskID: t.ID}) and return
+      (t, nil). Get/Delete delegate to the store. List: fetch via
+      s.store.ListTasks(ctx), apply status filtering, then PAGINATION via a
+      generic helper paginate[T any](items []T, limit, offset int) []T that must be
+      UNPANICKABLE on any (limit, offset) an HTTP query string can produce. "Never
+      panic" is not a wish — it is THREE named guards, and the one most often
+      dropped is the second:
+        if offset >= len(items) { return []T{} }   // past the end -> empty
+        if offset < 0 { offset = 0 }               // NEGATIVE offset clamps to 0;
+                                                   // without this, items[-1:] PANICS
+        if limit <= 0 || limit > len(items)-offset { limit = len(items) - offset }
+      then `return items[offset : offset+limit]`. return (page, nil).
+      Compile-time assertion var _ TaskService = (*taskService)(nil). Imports
+      context + the store + models packages.
+  - path: internal/service/service_test.go
+    purpose: >-
+      package service. Tests using NewTaskService(store.NewMemStore(), a test
+      EventEnqueuer) and the models package; pass context.Background() to every
+      service method. Define a tiny fake enqueuer in the test (a struct with a
+      slice or counter recording Enqueue calls).
+      Write SEPARATE FOCUSED TEST FUNCTIONS — NOT one shared table loop. ONE TEST
+      FUNCTION ASSERTS ONE OUTCOME: do NOT chain a second check onto a test that
+      already has one (a "create it, then also read it back, and also check the
+      event" function reliably ships the first and last and drops the MIDDLE one).
+      Each function builds its OWN fresh service, which starts EMPTY, so a case
+      that needs a task to already exist must CREATE it first, in its own body.
+      Every assertion states the EXACT expected value. Never assert "at most N"
+      or "no more than N": a paginate that wrongly returns ZERO items satisfies
+      "at most 1" and the bug ships green. If you expect one item, require
+      len(got) == 1.
+      TestCreateOK: Create a valid task -> no error and the enqueuer received
+      EXACTLY ONE event whose Type is "task.created".
+      TestCreateInvalid: Create a task with a bad status -> the error is
+      models.ErrInvalid (errors.Is) and NO event was enqueued.
+      TestGetAfterCreate: Create a task FIRST, then Get its ID -> no error and the
+      returned task's Title EQUALS the one created.
+      TestGetMissing: Get an ID that was never created -> errors.Is(err,
+      store.ErrNotFound).
+      TestDeleteRemoves: Create a task FIRST, Delete its ID -> no error; then Get
+      that same ID -> errors.Is(err, store.ErrNotFound).
+      TestListLimit: Create TWO tasks FIRST, then List with limit=1, offset=0 ->
+      EXACTLY 1 item.
+      TestListFilterByStatus: Create one "todo" and one "done" task FIRST, then
+      List with limit=0, offset=0 and status "done" -> EXACTLY 1 item and its
+      Status is "done".
+      TestListOffsetPastEnd: Create ONE task FIRST, then List with limit=10,
+      offset=5 (an offset past the end) -> no error, no panic, EXACTLY 0 items.
+      TestListNegativeOffset: Create ONE task FIRST, then List with limit=0 and
+      offset=-1 -> no panic and EXACTLY 1 item (a negative offset clamps to 0).
+      This one is not hypothetical: a paginate without the `offset < 0` clamp
+      slices items[-1:] and panics at runtime, and every other test passes anyway.
+      STORE-ERROR PROPAGATION (the service must return the store's error, not
+      swallow it).
+      FIRST, AT PACKAGE SCOPE — at the TOP of the file, ABOVE every test function
+      and INSIDE NO FUNCTION AT ALL — declare a failing fake store. Go forbids a
+      method declaration inside a function body, so these `func (failStore) ...`
+      lines MUST sit at file scope like any other top-level declaration (the fake
+      enqueuer above is declared the same way):
+        var errBoom = errors.New("boom")
+        type failStore struct{}
+        func (failStore) CreateTask(ctx context.Context, tk models.Task) error { return errBoom }
+        func (failStore) GetTask(ctx context.Context, id string) (models.Task, error) { return models.Task{}, errBoom }
+        func (failStore) ListTasks(ctx context.Context) ([]models.Task, error) { return nil, errBoom }
+        func (failStore) DeleteTask(ctx context.Context, id string) error { return errBoom }
+      THEN, as ordinary separate test functions that merely USE it (each one's
+      body contains NO type and NO method declaration — only calls and asserts).
+      IN A TEST THAT EXPECTS AN ERROR, THE ERROR IS THE RESULT, NOT AN OBSTACLE:
+      do NOT open it with the happy-path boilerplate `if err != nil {
+      t.Fatalf(...) }`. That guard fires on the very error you asked for, and the
+      errors.Is assertion below it becomes DEAD CODE that never runs. The error
+      check in these two functions is the errors.Is one and nothing else:
+        _, err := svc.List(context.Background(), 1, 0, "")
+        if !errors.Is(err, errBoom) { tt.Fatalf("List: err = %v, want errBoom", err) }
+      TestCreateStoreError: NewTaskService(failStore{}, a fake enqueuer), Create a
+      task that is VALID (an invalid one fails at Validate and never reaches the
+      store) -> errors.Is(err, errBoom) and NO event was enqueued (the event must
+      not fire when the write failed).
+      TestListStoreError: NewTaskService(failStore{}, a fake enqueuer), List ->
+      errors.Is(err, errBoom), and NOTHING ELSE.
+      Imports context, errors, testing, and the store +
+      models packages. Never name a local variable `t`.
+  - path: internal/api/response.go
+    purpose: >-
+      package api. Helpers: writeJSON(w http.ResponseWriter, status int, v any)
+      (sets application/json, encodes); writeError(w, status int, msg string)
+      (JSON {"error": msg}); decodeJSON(r *http.Request, dst any) error. Imports
+      encoding/json, net/http only.
+  - path: internal/api/tasks.go
+    purpose: >-
+      package api. TaskHandler holding a service.TaskService (import the service
+      package; hold the INTERFACE by value, never a pointer), built by
+      NewTaskHandler(svc service.TaskService) *TaskHandler. Methods
+      (http.HandlerFunc) pass r.Context() as the ctx to every svc call and use the
+      response helpers, r.PathValue("id") and r.URL.Query() for
+      ?limit=&offset=&status=: Create (decodeJSON a models.Task ->
+      svc.Create(r.Context(), t); 400 on models.ErrInvalid via errors.Is, 201 with
+      the created task, 409 on store.ErrExists); List (parse limit/offset with
+      strconv defaulting/clamping, svc.List(r.Context(), ...), 200 JSON); Get
+      (svc.Get(r.Context(), id); 200 or 404 on store.ErrNotFound); Delete (204 or
+      404). Imports errors, net/http, strconv, and the service + models + store
+      packages.
+  - path: internal/api/router.go
+    purpose: >-
+      package api. func NewRouter(svc service.TaskService, authToken string,
+      logger *slog.Logger) http.Handler building an http.ServeMux (NOT a
+      third-party router). Construct the TaskHandler and register Go 1.22
+      METHOD+pattern routes: "POST /tasks", "GET /tasks", "GET /tasks/{id}",
+      "DELETE /tasks/{id}", plus "GET /healthz" -> 200 "ok" and "GET /readyz" ->
+      200 "ready". The MUTATING routes (POST, DELETE) must be protected by
+      auth.TokenAuth(authToken): wrap the handler funcs for those two routes with
+      the auth middleware while leaving GET routes and health checks open (e.g.
+      register the write handlers as auth.TokenAuth(authToken)(http.HandlerFunc(
+      h.Create))). Finally wrap the whole mux with Chain(mux, Logging(logger),
+      Recover(logger)) — reuse the Middleware/Chain/Logging/Recover from
+      middleware.go. Imports log/slog, net/http, and the service + auth packages.
+  - path: internal/api/middleware.go
+    purpose: >-
+      package api. Middleware type func(http.Handler) http.Handler and Chain(h
+      http.Handler, mws ...Middleware) http.Handler (first listed is outermost).
+      Logging(logger *slog.Logger) Middleware logs method/path/status (via a
+      statusRecorder wrapping http.ResponseWriter, default 200)/duration with
+      structured slog. Recover(logger *slog.Logger) Middleware turns a downstream
+      panic into a 500 and logs it. Imports log/slog, net/http, time.
+  - path: internal/api/middleware_chain_test.go
+    purpose: >-
+      package api. ONE test for Chain itself — the composer every request passes
+      through, and which no test has ever called.
+      TestChainAppliesEveryMiddlewareOutermostFirst: declare `order := []string{}`
+      in the test body and a helper `mark := func(name string) Middleware` whose
+      returned handler APPENDS name to order and THEN calls next.ServeHTTP. Wrap an
+      inner http.HandlerFunc that appends "handler". Then call
+      Chain(inner, mark("first"), mark("second")).ServeHTTP with
+      httptest.NewRecorder() and httptest.NewRequest("GET", "/", nil), and assert
+      — as the test's ONLY assertion — that strings.Join(order, ",") equals
+      "first,second,handler".
+      That one string is the entire contract: BOTH middlewares ran, and the FIRST
+      listed ran OUTERMOST. Asserting the recorder's status instead would pass even
+      if Chain silently dropped a middleware, because the inner handler still
+      answers. Do NOT build a router and do NOT construct Logging or Recover here —
+      this test needs no logger, no service and no store.
+      Imports net/http, net/http/httptest, strings, testing. Never name a local
+      variable `t`.
+  - path: internal/api/router_test.go
+    purpose: >-
+      package api. Integration tests (net/http/httptest), SPLIT INTO SEVERAL
+      SMALL FOCUSED test functions — ONE concern per function, NOT one big table
+      test. Keeping each test short and self-contained is the whole point.
+      Define ONCE at package level: a no-op enqueuer `type noopEnq struct{}` with
+      method `func (noopEnq) Enqueue(e models.Event) {}`, and a fresh-router
+      helper `func newRouter() http.Handler { return
+      NewRouter(service.NewTaskService(store.NewMemStore(), noopEnq{}), "secret",
+      slog.New(slog.NewTextHandler(io.Discard, nil))) }`. Every test calls
+      newRouter() to get a FRESH router+store (NewRouter takes the SERVICE as its
+      first arg and builds the handler itself — do NOT call NewTaskHandler and do
+      NOT wrap the service). Build each request inline with httptest.NewRequest +
+      httptest.NewRecorder, a fresh body per request; set "Authorization: Bearer
+      secret" on every MUTATING request (POST and DELETE). The API uses
+      CLIENT-SUPPLIED ids: every POST body includes a non-empty "id", e.g.
+      {"id":"1","title":"task1","status":"todo"}. Write EXACTLY these functions,
+      each fully self-contained (seed its own data with a POST before acting):
+      TestCreateOK — POST id "1" with token -> 201, then json-decode the response
+      body and assert the echoed id == "1".
+      TestCreateUnauthorized — POST id "1" with NO Authorization header -> 401,
+      and separately POST id "1" with "Bearer wrong" -> 401.
+      TestCreateInvalid — POST {"id":"1","title":"t","status":"bogus"} with token
+      -> 400.
+      TestCreateDuplicate — POST id "1" with token -> 201, then POST id "1" AGAIN
+      with token -> 409.
+      TestGetTask — POST id "1" with token, then GET /tasks/1 (no token) -> 200;
+      then GET /tasks/missing -> 404.
+      TestListTasks — POST id "1" and POST id "2" (both with token), then GET
+      /tasks -> 200 and json-decode into a []models.Task named `all` of length 2.
+      Then make a SECOND request, GET /tasks?limit=1, with a FRESH recorder, and
+      json-decode THAT response into a SEPARATE slice named `limited` before
+      asserting len(limited) == 1 — EXACTLY one, NEVER "at most one": a handler
+      that wrongly returns ZERO items satisfies "<= 1" and the bug ships green.
+      Decoding is what makes the assertion mean
+      anything: do NOT re-assert on `all` after the second request — it still
+      holds the 2 items from the first response and the check would fail no matter
+      what the handler did.
+      TestDeleteTask — POST id "1" with token -> 201, then DELETE /tasks/1 with
+      token -> 204, then GET /tasks/1 -> 404.
+      TestMalformedJSON — POST /tasks with a truncated body `{"id":"1",` and token
+      -> 400.
+      TestDeleteMissingReturns404 — on a FRESH router, DELETE /tasks/nope with a valid
+      token — an id nobody created — and assert, as this test's ONLY assertion, that
+      the code is 404.
+      TestDeleteTask above does NOT cover this. Its 404 comes from the GET that
+      follows a SUCCESSFUL delete, so Delete's own ErrNotFound branch has never been
+      requested by anything. The handler comment says "Delete removes {id} returning
+      204, or 404 if absent" and the second half of that sentence is untested.
+      Measured on this artifact with a coverage run: the `writeJSON(w,
+      http.StatusNotFound, nil)` inside Delete is executed ZERO times by the whole
+      suite, while Get's identical line is executed. Two routes, two 404 branches,
+      one exercised. This is the same hole taskflow had, in the same shape, and the
+      promise looks covered because a test named for the delete asserts a 404 that
+      comes from somewhere else.
+      TestHealthz — GET /healthz -> 200.
+      TestReadyz — GET /readyz -> 200. Its OWN function, not a second assertion inside
+      TestHealthz: measured on this project, an assertion added inside another test is
+      dropped on a later draw while the test around it survives, and only an invariant
+      with its own named test holds.
+      Imports bytes, encoding/json, io, log/slog, net/http, net/http/httptest,
+      testing, and the service + store + models packages. Never name a local
+      variable `t`.
+  - path: cmd/server/main.go
+    purpose: >-
+      package main — composition root. Import config, store, worker, service, api,
+      context, log/slog, net/http, os, os/signal, time. main(): logger :=
+      slog.New(slog.NewJSONHandler(os.Stdout, nil)); cfg := config.Load(); if err
+      := cfg.Validate(); err != nil log and os.Exit(1); s := store.NewMemStore();
+      w := worker.NewWorker(cfg.QueueSize, logger); w.Start(); svc :=
+      service.NewTaskService(s, w) (the worker satisfies service.EventEnqueuer);
+      handler := api.NewRouter(svc, cfg.AuthToken, logger); build
+      *http.Server{Addr: cfg.Addr, Handler: handler, ReadTimeout, WriteTimeout};
+      run ListenAndServe in a goroutine; graceful shutdown on os.Interrupt via
+      signal.NotifyContext — on signal, srv.Shutdown(a context.WithTimeout of
+      cfg.ShutdownTimeout) to stop accepting requests, THEN w.Stop() to drain the
+      worker. Log lifecycle with slog. Imports context, log/slog, net/http, os,
+      os/signal, time, and the config/store/worker/service/api packages.

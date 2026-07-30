@@ -1,0 +1,53 @@
+PREREG — does the order fix TRANSFER to a second spec? workapi, chosen for its extreme baseline
+===============================================================================================
+Written 21:50 on 30 July, before the draw.
+
+WHY workapi AND NOT ledger AGAIN
+Three ledger pairs all came back A-stub / B-full. More ledger pairs raise the ratio; they do not
+test whether the finding is about LEDGER or about the PIPELINE. workapi does, and it is the right
+second spec for a reason that is about power, not variety:
+
+    stub rate, deduplicated by (memory.go, store.go) content pair:
+        workapi     12 of 15   80%     <- most extreme
+        ledger       4 of  6   67%
+        taskapipro   6 of 17   35%
+
+    The 18:30 asymmetry lesson: test where the baseline is EXTREME, not where it is 50/50. At an 80%
+    stub rate a single non-stubbing B is roughly 5:1 on its own, where the same observation on
+    taskapipro would be worth almost nothing.
+
+THE MANIPULATION — identical in kind to the ledger pairs
+    specs/workapi-order1.yaml: the store.go and memory.go entry BLOCKS transposed, nothing else.
+    29451 chars == 29451 · 29561 bytes == 29561 · whole-file character multiset UNCHANGED
+    workapi lists them in the SAME order every affected spec does — store.go 6th, memory.go 7th —
+    which is why the corpus could never test this (17:45 finding).
+
+SAME GATED DESIGN, and the gate matters more here
+    draw A = specs/workapi.yaml (original order). If A does NOT stub, DISCARD and do not draw B.
+    draw B = specs/workapi-order1.yaml, same process, only if A stubbed.
+
+    At 80% the gate should reject about one process in five, versus one in three for ledger.
+
+PREDICTION — given A stubs, B is FULL: 85%
+    Higher than the 75% used for the first ledger pair, and the reason is evidence rather than
+    enthusiasm: the prohibition "B cannot stub" has now survived three independent tests on three
+    processes. That is what should move a number.
+
+    ⚠️ Mechanism predictions in this record are 0 for 7 — but this is no longer a mechanism STORY,
+    it is a mechanism with three paired replications. The 0-for-7 counts arguments I could not test;
+    this one has been tested. Stating that distinction because otherwise the caveat becomes a
+    ritual that ignores its own evidence.
+
+BRANCHES
+    A STUBS · B FULL   the fix TRANSFERS. The finding is about the pipeline, not about ledger, and
+                       reordering becomes a general recommendation for every spec with an
+                       interface/implementation pair.
+    A STUBS · B STUBS  the fix is LEDGER-SPECIFIC, and the prohibition is broken on its fourth test.
+                       This would be the single most informative outcome available tonight.
+    A FULL             uninformative pair, discard, retry on a new process (~1 in 5 expected).
+    UNMEASURED         no snapshot. Redraw.
+
+⚠️ NOT PROMOTING THE FIX TO specs/ledger.yaml YET, and the reason is the experiment itself: the
+paired design needs the ORIGINAL order as its A. Editing ledger.yaml would remove the control that
+makes future ledger pairs possible. The fix is recorded and ready; promotion waits until the
+evidence is judged sufficient, which is a separate decision from measuring it.
