@@ -51,3 +51,39 @@ POST {"account_id":"cash","amount":500}, and untagged, Posting.AccountID never r
 STILL PENDING: the full as-drawn grade of the other 18 files. The +16-char addition is the edit
 class that perturbed 7 of 7 in this series, so collateral is expected and is not what the arm
 measures.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+CORRECTION, 19:45 — THE CONTROL ALREADY TAGGED, AND models.go CAME BACK BYTE-IDENTICAL
+════════════════════════════════════════════════════════════════════════════════════════════
+Six files in, all six byte-identical to the control — INCLUDING models.go. The control already
+carried 7 tags, and the arm's models.go is the same file, byte for byte.
+
+    SO THE ADDED INSTRUCTION CHANGED NOTHING ON THIS DRAW. It did not cause the tags; the draw
+    would have produced them anyway. The tags I reported at 19:35 are the CONTROL'S tags.
+
+    WHAT THAT DOES TO THE CLAIMS ABOVE:
+      "tags present, prediction HIT"        stands as a fact about the output, but it is NOT
+                                            evidence the instruction did it — an identical file
+                                            means the instruction was inert here.
+      "generalises past its clause"         WITHDRAWN. Account, Posting and Transaction are all
+                                            tagged because the CONTROL tagged them. Nothing about
+                                            one clause propagating to three structs is shown. I
+                                            read a property of the control as a property of my edit.
+      "PARTIAL branch did not fire"         vacuous for the same reason.
+      "25 of 25 compliance"                 revert to 24 of 24. This draw is not an independent
+                                            observation of instructed compliance.
+
+    ⚠️ THE PRE-REGISTRATION DID NOT ANTICIPATE THIS AND SHOULD HAVE. I wrote branches for tags
+    present / absent / partial and never asked what the CONTROL does — even though I had measured
+    at 18:25 that this exact control is one of the TAGGED ledger contents. The arm was built to
+    detect a change against a baseline that could not show one. Choosing a control that already has
+    the property you are trying to install is not a subtle error; it is the same shape as testing a
+    fix on a case that was never broken.
+
+    WHAT WOULD ACTUALLY TEST IT: the instruction added to a spec+condition that draws UNTAGGED.
+    Nothing on disk pairs an untagged control with an instructed variant. That is a real experiment
+    and this was not it.
+
+⚠️ SEPARATELY AND STILL INTERESTING: six of six files byte-identical from a +16-character ADDITION.
+Additions perturbed 7 of 7 earlier in this series. If the whole tree comes back identical this is
+the first non-perturbing addition and deserves its own row — noted now, graded when the draw ends.
