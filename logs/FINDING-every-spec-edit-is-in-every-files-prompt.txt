@@ -79,7 +79,32 @@ THE TWO GAPS, NOW CLOSED (12:34) — and one of them kills a candidate explanati
        So the nulls are not a reach problem. They are the real phenomenon, and the series has no
        mechanism for them.
 
-    Still unchecked: whether retrieval shots (`_retrieval_block(shots)`, line 1077) vary with the
-    edit. Shots are selected on `f"{task.spec.path} {task.spec.purpose}"` (line 5107) — the
-    TARGET's own purpose, so for 18 of 19 files the selector text is unchanged by this edit. For
-    money.go itself it changes, which is one more reason its identical output is notable.
+    3. RETRIEVAL, CHECKED AT 12:38 — AND IT CORRECTS WHAT I WROTE HERE MINUTES EARLIER.
+       I wrote: "For money.go itself [the selector] changes, which is one more reason its identical
+       output is notable." The selector TEXT changes; the SHOTS DO NOT. Retriever.top_k (line 417)
+       scores Jaccard over `set(re.findall(r"[a-z0-9]+", query.lower()))` — a token SET, so it is
+       completely order-insensitive. A transposition of two comma-separated words leaves the set
+       identical, hence identical scores, hence identical shots.
+
+       So money.go's prompt differed ONLY in the two transposed words, in its own purpose and in
+       the plan block. Its byte-identical output is LESS surprising than I claimed, not more.
+
+    AND THE TWO ARM KINDS DIFFER HERE, WHICH NOBODY NOTICED — measured, not argued:
+       PROSE transposition ("strconv, strings" -> "strings, strconv")
+           selector text differs: YES · retrieval token SET differs: NO
+       NAME transposition (TestBalanceMissingAccount -> TestBalanceAccountMissing)
+           selector text differs: YES · retrieval token SET differs: YES
+           symmetric difference: {testbalancemissingaccount, testbalanceaccountmissing}
+       An identifier is ONE token to `[a-z0-9]+`, so reordering words INSIDE it swaps one token for
+       another. Reordering words in prose does not change the set at all.
+
+       ⚠️ AND THE OUTCOMES RUN THE WRONG WAY. taskflow's prose swap ("(sync, sort, errors as
+       needed)" -> "(sort, sync, ...)") also leaves the token set identical — so its prompt differed
+       in two transposed words and nothing else — and it PERTURBED 6 CODE files and 8 functions.
+       The ledger NAME swap changed a retrieval token AND its plan-block text, and changed 0 files.
+
+           smaller prompt perturbation, identical retrieval  -> 6 files changed
+           larger prompt perturbation, retrieval token moved -> 0 files changed
+
+       Whatever separates perturbing arms from null ones, it is not the size of the prompt
+       difference, and it is not whether retrieval moved. Both point the opposite way.
