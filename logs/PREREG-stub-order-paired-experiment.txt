@@ -1,0 +1,51 @@
+PREREG — the ORDER experiment, done properly: paired draws on a process that STUBS
+=================================================================================
+Written 20:20 on 30 July. Multi-draw, multi-process. This supersedes arm 5's design, which could
+not work and I did not see why until arm 6 failed the same way.
+
+THE FLAW IN ARM 5, NAMED
+Arm 5 swapped the entry order and got no stub — outcome (a), which I pre-committed not to count.
+The deeper problem is worse than "weak evidence": generated/ledger-ctl-proc3, the control, does NOT
+stub. memory.go is 2282 chars with 7 funcs. So on process 42826, ledger in its ORIGINAL order
+already produces a full memory.go.
+
+    A fix cannot be shown to work on a case that is not broken. Arm 5 and arm 6 failed the same way
+    on the same day — arm 6's control already had the JSON tags. Twice I built an arm to detect a
+    change against a baseline incapable of showing one.
+
+    ⚠️ THE GENERAL RULE, WHICH I NOW HAVE TWO INSTANCES OF: before drawing a fix arm, CHECK THAT THE
+    CONTROL EXHIBITS THE DEFECT. It is one grep and it invalidates the whole arm if skipped.
+
+THE DESIGN — pairs within a process, repeated across processes
+Within-process determinism is measured at zero, so the same spec on the same process cannot be
+resampled — redrawing gives byte-identical output. The only way to sample is to change the process.
+Each process therefore yields ONE paired observation:
+
+    for each fresh server process P:
+        draw A = specs/ledger.yaml       (original order: store.go 6th, memory.go 7th)
+        draw B = specs/ledger-order1.yaml (swapped: memory.go 6th, store.go 7th)
+        both on P, back to back, so the pair differs ONLY in entry order
+
+    A STUBS, B FULL   -> the order fixes it, on this process. Repeat for more pairs.
+    A STUBS, B STUBS  -> order does NOT fix it. One such pair is strong: the hypothesis says B
+                         cannot stub, because memory.go is written before store.go can take its job.
+    A FULL            -> UNINFORMATIVE PAIR. Discard and restart with a new process. This is the
+                         arm-5/arm-6 failure, now handled by design instead of discovered afterwards.
+    B STUBS, A FULL   -> the order makes it WORSE, which no version of the hypothesis predicts.
+
+PREDICTION — for the first informative pair (A stubs): B is FULL, 75%
+    The mechanism is specific and the corpus cannot contradict it (order is constant there, 17:45).
+    75 and not higher because mechanism predictions are 0 for 7 in this record — including the
+    entry-length story that died this evening by `sed`.
+
+    ⚠️ AND A PREDICTION ABOUT WHETHER THE PAIR IS INFORMATIVE AT ALL: ledger stubs in 4 of 6 distinct
+    contents (~67%), so P(A stubs) ~ 0.67 per process. Expect to discard about one process in three.
+    Recorded so a discarded pair reads as the design working, not as a surprise.
+
+COST, STATED UP FRONT
+Two draws per process at ~30 min each, plus a server restart, plus discards. One informative pair is
+~1 to 1.5 hours. Three pairs is most of a night. Starting with one and reporting it as n=1.
+
+⚠️ RESTARTING THE SERVER RETIRES pid 42826. Arms 1-6 are all graded against ledger-ctl-proc3 and are
+unaffected — a control is only needed while arms are being drawn against it. Any FUTURE arm on the
+old design needs a fresh control regardless, which is the standing rule since the 09:20 reboot.
