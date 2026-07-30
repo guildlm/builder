@@ -1,0 +1,65 @@
+PREREG — the running draw is not the floor I thought I launched. It separates WARMTH from PROCESS.
+=================================================================================================
+Written while taskflow-xserver2 is at 14 of 16 files and ungraded. Nothing about its contents is
+known. This supersedes nothing in PREREG-cross-server-control-replication.txt; it sharpens what
+that draw can be read for, and it must be on the record BEFORE the grade exists.
+
+THE CONFOUND I DID NOT NAME THIS MORNING
+The cross-server result (4 CODE files, 3 functions, byte-identical input) was attributed to "the
+process". The 09:46 RESULT did say the manipulation was a BUNDLE — process, cache, uptime, day —
+but then the floor draw was framed as though it only had to rule out general nondeterminism.
+It does more than that, because of an accident of timing:
+
+    A = taskflow-chain6    server 4439    up 10.5 HOURS, warm multi-sequence prompt cache
+    B = taskflow-xserver   server 2212    up 2 MINUTES, cache empty        <- COLD
+    C = taskflow-xserver2  server 2212    up ~17 min, one full draw served <- WARMED
+
+    KNOWN:    A vs B = 4 CODE files, 3 functions.        (cross-process AND cold-vs-warm)
+    KNOWN:    the 4439 floor pair (subst/name4) = 0 bytes. Both drawn WARM, 2h15m apart.
+
+    B vs C is WITHIN one process, COLD against WARMED.  <- isolates warmth
+    A vs C is ACROSS processes, WARM against WARMED.    <- isolates process identity
+
+Both graders are already in _within_server_replicate_draw.sh. I wrote the A-vs-C call this
+morning calling it "a second cross-process sample", which undersold it: with B in hand it is the
+warmth-controlled cross-process test, and it is the one that decides what this morning's headline
+was actually about.
+
+THE FORK, AND IT IS CONSTRAINED
+Distances are counts of differing files, so A-B = 4 forces arithmetic on the rest:
+
+    B == C  and  A vs C = 4        -> WARMTH IS INERT. Cold and warmed draws agree inside one
+                                      process; the 4-file gap is PROCESS IDENTITY. This morning's
+                                      finding stands as written.
+    B != C  and  A vs C small      -> WARMTH IS THE VARIABLE. A warmed 2212 reproduces a warmed
+                                      4439, and the 4-file gap was a COLD-START artefact, not a
+                                      process one. The headline "a byte-identical input drew a
+                                      different program across a restart" would need rewriting to
+                                      "...on a cold server", which is a much narrower claim.
+    B != C  and  A vs C large      -> 2212 is unstable in a way 4439 was not, or both matter.
+                                      Least informative, most work: needs a warm-warm pair
+                                      WITHIN 2212 before anything is attributable.
+    B == C  and  A vs C != 4       -> IMPOSSIBLE, and it is the consistency check. If the two
+                                      2212 trees are byte-identical, their distance to chain6 is
+                                      the same number by construction. Any other result means the
+                                      instrument is not measuring what it claims and BOTH grades
+                                      get thrown out rather than interpreted.
+
+PREDICTION — B == C, 60%
+Direct evidence: the 4439 pair went 2h15m and many intervening draws with zero drift, so cache
+CONTENTS demonstrably do not move the output within a process. The untested part is the cold->warm
+transition specifically, since that pair was warm->warm throughout.
+
+    ⚠️ 60 AND NOT HIGHER BECAUSE OF THE LEDGER, NOT THE PHYSICS. Reasoned predictions are 0 for 4
+    tonight and FOUR OF FIVE MISSES PREDICTED STABILITY. "B == C" is a stability prediction made
+    by the same reasoning that has been wrong every time it felt confident. The physics argues
+    for ~85%; it is written at 60 as an explicit correction for a bias with a known sign, which
+    is the one thing that has ever produced a hit here (01:22, the only one in six).
+
+    Consequence pre-committed: if B == C lands, that is NOT a vindication of the reasoning. It is
+    one hit for a shaded prediction, and the shading is the part to keep.
+
+⚠️ WHAT NEITHER BRANCH LICENSES
+Nothing here touches the ten-arm distribution. Those arms were control-vs-arm within one process
+on 4439, and the 4439 within-process floor is measured at zero. Whatever warmth or process
+identity turn out to do, it happened BETWEEN conditions those arms never spanned.
