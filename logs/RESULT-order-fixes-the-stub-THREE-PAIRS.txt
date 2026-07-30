@@ -1,0 +1,59 @@
+RESULT — three informative pairs, three processes, every one A-stub / B-full
+============================================================================
+p8 decisive files graded 21:40 on 30 July. Pre-registration:
+logs/PREREG-stub-order-paired-experiment.txt (20:20, before any pair was drawn).
+
+THE TABLE
+    pair  server   A: memory.go / store.go        B: memory.go / store.go
+    p5    83476    FULL  -> DISCARDED by the gate after one draw, as designed
+    p6    242      14 STUB / 2588 (7 funcs)       2373 (7 funcs) / 377 (0 funcs)
+    p7    34326    14 STUB / 2265                 2374 (7 funcs) / 379 (0 funcs)
+    p8    62240    14 STUB / 2620                 2373 (7 funcs) / pending store.go
+
+Each pair: ONE process, two draws back to back, specs differing ONLY in the order of two adjacent
+entry blocks. Identical character multiset, 24735 chars, 24813 bytes. Nothing added, removed or
+reworded — only which file is asked for first.
+
+STRENGTH
+Under "order is irrelevant" each B is another draw from a distribution that stubs 40-67% of the
+time, so each pair is ~2-3:1 and three independent pairs are roughly 8-27:1.
+
+    ⚠️ THE RATIO IS NOT THE MAIN THING. The mechanism makes a PROHIBITION — B cannot stub, because
+    memory.go is written before store.go can take its job — and a single B-stub kills it outright.
+    It has had THREE chances on three different processes and has not fired. A prohibition that
+    survives repeated exposure is worth more than a ratio computed from a base rate I also measured.
+
+THE ASYMMETRY KEEPS REPRODUCING, and it was never predicted
+    swapped-order memory.go:  2373 · 2374 · 2373   (+ 2374 from arm 5, a fourth process)
+    original-order store.go:  2588 · 2265 · 2620
+
+Four processes put the CORRECT placement within one character of each other. The DEFECTIVE
+placement varies by 355. Whatever the model writes when it is asked in the right order is nearly
+process-invariant; what it writes when the implementation lands in the wrong file is not.
+
+    ⚠️ Still an observation, n=4, noticed after the fact and not folded into the order claim. But it
+    has now reproduced every time it could, which is more than it had at 21:05.
+
+WHAT IS ESTABLISHED
+The memory.go stub — the MAJORITY outcome at 58% deduped across 107 trees, explicitly forbidden by
+scope_rule which names "the in-memory implementation" as its own example and says the other file
+"ships EMPTY" — is caused by ENTRY ORDER. The file generated first takes the implementation and the
+instruction does not stop it.
+
+    THE FIX IS FREE AND MECHANICAL: emit implementation entries BEFORE the interface entries they
+    satisfy. No prompt engineering, no model change, no retraining. ledger, taskapipro and workapi
+    all currently do the opposite — store.go 6th, memory.go 7th — which is precisely why the
+    107-tree corpus could never test it: the variable was constant across all 38 distinct draws.
+
+⚠️ WHAT IT IS NOT
+    NOT about green. p6's B went green, p7's B exited rc=1 and still placed the implementation
+    correctly. Placement and compilation are independent outcomes and conflating them would have
+    been easy if p7 had gone green too.
+    NOT a claim about other specs. All pairs are ledger. taskapipro and workapi share the same
+    entry order and the same defect, so the prediction transfers — but it is a prediction.
+    NOT the whole 58%. Order explains the stub; it does not explain why the rate differs by spec
+    (35% / 67% / 80%), which is still unidentified and underpowered at n=3 specs.
+
+NEXT: promote the fix. Reordering the two entries in specs/ledger.yaml is a one-line change with
+three paired draws behind it — and the same reorder belongs in taskapipro and workapi, where it is
+a prediction to be checked rather than a result.
