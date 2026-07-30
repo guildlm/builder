@@ -73,3 +73,43 @@ interchangeable. They are not, and the difference is the whole power of the test
     COST NOTE, stated so it is not discovered later: lengthening taskapipro's entry is a LARGE edit,
     and large edits reroll the whole draw (measured all day). So the arm cannot be read as "the same
     tree plus tags" — it is a fresh draw, and only the tag question is answerable from it.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+RESOLVED, 19:05 — THE SPEC ASKS, OR IT DOES NOT. MY ENTRY-LENGTH HYPOTHESIS IS REFUTED.
+════════════════════════════════════════════════════════════════════════════════════════════
+Answered by READING the three entries, not by drawing. The 18:30 addendum had designed a
+taskapipro arm to test this; it was not needed.
+
+    taskapipro  "Task struct {...} and Project struct {...} WITH JSON TAGS"      10 of 10 tagged
+    workapi     "Task struct {...} WITH JSON TAGS" ... "Event struct {...}
+                 WITH JSON TAGS"                                                 14 of 14 tagged
+    ledger      "`Account{ID string, Name string}`. `Posting{...}`. ..."          2 of 4 UNTAGGED
+                 — tags never mentioned anywhere in the entry
+
+Twenty-four of twenty-four when instructed. Roughly half when not. The model does what it is told;
+where it is not told, it adds idiomatic tags about half the time and skips them the other half.
+
+⚠️ MY MECHANISM WAS WRONG AND I FLAGGED IT AS THE KIND THAT WOULD BE. At 18:25 I proposed "a
+LONGER, more prescriptive entry may suppress un-asked-for idiom" — ledger 2281 chars vs 1007 and
+787 — and wrote: "mechanism stories are 0 for 6 in this record and this one fits three points,
+which is where the last one died." It died. Length is irrelevant; the word "tags" is the variable.
+
+    That is 0 for 7. And this one cost nothing, because it was recorded as a candidate with a cheap
+    falsification instead of as a finding — and the cheap falsification turned out to be `sed`.
+
+⚠️ AND IT MEANS "A SECOND LATENT DEFECT" WAS THE WRONG FRAME, WHICH MATTERS
+Tag-dropping is NOT the same kind of thing as the stub. Corrected:
+
+    TAG-DROPPING   the spec never asks. The model coin-flips on un-requested idiom. That is an
+                   UNDERSPECIFIED SPEC, not a model failure — compliance is 24/24 when asked.
+                   FIX: add "with JSON tags" to ledger's models.go entry. One phrase.
+    THE STUB       the spec DOES describe memory.go in detail, AND scope_rule explicitly forbids
+                   store.go from taking the implementation, naming it as its example — and it
+                   happens anyway in 58% of draws. That is a real failure of model or harness.
+
+    Two defects in one file, and only one of them is a defect. Separating them is what makes either
+    actionable: one is a one-line spec edit, the other is unsolved.
+
+⚠️ WHAT REMAINS TRUE about the tag case: untagged ledger really does break the wire format, because
+its own fixtures POST {"account_id":"cash"} and Go's case-insensitive match cannot bridge the
+underscore. The break is real; the CAUSE is a spec that never asked.
