@@ -1,0 +1,61 @@
+RESULT — arm 5: no stub when memory.go goes first, and I am not counting it
+===========================================================================
+Graded 18:55 on 30 July from the as-drawn snapshots. Pre-registration:
+logs/PREREG-ledger-entry-order-swap.txt, outcome space declared disjoint before the draw.
+
+    ✓ PREDICTED: memory.go NOT a stub, 65%. HIT.
+    OUTCOME: (a) — no stub, implementation in memory.go, store.go the interface.
+    ⚠️ AND (a) IS THE BRANCH I PRE-COMMITTED NOT TO COUNT AS CONFIRMATION.
+
+THE MANIPULATION — the cleanest of the series
+The store.go and memory.go entry BLOCKS transposed and nothing else: 24735 chars == 24735,
+24813 bytes == 24813, whole-file character multiset UNCHANGED, same 19 entries. No word altered,
+no character added or removed. The only difference is which file is written first.
+
+THE DECISIVE FILES
+    control   memory.go 2282 chars, 7 funcs   ·   store.go  382 chars (interface)
+    arm       memory.go 2374 chars, 7 funcs   ·   store.go  377 chars, 0 funcs (interface)
+
+memory.go generated FIRST came back full. store.go generated SECOND wrote the Store interface —
+its actual job — and nothing else. No stub anywhere.
+
+⚠️ WHY THIS IS NOT CONFIRMATION, AS PRE-COMMITTED AT 17:25
+"(a) is the outcome I expect and the one a 33% non-stub base rate hands me for free. Only (c)
+confirms at n=1." (c) was the stub MOVING to store.go — the defect following the second POSITION
+rather than the file, which no base rate explains. It did not happen.
+
+    And the corpus cannot help: all three affected specs list store.go sixth and memory.go seventh,
+    so the variable is CONSTANT across 38 distinct draws (17:45 finding). Arm 5 is the entire
+    evidence base for the order hypothesis, at n=1, on its uninformative branch.
+
+    THE HYPOTHESIS STANDS EXACTLY WHERE IT STOOD: plausible, specific, untested. What would test it
+    is N trivially-different variants per order — hours of GPU, not one draw.
+
+THE FULL GRADE — and the reorder was NOT a small perturbation
+    19 files · CODE 4 · IDENTICAL 8 · PROSE 7 · edit landed: YES
+    COLLATERAL 3 files: cmd/server/main.go · internal/models/models.go · internal/service/service.go
+    FUNCTION-LEVEL COLLATERAL 5: Balances, ListAccounts, ListTransactions, NewLedger, main
+    The TARGET itself was rerolled too — 3 of its 7 functions differ, not merely relocated.
+
+    ⚠️ SECOND ARM TODAY WHERE A CHARACTER-MULTISET-PRESERVING EDIT PRODUCED WIDE CHANGE. Arm 4
+    transposed two import names and rewrote five files including a stub and every JSON tag. Arm 5
+    transposed two entry blocks — adding and removing nothing at all — and rewrote four files and
+    five functions.
+
+    So the INERTNESS of an edit's text has no relationship to the SIZE of the perturbation. That is
+    now measured twice, on the two most inert edits it is possible to construct: one that reorders
+    words inside a line, and one that reorders two blocks without touching a character.
+
+WHAT ARM 5 ADDS TO THE TAG FINDING
+models.go came back with 0 JSON tags (control: 7), which is what prompted the 18:25 corpus check.
+That check found tag-dropping is LEDGER-ONLY — 24 distinct draws across taskapipro and workapi never
+drop them — and not process-determined, since 42826 produced both. Arm 5's contribution there is one
+more untagged ledger draw, and the finding is already recorded separately.
+
+THE PREDICTION LEDGER — seventeen attempts, six hits, one unscorable
+    17  "memory.go NOT a stub, 65%"   HIT
+
+    ⚠️ AND THE HIT IS WORTH LESS THAN IT LOOKS, WHICH IS THE SAME POINT AS THE ARM. Predicting the
+    33%-baseline-complement correctly is not evidence about the mechanism I built the arm to test.
+    A prediction can land while the arm it was attached to says almost nothing — recorded because
+    conflating the two is exactly how "spec separates the outcome" survived four hours at 15:00.
