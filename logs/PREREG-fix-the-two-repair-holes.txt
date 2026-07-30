@@ -1,0 +1,52 @@
+PREREG — apply the two repair-path fixes, and how to score them
+==============================================================
+Written 03:45 on 31 July. NOT executed tonight, deliberately: both fixes touch generation-path code
+and the session has run twenty hours. Written now so the next session executes rather than re-derives.
+
+THE TWO FIXES
+    FIX 1 — run the plan-conformance check REGARDLESS of green.
+        `_fill_empty_planned_files` and the "WARNING: ... shipped EMPTY" loop both live inside
+        `_finish_green()` (builder.py:5526). A project that never converges gets NEITHER. Move at
+        minimum the WARNING out, so an empty planned file is always recorded.
+        ⚠️ MINIMAL VERSION FIRST: the warning only. Moving the REPAIR out is a behaviour change on
+        failing builds and should be its own arm — a repair that fires on a broken tree and then
+        cannot pass toolchain.check will revert anyway, so it buys nothing until hole 1's warning
+        shows how often the case arises.
+
+    FIX 2 — broaden `_required_decls` beyond `Name struct|interface`.
+        _REQUIRED_TYPE_RE = r"(?<![.\w])([A-Z]\w*)\s+(?i:struct|interface)\b" cannot see a type named
+        in backticks. ledger's memory.go entry writes `MemStore` that way, so the extractor yields
+        only {Store} — which store.go owns — and take is empty.
+        Proposed addition: capitalised identifiers inside backticks in a purpose.
+        ⚠️ THIS WIDENS WHAT THE HARNESS THINKS A FILE MUST DECLARE, which feeds generation prompts
+        (5130), the fix loop (5412) and the redeclaration stripper. It is NOT a local change and its
+        blast radius is larger than fix 1's.
+
+THE BASELINE THEY ARE SCORED AGAINST (measured 03:30, logs/FINDING-baseline-for-the-two-repair-holes)
+    125 trees · 64 with an empty planned .go file (51%) · 61 without
+    of the 64:  54 (84%) take non-empty — hole 2 does not block them
+                10 (16%) take EMPTY, all ledger memory.go with required={Store} — hole 2 blocks
+    Today's 5 A draws: 3 green + WARNING logged (pass ran, no-op'd); 2 not green + NO log line at all.
+
+HOW TO SCORE — declared now, because "did it help" is exactly the question I got wrong twice today
+    FIX 2 is checkable with NO DRAWS. Re-run the 03:30 static check with the widened regex over the
+    same 125 trees. The number that must move is "take EMPTY" from 10 toward 0. If it does not fall,
+    the regex change is wrong and no draw is needed to know it.
+        ⚠️ AND CHECK WHAT ELSE MOVES: the same function feeds three other call sites. Re-run
+        ./_selftest_all.sh --fast and confirm 34 ran / 0 failed, and diff `_required_decls` output
+        across all three specs' entries — a widened regex that starts claiming symbols a file was
+        never meant to declare would corrupt generation, not just repair.
+
+    FIX 1 is checkable with ONE not-green draw. Draw any spec that fails to converge and confirm the
+    WARNING now appears. Today's workapi and taskapipro A draws are the negative controls — both
+    exhausted their budgets and logged nothing.
+
+PREDICTION
+    FIX 2: "take EMPTY" falls from 10 to 0, 80%. It is a mechanical regex widening against a shape
+    I have read directly in the three specs. Not higher because the other call sites may reject it.
+    FIX 1: the WARNING appears on a not-green draw, 95%. It is a code-motion change with no logic.
+
+    ⚠️ NEITHER PREDICTION IS ABOUT WHETHER THE STUB STOPS SHIPPING. Fix 1 makes it VISIBLE, fix 2
+    makes the repair APPLICABLE on ledger. Whether the repair then survives toolchain.check is a
+    third question and neither fix answers it. Saying so now, because "the fix works" was the exact
+    over-claim I had to retract at 01:55 and again at 02:15.
