@@ -1,0 +1,53 @@
+RESULT — the one-phrase fix works, and it generalises past the clause it is attached to
+======================================================================================
+Decisive file graded 19:35 on 30 July, from disk mid-draw (models.go is file 4; the fix loop had
+not started, so this is as-drawn). Pre-registration: logs/PREREG-ledger-tagfix.txt.
+
+    ✓ PREDICTED: tags present, 95%. HIT.
+    ✗ PARTIAL branch (tags on Account only): did NOT occur — and its absence is the finding.
+
+THE EDIT AND THE OUTCOME
+    line 120: "`Account{ID string, Name string}`."
+           -> "`Account{ID string, Name string}`, with JSON tags."   (+16 chars)
+
+    models.go: 7 json tags — Account 2 · Posting 2 · Transaction 3
+    control: 7 · every untagged ledger draw: 0
+
+THE PART THAT IS NEW INFORMATION
+I attached "with JSON tags" to ACCOUNT'S CLAUSE ONLY. Posting and Transaction are described in
+separate sentences that still say nothing about tags. All three came back tagged.
+
+    So the instruction is NOT local to the struct it modifies — it generalised across every struct
+    in the file. That is something the corpus could NOT have told me: taskapipro and workapi both
+    attach the phrase to EVERY struct, so they cannot distinguish "the model tags what it is told
+    to tag" from "one mention makes it tag everything". Ledger's single-clause fix separates them.
+
+    ⚠️ n=1 and it is the expected direction, so this is a demonstration, not a rate. What it rules
+    out is the specific worry that motivated the PARTIAL branch — a half-fix that tags Account and
+    silently leaves Posting.AccountID untagged, which is the exact field whose underscore defeats
+    Go's case-insensitive match and breaks every transaction fixture. That failure mode was live
+    when I wrote the pre-registration and is now observed not to happen.
+
+WHAT THIS DRAW IS AND IS NOT EVIDENCE FOR — as pre-committed at 19:15
+    NOT strong on its own: ledger tags itself ~50% of the time unprompted, so ONE tagged draw is
+    about 2:1. The real evidence that the instruction works is the corpus: 24 of 24 across
+    taskapipro and workapi. This draw makes it 25 of 25 and adds the generalisation fact.
+
+    The informative branch was FAILURE — the first instruction-failure in 25 — and it did not
+    happen. That was the only reason the draw was worth GPU, and it came back clean.
+
+RECOMMENDATION — promote, deliberately, and not as a side effect
+specs/ledger.yaml should get the phrase. It closes a real wire-format break: ledger's own fixtures
+POST {"account_id":"cash","amount":500}, and untagged, Posting.AccountID never receives it.
+
+    ⚠️ PROMOTING IT INVALIDATES generated/ledger-ctl-proc3 AS A CONTROL for any future ledger arm,
+    because every spec edit rerolls the draw — measured seven times over today. Arms 1-5 are already
+    graded against it and are unaffected. A sixth arm would need a fresh control drawn on whatever
+    process is live then. Stated so the cost is chosen rather than discovered.
+
+    NOT DOING IT IN THIS TURN. The arm is still drawing; promoting the spec while a draw against
+    the old one is in flight is how a control gets silently mismatched.
+
+STILL PENDING: the full as-drawn grade of the other 18 files. The +16-char addition is the edit
+class that perturbed 7 of 7 in this series, so collateral is expected and is not what the arm
+measures.
