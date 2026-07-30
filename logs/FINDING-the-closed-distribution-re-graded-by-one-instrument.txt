@@ -1,0 +1,74 @@
+FINDING — the closed ten-arm distribution, re-graded by ONE instrument, with the zero-edit draw
+==============================================================================================
+30 July, ~09:55. Written while the floor draw is at 9 of 16 files and its verdict is UNKNOWN,
+deliberately: recording the arm magnitudes before the floor exists means the comparison cannot
+be fitted to it.
+
+WHY RE-GRADE SOMETHING ALREADY GRADED
+The ten arms were graded one at a time, over eight hours, and the earliest of them by an ad-hoc
+snippet retyped per arm — the practice _asdrawn_diff.py was written to end. The published table
+records a BINARY (perturbed / null) and never a magnitude. A binary cannot be compared to a
+noise floor. So every arm was re-run through the same instrument, same flags, same controls.
+
+    ✅ THE RE-GRADE REPRODUCES THE PUBLISHED NUMBERS where they were stated, which is the check
+    that the pairing is right: name5 "CODE 1 · IDENTICAL 15" matches to the file; name4 shows the
+    single PROSE file that was reported as the prose echo; name3 shows the eight functions the
+    RESULT described as "eight functions across six files". Nothing was re-interpreted.
+
+CONTROL PAIRING, VERIFIED
+    taskflow arms -> generated/taskflow-chain6      (HEAD spec, 4439, drawn 29 Jul 20:02)
+    ratelimit arms -> generated/ratelimit-ctl       (HEAD spec, 4439, drawn 29 Jul 21:03)
+    specs/taskflow.yaml has not moved since 11520cc, 29 Jul 14:48. Every arm below was drawn
+    between 29 Jul 19:33 and 30 Jul 02:01 — all inside 4439's life (up 29 Jul 09:29), all after
+    the spec froze. `dose` predates chain6 by 29 minutes, which is fine: same server, same input.
+
+TASKFLOW — control chain6, 16 common files
+    arm        edit                          CODE  func   published verdict
+    name3      test-NAME swap 16->16            7     8    PERTURBED (the hit)
+    name4      test-NAME swap 19->19            1     0    NULL
+    name5      test-NAME swap 21->21            1     0    NULL
+    subst      same-length substitution         1     0    (not in the final ten; its
+                                                            "substitutions are safe" reading
+                                                            was withdrawn at 01:13)
+    prose      PROSE word swap 10->10           6     8    PERTURBED
+    verbatim   VERBATIM fixture, 1 char         4     5    PERTURBED
+    dose1      +1 line                          3     8    PERTURBED
+    dose3      +3 lines                         8    10    PERTURBED
+    dose       +12 lines                        6    16    PERTURBED
+    ------------------------------------------------------------------------------------
+    xserver    NO EDIT AT ALL                   4     3    (cross-process, 09:31 today)
+
+RATELIMIT — control ratelimit-ctl, 7 common files
+    name1      test-NAME swap 19->19            1     1    PERTURBED (the granularity arm: file
+                                                            level said null, functions said no)
+    dose       +48 lines                        4     7    PERTURBED
+    dose2      +48 lines, REDRAWN               4     7    PERTURBED — byte-for-byte the same
+                                                            grade as `dose`. The one replication
+                                                            in the set, and it replicated exactly.
+
+⚠️ THE ROW THAT DOES NOT BELONG TO AN EDIT
+`xserver` changed NOTHING. Same spec, same bytes, no variant. It scores CODE 4 / 3 functions —
+    ABOVE all three arms recorded as NULL (each CODE 1 / 0 functions), and
+    LEVEL WITH `verbatim` (4/5) and `dose1` (3/8), both recorded as PERTURBED.
+
+    If that number were the floor, the binary in the published table would not survive it: three
+    "nulls" sit below a draw where nothing was edited, and two "perturbed" arms sit level with it.
+
+⚠️⚠️ BUT IT IS NOT THE FLOOR, AND SAYING SO IS THE WHOLE POINT OF THIS FILE
+`xserver` is a CROSS-PROCESS pair (chain6 on 4439 vs xserver on 2212). Every arm above is a
+WITHIN-process pair. Comparing them directly assumes the two kinds of drift are the same size,
+which is the open question, not an answer. The within-process floor draw is running now.
+
+    And even when it lands it will be a 2212 floor applied to 4439 arms, taken on a server up
+    minutes with a cold cache rather than hours with a warm one. Pre-committed at 09:52: that
+    number establishes THAT a floor exists, not HOW BIG it was for these arms.
+
+WHAT IS ALREADY SAFE TO SAY, FLOOR OR NO FLOOR
+The three NULL arms are the most robust rows in the table. They score CODE 1 / 0 functions — the
+minimum a landed edit can score — and they do it while a zero-edit cross-process draw scores 4/3.
+Whatever the floor turns out to be, a null measured BELOW an untouched redraw is not an artefact
+of noise; noise does not push results toward zero.
+
+    The direction of the doubt is asymmetric and it lands entirely on the PERTURBED column.
+    That is the reverse of how the series has been reading itself: "everything else perturbed,
+    6 of 6" was the strong claim and the nulls were the fragile ones.
