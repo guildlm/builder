@@ -1,0 +1,57 @@
+CORRECTION — the fix does NOT transfer to taskapipro. It INVERTS the defect there.
+==================================================================================
+01:55 on 31 July. This retracts the central claim of the 01:35 RESULT, forty minutes after I made it.
+
+WHAT I CLAIMED AT 01:35
+"taskapipro closes the gap: all three promoted specs are now measured... the inference is retired;
+all three are evidence." I graded the pair on ONE number — memory.go — saw 2650 chars with 9 funcs,
+and called it a transfer. I did not look at store.go.
+
+WHAT THE FULL PAIR SAYS
+    A  memory.go   14 (STUB) · store.go 2649 (9 funcs)
+    B  memory.go 2650 (full) · store.go   14 (STUB)      <- the OTHER file is now empty
+
+    B's store.go, in full: 'package store\n'
+
+    And taskapipro's store.go entry REQUIRES: "Exported sentinels var ErrNotFound and var ErrExists"
+    plus "A CONTEXT-AWARE Store INTERFACE" with eight methods. None of that is in the file. The
+    interface moved into memory.go alongside the implementation — `type Store interface` is declared
+    there — which Go accepts, because a package does not care which file holds what. That is the
+    29 July finding's own point, arriving from the other direction.
+
+THE THREE SPECS DO NOT AGREE
+    ledger      B: store.go  377 · interface in store.go   <- both files correct
+    workapi     B: store.go  353 · interface in store.go   <- both files correct
+    taskapipro  B: store.go   14 · interface in memory.go  <- interface DISPLACED
+
+    So the honest generalisation is NOT "reordering fixes the stub". It is:
+
+        THE FIRST-GENERATED FILE OF THE PAIR TENDS TO ABSORB THE PACKAGE'S CONTENT.
+
+    Reordering changes WHICH file absorbs it. On ledger and workapi the model still split interface
+    from implementation correctly; on taskapipro it did not, and the empty file simply changed name.
+
+WHAT THIS DOES AND DOES NOT COST
+    STANDS: five pairs, three specs, every A stubs and every B puts the IMPLEMENTATION in memory.go.
+            That result is unchanged and the prohibition never fired.
+    FALLS:  "the fix transfers to all three specs." It transfers to two. On taskapipro the reorder
+            relocates the emptiness rather than removing it, so the promotion there buys nothing —
+            and costs the store.go sentinels and interface, which the original order got right.
+
+    ⚠️ ACTION: reverting specs/taskapipro.yaml to the original order. The 00:20 pre-registration
+    said "A STUBS · B STUBS -> the promotion to taskapipro was WRONG and should be reverted." This
+    is that branch in substance: B stubs, in the other file.
+
+⚠️ HOW I MISSED IT, WHICH IS THE REUSABLE PART
+The gate and the grader both did their jobs — `_asdrawn_diff` printed store.go's relocation in the
+only_a/only_b lists and I read past it. I had spent the night watching ONE number, memory.go's size,
+because on ledger and workapi that number was sufficient. It stopped being sufficient on the third
+spec and I did not re-derive what "fixed" means for a pair of files.
+
+    THE RULE: a metric that was sufficient on every case so far is not thereby sufficient. Check
+    what the fix was supposed to achieve — here, EACH FILE HOLDS ITS ASSIGNED CONTENT — not the
+    proxy that happened to track it.
+
+    That is the same shape as the perturbed/null conflation at 15:00 and the FUNCTION-LEVEL
+    COLLATERAL blind spot, both of which were "the number I was reading stopped meaning what I
+    thought". Third instance in one day.
