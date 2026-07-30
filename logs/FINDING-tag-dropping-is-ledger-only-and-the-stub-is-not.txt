@@ -44,3 +44,32 @@ WHAT IT DOES NOT SAY
 It does not explain the stub. The stub is in all three specs; tag-dropping is in one. Two latent
 defects in the same file with different distributions means "models.go is unreliable" is too coarse
 to be useful — they need separate rates and separate causes.
+
+ADDENDUM, 18:30 — WHICH DIRECTION TO FALSIFY IN, AND WHY IT IS NOT LEDGER
+I wrote "add 'with json tags' to ledger's entry, or lengthen taskapipro's" as if the two were
+interchangeable. They are not, and the difference is the whole power of the test.
+
+    ON LEDGER the baseline is 2 of 4 distinct contents untagged — call it ~50%. Add an explicit
+    "with json tags" instruction and:
+        tags appear   -> expected half the time anyway. Proves nothing at n=1.
+        tags absent   -> STRONG: an explicit instruction ignored. But it is the 50% branch, so it
+                         needs repetition to distinguish from luck.
+    Either way, one draw cannot separate the instruction from the coin.
+
+    ON TASKAPIPRO the baseline is 0 of 10 distinct — it has NEVER dropped tags. Lengthen its
+    models.go entry toward ledger's shape and:
+        tags drop     -> under a 0-for-10 baseline this is a genuinely surprising event and the
+                         mechanism gains real support from ONE draw.
+        tags stay     -> weak, as all null results at n=1 are here.
+
+    THE ASYMMETRY IS THE POINT: test where the baseline is EXTREME, not where it is 50/50. A 50%
+    baseline makes both branches cheap; a 0% baseline makes one branch expensive for the
+    hypothesis to survive.
+
+    ⚠️ This is the same lesson as the 17:25 pre-commitment on arm 5 — "(a) is what a 33% base rate
+    hands me for free, only (c) confirms at n=1" — arriving a second time in a different costume.
+    Pick the arm whose informative branch is the one the base rate does NOT already supply.
+
+    COST NOTE, stated so it is not discovered later: lengthening taskapipro's entry is a LARGE edit,
+    and large edits reroll the whole draw (measured all day). So the arm cannot be read as "the same
+    tree plus tags" — it is a fresh draw, and only the tag question is answerable from it.
