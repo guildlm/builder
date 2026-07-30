@@ -79,3 +79,23 @@ trees carry no logs, and re-running builds to find out is real CPU against a cla
 directionally settled at n=5. Recorded as the boundary of the claim, not as a gap to be quietly
 ignored: today's draws show green-and-stubbed happens and happens easily; the month-long rate is
 unquantified.
+
+UPDATE, 00:10 — workapi's pair is a TIE, which softens the cost signal
+    ledger  p6   A green (3)   B green (2)
+    ledger  p7   A green (2)   B exhausted
+    ledger  p8   A green (3)   B exhausted
+    workapi w1   A exhausted   B exhausted        <- BOTH fail; the reorder changed placement
+                                                     without changing the outcome
+
+    Totals across all four pairs: A green 3 of 4 · B green 1 of 4.
+
+    ⚠️ THE COST IS LEDGER-SHAPED, NOT UNIVERSAL, on this evidence. workapi failed identically either
+    way — its hard spot is internal/service/service_test.go, which consumed A's entire 7-round budget
+    and B's entire 6-round budget alike. So on the one spec where convergence was already the
+    binding problem, the reorder cost nothing.
+
+    The 23:20 reading stands but narrows: where a stub was making a tree LOOK easy, removing it
+    surfaces real work (ledger, 3-of-3 down to 1-of-3). Where the tree was already failing for
+    unrelated reasons, the reorder is free (workapi, 0-of-1 both ways).
+
+    ⚠️ n is 4 pairs. Both statements are directional.
