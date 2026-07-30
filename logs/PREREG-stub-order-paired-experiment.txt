@@ -49,3 +49,22 @@ Two draws per process at ~30 min each, plus a server restart, plus discards. One
 ⚠️ RESTARTING THE SERVER RETIRES pid 42826. Arms 1-6 are all graded against ledger-ctl-proc3 and are
 unaffected — a control is only needed while arms are being drawn against it. Any FUTURE arm on the
 old design needs a fresh control regardless, which is the standing rule since the 09:20 reboot.
+
+RUNNING LOG — pairs attempted
+    p5  server 83476  draw A = FULL (memory.go 2274 chars)  -> DISCARDED, B not drawn
+    p6  server 242    drawing
+
+⚠️ THE DISCARD RATE MAY BE HIGHER THAN I PRE-REGISTERED, and it is worth saying before more pairs
+run. I predicted P(A stubs) ~ 0.67 from ledger's 4-of-6 distinct stubbed contents. But that 4-of-6
+is dominated by OLDER draws (ARM-A, ARM-B, BEFORE-specfix, v5). Restricting to draws made TODAY,
+on the current spec and current processes:
+
+    ctl-proc3 FULL · prose2 STUB · order1 FULL · pairA-p5 FULL     = 1 stub of 4
+
+    So the live rate may be nearer 25% than 67%, and the expected cost per informative pair rises
+    from ~1.5 draws to ~4. ⚠️ n=4 and I am not revising the pre-registered number — it is recorded
+    as written and scored as written. This is a note that the experiment may be much more expensive
+    than budgeted, not a new estimate.
+
+    THE HONEST CONSEQUENCE: if the next two or three pairs also discard, the right move is to stop
+    and say the experiment was not affordable, rather than to keep spending because it is started.
