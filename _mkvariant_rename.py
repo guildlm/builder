@@ -81,8 +81,19 @@ def plan(src: str, old: str, new: str) -> tuple[str, list[str]]:
 
     # The guards restated as post-conditions. They are cheap, and a transformation that
     # satisfies its preconditions can still be wrong.
+    # CHARACTERS AND BYTES ARE DIFFERENT NUMBERS HERE AND BOTH ARE CHECKED. ledger.yaml is 24735
+    # characters and 24813 bytes — it carries non-ASCII, so len() and `wc -c` disagree by 78.
+    # Commit 2561a11 caught exactly this on ratelimit ("disagree by 42 ... checking only one of
+    # them would have been sloppy") and this tool's first draft reintroduced it, printing the
+    # character count under the word "bytes". A guard that reports the wrong unit is a guard
+    # nobody can check against `wc -c`, which is what a reader will actually reach for.
     if len(out) != len(src):
-        raise ValueError(f"byte count moved {len(src)} -> {len(out)} on an equal-length rename.")
+        raise ValueError(f"char count moved {len(src)} -> {len(out)} on an equal-length rename.")
+    if len(out.encode()) != len(src.encode()):
+        raise ValueError(
+            f"byte count moved {len(src.encode())} -> {len(out.encode())} while the char count "
+            "held — the rename is equal-length in characters but not in UTF-8."
+        )
     if len(_bounded(old).findall(out)) != 0:
         raise ValueError(f"{old!r} survives in the variant.")
     if len(_bounded(new).findall(out)) != 1:
@@ -91,7 +102,8 @@ def plan(src: str, old: str, new: str) -> tuple[str, list[str]]:
         raise ValueError("variant is byte-identical to the source.")
 
     notes = [
-        f"{len(src)} bytes before == {len(out)} after",
+        f"{len(src)} chars before == {len(out)} after",
+        f"{len(src.encode())} bytes before == {len(out.encode())} after  (`wc -c` agrees)",
         "1 substitution, 0 left behind",
     ]
     if n_old_sub > n_old:
@@ -157,6 +169,11 @@ def _self_test() -> int:
     # Present ONLY inside a longer identifier -> refuse, and say so.
     want_refuse("z: TestBalanceXY\n", "TestBalance", "TestBalanc3", "inner", "INSIDE longer")
 
+    # EQUAL IN CHARACTERS, UNEQUAL IN BYTES. Both names are 6 characters, so the length guard
+    # passes; "é" is two bytes in UTF-8, so the file grows by one byte. This is the ledger/
+    # ratelimit non-ASCII trap as a manipulation instead of an accident.
+    want_refuse("k: TestAB\n", "TestAB", "TestAé", "utf8", "byte count moved")
+
     if fails:
         print("SELF-TEST FAILED")
         for f in fails:
@@ -164,7 +181,7 @@ def _self_test() -> int:
         return 1
     # The count is the number of cases ENUMERATED after it. A banner whose number disagrees with
     # its own list is the miniature of what _selftest_all.sh was written about.
-    print("self-test OK: 8 cases (happy, unequal, absent, identity, boundary, twice, collision, inner)")
+    print("self-test OK: 9 cases (happy, unequal, absent, identity, boundary, twice, collision, inner, utf8)")
     return 0
 
 
