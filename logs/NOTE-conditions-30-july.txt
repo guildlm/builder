@@ -19,3 +19,30 @@ cross-process pair. Both "no stub files". That answers NOTHING about open questi
     double duty — it is the arm's control AND the first 2212 sample of a spec that showed the
     regression on 4439. It still will not separate server from day (2212 and 30 July change
     together), but it is the sample that does not currently exist, at no extra GPU cost.
+
+11:00 · STUB REGRESSION did NOT reproduce on process 42826 — and today reframes what that means.
+The ledger control draw wrote internal/store/memory.go at 2282 bytes with NewMemStore and six
+methods. On 4439 that same file came out as 14 bytes — `package store` and a newline — in three
+v5 trees while the spec describes a full MemStore. _stub_files.py: no stubs in the tree.
+
+    ⚠️ THIS IS NOT A RESOLUTION OF OPEN #3, AND THE REASON CHANGED TODAY. It was already
+    confounded (server and day move together). But this morning's result adds a THIRD reading
+    that did not exist when #3 was written, and it is the most parsimonious one:
+
+        PROCESS IDENTITY ALONE CHANGES WHAT GETS WRITTEN. Three processes, same spec, three
+        different programs — and the two sharing a boot were the furthest apart.
+
+    So "the stub appeared on 4439 and not on 42826" may be nothing more than "those are different
+    processes", which is now a MEASURED property of this pipeline rather than a hypothesis. #3
+    asked "server or day?" and the honest answer may be "neither — pid", a category the question
+    did not contain.
+
+    What would actually test it: several draws of ledger across several processes, counting how
+    often memory.go comes out as a stub. A stub rate is a measurement; one clean draw is not.
+    Recording that so this clean file is not later cited as "the regression is fixed".
+
+    ⚠️ Unrelated to the stub question and NOT chased: the written file has Balances() returning
+    map[string]models.Money while the spec's field is money.Money, and the service layer expects a
+    Balance(id) method. That is a candidate defect in this draw, noted only so it is not mistaken
+    for a clean bill of health. ledger has drawn NOT-GREEN before and green is not this arm's
+    question — the name swap is graded as-drawn from .pre-fix.json either way.
