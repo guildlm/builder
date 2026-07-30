@@ -1,0 +1,75 @@
+RESULT — process identity is the variable, and sharing a boot does not help at all
+=================================================================================
+Draw finished 10:40 on 30 July, 1710s, rc=0. Pre-registered in
+logs/PREREG-third-process-same-boot.txt at 10:10, before the server was restarted.
+
+    ✓ PREDICTED: tree3 != xserver (process identity is the variable), 55%. HIT.
+    ✗ The bonus reading — tree3 == chain6, "a small discrete set" — did NOT happen.
+
+THE ARM
+    Boot held constant at Thu Jul 30 09:20:52 (verified by the runner, which refuses otherwise).
+    Day held constant. Spec byte-identical. 2212 killed, 42826 started at 10:09:48.
+    Only the pid changed.
+
+THE THREE PAIRWISE DISTANCES — this is the whole result
+    chain6  <-> xserver    CODE 4   funcs 3    different boot (29 Jul vs 30 Jul)
+    chain6  <-> proc3      CODE 3   funcs 4    different boot
+    xserver <-> proc3      CODE 6   funcs 7    ***SAME BOOT, SAME DAY, SAME MACHINE STATE***
+
+    THE TWO PROCESSES THAT SHARE A BOOT ARE THE FURTHEST APART OF THE THREE PAIRS.
+
+1. PROCESS IDENTITY IS THE VARIABLE. THE BOOT IS NOT.
+The 10:06 RESULT left a bundle: process identity, a reboot, a day. This draw holds the last two
+and changes only the first, and the difference does not shrink — it GROWS, from 4 files to 6.
+Sharing a boot buys nothing. The reboot and the day are unnecessary to explain anything.
+
+    ⚠️ AND THE DIRECTION IS THE PART I DID NOT PREDICT. I registered "tree3 != xserver" and got
+    it, but I expected same-boot processes to be at least as close as cross-boot ones. They are
+    the furthest pair in the set. One triangle is not a trend, and three points can order
+    themselves any way at all by chance — but it is the opposite of the only ordering the boot
+    hypothesis permits, which is what kills the hypothesis rather than merely failing to support it.
+
+2. NOT A SMALL DISCRETE SET
+proc3 matches neither predecessor. Three processes, three distinct programs, mutually 3, 4 and 6
+CODE files apart. The "variant chosen once at load time" story flagged at 10:06 predicted repeats
+and there are none, so it is not confirmed by these four draws. It is not refuted either — a set
+of more than three variants looks exactly like this at n=3 — but it has lost the cheap test it had.
+
+3. THE VOLATILE SET IS BIGGER THAN THE TEN ARMS EVER SHOWED
+proc3 vs chain6 perturbs `parsePage` and `TestContentTypeJSON`. NEITHER appears anywhere in the
+union of collateral across all nine edited taskflow arms (25 distinct functions). So two functions
+that no spec edit ever moved were moved by changing nothing but the pid.
+
+    The earlier note that "the zero-edit draw's functions were all inside the edited arms' union"
+    was true of xserver and is FALSE in general. Recorded as a correction: that observation was
+    one draw wide and I generalised it in the 09:55 FINDING.
+
+4. WHAT THIS DOES NOT TOUCH, AGAIN
+The ten-arm distribution is unaffected. Every one of those arms was control-vs-arm inside ONE
+process, and the within-process floor is measured at zero on two separate processes. Everything
+here happens BETWEEN processes, a boundary no arm in that series ever crossed.
+
+THE PREDICTION LEDGER — nine attempts, three hits
+    23:38  "LENGTH is the variable"                    falsified
+    00:03  "COPIED verbatim vs INTERPRETED"            falsified
+    00:46  "the CATEGORY is real, p=0.036"             falsified
+    01:22  A 45 / B 55, shaded                         HIT
+    01:37  "collateral appears, 70%"                   wrong
+    02:01  "collateral appears, 65%" (base rate)       wrong
+    09:3x  "65% byte-identical across a restart"       wrong
+    10:0x  "B == C, 60%"                               HIT
+    10:1x  "tree3 != xserver, 55%"                     HIT
+
+    ⚠️ THE THREE HITS ARE THE THREE PREDICTIONS SET NEAR 50%. Every one of the six misses was a
+    confident number — 65, 70, 65, and three mechanism stories. The three hits were 55, 60, 55.
+    That is not a claim that hedging is wise; it is the observation that in this system I have
+    never once been right when I felt sure, across nine attempts. The useful form is: when the
+    reasoning produces a confident number here, that is evidence the reasoning is wrong.
+
+NEXT ARM — pre-committed at 10:18, before this verdict existed
+"tree3 novel -> each process is unique. Also enough to work in — same rule, one process per arm —
+and a fourth draw would only re-confirm it. NEXT ARM: the ledger name swap."
+
+    Honouring it. The "furthest pair shares a boot" ordering in §1 is exactly the interesting-
+    looking result the 10:18 note was written to stop me chasing, and only tree3 == chain6 bought
+    another apparatus draw. It did not happen. Firing _ledger_name_arm.sh.
