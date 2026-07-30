@@ -76,6 +76,41 @@ BRANCHES
                 and nothing else moved, that is this branch, not a result.
     UNMEASURED  draw dies or no .pre-fix.json. Redraw.
 
+SPLITTING THE NULL-EDIT BRANCH IN TWO — added 12:26, arm at 3 of 19, nothing graded
+Observed at 12:26: internal/money/money.go came out BYTE-IDENTICAL to the control's, and its
+import block is `errors`, `strconv`, `strings` — alphabetical, i.e. what gofmt produces regardless
+of the order the spec asked for. The null-EDIT branch is live, as flagged.
+
+But "null edit" as written collapses two outcomes that mean opposite things, and the distinction
+has to be on the record before the other 16 files land:
+
+    (a) TARGET IDENTICAL, NOTHING ELSE MOVED -> a true null EDIT. The arm measured nothing and
+        cannot speak to "ledger is quiet" either way. It would need re-running with an edit that
+        cannot be normalised away — a line addition, not a reordering.
+
+    (b) TARGET IDENTICAL, OTHER FILES MOVED -> NOT a null edit, and the most interesting outcome
+        available here. The spec text changed; the model normalised it away exactly where it was
+        aimed; and the perturbation surfaced somewhere it was never mentioned. That is a stronger
+        version of the PROSE ECHO seen in the 19->19 taskflow arm, where a rename the edit did not
+        mention propagated into another file's Fatalf message.
+
+    ⚠️ AND (b) WOULD ANSWER A STRUCTURAL QUESTION I HAVE NOT ASKED: whether each file's prompt
+    carries the WHOLE spec or only its own entry. If only its own entry, then money.go's identical
+    output means every later prompt is identical too, and (a) follows by construction — (b) would
+    be impossible. If the whole spec is in every prompt, (b) is available. So the outcome reads
+    back on the pipeline's prompt construction, which I should check directly rather than infer
+    from a diff. Noting it as a follow-up either way.
+
+    PREDICTION STANDS AT 70% PERTURBS but it now needs restating, because the 70% was written for
+    "the edit does something". Split: (b) at ~25%, a true null EDIT (a) at ~60%, and a
+    conventional perturbation with a visibly changed target at ~15% — the last is nearly dead
+    already, since the target file is in hand and identical.
+
+    ⚠️ THIS IS NOT A PREDICTION REVISION AFTER SEEING A RESULT. The target file is evidence and I
+    have seen it, so the original 70% is SCORED AS WRITTEN and counts against the ledger if the
+    arm turns out to be a null edit. These numbers are a NEW forecast over the remaining unseen 16
+    files, recorded separately so the two cannot be confused later.
+
 ⚠️ CONDITIONS. Throughput is still degraded by contention (godot + colima, ~170% CPU between them;
 not thermal, pmset shows no warnings). The control was drawn at ~120 tok/s, this arm will draw
 slower. Throughput has now been measured inert at 24% AND at ~3x, the second time by the ledger
