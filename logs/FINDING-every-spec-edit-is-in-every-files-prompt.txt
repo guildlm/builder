@@ -59,9 +59,27 @@ WHAT IT EXPLAINS, AND WHAT IT STILL DOES NOT
     ⚠️ THE SERIES' QUESTION WAS BACKWARDS. "Why did this edit spread?" has a boring answer: it was
     in every prompt. "Why did this edit NOT spread?" does not.
 
-WHAT I HAVE NOT CHECKED, STATED SO IT IS NOT ASSUMED
-    - whether the FIX prompts also carry _file_list (line 5797 builds a different prompt with
-      TARGET_FILE and Purpose; not inspected)
-    - whether retrieval shots or the sibling-content block vary with the edit
-    - whether purposes are truncated for long specs, which would cap how far an edit reaches
-    Each is one grep and none of them changes the finding above, which rests on line 1076 alone.
+THE TWO GAPS, NOW CLOSED (12:34) — and one of them kills a candidate explanation
+    1. FIX PROMPTS DO NOT CARRY IT. `_file_list` is called in exactly ONE place in the whole file:
+       line 1076, the generation prompt. The fix prompt at 5797 builds TARGET_FILE and Purpose
+       without it. So the edited text is in all 19 GENERATION prompts and in NO fix prompt.
+       Moot for every arm in this series — as-drawn grading reads .pre-fix.json, which is the tree
+       before any fix round runs — but it means fix-round behaviour cannot be attributed to the
+       edit's text at all, and any future arm graded post-repair would need that stated.
+
+    2. NO TRUNCATION. Nothing anywhere trims purpose text: every "truncat" in builder.py is about
+       a truncated MODEL RESPONSE or a truncated import path, not the plan block. Purposes render
+       in full regardless of spec length.
+
+       ⚠️ THAT KILLS THE MOST ATTRACTIVE EXPLANATION FOR THE NULLS. "The edit was too far from the
+       file to reach its prompt" would have explained why five arms changed nothing — a cheap,
+       mechanical answer. It is false. The edit reaches every generation prompt, in full, always.
+       ledger's edit sat in nineteen prompts and eighteen files came out byte-identical.
+
+       So the nulls are not a reach problem. They are the real phenomenon, and the series has no
+       mechanism for them.
+
+    Still unchecked: whether retrieval shots (`_retrieval_block(shots)`, line 1077) vary with the
+    edit. Shots are selected on `f"{task.spec.path} {task.spec.purpose}"` (line 5107) — the
+    TARGET's own purpose, so for 18 of 19 files the selector text is unchanged by this edit. For
+    money.go itself it changes, which is one more reason its identical output is notable.
