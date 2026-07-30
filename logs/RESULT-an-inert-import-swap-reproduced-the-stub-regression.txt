@@ -1,0 +1,92 @@
+RESULT — an inert import-order swap reproduced the STUB REGRESSION and stripped every JSON tag
+==============================================================================================
+Graded 16:50 on 30 July from the as-drawn snapshots. Pre-registration:
+logs/PREREG-ledger-inert-edit-in-arm3s-own-entry.txt, measure declared in advance.
+
+    ✗ PREDICTED: T-CHANGED, 45%. WRONG — the target is byte-IDENTICAL.
+    OUTCOME: the pre-registered "any collateral" branch, and it is the largest perturbation in the
+    series from the most inert edit in it.
+
+THE EDIT
+    line 460, inside internal/api/middleware_test.go's entry — a test file, near the END of a
+    19-file spec:
+        "Imports net/http, net/http/httptest, testing."
+     -> "Imports net/http/httptest, net/http, testing."
+    Whole-file character multiset UNCHANGED. 24735 chars / 24813 bytes both sides. No rename.
+    Two import names transposed in a sentence Go itself reorders.
+
+THE VERDICT
+    19 files · CODE 5 · IDENTICAL 10 · PROSE 4
+    ⚠ target internal/api/middleware_test.go IDENTICAL — a NULL EDIT
+    COLLATERAL: 5 of 5 — main.go · models.go · service.go · memory.go · store.go
+
+    THE STUB REGRESSION, REPRODUCED FROM THE AS-DRAWN SNAPSHOTS:
+        control   memory.go 2282 chars, 7 funcs      store.go  382 chars
+        arm       memory.go   14 chars               store.go 2219 chars, 7 funcs
+        arm memory.go content, in full: 'package store\n'
+
+    All seven MemStore methods — Balances, CreateAccount, CreateTransaction, GetAccount,
+    ListAccounts, ListTransactions, NewMemStore — moved out of memory.go into store.go, leaving
+    memory.go as fourteen bytes.
+
+    AND EVERY JSON TAG GONE FROM models.go:  arm 0 tags · control 7.
+
+⚠️ THIS IS THE 29 JULY DEFECT, EXACTLY
+That finding read: "Three v5 trees — ledger, taskapipro and workapi — have internal/store/memory.go
+at FOURTEEN BYTES, `package store` and a newline, while the spec entry for that file describes a
+goroutine-safe in-memory Store implementation... The implementation was written into store.go
+instead." Fourteen bytes, same file, same relocation target.
+
+    It has now been produced ON DEMAND by transposing two import names in an unrelated test file's
+    entry. And at 11:00 today I recorded that the stub "did NOT reproduce on process 42826" and
+    noted it would need a RATE rather than one clean draw. It has now reproduced on 42826 — same
+    process, same day, same control — which is the rate arriving faster than expected and in the
+    direction that says the defect is a REROLL, not a property of a server or a day.
+
+    ⚠️ OPEN QUESTION #3 ("stub: server or day?") IS ANSWERED BY BEING DISSOLVED. Neither. The same
+    process produces stub and non-stub trees depending on an edit that cannot possibly be about
+    file layout. The question presupposed a stable cause; there is none to find.
+
+⚠️ AND THE JSON TAGS ARE A REAL FUNCTIONAL BREAK, NOT A COSMETIC ONE
+The spec never mentions tags — checked — so neither draw violates it. But the spec's own examples
+POST `{"id":"cash","name":"Cash"}` and `{"account_id":"cash","amount":500}`. Go's encoding/json
+accepts a case-insensitive match, so `id` still reaches `ID` untagged. `account_id` does NOT reach
+`AccountID`: the underscore defeats case-insensitive matching, so that field silently stays empty.
+Untagged, every posting in a transaction loses its account.
+
+    A two-word transposition in a test file's import sentence broke the wire format of the API.
+
+⚠️ FUNCTION-LEVEL COLLATERAL SAYS 2 AND THAT IS BADLY WRONG HERE
+    FUNCTION-LEVEL COLLATERAL: 2 — ['NewLedger', 'main']
+Seven functions relocated between files, one file reduced to a stub, seven struct tags removed —
+and the headline says 2. Because relocations register as "only_a"/"only_b" rather than "changed",
+and struct tags live outside functions. The FILE-level line (5 of 5) is the honest one.
+
+    Third time today this blind spot has mattered, and by far the worst instance. The 16:15
+    CATEGORY line does not help here — it only prints for rename arms. Recorded, not patched: the
+    baseline for a file-level category does not exist yet, and today's lesson is that changing an
+    instrument before taking the baseline is how the last conflation happened.
+
+WHAT IT SAYS ABOUT ARM 3 — and I am overriding my own pre-commitment, with the reason
+I pre-committed: "any collateral -> the comparison to arm 3 is no longer clean; report it, do not
+fold it into either reading." That was written expecting collateral to mean "this edit was stronger,
+so a quiet target proves nothing".
+
+    The DIRECTION defeats that. Arm 4's edit rewrote five files, stubbed one, and stripped every
+    tag — and left middleware_test.go's body BYTE-IDENTICAL. Arm 3's rename changed that same body
+    while touching nothing else. A far stronger perturbation that does not move the body is
+    stronger evidence, not weaker, that the RENAME moved it.
+
+        reading (a) THE RENAME CAUSED ARM 3's LOCAL CHANGE — supported.
+        reading (b) that file's body rerolls under any perturbation — contradicted: here is a
+                    perturbation five files wide that did not reroll it.
+
+    ⚠️ I am reasoning past a pre-commitment and saying so rather than quietly reinterpreting. The
+    pre-commitment was imprecise: it treated "collateral" as a scalar strength when what matters is
+    WHERE the collateral landed. Stated so the override is auditable, and it is the second
+    pre-registration this week whose branches were wrong rather than its number.
+
+THE PREDICTION LEDGER — fifteen attempts, four hits, one unscorable
+    15  T-CHANGED 45%  WRONG. And I wrote at the time that 45% was "a coin flip with a reason to
+        lean neither way" — which was honest about the confidence and still wrong about the
+        outcome. No lesson beyond the one already recorded: mechanism intuition here is 0 for 6.
