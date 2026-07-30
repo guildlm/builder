@@ -1,0 +1,42 @@
+PREREG — taskapipro: test the spec I changed WITHOUT evidence
+============================================================
+Written 00:20 on 31 July, before the draw.
+
+WHY THIS ONE
+At 22:40 I promoted the order fix to all three specs. Two were evidenced — ledger (3 pairs) and
+workapi (1 pair). taskapipro was changed on an INFERENCE: it shares the entry order and the defect
+(35%), so the fix should transfer. I recorded that distinction at the time rather than letting the
+promotion imply three measurements. This arm closes it.
+
+    ⚠️ AND IT IS THE LEAST FAVOURABLE SPEC TO TEST ON, which is exactly why it should not be skipped.
+    At a 35% stub rate the gate will discard roughly TWO PROCESSES IN THREE before an informative
+    pair appears, and a single non-stubbing B is only ~1.5:1 on its own. The 18:30 asymmetry rule
+    says test where the baseline is extreme; taskapipro is the opposite. The justification is not
+    power, it is that I changed this spec on no evidence and should either get some or say so.
+
+THE PAIR — using the control I deliberately preserved
+    A = specs/taskapipro-origorder.yaml   store.go 6th, memory.go 7th   (the original order)
+    B = specs/taskapipro.yaml             memory.go 6th, store.go 7th   (as promoted at 22:40)
+    Identical character multiset, 41787 chars both sides. Both drawn on one fresh process, back to
+    back, with the same gate: refuse to draw B unless A actually stubs.
+
+    That the -origorder twin exists at all is the point of preserving it — editing the specs in
+    place would have destroyed the instrument needed to check the edit.
+
+PREDICTION — given A stubs, B is FULL: 85%
+    Same number as workapi, and for the same reason: the prohibition "B cannot stub" has now
+    survived FOUR exposures across two specs. Not raised above 85 because taskapipro is untested
+    and a third spec could behave differently — that is the entire premise of running it.
+
+BRANCHES
+    A STUBS · B FULL   the fix transfers to a third spec. The 22:40 promotion is fully evidenced and
+                       the inference is retired.
+    A STUBS · B STUBS  the prohibition breaks on its fifth exposure. The promotion to taskapipro was
+                       WRONG and should be reverted to -origorder. Most informative outcome here.
+    A FULL             uninformative, discard, retry on a new process (~2 in 3 expected at 35%).
+    UNMEASURED         no snapshot. Redraw.
+
+⚠️ STOPPING RULE, pre-committed: at a 35% base rate this may cost several discarded processes. If
+three consecutive attempts discard, stop and record that taskapipro's fix remains inferred rather
+than burn the night on the least informative spec of the three. The 20:20 rule said the same thing
+about ledger pairs and it applies harder here.
