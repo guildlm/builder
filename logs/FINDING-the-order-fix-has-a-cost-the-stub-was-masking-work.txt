@@ -46,3 +46,36 @@ RECOMMENDATION UNCHANGED, CAVEAT ATTACHED
 Keep the reorder. Record that convergence may drop, that the drop is the spec's real difficulty
 surfacing rather than new breakage, and that fix-round budgets may need raising for these specs —
 5 budgeted was enough when a third of the work was being skipped.
+
+MEASURED, 23:35 — "green while shipping a stub" is REAL, at n=5 with direct logs
+The 23:20 note said the corpus implication was stated but unmeasured. Measured now, two ways.
+
+    CORPUS PROXY — inconclusive, and the proxy is the reason
+    Using the '_fail-' filename prefix as a stand-in for a failed draw:
+        among _fail- trees   13 of 21 stubbed (62%)
+        among the others     48 of 97 stubbed (49%)
+    So stubbing is somewhat commoner among recorded failures, and roughly HALF of everything not
+    named _fail- is stubbed. ⚠️ But '_fail-' is a naming convention from particular experiments, not
+    a systematic green/not-green record. This denominator is "trees nobody labelled a failure", not
+    "green trees". It is consistent with the implication and does not establish it.
+
+    DIRECT — today's stubbed draws, from their own logs
+        ledger-pairA-p6   memory.go 14   converged to GREEN after fix round 3
+        ledger-pairA-p7   memory.go 14   converged to GREEN after fix round 2
+        ledger-pairA-p8   memory.go 14   converged to GREEN after fix round 3
+        ledger-prose2     memory.go 14   exhausted 6 fix rounds
+        workapi-pairA-w1  memory.go 14   exhausted 7 fix rounds
+
+    THREE OF FIVE STUBBED DRAWS WENT GREEN. Each is a project that reported success while shipping
+    fourteen bytes where the spec describes a full store — and each did it in two or three fix
+    rounds, i.e. easily.
+
+    That settles the direction the proxy could not: a stub does not merely SURVIVE the pipeline, it
+    passes it comfortably, which is what "compiles, vets and tests clean" predicted and nobody had
+    checked against a green count.
+
+⚠️ WHAT IS STILL NOT MEASURED: the fraction of the 107-tree CORPUS that is green-and-stubbed. Old
+trees carry no logs, and re-running builds to find out is real CPU against a claim that is already
+directionally settled at n=5. Recorded as the boundary of the claim, not as a gap to be quietly
+ignored: today's draws show green-and-stubbed happens and happens easily; the month-long rate is
+unquantified.
