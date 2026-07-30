@@ -1,0 +1,48 @@
+FINDING — the order fix has a COST, and it is the stub's own doing
+=================================================================
+30 July, 23:20. Found by checking, immediately after promoting the fix, whether the fix has a price.
+It does.
+
+THE NUMBERS
+    ledger p6   A green (fix round 3)   ·  B green (fix round 2)
+    ledger p7   A green (fix round 2)   ·  B EXHAUSTED 6 rounds, still failing
+    ledger p8   A green (fix round 3)   ·  B EXHAUSTED 6 rounds, still failing
+    workapi w1  A EXHAUSTED 7 rounds    ·  B running
+
+    ledger: A (original order, WITH the stub) converged 3 of 3. B (swapped, correct placement)
+    converged 1 of 3.
+
+WHY THIS IS NOT A REASON TO REVERT — and why it is still a real cost
+The 29 July finding said it in one line: "a stub compiles, vets and tests clean." That is exactly
+why A converges easily. With memory.go at fourteen bytes there is no second implementation to
+reconcile — store.go holds everything, nothing contradicts it, and the fix loop has almost nothing
+to repair. The tree is green because half the work was never done.
+
+    THE FIX DOES NOT CREATE THE DIFFICULTY. IT REVEALS IT. B has real code in two files that must
+    agree, which is the project the spec actually describes, and reconciling them is work the
+    stubbed tree simply skipped.
+
+    So the trade is:
+        BEFORE  green, and silently shipping an empty implementation
+        AFTER   correctly placed, and sometimes honestly failing to converge
+
+    That is the better trade — a visible failure beats a silent one — but it IS a trade, and a
+    promotion that did not carry it would have been a half-truth.
+
+⚠️ n = 3 ledger pairs. 3-of-3 versus 1-of-3 is suggestive, not established, and the direction could
+soften with more pairs. It is recorded now because it was found now, and because the alternative is
+discovering it later as a regression in convergence rate that nobody attributed to this change.
+
+⚠️ AND IT REFRAMES THE 58% CORPUS RATE. Those trees were largely GREEN. Every green stubbed tree in
+the corpus is a project that reported success while shipping a fourteen-byte file where the spec
+describes an eight-method store. The convergence statistics of this pipeline, over the whole month,
+are inflated by exactly the defect the fix removes.
+
+    That is a bigger claim than the fix itself and it is stated as an implication, not a measurement:
+    I have not gone back and scored what fraction of green corpus trees carry a stub. That is a free
+    analysis and it is the obvious next one.
+
+RECOMMENDATION UNCHANGED, CAVEAT ATTACHED
+Keep the reorder. Record that convergence may drop, that the drop is the spec's real difficulty
+surfacing rather than new breakage, and that fix-round budgets may need raising for these specs —
+5 budgeted was enough when a third of the work was being skipped.
