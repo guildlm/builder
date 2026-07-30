@@ -77,3 +77,32 @@ session twice, in two unrelated ways.
     WHAT IT CHANGES PRACTICALLY: the slowdown is recoverable rather than physical. Closing Godot
     and colima would restore most of the throughput. That is the user's call, and it must NOT be
     done mid-arm anyway — the control is already drawn on 42826 and the arm must share it.
+
+12:42 · INTERIM (5 of 19 files) — outcome (b) is live, and the collateral is a BUG FIX.
+The ledger prose arm's target file internal/money/money.go is byte-identical to the control's.
+internal/models/models.go, which the edit does not mention, differs in CODE:
+
+    control   ErrInsufficient      = errors.New("insufficient funds")
+    arm       ErrInsufficientFunds = errors.New("insufficient funds")
+
+The control reproduced ledger's long-standing defect — the spec asks for ErrInsufficientFunds, the
+draw writes the shortened ErrInsufficient, response.go uses the full name, and the tree does not
+compile. The campaign recorded that defect as surviving SIX fix rounds unrepaired, with the model
+taking models.go three times without correcting the name.
+
+The arm wrote the spec-correct name. The only input difference is two words transposed in a
+DIFFERENT file's import sentence: "import exactly strconv, strings" -> "strings, strconv".
+
+    ⚠️ INTERIM — 5 of 19 files. 14 remain, the arm may yet be NOT-GREEN for other reasons, and the
+    final grade runs from .pre-fix.json. Recorded now because it is the pre-registered outcome (b)
+    at 25%, which was the branch I called unlikely, and because it would be easy to lose.
+
+    WHAT IT SHOWS IF IT HOLDS: the edit changed nothing where it was aimed and repaired a defect
+    three files away that six deliberate fix rounds could not. That is the strongest single
+    demonstration in this whole record that the draw is not a function of the spec in any local
+    sense — and it cuts against the campaign's own framing, where that defect was written up as a
+    capability limit ("the longest name got shortened and stayed shortened").
+
+    ⚠️ AND IT IS NOT A FIX ANYONE CAN USE. Nothing about transposing an import list makes sentinel
+    names correct; this is a reroll that happened to land better, exactly like the 6-up/2-down
+    redraw drift measured on 29 July. The useful reading is about FRAGILITY, not about a technique.
