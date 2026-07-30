@@ -1,0 +1,87 @@
+RESULT — warmth is inert, and the cross-process difference is EXACTLY REPRODUCIBLE
+=================================================================================
+Draw landed 10:06 on 30 July, 1194s, rc=0. Pre-registrations, both written before it was graded:
+    logs/PREREG-cross-server-control-replication.txt   (the arm, and the 09:37 follow-up branch)
+    logs/PREREG-warmth-versus-process-identity.txt     (the three-way fork, at 14 of 16 files)
+
+    ✓ PREDICTED: B == C, 60%. HIT.
+
+THE THREE DRAWS
+    A = taskflow-chain6    4439, up 10.5h, warm cache        29 Jul 20:02
+    B = taskflow-xserver   2212, up 2 min, cache empty       30 Jul 09:31   COLD
+    C = taskflow-xserver2  2212, up 17 min, one draw served  30 Jul 09:46   WARMED
+    Same spec, unmodified at HEAD, all three. Not one byte of input differs anywhere.
+
+THE VERDICT
+    B vs C   16 common files · IDENTICAL 16 · "Byte-identical as drawn."
+    A vs C   16 common files · CODE 4 · IDENTICAL 9 · PROSE 3 · 3 functions
+             NewRouter · TestChainAppliesEveryMiddlewareOutermostFirst · TestWireFieldNames
+
+    A vs C is the SAME FOUR FILES, the SAME THREE FUNCTIONS, and the SAME CHARACTER COUNTS as
+    A vs B (799 vs 798, 855 vs 859, 8594 vs 8506, 878 vs 856, 5326 vs 5292). Not "a similar
+    amount of difference" — the identical difference, because B and C are the same bytes.
+
+    ✅ CONSISTENCY CHECK PASSED. Pre-committed: "if B == C then A vs C must equal 4 by
+    construction; any other result means the instrument is not measuring what it claims and BOTH
+    grades get thrown out." It is 4. The instrument is measuring what it claims.
+
+1. WARMTH IS INERT — and the manipulation was real, not nominal
+The two processes states were measured BEFORE the grade, from the server's own prefill logs:
+    B (cold)    15 prefill runs   mean 286.1 tok/s   max 426.7
+    C (warmed)  14 prefill runs   mean 216.6 tok/s   max 281.5   ← 24% slower, best run -34%
+And the whole draw took 1194s against 871s, 37% longer, consistent with that.
+
+    A process whose throughput moved 24% produced byte-identical output. Cache state, memory
+    pressure and uptime are not what makes two draws differ. That is a far stronger statement
+    than "two draws minutes apart agreed", and it was pre-committed as such.
+
+2. WITHIN-PROCESS DETERMINISM NOW HAS TWO INDEPENDENT MEASUREMENTS, ON TWO PROCESSES
+    4439, warm -> warm, 2h15m apart, many draws between   0 differences   (subst / name4)
+    2212, cold -> warmed, 24% throughput delta            0 differences   (xserver / xserver2)
+    n is no longer 1, and the second pair spans a condition change the first did not.
+
+3. THE CROSS-PROCESS DIFFERENCE IS NOT NOISE — IT IS A STABLE PROPERTY OF THE PAIR
+This is the part that was not predictable this morning. Two draws on 2212, in different process
+states, both differ from chain6 in exactly the same way. So 4439 and 2212 are each internally
+deterministic and they deterministically write DIFFERENT PROGRAMS from identical input.
+
+    ⚠️ WHAT STILL CANNOT BE SEPARATED. 4439 and 2212 differ by process identity AND by a machine
+    reboot AND by a day. Nothing here isolates which. "The process" remains a bundle; what has
+    been removed from the bundle is warmth, cache state and uptime, which is real progress and
+    is not the same as naming the cause.
+
+    A HYPOTHESIS, FLAGGED AS ONE. Deterministic within a process, different across processes, and
+    stable in the difference is the signature of something chosen ONCE at process start and then
+    reused — a Metal kernel or shader variant selected by autotuning at load time, for instance.
+    ⚠️ Three mechanism stories died in ninety minutes last night for fitting every arm that
+    existed when they were written. This one fits four draws. It is a candidate to TEST, and the
+    next arm tests it, not a finding.
+
+THE PREDICTION LEDGER — eight attempts, two hits
+    23:38  "LENGTH is the variable"                     falsified
+    00:03  "COPIED verbatim vs INTERPRETED"             falsified
+    00:46  "the CATEGORY is real, p=0.036"              falsified
+    01:22  A 45 / B 55, shaded against the base rate    HIT
+    01:37  "collateral appears, 70%"                    wrong
+    02:01  "collateral appears, 65%" (base rate)        wrong
+    09:3x  "65% byte-identical across a restart"        wrong
+    10:0x  "B == C, 60%"                                HIT
+
+⚠️ AND THE HIT SHOWS THE SHADING WAS WRONG THIS TIME — the opposite of what I pre-committed
+I wrote: "if B == C lands, that is NOT a vindication of the reasoning. It is one hit for a shaded
+prediction, and the shading is the part to keep." That was wrong, and the record should say so.
+
+    The physics argued 85% identical. The truth was identical. I shaded it to 60% to correct for
+    a stability bias — and the shading moved the number AWAY from the right answer. It scores as
+    a hit only because the branch was called correctly; as CALIBRATION it was worse than the
+    unshaded reasoning would have been.
+
+    THE LESSON IS NARROWER THAN "CORRECT FOR YOUR BIAS". The stability bias is real and measured:
+    four of five misses predicted spec edits would be safe. But it was measured on SPEC EDITS, and
+    I applied it to a question about the APPARATUS. A bias with a known sign in one domain is not
+    a bias in another, and carrying it across cost calibration here.
+
+    That is the same shape as 02:01's finding about base rates — "a base rate taken over a
+    heterogeneous pool is not a base rate for any arm in it" — arriving now for bias corrections
+    instead of base rates. Both are cases of importing a summary statistic into a question it was
+    not measured on.
