@@ -1,0 +1,47 @@
+NOTE — five claims today: mechanism right, scope too wide. The corrections all came from counting.
+===================================================================================================
+31 July. A methodological note, written because the same shape recurred five times in one session and
+the recurrence is more useful than any individual correction.
+
+THE FIVE
+    1. "workapi2 is the one GENUINE refusal in the run"
+       Retracted: its store.go already held a bare `import "models"`; the move relocated an existing
+       error. Zero genuine refusals in the corpus. What I had: a refusal message naming an import.
+       What I did not do: open the donor file. One command.
+
+    2. "the model DID write MemStore and its methods into memory.go; the stripper deleted them"
+       Weakened: a 14-byte result proves only that every declaration in the candidate was one the
+       sibling already had. A duplicate interface strips to 14 bytes too. Nothing in the record
+       separates the two.
+
+    3. "so the corpus numbers are a FLOOR again"
+       Corrected 4 minutes later: 9 of 654 builds carry app-log lines, and v3 refused nothing at all,
+       so no number was reduced. 57 of 57 stands as measured.
+
+    4. "the failure mode is a switch between two whole shapes"
+       Narrowed: true on ledger (1 symbol vs 9–11), false on workapi, whose clean files run to 9
+       declarations and consolidated ones start at 7. The phenomenon generalised; my METRIC did not.
+
+    5. "the whole pipeline is a deterministic function of (spec, flags, server process)"
+       Corrected: the two arms diverge at the first fix round. The controls converged via
+       deterministic gates alone, so they were structurally incapable of testing the part that varies.
+
+THE COMMON SIGNATURE
+    Every one stated a real mechanism and attached a scope the evidence could not carry. None of the
+    mechanisms was wrong. In four of five, the evidence I had was drawn from cases that CANNOT
+    exhibit the counterexample — green-only trees, ledger-only trees, controls that stopped before the
+    model-driven loop.
+
+    And the correction was the same move each time: COUNT THE POPULATION THE CLAIM RANGES OVER. Not
+    re-examine the mechanism, not think harder — run one query over the archive or open one file.
+    Each correction cost under two minutes; each claim would have been quoted.
+
+WHAT TO DO WITH THIS, concretely
+    Before writing a sentence with "so", "again", "always", "the whole", or "the failure mode is":
+    name the population it ranges over and count it. If the evidence comes from one spec, say the
+    spec. If it comes from cases that converged, say so — the cases that did not converge are exactly
+    the ones that could refute it.
+
+    ⚠️ This is not a resolution to be more careful. Four of today's five corrections were made BY me,
+    within minutes, and the fifth within an hour — the discipline is already running. What is missing
+    is doing the count BEFORE the sentence rather than after, and the count is the cheap part.
