@@ -77,3 +77,54 @@ RE-MEASURED — the EMPTY-planned-file defect per build
     What it does suggest, and only suggest, is that the blind spot FIX 1 opened is NOT small. The
     honest statement is that the failing-build rate is UNMEASURED, and that the first four
     observations of it are not reassuring.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+MECHANISED — four invariants, because four of today's six instrument bugs were caught by luck
+════════════════════════════════════════════════════════════════════════════════════════════
+        green detector matched "never went green"     a 0 that happened to be surprising
+        a log file is not a build                     a contradiction I happened to read
+        start-based segmenter missed 160 builds       two instruments happening to disagree
+        a failing build's tail cut off                a build I happened to remember reading
+
+    Every one was noticed because a number looked odd to someone who had just read the underlying
+    log. That does not scale past the logs I remember, and it fails silently the moment a wrong
+    number looks plausible.
+
+_logseg_audit.py checks properties the segmentation must have for ANY log, without knowing the
+right answer:
+
+    PARTITION     segments must reconstruct the original text exactly
+    ORPHAN TAIL   a segment with builder output, no outcome and no build activity is a
+                  detached tail — this is today's bug, made mechanical
+    COUNT         segments-carrying-an-outcome must equal build_count() — the 654-vs-853
+                  cross-check, made mechanical
+    EXCLUSIVITY   no segment may both converge and exhaust, or carry two success markers
+
+RESULT: 781 logs audited, 0 violations.
+
+⚠️ AND THE 0 WAS ITSELF CHECKED, because "no violations" is the answer a broken checker gives too.
+Substituting the OLD tail-dropping segmenter and re-running the audit over the same archive flags
+4 logs. So the audit can fire on real data, and its silence means something.
+
+TWO FALSE-POSITIVE CLASSES FOUND BY ACTUALLY RUNNING IT — both real, neither a segmenter bug
+    1. TOOL LOGS. The first run flagged 10 files, every one build_count=0: _repair_survival.py and
+       the sweep drivers call builder functions, so they emit "[guildlm-build] ..." lines while
+       containing no build. A tail cannot be orphaned from a build that does not exist. ORPHAN TAIL
+       now applies only to logs containing a build — safe, because a segmenter that lost EVERY
+       outcome is caught by COUNT instead.
+
+    2. TRUNCATED BUILDS. def-cov.log holds a build whose captured output runs from (3/17) to
+       (13/17) and stops — it never prints (1/N) and never reaches a fix round, so a (1/N)-only
+       activity pattern called it a detached tail. It is a real build, just an incomplete one. Any
+       generate line counts as activity now; a genuine detached tail is repair and warning lines
+       and contains none.
+
+⚠️ AND ONE SELF-TEST CASE I WROTE WAS WRONG IN THE INSTRUCTIVE DIRECTION. I asserted that
+`green + tail` must fire ORPHAN TAIL — but with the FIXED segmenter the tail attaches, so nothing
+fires and nothing should. The assertion assumed the buggy implementation while calling the fixed
+one. Detection is tested by SUBSTITUTING the broken segmenter, which is the only way to test a
+checker without reintroducing the bug.
+
+⚠️ WHAT THIS STILL DOES NOT COVER. Four invariants are four invariants. Today's tail bug passed
+PARTITION and COUNT while being wrong — ORPHAN TAIL catches it, and it was written AFTER the bug,
+not before. Nothing here would have predicted it.
