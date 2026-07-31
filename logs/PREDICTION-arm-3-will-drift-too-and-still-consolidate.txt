@@ -65,3 +65,37 @@ AMENDED 15:52, arm-3 at 3 of 19 — SPECIFYING AS-DRAWN vs SHIPPED, which the or
 outcome, so what is added here is a DISTINCTION the original lacked, with numbers set before any
 arm-3 file has been compared to anything. Nothing about arm-3 has been measured yet — the log shows
 3 of 19 generated and no comparison has been run.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+RESOLVED AS-DRAWN, 15:58, arm-3 at 7 of 19 files
+════════════════════════════════════════════════════════════════════════════════════════════
+    models.go        IDENTICAL          money.go       IDENTICAL
+    models_test.go   ✗ DIFFERS          money_test.go  IDENTICAL
+    store.go         ✗ DIFFERS  e926b654 -> 7f2e9f83   2295B -> 2263B
+    memory.go        IDENTICAL (the 14-byte stub, same as arm-1)
+
+    ✓ 1a HELD (70%)   arm-3 as-drawn differs from arm-1/arm-2 as-drawn.
+
+    ✓ 2 HELD (55%)    THE MECHANISM TEST. The first differing file is internal/models/models_test.go
+                      — index 5 — EXACTLY where ctl-3's drift started, in the other condition.
+
+                      Two draws, two conditions, same onset point. That is what "drift onset is a
+                      property of the PROCESS STATE at draw time, not of the condition" predicts, and
+                      it was the reading I said would be weakened if onset moved around. It did not
+                      move.
+
+    ✓ 3 HELD as-drawn (85%)  arm-3's store.go declares MemStore (2263B) and memory.go is the 14-byte
+                      stub. CONSOLIDATED, like arm-1 and arm-2. The parity effect survives the drift
+                      in the arm condition too.
+
+    — 1b UNRESOLVED   shipped comparison needs the fix loop to finish. This is the one that tests
+                      whether the gates erase drift only on builds that CONVERGE.
+
+AND THE DRIFT IS THE SAME DRIFT, ACROSS CONDITIONS
+    arm-3's store.go references models.Money — the identical wrong qualification ctl-3 produced.
+    Same onset file, same downstream symptom, in a draw whose prompt for store.go differs from
+    ctl-3's by the 543-character parity clause.
+
+    So whatever changed inside pid 7598 produces a SPECIFIC, REPEATABLE deviation rather than random
+    variation: models_test.go first, then models.Money in the store layer. Two conditions, one
+    signature.
