@@ -34,3 +34,34 @@ PREDICTIONS
     about whether the thing this whole experiment measured is real. A drifted arm that SPLITS would
     mean the parity effect and the drift are entangled, and the six draws of today's A/B would need
     re-reading rather than extending.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+AMENDED 15:52, arm-3 at 3 of 19 — SPECIFYING AS-DRAWN vs SHIPPED, which the original did not
+════════════════════════════════════════════════════════════════════════════════════════════
+    The ctl-3 episode just showed why this matters: I predicted "byte-identical", measured a
+    half-generated tree, declared refutation, and the SHIPPED artifact turned out identical after the
+    deterministic gates repaired the drift. The prediction was right and my scoring was wrong,
+    because "byte-identical" never said WHEN.
+
+    So, stated before arm-3 finishes:
+
+    1a. arm-3 AS-DRAWN (.pre-fix.json) differs from arm-1/arm-2 as-drawn.               70%
+        Down from 75: still likely, but ctl-3 is one observation of drift and arm-1/arm-2 already
+        reproduced across a 96-minute gap.
+
+    1b. arm-3 SHIPPED is byte-identical to arm-1/arm-2 shipped.                          55%
+        NEW, and the one the original conflated. ctl-3 shipped identical because the requalify gate
+        erased its drift. But the arms do NOT converge — both exhausted 8 fix rounds and shipped red
+        — so nothing normalises them, and whatever drift appears may survive to the artifact.
+        55% because I now have exactly one measurement of the gates erasing drift, on a build that
+        went green, and the arms do not.
+
+    2.  IF as-drawn differs, the first differing file is at or near index 5.             55%  unchanged
+
+    3.  arm-3 grades CONSOLIDATED, as-drawn AND shipped.                                 85%  unchanged
+        The verdict was stable across ctl-3's drift and repair, in both states.
+
+⚠️ THE HONEST NOTE: amendments made mid-flight are exactly how a prediction gets fitted to its
+outcome, so what is added here is a DISTINCTION the original lacked, with numbers set before any
+arm-3 file has been compared to anything. Nothing about arm-3 has been measured yet — the log shows
+3 of 19 generated and no comparison has been run.
