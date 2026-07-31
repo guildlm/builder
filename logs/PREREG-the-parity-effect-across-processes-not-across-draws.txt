@@ -126,3 +126,26 @@ WHAT THE CORRECTED RUN WILL COST, from today's actual durations
     stop them at round 3 or 4 rather than granting all three extension rounds. That is ~20 minutes
     per arm, ~60 minutes off the corrected run — the first concrete reason to keep the queue in its
     current order beyond correctness.
+
+THE FREEZE GUARD, SPECIFIED BY MEASUREMENT RATHER THAN BY NAME
+    Queue item 1 was written as "add a git HEAD guard". Tested whether HEAD is the right thing to
+    check by appending a comment to src/builder.py mid-check:
+
+        HEAD              247e980  ->  247e980      UNCHANGED
+        builder.py sha    53dde9f  ->  1ce2998      CHANGED
+        git status src/   ''       ->  ' M src/builder.py'
+
+    So a HEAD comparison would MISS an uncommitted edit entirely, and today's freeze was exactly the
+    situation where that matters: a one-line logging change, applied and not yet committed, would
+    have slipped past a HEAD guard and landed in draws 4-6 of a six-draw experiment.
+
+    THE GUARD IS THEREFORE: hash `src/builder.py` and the runner itself at start, re-check before
+    every draw, refuse on any difference. Not HEAD — HEAD is a proxy that fails in the direction that
+    costs the experiment.
+
+    ⚠️ `git status --porcelain src/` also catches it and reads more naturally, but it answers "is the
+    tree dirty", not "is it the same as when I started". A file edited and then reverted to a
+    DIFFERENT commit's content would show clean while being wrong. The hash answers the question that
+    is actually being asked.
+
+    Cost: one shasum per draw, against draws that take 19 to 82 minutes.
