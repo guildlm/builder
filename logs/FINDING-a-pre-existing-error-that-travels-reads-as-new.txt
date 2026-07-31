@@ -1,0 +1,49 @@
+FINDING — errors TRAVEL with the declarations, and (file, message) calls them new
+=================================================================================
+31 July. Found because a test fixture failed for a reason I did not expect, then confirmed on the
+corpus case I had already written up as the opposite. Corrects a claim I made twice today.
+
+HOW IT SURFACED
+A new test moved MemStore out of a store.go whose `MemStore.Get` called an undefined helper. The
+gate refused: `moving MemStore into it breaks internal/store/memory.go: undefined: undefinedHelper`.
+The error did not appear — it MOVED. It was in store.go before and is in memory.go after, because
+the code carrying it is the code that moved. Keyed by (file, message), that is a new error.
+
+THE CORPUS CASE I HAD ALREADY CALLED GENUINE
+workapi2 was the ONE refusal in the whole run I reported as real, in
+logs/RESULT-the-non-regressing-gate-recovers-52-of-59.txt and in its commit message:
+"exactly ONE is a genuine refusal of a move that would have broken an import."
+
+    generated/workapi2/internal/store/store.go, line 6:   import "models"
+
+    A bare, unresolvable import path, and the tree ALREADY fails on it before anything moves:
+        internal/store/store.go:6:2: package models is not in std
+
+    goimports carries that import into memory.go along with MemStore, so afterwards the same defect
+    is reported against memory.go. New key, same broken code, no new breakage. THE MOVE DID NOT
+    BREAK AN IMPORT — the import was already broken and simply changed address.
+
+SO THE CORRECTED ACCOUNTING
+    5 refusals in the v1 run:  4 goroutine/pointer noise  +  1 travelled error
+    GENUINE REFUSALS: ZERO. Not one move in the corpus introduced a defect that was not already
+    there. The addressable population is 57 and a key that understood travel would accept 57 of 57.
+
+⚠️ I WROTE "THE ONE TRUE REFUSAL" TWICE — in the result and in the commit — and it was wrong both
+times. What made it look genuine was that its message names an import, and "the move broke an
+import" is a plausible story for a mechanical code move. I did not open the donor. Opening it takes
+one command and shows the import was already bare.
+
+WHAT THE FIX WOULD BE, and it is NOT being made mid-measurement
+    Compare message MULTISETS rather than (file, message) pairs: a defect that relocates keeps its
+    message and its count, while a genuinely new occurrence increases the count. That accepts the
+    travelled error and still refuses a move that produces a second instance of the same message, or
+    any message not present before.
+
+    NOT applied now. A v2 corpus run measuring the CURRENT gate is in flight, and changing the thing
+    being measured while measuring it is how a number stops meaning anything. It gets its own
+    pre-registration after v2 lands.
+
+⚠️ AND NOTE WHAT THIS DOES NOT CHANGE. Every refusal is conservative: the move is put back, the tree
+is left as the model wrote it, nothing is corrupted. The cost of all five was recall, never safety.
+The pre-registered reject condition — no accepted move leaves a new error — was never at risk, which
+is why it stayed clear through two runs while the gate had two separate bugs.

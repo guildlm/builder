@@ -21,6 +21,7 @@ THE SEVEN THAT DID NOT MOVE, each classified from the pass's own log rather than
     REFUSED FALSE  workapi16            internal/store/memory.go  goroutine dump
     REFUSED FALSE  workapi17            internal/store/memory.go  goroutine dump
     REFUSED REAL   workapi2             internal/store/memory.go  "package models is not in std"
+                   ⚠️ RETRACTED — see below. It is not real.
 
     So the honest reading of the seven: 2 were never the gate's decision (movedecls exits non-zero
     and the pass continues silently), 4 are the gate misreading GOROUTINE IDs as new errors — my
@@ -28,7 +29,22 @@ THE SEVEN THAT DID NOT MOVE, each classified from the pass's own log rather than
     genuine refusal of a move that would have broken an import.
 
     ADDRESSABLE POPULATION 57 (59 minus the two non-attempts).
-    ACCEPTED 52. Expected after the goroutine fix: 56, with workapi2 the only true refusal.
+    ACCEPTED 52. Expected after the goroutine fix: 56, with workapi2 the only remaining refusal.
+
+⚠️ CORRECTED LATER THE SAME DAY — WORKAPI2 IS NOT A GENUINE REFUSAL EITHER, SO THERE ARE NONE.
+    Its store.go already contains `import "models"`, a bare unresolvable path, and the tree fails on
+    it BEFORE anything moves. goimports carries that import into memory.go with the declarations, so
+    the identical defect is then reported against a different file — a new (file, message) key, the
+    same broken code, no new breakage. The move did not break an import; the import was already
+    broken and changed address.
+
+    GENUINE REFUSALS IN THE WHOLE RUN: ZERO. 4 were goroutine/pointer noise, 1 was a travelled
+    error. A key that understood travel would accept 57 of 57.
+
+    I called it "the one true refusal" here and in the commit message. What made it look genuine is
+    that its message names an import, and "the move broke an import" is a plausible story about a
+    mechanical code move. I did not open the donor file. Doing so takes one command.
+    See logs/FINDING-a-pre-existing-error-that-travels-reads-as-new.txt.
 
 ⚠️ THE NUMBER THAT HELD IS A FLOOR, AND I ALMOST REPORTED IT AS THE VERDICT
     52 is what the gate does WITH a bug that makes it refuse moves that changed nothing. Every false
