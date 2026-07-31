@@ -647,3 +647,45 @@ def test_go_repeating_one_error_per_package_does_not_read_as_growth():
     text = "a.go:1:1: undefined: X\n" * 5
     before, after = _error_counts(text), _error_counts(text)
     assert not {m for m, n in after.items() if n > before.get(m, 0)}
+
+
+# --------------------------------------------------------------------------- #
+# The safety property the entire gate change rests on.
+#
+# Weakening "must be green afterwards" to "must introduce no new error" is only
+# defensible if a GREEN project still refuses a move that breaks it. On a green
+# tree the baseline is empty, so any message at all is new — that is the argument,
+# and until now it was only an argument. Nothing exercised it.
+#
+# The break is injected through the toolchain rather than through Go, because a
+# same-package move is semantics-preserving by construction and contriving a real
+# Go-level break would test the contrivance instead of the gate.
+# --------------------------------------------------------------------------- #
+
+class _BreaksAfterMove(GoToolchain):
+    """Green until something is moved, then reports an error. Nothing else about
+    the pass changes — movedecls still runs for real."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.calls = 0
+
+    def check(self, out):
+        self.calls += 1
+        if self.calls == 1:
+            return True, ""
+        return False, "store/memory.go:7:6: undefined: Boom\n"
+
+
+def test_a_move_that_breaks_a_green_project_is_still_refused(project):
+    written = {"store/store.go": STORE, "store/memory.go": MEMORY_EMPTY}
+    toolchain = _BreaksAfterMove()
+
+    _fill_empty_planned_files(SPEC, written, project, toolchain)
+
+    assert toolchain.calls >= 2, "the fixture must actually reach the post-move check"
+    # reverted: the file is empty again and the donor keeps its declaration
+    assert empty_go_files(written) == ["store/memory.go"]
+    assert "type MemStore struct" in written["store/store.go"]
+    # and the tree on disk was put back too, not just the dict
+    assert "type MemStore struct" not in (project / "store" / "memory.go").read_text()
