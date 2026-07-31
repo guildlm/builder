@@ -124,8 +124,11 @@ def report(args) -> int:
           f"the two populations are not the same experiment.")
     if args.out:
         pathlib.Path(args.out).write_text(
-            "\n".join(f"{r['outcome']}\t{r['green_before']}\t{r['tree']}\t{r['path']}\t"
-                      f"{','.join(r['take'])}" for r in records) + "\n"
+            # green_AFTER is in the row because the pre-registered reject condition is
+            # "no green tree may go red", and the first run's TSV omitted it — the number
+            # that decides whether the weaker gate is safe was not in the file it wrote.
+            "\n".join(f"{r['outcome']}\t{r['green_before']}\t{r['green_after']}\t"
+                      f"{r['tree']}\t{r['path']}\t{','.join(r['take'])}" for r in records) + "\n"
         )
     return 0
 
