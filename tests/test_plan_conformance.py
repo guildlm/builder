@@ -454,3 +454,57 @@ def test_the_predicate_ignores_no_possible_implementation_prose():
         "the next one sees 429 where it expects 200, and no implementation can make that pass"
     )
     assert _INTERFACE_ONLY_RE.search(INTERFACE_ONLY)
+
+
+# --------------------------------------------------------------------------- #
+# Goroutine dumps are not errors, and their NUMBERS change every run.
+#
+# Measured on the corpus: four of five gate refusals were this and nothing else —
+# a panicking test printed a dump, the goroutine ids differed between the before
+# and after runs, every dump line keyed as a brand-new error, and the gate
+# refused a move that changed nothing. The direction was conservative, so it cost
+# recall rather than safety, but "52 of 59" was partly a measure of which trees
+# have panicking tests.
+# --------------------------------------------------------------------------- #
+
+GORO_BEFORE = """--- FAIL: TestGet (0.00s)
+panic: assignment to entry in nil map [recovered]
+goroutine 22 [running]:
+	testing.tRunner.func1.2({0x104c1a0, 0x1053e70})
+	/opt/homebrew/Cellar/go/1.25.3/libexec/src/testing/testing.go:1734 +0x1bc
+created by testing.(*T).Run in goroutine 20
+"""
+
+GORO_AFTER = GORO_BEFORE.replace("goroutine 22", "goroutine 36").replace(
+    "goroutine 20", "goroutine 34"
+)
+
+
+def test_a_goroutine_dump_with_different_ids_is_not_a_new_error():
+    assert _error_keys(GORO_AFTER) - _error_keys(GORO_BEFORE) == set()
+
+
+def test_the_panic_itself_is_still_an_error():
+    keys = _error_keys(GORO_BEFORE)
+    assert ("", "panic: assignment to entry in nil map [recovered]") in keys
+    assert ("", "--- FAIL: TestGet") in keys
+
+
+def test_a_new_panic_is_still_seen_through_the_dump():
+    after = GORO_AFTER.replace(
+        "panic: assignment to entry in nil map", "panic: index out of range"
+    )
+    assert _error_keys(after) - _error_keys(GORO_BEFORE) == {
+        ("", "panic: index out of range [recovered]")
+    }
+
+
+def test_the_real_refusal_from_the_corpus_still_refuses():
+    # workapi2: the ONE genuine refusal in the whole run — the move left an
+    # import the module cannot resolve. It must survive the noise filter.
+    before = _error_keys("")
+    after = _error_keys(
+        "internal/store/memory.go: package models is not in std "
+        "(/opt/homebrew/Cellar/go/1.25.3/libexec/src/models)\n"
+    )
+    assert len(after - before) == 1

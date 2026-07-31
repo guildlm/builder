@@ -1607,6 +1607,18 @@ _MOVEDECLS = Path(__file__).resolve().parent.parent / "tools" / "movedecls.go"
 
 
 _ERROR_LINE_RE = re.compile(r"^(\S+?\.go):\d+(?::\d+)?:\s*(.*)$")
+# A panicking or timing-out test prints a GOROUTINE DUMP, and its goroutine
+# NUMBERS differ between runs of identical code. Keyed naively, every dump line
+# reads as a brand-new error and the gate refuses a move that changed nothing —
+# measured 31 July: four of five refusals in the corpus run were this and nothing
+# else. Same family as the per-package durations and `(cached)` that
+# `_canonical_toolchain_output` already strips, and for the same reason: a prompt,
+# or a comparison, should be a function of the code.
+# The `panic:` line itself is NOT dropped — that IS the error, and it is stable.
+_GOROUTINE_NOISE_RE = re.compile(
+    r"^goroutine \d+ \[|^created by .* in goroutine \d+|^\s*0x[0-9a-f]+|"
+    r"\+0x[0-9a-f]+$|^\[signal |^\s*\.\.\.additional frames"
+)
 
 
 def _error_keys(output: str) -> set[tuple[str, str]]:
@@ -1621,6 +1633,8 @@ def _error_keys(output: str) -> set[tuple[str, str]]:
     for line in _canonical_toolchain_output(output or "").splitlines():
         line = line.strip()
         if not line or line.startswith("#") or line.startswith("?"):
+            continue
+        if _GOROUTINE_NOISE_RE.search(line):
             continue
         if m := _ERROR_LINE_RE.match(line):
             keys.add((m.group(1), m.group(2).strip()))
