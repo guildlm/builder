@@ -371,3 +371,86 @@ def test_a_failure_without_a_file_line_still_counts():
     before = _error_keys("")
     after = _error_keys("--- FAIL: TestGet\n")
     assert after - before == {("", "--- FAIL: TestGet")}
+
+
+# --------------------------------------------------------------------------- #
+# The parity clause, and the switch that withholds it.
+#
+# The completeness rule tells a file to make every method "EXIST ON BOTH the
+# interface and its implementation" — including a file whose purpose reads "The
+# Store INTERFACE only — no implementation in this file". The switch withholds
+# that one sentence from that one kind of file.
+#
+# These tests exist because the last two rules I added this session each had a
+# silent-no-op failure mode that measured CLEAN: the disclaimer rule matched
+# nothing at all on its first implementation, and a looser interface-only
+# predicate would have fired only on test files, where the rule is never emitted.
+# A switch that drives an experiment and quietly does nothing is worse than no
+# switch, because the experiment still returns a number.
+# --------------------------------------------------------------------------- #
+
+import os  # noqa: E402
+
+from src.builder import _INTERFACE_ONLY_RE, _generate_prompt, plan  # noqa: E402
+
+INTERFACE_ONLY = "package store. The Store INTERFACE only — no implementation in this file."
+IMPL = "package store. `MemStore` — the in-memory implementation of the Store interface."
+
+PARITY_SPEC = Spec(
+    name="parity", description="d", go_module="guildlm.dev/parity",
+    files=(
+        FileSpec(path="store/store.go", purpose=INTERFACE_ONLY),
+        FileSpec(path="store/memory.go", purpose=IMPL),
+    ),
+)
+
+PARITY = "INTERFACE/IMPL PARITY"
+LANE = "STAY IN YOUR LANE"
+EVERY = "IMPLEMENT EVERY"
+
+
+def _prompt_for(path, rules):
+    tasks = plan(PARITY_SPEC)
+    task = [t for t in tasks if t.spec.path == path][0]
+    written = {t.spec.path: "package store\n" for t in tasks if t.index < task.index}
+    old = os.environ.get("GUILDLM_ENABLE_RULES", "")
+    os.environ["GUILDLM_ENABLE_RULES"] = rules
+    try:
+        return _generate_prompt(PARITY_SPEC, task, written)
+    finally:
+        os.environ["GUILDLM_ENABLE_RULES"] = old
+
+
+def test_off_by_default_so_todays_wording_is_the_control_arm():
+    p = _prompt_for("store/store.go", "")
+    assert PARITY in p and LANE in p and EVERY in p
+
+
+def test_the_switch_withholds_the_clause_from_the_interface_only_file():
+    p = _prompt_for("store/store.go", "interface_only_scope")
+    assert PARITY not in p
+    # and takes nothing else with it — the arm must differ by ONE sentence
+    assert LANE in p and EVERY in p
+
+
+def test_the_implementer_keeps_the_clause_under_the_same_flag():
+    p = _prompt_for("store/memory.go", "interface_only_scope")
+    assert PARITY in p, "only the file forbidden to implement may lose it"
+
+
+def test_an_unrelated_rule_name_does_not_trip_the_switch():
+    assert PARITY in _prompt_for("store/store.go", "completeness,mutex_intra")
+
+
+def test_the_predicate_ignores_no_possible_implementation_prose():
+    # ratelimit and taskapipro TEST purposes say "no implementation can make that
+    # pass" — no POSSIBLE implementation, not "none in this file". A loose
+    # predicate matches them, and because the rule is never emitted for test
+    # files it would have measured perfectly clean.
+    assert not _INTERFACE_ONLY_RE.search(
+        "the two expectations contradict each other and no implementation can satisfy both"
+    )
+    assert not _INTERFACE_ONLY_RE.search(
+        "the next one sees 429 where it expects 200, and no implementation can make that pass"
+    )
+    assert _INTERFACE_ONLY_RE.search(INTERFACE_ONLY)
