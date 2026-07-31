@@ -130,3 +130,47 @@ TWO HYPOTHESES OFFERED, TWO KILLED, IN ABOUT SIX MINUTES EACH
     Both were the first thing I reached for, both were cheap to check, and neither survived. The
     mechanism is unknown and the honest position is that it stays unknown until something measures
     the server's internal state rather than its log summary.
+
+THE DRIFT IS INTERMITTENT, AND THE RECOVERY EXPLAINS THE SHAPE
+     1 go.mod                          IDENTICAL
+     2 money.go                        IDENTICAL
+     3 money_test.go                   IDENTICAL
+     4 models.go                       IDENTICAL
+     5 models_test.go                  differs   <- ROOT EVENT
+     6 store.go                        differs
+     7 memory.go                       differs
+     8 memory_test.go                  differs
+     9 service.go                      differs
+    10 service_test.go                 differs
+    11 api/response.go                 IDENTICAL  <- RECOVERS
+
+    A permanent state change — cache eviction, memory pressure, a reloaded sampler — predicts
+    divergence that PERSISTS. It does not persist. File 11 is byte-identical again.
+
+AND THE RECOVERY IS NOT BECAUSE THE PROMPT WAS THE SAME. IT WASN'T.
+    Rendering response.go's generation prompt from each tree's own predecessors:
+
+        ctl-1  27738 chars     ctl-3  27741 chars     27 diff lines
+        -    Balances() map[string]money.Money
+        +    Balances() map[string]models.Money
+
+    Different prompt, identical output. response.go is a JSON-response helper whose content does not
+    depend on the Balances signature, so the part of the prompt that differed is a part it does not
+    use.
+
+SO THE MODEL THAT FITS IS PROPAGATION FROM ONE ROOT EVENT, NOT REPEATED NONDETERMINISM
+    File 5 diverged. Files 6-10 embed their predecessors in their prompts, so they inherit the
+    difference. File 11 embeds it too and is insensitive to it, so it comes out identical.
+
+    That is ONE nondeterministic event followed by deterministic propagation — a much smaller claim
+    than "the process became nondeterministic", and it is what the recovery is evidence for.
+
+    ⚠️ NOT PROVEN. Separating "one root event plus propagation" from "repeated drift that happened to
+    miss file 11" needs a re-run with the predecessors pinned, which is not possible without
+    instrumenting generation. Recorded as the model the evidence FITS, not as the mechanism.
+
+⚠️ AND THE TWO TREES ARE MATERIALLY DIFFERENT PROGRAMS, not cosmetically
+    ctl-1's Store interface returns map[string]money.Money; ctl-3's returns map[string]models.Money.
+    That is a different API against a different package. Both grade SPLIT, and the parity verdict is
+    unaffected — but "the controls differ" understates it: they disagree about which package owns the
+    Money type.
