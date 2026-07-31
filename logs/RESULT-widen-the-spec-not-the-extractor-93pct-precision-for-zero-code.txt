@@ -72,3 +72,44 @@ WHAT THIS DOES NOT ESTABLISH
     ⚠️ NOTHING APPLIED. specs/ledger-origorder.yaml is hashed and locked by the freeze guard for the
     running experiment. specs/ledger.yaml is not locked, but editing a spec mid-experiment is the
     same class of mistake, and this is a simulation result that has not yet earned a draw.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+REFINED — the phrasing to use is `var ErrX`, and it is ALREADY PROVEN IN THIS REPO
+════════════════════════════════════════════════════════════════════════════════════════════
+The recommendation above was "backtick at the declaration site". Then I asked which purposes make
+_required_decls fire at all, since the gate has fired 31 times ever and on exactly two symbols.
+
+    taskapipro / taskapi / workapi, internal/store/store.go:
+        "Exported sentinels var ErrNotFound and var ErrExists (errors..."
+        _required_decls -> ['ErrExists', 'ErrNotFound', 'Store']
+        caught by _REQUIRED_VARCONST_RE, which predates FIX 2
+
+    ledger, internal/models/models.go:
+        "Sentinel errors, all matchable with errors.Is: ErrInvalid, ErrNotFound, ErrExists,
+         ErrUnbalanced, ErrInsufficientFunds."
+        _required_decls -> []          a bare comma list, no keyword
+
+    THREE SPECS ALREADY WRITE SENTINELS IN A FORM THE GATE READS. ledger does not. The fix is not a
+    new convention — it is applying an existing one to the spec that lacks it.
+
+MEASURED — the two phrasings are equivalent in effect
+        baseline (specs as they are)              correct 283  over 17   94%
+        backtick at declaration site              correct 442  over 34   93%
+        `var ErrX` — the repo's own proven form   correct 442  over 34   93%
+
+    Identical, because both make _required_decls extract the same names; only the extractor route
+    differs. So the choice is settled by convention rather than by measurement, and the convention
+    already exists.
+
+    (Baseline moved 277->283 since the earlier run: the corpus gained a tree while the parity run
+    progressed. The comparison is internally consistent — all three rows were scored in one pass.)
+
+⚠️ AND THE CONFOUND THAT STOPS THIS BEING STRONGER THAN IT IS
+    taskapipro's sentinels are 100% compliant, and it phrases them as `var ErrX`. That is NOT
+    evidence the phrasing causes compliance: ErrNotFound and ErrExists are also SHORT names, and
+    short names are 100% compliant everywhere INCLUDING under ledger's bare-list phrasing.
+
+    So what is measured is the phrasing's effect on EXTRACTION — 0 sentinels to 5 for ledger's
+    models.go, which is certain and mechanical. Its effect on COMPLIANCE is unmeasured, and given
+    that the model abbreviates despite three sightings, it may be nil until the gate rejects.
+    That is exactly why the pre-registered endpoint is "the gate fires".
