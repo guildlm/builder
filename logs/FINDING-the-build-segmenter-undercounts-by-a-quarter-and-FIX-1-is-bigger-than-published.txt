@@ -77,3 +77,38 @@ WHAT CHANGES, AND WHAT DOES NOT
     A CHECK THAT PASSES ON A BROKEN INSTRUMENT IS NOT VALIDATION. What separated them here was
     counting the same thing two independent ways and requiring the answers to match — which costs one
     extra query and would have caught this a week ago.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+PROPAGATED — one segmenter, and the tools that grade a single draw now refuse a multi-build log
+════════════════════════════════════════════════════════════════════════════════════════════
+The fix above lived in _repeat_cost.py, which is where the bug was found and the least useful place
+for the cure. Segmentation now lives in _logseg.py with its own self-test, and every tool that reads
+build outcomes from logs was CHECKED rather than assumed:
+
+    _repeat_cost.py                  imports builds_of; no longer defines its own
+    _grade_trajectory_prediction.py  REFUSES a multi-build log
+    _provenance_census.py            unaffected — it reads ab-*.log, and measured: 0 of the 53
+                                     multi-build files is an ab-* log
+    _gate_audit.py                   unaffected — it reads TREES under generated/, not logs
+    _grade_import_defect.py          unaffected — matches a round marker, does not count builds
+
+THE GUARD IS THE PART WORTH HAVING. _grade_trajectory_prediction.py scores ONE draw using
+whole-text matching (`"converged to green" in text`). Handed a multi-build log it would grade the
+prediction against whichever build's marker happened to appear anywhere in the file — and the
+output would look entirely normal. There is no symptom to notice.
+
+    logs/FULL-SUITE.log        22 builds  ->  REFUSING, with the count and the reason
+    ledger-parity-arm-1.log     1 build   ->  grades as before
+
+CENSUS, from _logseg.py itself
+        log files                       781
+        completed builds                853
+        files holding more than one      53
+        builds inside those files       269
+        largest   sweep-v5-07290011 23 · FULL-SUITE 22 · rebuild-corpus-07261512 20
+
+⚠️ WHAT THE SHARED MODULE STILL CANNOT DO, stated so the next reader does not assume it is total: a
+build killed mid-flight prints NEITHER terminator, so it joins the trailing segment along with any
+suite summary that follows the last outcome. 35 logs have a start and no outcome. Callers must label
+those INDETERMINATE and must not count them as builds — which is why build_count() counts outcome
+markers rather than len(builds_of()).
