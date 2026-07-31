@@ -1,0 +1,36 @@
+NOTE — 13% of fix invocations target a file the toolchain never blamed, and I cannot say if it pays
+====================================================================================================
+31 July. A descriptive measurement of the fix loop's "widening", which appears in every log this
+session and which I had not once looked at.
+
+WHAT WIDENING IS
+    builder.py:5614 logs `fixing <path>` and appends "(widened in)" when the path is NOT in `blamed`
+    — the set the toolchain actually named. Its comment says the wideners "announce themselves as a
+    group" and the per-file provenance was added so a log reader need not re-derive which files the
+    toolchain had named.
+
+THE ARCHIVE
+    3190 fix invocations
+      2755  (86%)  the toolchain BLAMED the file
+       435  (13%)  WIDENED in — the toolchain never named it
+
+    by build outcome
+      failed builds   2087 blamed ·  389 widened     15.7% of that build class
+      green builds     668 blamed ·   46 widened      6.4% of that build class
+
+    So widening is concentrated 2.5x in builds that end up failing, which is what one would expect if
+    it fires where the toolchain cannot attribute — and equally what one would expect if it were a
+    symptom of thrashing. The counts cannot separate those.
+
+⚠️ WHAT THIS DOES NOT SHOW, AND THE TEMPTATION IT CREATES
+    It does NOT show that widened fixes are wasted. A file the toolchain cannot name may still be the
+    cause — that is the entire justification for widening, and builder.py's own comment says a defect
+    "that only a test can reveal reaches a stronger model ONLY through widening".
+
+    The number is suggestive in a direction I have been wrong in five times today: "389 wasted fix
+    calls in failing builds" is a sentence the data does not support, and 389 is exactly the size of
+    number that invites it.
+
+    WHAT WOULD ANSWER IT: an arm with widening disabled, scored on convergence rate and rounds-to-
+    green. That is a real experiment and it is NOT queued — the queue already has four items, and
+    this one has no evidence behind it beyond a count I took because the word appeared in a log.
