@@ -62,3 +62,17 @@ need a new prefix. So the fix is a RENAME, not a seventh negation line. Adding `
 would have made the list longer and the rule weaker, which is what the last six notes each did.
 
 Caught the way all six were: the commit said "nothing to commit" and I read it instead of retrying.
+
+VERIFIED that the inverted rule does what it claims, which the six previous notes never checked:
+
+    logs/FINDING-x.txt   tracked        logs/INTERIM-x.txt    tracked
+    logs/NOTE-x.txt      tracked        logs/WHATEVER-x.txt   tracked
+    logs/RESULT-x.txt    tracked        logs/foo.log          IGNORED
+    logs/PREREG-x.txt    tracked
+
+A record with a name nobody predicted is now kept by default, and raw run output is still discarded.
+The prefix that started this — INTERIM — would now be tracked without anyone touching the file.
+
+⚠️ Each of the six earlier notes ADDED a pattern and none of them ran the equivalent of these seven
+checks afterwards. That is why the list went stale six more times after each fix: the fix was never
+tested against the case that would come next, only against the case that had just failed.
