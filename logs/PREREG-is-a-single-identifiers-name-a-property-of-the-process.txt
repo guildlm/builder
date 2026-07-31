@@ -156,3 +156,53 @@ AND THE CONSUMER CLAIM IS NOW 26 OF 26
     first two — which makes the pattern more interesting and the sample no larger.
 
     P1 remains the endpoint: arm-2, in this same process, must also declare four sentinels.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+P3's CONSEQUENT — REFUTED. ctl-2 converged to green after fix round 2.
+════════════════════════════════════════════════════════════════════════════════════════════
+        antecedent   models.go did not declare the long name              ✓ confirmed 21:02
+        mechanism    response.go wrote it anyway -> mismatch              ✓ confirmed 21:11
+        consequent   ctl-2 fails to converge the way ctl-1 did            ✗ REFUTED
+
+    ledger-xproc-ctl-2: "converged to green after fix round 2 (deterministic)".
+
+WHY IT DID NOT FAIL — the fix loop repaired the declarer, not the consumer
+        models.go AS-DRAWN   ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced
+        models.go FINAL      ...plus ErrInsufficientFunds
+        response.go          UNCHANGED, 1046B before and after, empty diff
+
+    Every one of response.go's five references now resolves. The loop added the missing declaration
+    to the file that owed it and left the consumer alone — the correct repair, and the same path 12
+    of the 20 archived broken trees took.
+
+    ⚠️ AND `undefined: models.ErrInsufficientFunds` NEVER APPEARS IN THE LOG. The only undefined
+    symbol reported is models.Money, four times. So the sentinel was fixed by a DETERMINISTIC pass
+    before any compile surfaced it, not by a model fix round reacting to the error. That is a
+    stronger repair than the archived cases showed and I had no basis to predict it.
+
+WHAT THE PREDICTION GOT RIGHT AND WHAT IT GOT WRONG
+    RIGHT — the mismatch arose, exactly as described, from a naming choice made three packages away.
+    That was predicted before response.go existed and verified twice.
+
+    WRONG — I treated ctl-1's failure as the default outcome of the mismatch. ctl-1 failed on a
+    DIFFERENT unresolved error and its log shows the sentinel error persisting across six rounds;
+    ctl-2's was repaired deterministically in round 1-2. The pre-registration even names the escape
+    hatch — "the fix loop repaired 12 of 20 archived cases of exactly this, so the mismatch arising
+    does NOT entail the build failing" — and I predicted the failure anyway.
+
+    THE CONDITIONAL WAS BADLY CHOSEN, NOT UNLUCKY. Written with the base rate in front of me, 12 of
+    20 says repair is the MODAL outcome. A calibrated version of P3 would have predicted convergence.
+
+⚠️ A MEASUREMENT ERROR CAUGHT IN THE SAME PASS, worth recording because it nearly produced a finding
+    A first check reported response.go's final references as EMPTY, which would have meant the loop
+    achieved green by DELETING the spec-required status mapping — a "green but wrong" result of
+    exactly the kind this campaign hunts. It was wrong: `models\\.(Err\\w+)` inside a quoted heredoc
+    is an escaped backslash, so the pattern matched a literal `\` and found nothing.
+
+    WHAT EXPOSED IT WAS THE FILE SIZE: 1046B before, 1046B after, empty diff. A file cannot lose
+    five references and stay byte-identical. The contradiction was visible in the next command and I
+    ran it before writing anything down.
+
+STATUS OF THE OTHER PREDICTIONS
+    P1  arm-2 is not yet drawn. Still the endpoint, still open.
+    P2  VOID — mis-specified as binary and predicted on data that already existed.
