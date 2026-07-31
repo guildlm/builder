@@ -1,0 +1,42 @@
+PREREG — decide whether the stripper fix should be made AT ALL, before making it
+================================================================================
+31 July. Follows logs/FINDING-the-stripper-deletes-the-copy-that-was-in-the-right-file.txt, which
+found that `strip_redeclarations` deletes the model's correct output and `_fill_empty_planned_files`
+then puts it back — the harness creating a stub and repairing it.
+
+The obvious response is a sixth harness edit today: teach the stripper the ownership rule. Before
+writing it, the question is whether it would fix anything the already-applied non-regressing repair
+gate does not. That is checkable, and the standing rule this campaign keeps re-learning is to verify
+the CONTROL EXHIBITS THE DEFECT before drawing a fix arm.
+
+THE 8 STRIP-VICTIMS, crossed against the survival run (old, green-requiring gate)
+    ledger-pairA-p6      FILLED     green tree — the repair already fixes it today
+    ledger-pairA-p7      FILLED     green
+    ledger-pairA-p8      FILLED     green
+    ledger-prose2        REVERTED   red tree — the non-regressing gate is aimed exactly here
+    taskapipro-pairA-t1  REVERTED   red
+    taskapipro-pairB-t1  REVERTED   red
+    workapi-pairA-w1     REVERTED   red
+    workapi-chain        NO-DONOR   green, and neither fix touches it: its purpose names no type
+
+THE DECISION RULE, fixed now so the answer cannot be chosen after seeing the number
+    IF the non-regressing run turns those four REVERTED cases into FILLED, then 7 of the 8 known
+    strip-victims are already handled end to end, and the stripper edit buys only tidiness: not
+    creating the defect rather than repairing it. THAT IS NOT ENOUGH TO JUSTIFY A SIXTH
+    GENERATION-PATH EDIT IN ONE DAY, and I will not make it. It goes in the log as a known,
+    unexercised improvement with its evidence attached.
+
+    IF some of the four stay REVERTED, the stripper edit has a population the repair cannot reach,
+    and it gets a real pre-registration with a scored endpoint.
+
+    ⚠️ EITHER WAY THE ARGUMENT FOR THE STRIPPER EDIT ON AESTHETIC GROUNDS IS REJECTED IN ADVANCE.
+    "The harness fights itself" is a good sentence and a bad reason. The repair is measured at 11 of
+    11 where it runs; a prettier mechanism with no measured advantage is how a working system gets
+    churned.
+
+WHAT NEITHER FIX REACHES, and what the day's real question now is
+    workapi-chain's middleware.go — a spec-text gap, no type named, nothing to own or move.
+    And, much more importantly: why the model writing the INTERFACE file first also writes the
+    implementation into it, when that file's purpose says "The Store INTERFACE only — no
+    implementation in this file". Everything above is about cleaning up after that sentence being
+    ignored. Nothing today has asked why it is ignored.
