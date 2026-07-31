@@ -1,0 +1,67 @@
+PREREG — is the NAME of one identifier fixed per server process? Pair 2 answers it in two hours
+=================================================================================================
+31 July, 21:00, written while ledger-xproc-ctl-2 is at 3 of 19 files and pid 86026 has produced no
+models.go yet. Zero GPU beyond the draws already running.
+
+THE OBSERVATION THAT PROMPTED IT
+    ledger's spec requires `ErrInsufficientFunds`. Across 25 archived ledger trees, models.go
+    declares:
+
+        ErrInsufficientFunds   9      the spec-required name
+        ErrInsufficient        9      abbreviated
+        neither                7
+
+    Among trees that declare SOMETHING, that is exactly 9-9 — a coin flip. But grouped by the server
+    process that drew them:
+
+        pid 7598    7 draws   ErrInsufficientFunds  7/7   CONSISTENT
+        pid 49288   2 draws   ErrInsufficient       2/2   CONSISTENT
+        unlabelled 16 draws   mixed
+
+    ⚠️ THE 7598 LABEL IS INFERRED, NOT RECORDED. `.server_pid` is written into the tree only by
+    _parity_xproc.sh, which is hours old. Those seven are the six parity draws and stampfix-arm-4,
+    all launched against a server pinned at 7598 between 12:20 and 19:21 — sound, but reconstructed.
+    Only the two xproc trees carry the pid as data. So this is 2 labelled groups, not 3, and the
+    16 unlabelled draws span a month of harness versions and cannot be grouped at all.
+
+WHY IT MATTERS BEYOND ONE SYMBOL
+    This campaign has measured cross-process variation as "3 to 6 CODE files differ". That is a
+    statement about volume. If a single IDENTIFIER'S NAME is fixed per process and varies between
+    processes, the variation has structure: the process does not perturb output randomly, it selects
+    among a small set of stable alternatives. Those are different claims and only the first is
+    established.
+
+PRE-REGISTERED PREDICTIONS, all resolved by pair 2 without any extra cost
+
+  P1 — WITHIN-PAIR CONSISTENCY. ledger-xproc-ctl-2 and ledger-xproc-arm-2, both drawn in pid 86026,
+       declare the SAME insufficient-funds sentinel as each other.
+           PREDICTED: yes. Confidence 85%.
+           Both labelled groups are internally consistent (7/7 and 2/2). 85% rather than higher
+           because the arm condition rewrites store.go across processes (2 of 7 funcs in pair 1),
+           so it is not a pure replicate, and models.go is generated before either store file.
+
+  P2 — WHICH NAME. Predicted `ErrInsufficientFunds` at 50%.
+           An honest coin flip: 9-9 among trees that declare either, and 1 of the 2 labelled process
+           groups each way. I have no basis to do better and am recording that rather than dressing
+           a guess as a prior.
+
+  P3 — THE CONSEQUENCE, which is what makes P2 worth predicting. If pid 86026 picks the SHORT name,
+       ctl-2 should fail to converge the way ctl-1 did, on `undefined: models.ErrInsufficientFunds`
+       in response.go. If it picks the long one, that particular failure cannot occur.
+           This is a CONDITIONAL prediction and it is the real test: it links a naming choice made
+           in one file to a build outcome three packages away.
+
+  REJECT — if ctl-2 and arm-2 disagree with each other, "the name is a property of the process" is
+       dead as stated, and what varies is finer-grained than the process. That would be a more
+       interesting result than confirmation and it is why the endpoint is P1 rather than P2.
+
+⚠️ WHAT THIS CANNOT SETTLE
+    THREE LABELLED PROCESSES IS NOT A SAMPLE. Even a clean 3-for-3 leaves "per-process" as a
+    description of three processes, not a law. The 16 unlabelled trees cannot be recruited — they
+    predate the pid recording and span a month of harness edits, which is the same
+    category-2 trap this campaign has already fallen into once.
+
+    AND IT SAYS NOTHING ABOUT WHY. A name fixed per process is consistent with sampling state, with
+    a cache, with anything else that differs between fresh interpreters. This measures the pattern,
+    not the mechanism, and the mechanism question — what about a fresh process changes the output —
+    has been open since 18 July.
