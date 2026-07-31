@@ -27,6 +27,8 @@ the whole project be green after the move, so all 59 red-tree cases reverted on 
 nothing to do with the move. The gate is now NON-REGRESSING (no error the project did not already
 have), and the first run is the baseline the second is scored against.
 """
+# selftest: slow — the self-test builds two real trees and runs the Go toolchain on
+# each (3.7s measured). --fast skips it so a corpus sweep never competes with a draw.
 from __future__ import annotations
 
 import argparse

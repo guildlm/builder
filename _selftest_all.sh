@@ -39,6 +39,15 @@ for t in _*.py; do
   # beside a draw without becoming that contention.
   slow=0
   grep -qE '"go", *"(build|test|vet)"|\["go"|GO_TEST' "$t" && slow=1
+  # ...and an explicit opt-in, because the regex above only sees tools that call go
+  # DIRECTLY. A tool that reaches the toolchain through builder.GoToolchain is invisible
+  # to it — measured 31 July: _repair_survival.py's self-test takes 3.7s of real Go while
+  # --fast happily ran it beside a live draw, which is the one contention this flag exists
+  # to prevent. Widening the regex was the wrong fix: _escalation_surface.py and
+  # _gate_audit.py also name GoToolchain, and their self-tests take 0.5s and 0.9s because
+  # they only use it in main(). Static text cannot tell which PATH the self-test takes, so
+  # the tool declares it.
+  grep -q '# selftest: slow' "$t" && slow=1
   if [[ $FAST -eq 1 && $slow -eq 1 ]]; then
     printf '  %-34s SKIPPED (--fast: shells out to go)\n' "$t"
     SKIPPED=$((SKIPPED + 1))
