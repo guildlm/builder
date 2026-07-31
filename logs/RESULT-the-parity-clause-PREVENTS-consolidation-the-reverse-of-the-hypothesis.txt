@@ -54,3 +54,33 @@ WHAT IT COSTS THE ARM I ALMOST SHIPPED
 ALSO OBSERVED
     arm-1 exited rc=1 (never converged) where both controls exited rc=0 and went green. One draw,
     and convergence was not an endpoint here, so it is recorded and not interpreted.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+WHAT THE CLAUSE ACTUALLY CHANGES IN THE OUTPUT — broader than MemStore
+════════════════════════════════════════════════════════════════════════════════════════════
+    spec gives store.go:  "The Store INTERFACE only — no implementation in this file."
+
+    control store.go declares:  Store
+    arm     store.go declares:  ErrNotFound, ErrExists, Store, MemStore, NewMemStore,
+                                and all six MemStore methods
+
+With the clause present the file is the interface and nothing else — 413 bytes, two imports, one doc
+comment. With it withheld the model wrote a COMPLETE, SELF-SUFFICIENT store package in one file:
+sentinels, interface, implementation, and the imports to support them (errors, sort, sync).
+
+    ⚠️ THE OVER-REACH IS NOT NARROWLY ABOUT MemStore. It includes ErrNotFound and ErrExists, which
+    ledger's spec does not assign to store.go at all. So the clause is not "the sentence that stops
+    the implementation moving"; it is closer to the sentence that keeps store.go a DECLARATION-ONLY
+    file. Stating the distinction because "it prevents consolidation" invites a mechanism about
+    MemStore specifically, and the evidence is wider than that.
+
+    A HYPOTHESIS, AND ONLY THAT: the clause names "the interface AND its implementation" as two
+    things, which may cue that the implementation is a separate artifact living elsewhere. Withhold
+    it and the model defaults to writing a package that works on its own. Nothing here tests that,
+    and one prompt sentence has now surprised me once already today.
+
+⚠️ AND IT EXPOSES A LIMIT IN MY OWN GRADER. `_parity_ab.sh` decides SPLIT vs CONSOLIDATED by asking
+whether store.go declares MemStore. A store.go that took the SENTINELS but not MemStore would grade
+SPLIT while still violating "the interface only". The grader was validated against known-labelled
+trees and it discriminates the cases it was built for — but it measures one symbol, and this result
+shows the failure mode is wider than one symbol.
