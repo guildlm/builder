@@ -34,3 +34,27 @@ WHAT THE TALLY SAYS
     historical success rate. It is a forward-looking capability measure. Six weeks from now the
     difference is invisible unless it is written next to the number — which is why this file exists
     rather than a note in my head.
+
+SECOND PASS — which claims depend on WALL-CLOCK DURATION, now that duration is known to vary 20%
+    claim                                      affected  basis
+    FIX 2: take-EMPTY 10 -> 1                  no        counts
+    FIX 1: warning on failing builds           no        log presence
+    repair gate 57 of 57                       no        counts
+    parity: ctl SPLIT / arm CONSOLIDATED       no        byte hashes
+    error surface 8 distinct, 0 repeats        no        counts
+    timestamp fix collapses 8 surfaces to 3    no        regex over captured text
+    ~20 min saved per affected build           YES       arm-1's marginal minutes
+    corrected run ~321 min                     YES       six durations, each +-20%
+    restarts are 0.6% of the run               partly    stable 39s over a noisy total
+
+    2 of 9. BOTH are cost estimates. Not one finding about the harness or the model touches a clock.
+
+WHY THAT IS WORTH CHECKING RATHER THAN ASSUMING
+    A measurement that turns out noisy usually invalidates whatever leaned on it, and the natural
+    move is to re-examine everything. Here the exposure is contained by construction: this campaign's
+    instruments count things (files, symbols, surfaces, refusals) and compare bytes. Duration entered
+    the record only today, only to price future work, and only in two places.
+
+    ⚠️ So the correct response is NOT to re-derive the day's findings — it is to mark the two cost
+    numbers as estimates and keep the round count (3 of 8) as the durable one. Which is the opposite
+    of the response the retraction needed, and telling them apart took one table.
