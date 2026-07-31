@@ -134,3 +134,51 @@ THE SHAPE IS STABLE, and that is the argument for fixing rather than tolerating 
     that would tell them was empty.
 
 Pre-registered before application: logs/PREREG-expose-grouped-sentinels-in-the-cross-package-api-block.txt
+
+════════════════════════════════════════════════════════════════════════════════════════════
+THE FULL BLIND-SPOT LIST, and why the fix stays narrow
+════════════════════════════════════════════════════════════════════════════════════════════
+Before editing exported_api(), every Go declaration shape was fed through it. Three MORE blind
+spots exist:
+
+        shape                   exported today?   what the consumer sees
+        single var                    YES         var ErrX
+        GROUPED var                ** NO **       (nothing)
+        single const                  YES         const MaxN
+        GROUPED const              ** NO **       (nothing)
+        type struct                   YES         full type
+        GROUPED type               ** NO **       (nothing)
+        type alias                    YES         type Alias = OtherThing
+        func one-line                 YES         func F(a int) error
+        func MULTI-LINE            TRUNCATED      func F(          <- no params, no return type
+        method                        YES         func (t T) M() error
+        interface with methods        YES         full interface
+
+    A multi-line signature exported as `func F(` tells a consumer the function's name and nothing
+    about how to call it. That looked like the more dangerous defect of the two.
+
+THEN I COUNTED, AND THREE OF THE FOUR DO NOT OCCUR
+        as-drawn non-test .go files: 475 across 50 trees
+
+        shape                   files   trees
+        grouped var                46      40      <- 80% OF TREES
+        grouped const               0       0
+        grouped type                0       0
+        multi-line func sig         0       0
+
+    So the fix stays exactly as prototyped: parse grouped var/const (const is the same code path
+    and free), and leave grouped type and multi-line signatures alone.
+
+    ⚠️ THE INSTINCT WAS TO FIX ALL FOUR. That would have added three untested code paths for shapes
+    this corpus has never produced, in a function whose ONE existing branch for this was wrong for a
+    month. Speculative generality in a parser is how the original bug survived: the var/const branch
+    was written, believed, and never exercised against the form the generator actually emits.
+
+    ⚠️ AND ZERO HERE MEANS ZERO IN THIS CORPUS — Go written by this model from these specs. A
+    different spec style or model could emit grouped types tomorrow, and the shapes are recorded
+    above so the next reader does not have to rediscover them. Known and unexercised is a different
+    state from absent.
+
+AND THE FOOTPRINT IS BIGGER THAN THE EARLIER NUMBER SUGGESTED: 40 of 50 trees contain a grouped var
+block, not the 46-of-475 files quoted before. The file count understates it because one models.go
+per tree carries every sentinel the whole project shares.
