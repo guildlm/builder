@@ -1,0 +1,51 @@
+PREREG — the third question: does the move SURVIVE toolchain.check?
+===================================================================
+Written before the measurement runs, 31 July morning. Both repair-hole fixes are applied
+(651c47b, 0a927e6) and both were explicit that neither stops the stub shipping:
+
+    FIX 2 makes the repair APPLICABLE (take non-empty: 54 -> 63 of 64 cases)
+    FIX 1 makes the failure VISIBLE on builds that never converge
+    whether the move then STAYS GREEN is a third question, and nothing so far touches it
+
+THE MEASUREMENT — no GPU, no draws
+    For each of the 64 trees carrying an empty planned .go file: copy the tree to scratch,
+    run toolchain.check to record GREEN-BEFORE, run `_fill_empty_planned_files` exactly as
+    builder.py calls it, and record whether the file got filled and whether the tree is green
+    after. The pass reverts its own move when the check fails, so the outcome per case is one of
+
+        FILLED      moved, and toolchain.check passed
+        REVERTED    moved, check failed, pass put it back
+        NO-DONOR    take was empty — nothing to try
+
+    ⚠️ generated/ IS NEVER TOUCHED. Every tree is copied first. The one destructive mistake this
+    campaign made cost a live build its files.
+
+WHAT I EXPECT, AND THE THING THE NUMBER CANNOT REACH
+    The repair calls toolchain.check on the WHOLE project after the move. A tree that was ALREADY
+    red fails that check for its own unrelated reasons, so the pass reverts and the case is
+    unfixable no matter how good the extractor is. That is a structural ceiling, not a tuning
+    problem, and it is the reason FIX 1's minimal version deliberately left the REPAIR green-gated.
+
+    PREDICTION 1 — every case in a red tree comes back REVERTED. Confidence 95%. This is close to a
+    statement about the code rather than the corpus; the 5% is for a tree whose only error is the
+    empty file itself, which the move would then fix. If any red tree comes back FILLED, that
+    single case is more interesting than the whole rest of the table, because it is a case where
+    running the repair on not-green builds — the arm FIX 1 deliberately did NOT take — would pay.
+
+    PREDICTION 2 — of the movable cases in trees that are green before, at least 80% come back
+    FILLED. Confidence 70%. tools/movedecls.go carries imports with the declarations and the unit
+    test covers the ledger shape end-to-end; the risk is unused-import and shadowing fallout in
+    shapes the test does not cover.
+
+    PREDICTION 3 — the count of green-before trees among the 64 is NOT something I can derive, so I
+    am not predicting it. 27 of the 125 trees are `_fail-*` by name and cannot be green; the rest
+    is a guess and I would rather record "not derivable" than a number I would later score as
+    careless. What the measurement must report is the SPLIT, not a single success rate over a
+    population mixing the two.
+
+HOW IT WOULD BE WRONG
+    A FILLED verdict here means the tree compiles and tests pass with the declarations moved. It
+    does NOT mean the project now matches its plan in any deeper sense — the sibling could still
+    hold something else it was never asked to declare, which is the ownership question the 04:45
+    result showed emptiness only partly covers. Saying so now so that "the repair works on N of M"
+    is not later read as "the plan is satisfied on N of M".
