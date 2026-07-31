@@ -133,3 +133,28 @@ FIX 1's GREEN-PATH WORDING VERIFIED UNCHANGED, against the archive it has to sta
     ⚠️ The check is trivial and the claim was made without it. "I did not change that string" is the
     kind of statement that is true until an edit three hours later makes it false, and nothing would
     have announced it — the not-green wording was added AFTER the claim, in the same function.
+
+FINAL VERIFICATION, 16:12, on a corpus that today's own draws enlarged
+    builder.py = WIDE (FIX 2 applied)
+    NARROW  132 trees · 67 empty planned files · take non-empty 54 · take EMPTY 13
+    WIDE    132 trees · 67 empty planned files · take non-empty 66 · take EMPTY  1
+
+    pytest 435 passed · ./_selftest_all.sh --fast 38 ran / 6 skipped / 0 failed
+
+THE CORPUS GREW BY SIX TREES AND THE ENDPOINT DID NOT MOVE
+    125 -> 132 trees: the six parity draws plus this morning's gate-fix draw.
+    64 -> 67 empty planned files: the THREE ARM trees each ship a 14-byte internal/store/memory.go,
+    because withholding the parity clause produces exactly the stub this fix exists for.
+
+    NARROW take-EMPTY 10 -> 13, one per new arm: under the old extractor those three are BLOCKED,
+    because memory.go's purpose yields only {Store} and store.go owns it.
+    WIDE take-EMPTY stays at 1 — the same workapi-chain survivor, whose purpose names no type.
+
+    ⚠️ SO THE THREE STUBS I GENERATED TODAY ARE NEW MEMBERS OF THE POPULATION FIX 2 WAS BUILT FOR,
+    AND IT HANDLES ALL THREE. That was not planned — the parity experiment was about a prompt clause,
+    not about the extractor — and it is a better test of FIX 2 than the corpus it was scored on,
+    because these three trees did not exist when the widening was designed.
+
+    The pre-registered endpoint was "take EMPTY falls from 10 to 1, not 0". On a corpus with three
+    fresh instances of the defect it reads 66 movable / 1 EMPTY, and the survivor is still the one
+    named in advance for a reason that has nothing to do with the regex.
