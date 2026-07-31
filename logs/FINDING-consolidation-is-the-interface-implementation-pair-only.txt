@@ -1,0 +1,46 @@
+FINDING — consolidation happens at ONE file per spec, and it narrows my own 02:15 reframing
+===========================================================================================
+05:20 on 31 July. Zero GPU. Asked because the reframing raised a question I had not tested: is
+consolidation a general property of the pipeline, or specific to one pair of files?
+
+THE ANSWER IS AS NARROW AS IT COULD BE
+    125 trees, three specs, every file audited for "declares what its entry names, or a sibling
+    took it":
+
+        42x  workapi     internal/store/memory.go
+        12x  taskapipro  internal/store/memory.go
+         8x  ledger      internal/store/memory.go
+        ---
+        3 distinct (spec, file) pairs. NOTHING ELSE, in any spec, in any tree.
+
+⚠️ THIS CORRECTS MY OWN 02:15 STATEMENT
+I wrote, in capitals: "THE FIRST-GENERATED FILE OF A PAIR ABSORBS THE PACKAGE'S CONTENT." That is
+too broad. It is true of ONE pair — store.go/memory.go — and of no other pair in 125 trees. Every
+spec has many adjacent file pairs in a package; only this one consolidates.
+
+    The corrected statement: consolidation occurs where one file declares an INTERFACE and a sibling
+    IMPLEMENTS it. That is the only such relationship in these three specs, and it is exactly where
+    the defect lives. Files with distinct, non-overlapping responsibilities — handlers, routers,
+    middleware, models — never take each other's declarations.
+
+    That is a much stronger claim than the broad one, because it is falsifiable by a spec with a
+    second interface/implementation pair and it predicts where to look.
+
+WHY THE NARROW VERSION MAKES MORE SENSE THAN THE BROAD ONE
+An interface and its implementation are the one case where a model writing the FIRST file has
+everything it needs to write the SECOND: the method set is fully determined by the interface it just
+declared. Writing MemStore's eight methods while store.go is in front of you is not a lapse of
+attention, it is the path of least resistance. Two handlers, by contrast, share no such closure —
+neither one's content determines the other's.
+
+    ⚠️ THAT IS A STORY AND MECHANISM STORIES ARE 0 FOR 7 HERE. It is recorded because it makes a
+    testable prediction — add a SECOND interface/implementation pair to any spec and it should
+    consolidate too — not because it is established. The narrow measurement above stands on its own
+    without it.
+
+⚠️ WHAT THE DETECTOR COULD BE MISSING
+`_entry_ownership.py` extracts names as "Capitalised + struct|interface" or backticked. It does NOT
+yet see `var Name`/`const Name` — the widening simulated at 05:00 and not applied. So consolidation
+involving only sentinels, in some other package, would be invisible to this count. The three hits
+above are all TYPE-level and would survive the widening; whether the widening adds a fourth pair is
+unmeasured and is one command once FIX 2 lands.
