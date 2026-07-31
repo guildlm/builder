@@ -104,3 +104,22 @@ ROUND-LEVEL EVIDENCE from arm-1, which pins exactly when the blindness starts
     The repeat detector works where it is least needed and is blind where it would pay. That is not a
     tuning problem — it follows from what output each stage produces, and it is why the fix is a
     normalisation rather than a threshold.
+
+THIRD INSTANCE — arm-3, and the pattern is exact across all three arms
+    arm-1   surfaces  8 · distinct  8 · app-log lines 30 · "seen before" 0
+    arm-2   surfaces  8 · distinct  8 · app-log lines 30 · "seen before" 0
+    arm-3   surfaces  2 · distinct  2 · app-log lines  4 · "seen before" 0   (still running)
+
+    Every surface distinct, in every arm, with zero repeats detected. arm-1 and arm-2 are the same
+    draw twice so they agree trivially; arm-3 is the same draw a third time and agrees again.
+
+    ⚠️ WHICH MEANS THIS IS STILL ONE OBSERVATION, NOT THREE. All three arms are byte-identical as
+    drawn (measured with `_asdrawn_diff.py`), so they cannot disagree about anything the fix loop
+    does deterministically. What three identical draws DO establish is that the count of distinct
+    surfaces is not luck: the same input produces 8 distinct surfaces every time, and the repeat
+    detector fires zero times every time.
+
+    The claim that generalises is structural rather than statistical — a timestamped line in the
+    output makes any two surfaces differ, and ledger's spec requires latency logging. Nothing in
+    these three runs adds independent evidence for that; the archive measurement (654 builds, 9 with
+    app-log lines, 5 of those running extension rounds, 0 ever logging "seen before") is what does.
