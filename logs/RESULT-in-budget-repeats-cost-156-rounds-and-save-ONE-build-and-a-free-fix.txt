@@ -1,3 +1,10 @@
+⚠️ THE HEADLINE BELOW IS SUPERSEDED — read the CORRECTED section at the bottom first.
+"176 rounds / 15 green builds saved" came from reading each LOG FILE as one BUILD; 40 files hold
+several. Per build segment it is 156 rounds and ONE green build, and a 3-consecutive-repeat stop
+is free (83 rounds, 0 green lost). The original text is kept unedited as the record of how the
+number was reached and how it was caught.
+====================================================================================================
+
 RESULT — in-budget repeats: 176 rounds spent, and 15 builds that went green anyway
 ====================================================================================
 31 July, while the arm-4 verification draw holds the GPU. Zero GPU, archive only. Found by
