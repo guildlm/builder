@@ -1,0 +1,32 @@
+NOTE — all eight of today's code changes verified live, by importing the module and reading it
+===============================================================================================
+31 July 17:11. A final inventory check: every change made today, confirmed present in the module that
+would run on the next draw — not in a diff, not in a commit, in `inspect.getsource`.
+
+    FIX 2  widened _required_decls (backticked + var/const)      live
+    FIX 2  MixedCaps guard                                        live
+    FIX 1  warn_empty_planned_files on BOTH exits of build()      live  (2 call sites)
+           _fill_empty_planned_files on the failing exit          live  (2 call sites)
+    gate   non-regressing, via _error_counts                      live
+    gate   goroutine/pointer normalisation (_canonical_error_line) live
+    prompt _disclaimed_decls wired into generation                live
+    prompt interface_only_scope switch (OFF by default)           live
+
+    8 of 8.
+
+WHY THIS IS A DIFFERENT CHECK FROM THE TESTS
+    435 tests pass and the corpus metrics read correctly, but both of those run against whatever
+    module the test session imports. So does this — except it enumerates the CHANGES rather than
+    exercising behaviour, which catches a different failure: a change that was written, committed,
+    and then lost to a later edit or a bad merge would still leave the tests green if nothing covered
+    it specifically.
+
+    The parity switch is the clearest case: it is OFF by default and its behaviour is only visible
+    under an environment variable, so a silent loss of it would break no test and no metric. It is
+    verified here by presence rather than by effect.
+
+⚠️ AND ONE OF THE EIGHT SHOULD NOT BE ON. `interface_only_scope` exists and is confirmed OFF by
+default — which is the correct state, established by the parity experiment refuting it. "Live" here
+means "present and wired", not "enabled". A future session that finds it and switches it on will
+reintroduce the stub on ledger; that is written in the save point and in the pre-registration, and it
+is the single most likely way today's work gets undone.
