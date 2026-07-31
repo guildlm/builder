@@ -1,0 +1,70 @@
+RESULT — the repair mechanism fired five times and the model would not write the name
+=======================================================================================
+31 July, 21:32, while pair 2's arm draws. Logs and snapshots only, no GPU. This is the direct
+evidence for a limit predicted from the prompt rendering two hours earlier.
+
+THE HARNESS ALREADY HAS A PURPOSE-BUILT REPAIR FOR THIS
+    `_widen_missing_symbol_targets`: "undefined: models.Event is reported at the USE site
+    (service.go), but the fix belongs at the DEFINITION site — the models package, whose file
+    omitted the type the spec requires. While only the use-site is targeted the loop oscillates and
+    never adds the type."
+
+    It fires. Both controls show `fixing internal/models/models.go (widened in)`.
+
+TWO CONTROLS, SAME DEFECT, OPPOSITE OUTCOMES — and the difference is not the mechanism
+    ctl-1   undefined: models.ErrInsufficientFunds, rounds 2 through 6
+            widening fired FIVE TIMES, models.go regenerated each round
+            models.go AS-DRAWN  ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced, ErrInsufficient
+            models.go FINAL     ...BYTE-IDENTICAL. 1336B -> 1336B.
+            exhausted 6 fix rounds
+
+    ctl-2   undefined: models.Money (the sentinel error never surfaced)
+            widening fired ONCE, triggered by a DIFFERENT symbol
+            models.go regenerated and came back WITH ErrInsufficientFunds
+            converged to green after fix round 2
+
+    IN ctl-1 THE MODEL WAS HANDED THE EXACT ERROR — `undefined: models.ErrInsufficientFunds` — AND
+    ASKED TO REGENERATE THE FILE THAT OWES IT, FIVE TIMES, AND PRODUCED THE SAME 1336 BYTES EVERY
+    TIME. Not a near miss, not a partial fix: byte-identical output across five targeted repair
+    attempts with the failing symbol named in the prompt.
+
+    IN ctl-2 THE SENTINEL WAS FIXED INCIDENTALLY. The widening was triggered by models.Money; the
+    regenerated file happened to include the sentinel too. Had Money not also been missing, the
+    sentinel would have surfaced on its own and — on ctl-1's evidence — very likely persisted.
+
+THIS IS THE PREDICTED LIMIT, ARRIVING EXACTLY AS PREDICTED
+    Two hours ago, from rendering the prompt and finding the name in it three times:
+
+        "if the model abbreviates despite seeing the name three times, rejection alone may not fix
+         it — the resample could abbreviate again ... the pre-registered endpoint for that fix
+         should NOT be 'the tree is correct' but 'the gate fires'."
+
+    Five resamples, five identical outputs. The prediction was about a gate that does not exist yet;
+    the evidence comes from a repair path that already does, and they are the same mechanism —
+    reject, regenerate, hope for different. On this name it does not work.
+
+    ⚠️ SO THE QUEUED SPEC FIX HAS A CEILING I CAN NOW NAME. Making _required_decls demand
+    ErrInsufficientFunds will make the GENERATION gate reject a candidate that omits it. If the
+    resample behaves like these five did, the loop exhausts its candidates and _sample_clean falls
+    back to the first — which is exactly what it is designed to do. The fix would then be visible in
+    the log (rejections recorded) and invisible in the tree.
+
+    That is not an argument against shipping it. A gate that fires and falls back still converts a
+    silent defect into a recorded one, which is the same value FIX 1 delivered this morning. But the
+    pre-registration's endpoint is now backed by direct evidence rather than caution.
+
+⚠️ WHAT THIS DOES NOT SHOW
+    ONE NAME, TWO DRAWS, ONE PROCESS EACH. ctl-1's five regenerations are five samples from ONE
+    server process, and this campaign has measured that process identity fixes output. Five
+    identical outputs within a process is consistent with the model being unable to write this name,
+    AND with the process having settled on `ErrInsufficient` in a way no resample escapes. Those are
+    different claims and this cannot separate them.
+
+    ⚠️ THE SECOND IS ARGUABLY BETTER SUPPORTED, because pid 7598 wrote the long name 7 times for 7
+    and pid 49288 wrote the short one every time it was asked, including under direct error
+    pressure. If the name is a per-process constant, no amount of resampling inside that process
+    will change it — and the fix would need a different process, not a different candidate.
+
+    That reframes the queued fix's failure mode: not "the model cannot write this name" but "no
+    resample within a process escapes the process's choice". It also makes the cross-process design
+    running right now the only instrument that could tell them apart.
