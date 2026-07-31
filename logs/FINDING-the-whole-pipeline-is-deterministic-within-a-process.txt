@@ -1,0 +1,35 @@
+FINDING — two full builds, 19 files each, byte-identical: determinism survives the fix loop
+============================================================================================
+31 July. Both parity controls are finished (rc=0, green), so this is a complete comparison rather
+than a partial one.
+
+    ctl-1: 19 files · ctl-2: 19 files · common 19
+    IDENTICAL: 19 · DIFFERENT: 0 · present in only one: none
+
+    Two independent invocations of `guildlm-build` — separate processes, 100 minutes apart, same
+    server pid 7598 — produced BYTE-IDENTICAL projects. Not just the generation pass: go.mod, every
+    source file, every test file, after a fix loop that ran and converged.
+
+WHY THIS IS MORE THAN "generation is deterministic at temp 0.1"
+    That was already known and is about single completions. This says the WHOLE pipeline is a
+    deterministic function of (spec, flags, server process): generation, the deterministic gates, the
+    fix loop's model calls, and whatever the toolchain reported along the way all landed identically.
+
+    So a control/arm pair from the same process is a clean two-condition comparison with zero
+    within-condition variance — which is exactly why the parity result reads so sharply, and exactly
+    why it carries no information about variance.
+
+⚠️ WHAT IT MAKES WORSE, NOT BETTER
+    "2 of 2" in the parity table is not two observations. It is one observation confirmed to be
+    reproducible. Running pair 3 will produce a third identical row and will not add evidence about
+    how often the effect holds — only that the pipeline is still deterministic.
+
+    The thing that WOULD add evidence is variation the pipeline does not have inside one process:
+    another server process, another spec, another temperature. The campaign already knows the first
+    of those changes outcomes — identical prompts across processes gave different files, measured
+    today — so a replication that changes nothing inside one process replicates the wrong thing.
+
+    ⚠️ I DESIGNED THIS A/B AS 3 PAIRS AND IT SHOULD HAVE BEEN 1 PAIR ACROSS 3 PROCESSES. The
+    pre-registration fixed the endpoint and the reject conditions carefully and got the replication
+    unit wrong, which no amount of pre-registration discipline catches — it is a design error, not a
+    reporting one.
