@@ -1,0 +1,47 @@
+FINDING — the fix prompt carries a wall-clock timestamp, so it is not a function of the code
+=============================================================================================
+31 July. Third consumer of toolchain output found to share one blind spot, and the only one of the
+three that CAUSES divergence rather than failing to detect it.
+
+`_canonical_toolchain_output` EXISTS TO PREVENT EXACTLY THIS, AND SAYS SO
+    "Strip the run-to-run noise out of go's output BEFORE it reaches the model. The fix prompt embeds
+    toolchain output verbatim, and that output carries text that changes between runs of identical
+    code: per-package durations, per-test durations, and — worst — `(cached)`."
+
+    It does that correctly:
+        --- FAIL: TestCreate (0.01s)     ->  --- FAIL: TestCreate
+        ok  guildlm.dev/.../money 0.310s ->  ok  guildlm.dev/.../money
+
+    And leaves this untouched:
+        2026/07/31 14:40:37 POST /accounts -> 201 (8µs)   ->   unchanged
+
+    A spec whose tests serve requests therefore sends the model a DIFFERENT PROMPT on every fix
+    round for identical code. The docstring's own standard — "a prompt should be a function of the
+    code" — is violated in the function written to enforce it.
+
+THIS IS THE MECHANISM BEHIND THE DIVERGENCE OBSERVED TODAY
+    arm-1 and arm-2: same spec, same flags, same server process, BYTE-IDENTICAL source trees, and
+    different error surfaces at fix round 1. Generation was identical; the first thing that differed
+    was the first prompt built from toolchain output. That is no longer an observation with an
+    unknown cause.
+
+    Three consumers, one blind spot:
+        _error_signature          fails to DETECT a repeat        -> extension rounds run to the cap
+        _error_keys (mine, today) fails to compare error sets     -> false refusals in the repair gate
+        _canonical_toolchain_output  feeds the MODEL varying text -> the fix loop itself diverges
+
+⚠️ WHAT THIS DOES **NOT** EXPLAIN, AND THE DOCSTRING ASKS ABOUT
+    The same docstring ends: "generation is deterministic (measured: three 1200-token completions at
+    temp=0.1, byte-identical) and yet same-arm runs generate DIFFERENT files. Something upstream of
+    the fix loop varies per process. Look there, not here." That question is still open.
+
+    GENERATION HAPPENS BEFORE ANY TOOLCHAIN OUTPUT EXISTS. This finding cannot touch it. What it
+    explains is fix-loop divergence within a process; what remains unexplained is generation
+    divergence across processes, which is what that note was about. Adjacent, not the same, and the
+    temptation to file this as "the 18 July question, answered" is exactly the scope error this
+    session has corrected five times.
+
+FIX, queued behind the freeze with the same normalisation as the other two consumers
+    Add the timestamp and unit-duration patterns to `_canonical_toolchain_output`. Reject condition:
+    the fix prompt must still distinguish two genuinely different failures, or the loop loses the
+    signal it fixes on.
