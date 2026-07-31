@@ -1,0 +1,30 @@
+NOTE — the save point carried the conclusions and named 1 of today's 70 files
+=============================================================================
+31 July 16:56. Measured because the save point is the only artifact a future session reads first, and
+a conclusion nobody can trace back to its evidence is a claim, not a result.
+
+    today's log files                      70
+    named in the top save point             1   (the retraction)
+    reachable by following references       3   (of 338 files in logs/)
+
+    RESULT and PREREG files not named:     27
+
+⚠️ THE FIRST NUMBER I COMPUTED WAS "335 of 338 ORPHANED", which is true and useless — most of those
+are from earlier weeks and no current save point should reference them. The precise question is
+today's 70, and there the answer is 1. Same crude-filter-then-precise-criterion correction as the
+commit audit an hour ago and the 18-files-at-risk scare before that.
+
+WHAT WAS ADDED
+    An index in the save point grouping today's files by the QUESTION each answers, not by name:
+    the two pre-registered fixes; the repair-gate chain as its four prereg->result steps; the parity
+    experiment ending at the instrument-measured version rather than the hand-measured one; the
+    timestamp defect across its three consumers; the retraction; and the things deliberately NOT
+    built, with their reasoning.
+
+    The last group is the one most likely to be lost. "We decided not to build the stripper fix
+    because its population is three cases" is exactly the kind of conclusion that gets re-derived
+    from scratch six weeks later, and it cost two pre-registrations to reach.
+
+⚠️ AN INDEX IS NOT A GUARANTEE. It goes stale the moment a file is renamed — as one was today, when
+the drift RESULT was retitled. The save point now names files by path, so a rename breaks the link
+silently. That is a known cost, accepted because the alternative measured at 1 of 70.
