@@ -1,0 +1,56 @@
+PREREG — stop demanding a symbol the entry itself disclaims
+===========================================================
+Written before the edit, 31 July morning. Follows
+logs/FINDING-the-generation-gate-demands-the-over-reach.txt, which measured one ambiguous symbol per
+spec (memory.go required to declare `Store`, which store.go owns) and 16 of 17 archive rejections
+where the gate was never satisfied and the harness shipped the candidate it had just called dirty.
+
+THE THING I DID NOT EXPECT TO FIND, AND WHICH CHANGES THE FIX
+The FINDING said disambiguating ownership "needs a verb distinction the specs use but nothing
+checks". Reading the eight purposes verbatim, the specs do not merely imply it — they SAY it:
+
+    ledger/memory.go      "the in-memory implementation of the Store interface DECLARED IN STORE.GO
+                           IN THIS SAME PACKAGE"
+    workapi/memory.go     "reference Store, ErrNotFound, ErrExists directly, DO NOT REDECLARE"
+    taskapipro/memory.go  "reference Store, ErrNotFound, ErrExists directly, DO NOT REDECLARE"
+    taskapi/memory.go     "implementation of the Store interface FROM STORE.GO ... DO NOT REDECLARE"
+    every store.go        "The Store INTERFACE only — no implementation in this file" / "A
+                           CONTEXT-AWARE Store INTERFACE"
+
+    The ownership is written in the spec in plain English, and the extractor reads past it. That is
+    a better fix than a verb heuristic and a worse look for the extractor.
+
+THE RULE
+    A symbol stays in `required` unless the SAME purpose that names it also disclaims it. Disclaimer
+    markers, case-insensitive, searched in the purpose text: "do not redeclare", "declared in",
+    "from store.go"-style "from <file>.go", "implementation of", "implements", "satisfy/satisfies".
+    Applied only to symbols another SAME-DIRECTORY entry also promises — an unambiguous symbol is
+    never dropped, whatever words surround it.
+
+SCORING — static, derived, no draws
+    MUST MOVE      internal/store/memory.go loses `Store` in all four specs (ledger, workapi,
+                   taskapipro, taskapi) = 4 entries changed.
+    MUST NOT MOVE  every store.go KEEPS `Store`. If a rule drops it there too, it is the symmetric
+                   rule the FINDING warned about — it disarms the owner as well as the borrower —
+                   and it MUST BE REJECTED, not tuned.
+    MUST NOT MOVE  no other entry in the WHOLE spec directory changes its demand set. Any other
+                   change means the markers are matching prose they should not, and the last edit
+                   taught me that a three-spec check is not a spec-directory check.
+
+    Endpoint: exactly 4 entries change, all memory.go, all losing exactly {Store}. Not "at least 4".
+
+WHAT THIS CANNOT REACH — stated first, because it is the part that matters
+    The archive says the model REFUSED this demand in 5 of 6 occurrences and the harness shipped the
+    refusal anyway. So the gate is not what puts the sibling's content in the wrong file; the model
+    is, five times out of six. This edit buys one saved draw per occurrence and removes the 1-in-6
+    path where the gate itself pushed the interface into the implementer.
+
+    PREDICT THEREFORE: the stub/consolidation rate on artifacts is UNCHANGED, within noise. If a
+    later draw shows it falling, that is a result about something else and must not be credited
+    here. Confidence 85% — the 15% is the 1-in-6 path being commoner in shapes the archive
+    under-samples.
+
+    ⚠️ AND NOTHING HERE ADDRESSES THE OPEN QUESTION. How to make the model split a package's content
+    correctly is still unanswered; `scope_rule` forbids consolidation in words and fails 58% of the
+    time, entry order only chooses the victim, and this gate is a bystander that was making it
+    marginally worse.
