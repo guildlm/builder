@@ -105,3 +105,28 @@ MANIPULATION CHECK, run against the live spec while the first control was drawin
     result from this A/B is a result about that sentence or about noise; it cannot be about some
     other thing that moved at the same time, which is the failure mode "run the off-arm from an
     older commit" produces and the reason the switch exists.
+
+SHARPENED — the SPEC delta is negligible; the HARNESS delta is the reason fresh controls are needed
+    I amended this earlier to say the archived pairA draws "predate the spec this A/B draws from" and
+    are therefore not controls. True, but I had not looked at the diff. c7f7c10 changes ONE LINE of
+    ledger-origorder.yaml:
+
+        -      `Account{ID string, Name string}`.
+        +      `Account{ID string, Name string}`, with JSON tags.
+
+    That is in the MODELS entry. It does not touch internal/store at all, so on the spec alone the
+    archived 3-of-3 consolidation would still be representative.
+
+    THE HARNESS IS THE REAL CONFOUND, and it lands exactly here. Since those draws: `_required_decls`
+    widened, so ledger's memory.go entry now demands MemStore where it demanded nothing;
+    `_disclaimed_decls` now removes Store from that same demand; and the generation gate stopped
+    rejecting candidates over it. Three changes, all inside the store package's generation path, all
+    made today. That is why the control must be re-drawn — not the JSON tags.
+
+    ⚠️ Which also means the archived draws are worth MORE than "stale": they are the same spec text
+    for this package under an older harness, so if the fresh controls consolidate 3 of 3 as well,
+    that is evidence today's harness changes did not disturb the effect being tested.
+
+GRADER RE-VALIDATED immediately before use, several commits after it was written:
+    ledger-pairA-p6/p7/p8  CONSOLIDATED    ledger-pairB-p6, ledger-gatefix-1  SPLIT
+    Identical verdicts. No drift.
