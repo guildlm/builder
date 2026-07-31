@@ -1,0 +1,38 @@
+FINDING — 11 of 31 self-tests SAY what they leave alone; that is a fact about summaries, not coverage
+=====================================================================================================
+31 July. A small result, and a second discarded stronger one, in the same session as
+logs/FINDING-a-prose-classifier-that-failed-its-own-ground-truth.txt — and discarded the same way.
+
+WHAT I WANTED TO MEASURE
+    Five of today's six instrument defects were caught by a case the instrument had to FAIL to flag.
+    So: how many of the repo's self-tested tools actually carry such a case?
+
+WHAT IS ACTUALLY MEASURABLE FROM THE SUITE
+    `_selftest_all.sh` prints each tool's own one-line summary. Eleven of the 31 that ran under
+    --fast describe BOTH sides — "flags the door nobody opens, SILENT on the ones tests use",
+    "repeats flagged, progress SPARED", "reports present-but-unnamed only, IGNORES subtests".
+
+    That is a real and useful CONVENTION: a summary that names what the tool leaves alone tells the
+    next reader what it cannot catch. Eleven tools follow it.
+
+WHAT I NEARLY REPORTED INSTEAD
+    "20 self-tests have no negative case." That claim is FALSE and I checked before writing it,
+    against a tool whose tests I wrote myself this morning:
+
+        _repair_take_audit.py — summary is bare "self-test: OK", so the classifier put it in the
+        20. Its self-test contains FOUR negative cases: a qualified mention (http.Handler) claimed
+        by neither extractor, an unexported name claimed by neither, prose emphasis rejected by the
+        MixedCaps guard, and a symbol the donor was also promised being correctly refused.
+
+    The classifier was reading SUMMARY STRINGS and I was about to read it as TEST COVERAGE. Same
+    error as the entry-order classifier an hour ago: a regex over prose, no ground truth, and a
+    number that would have been quoted.
+
+SO THE MEASURED CLAIM IS THE NARROW ONE
+    11 of 31 tools' summaries name a negative case. Nothing here measures how many tools HAVE one,
+    and the two are not the same question. Measuring the real one means reading 31 self-tests, which
+    is a job, not a grep.
+
+    ⚠️ The convention is worth spreading on its own terms — `_repair_take_audit.py` would be better
+    if its summary said "qualified mentions and unexported names are not claimed" instead of "OK",
+    because the summary is what appears in the suite output that gets cited.

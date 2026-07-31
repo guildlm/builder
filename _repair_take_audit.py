@@ -315,7 +315,9 @@ def self_test() -> int:
     if classify(spec2, written2, True)[0]["take"]:
         failures += 1
         print("FAIL: took a symbol the donor's own purpose promised")
-    print("self-test:", "OK" if not failures else f"{failures} FAILED")
+    print("self-test:", "OK — backticked and var/const names claimed; qualified mentions, "
+          "unexported names and prose emphasis are NOT, and a symbol the donor was also "
+          "promised is refused" if not failures else f"{failures} FAILED")
     return 1 if failures else 0
 
 
