@@ -1,0 +1,64 @@
+INTERIM — the first fresh control SPLIT correctly, where three archived controls consolidated 3/3
+==================================================================================================
+31 July, written while controls 2 and 3 are still to be drawn. n=1. NOT a conclusion.
+
+    ledger-pairA-p6   store 2623B   memory   14B      archived, same spec text, OLDER harness
+    ledger-pairA-p7   store 2265B   memory   14B
+    ledger-pairA-p8   store 2620B   memory   14B
+    ledger-parity-ctl-1  store 377B  memory 2282B     TODAY, control arm, parity clause PRESENT
+
+    control-1's store.go holds `type Store interface` and nothing else; memory.go holds MemStore,
+    NewMemStore and all six methods. Graded SPLIT.
+
+WHY THIS MATTERS MORE THAN THE ARM DOES
+The control is the arm that is supposed to REPRODUCE the defect. The pre-registration named this
+outcome in advance: "if the fresh controls do not consolidate, the experiment has no defect to remove
+and the arm result is uninterpretable — that is a real possible outcome and it is now written down as
+one." One control is not three, but the contrast with 3-of-3 is not subtle.
+
+WHAT I CANNOT YET SAY, and the candidates
+    The spec text for this package is UNCHANGED since those draws (c7f7c10 touched one line in the
+    models entry). What changed is the harness, three times, all in this package's generation path:
+        FIX 2       memory.go's demand went from {Store} to {MemStore}
+        _disclaimed_decls   removed Store from memory.go's demand
+        the gate    stopped rejecting memory.go's candidate over Store
+
+    ⚠️ EVERY ONE OF THOSE ACTS ON memory.go, WHICH IS GENERATED SECOND. None of them can change what
+    store.go — generated FIRST — chooses to write. So the obvious causal story does not actually
+    reach the file that used to over-reach, and I do not have a mechanism.
+
+    The honest alternatives, in the order I would bet on them:
+        1. sampling variation. Two candidates at temperature 0.1, and the archived 3/3 is three
+           draws in ONE older process. Three fresh draws could differ by chance.
+        2. something in today's changes reaches store.go by a path I have not traced —
+           `_foreign_owned_decls` widened with FIX 2, which feeds store.go's redeclaration stripper.
+        3. process-level variation: a different mlx_lm.server process, which this campaign has
+           already documented as producing different generations for identical arms.
+
+WHAT HAPPENS NEXT, decided now rather than after seeing controls 2 and 3
+    If all three fresh controls SPLIT: the arm is uninterpretable as pre-registered, and the result
+    of this session becomes "the consolidation defect does not reproduce under today's harness on
+    ledger-origorder" — which needs a bisect to attribute and must NOT be credited to the parity
+    clause, which is not even removed in the control.
+
+    If controls 2 and 3 CONSOLIDATE: control-1 was the outlier, the defect reproduces at 2/3, and the
+    arm is interpretable against that rate.
+
+    Either way the arm draws still run. They are already scheduled and their cost is sunk.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+FILED AS A FINDING BECAUSE "INTERIM-" IS NOT A TRACKED PREFIX — the seventh time this list went stale
+════════════════════════════════════════════════════════════════════════════════════════════
+This file was first written as logs/INTERIM-... and `git commit` said "nothing to commit, working
+tree clean". logs/* is ignored, with negations for PENDING, PREDICTION, FINDING, RESULT, NOTE and
+PREREG. INTERIM is not among them, so the file existed on disk and nowhere else.
+
+.gitignore documents six previous occasions of exactly this, and the sixth says the mechanism is not
+the point: "five of the six were a new KIND of record; this one is a new NAME for a record already
+covered in spirit, which is the whole failure."
+
+Mine is the seventh and it is that same shape — an interim observation is a FINDING, and it did not
+need a new prefix. So the fix is a RENAME, not a seventh negation line. Adding `!logs/INTERIM-*.txt`
+would have made the list longer and the rule weaker, which is what the last six notes each did.
+
+Caught the way all six were: the commit said "nothing to commit" and I read it instead of retrying.
