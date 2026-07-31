@@ -1,0 +1,50 @@
+RESULT — the gate demand is gone, the saved draw is visible, and the stub is exactly where it was
+==================================================================================================
+31 July. One ledger draw, fresh mlx_lm.server pid 7598, spec order unchanged (memory.go entry 5,
+store.go entry 6 — the swapped arm where the demand bit). Pre-registration:
+logs/PREREG-one-draw-confirms-the-gate-line-is-gone.txt, written before the draw.
+
+PRIMARY — ✓ HELD, and it is binary
+    generate internal/store/memory.go (6/19)
+        best-of-N gen: kept candidate 1 of 2
+
+    No "rejected gen candidate N: missing promised Store". The first candidate was accepted
+    outright.
+
+    THE SIX NEGATIVE CONTROLS, all drawn before the fix, all the same shape:
+        ledger-pairB-p6      2 rejections
+        ledger-pairB-p7      2
+        ledger-pairB-p8      2
+        ledger-order1        2
+        taskapipro-pairB-t1  1
+        workapi-pairB-w1     2
+
+    Every prior draw of this shape logged it; this one does not. And the second half of the claim is
+    visible in the same line: those draws spent both candidates and fell back to the first anyway,
+    while this one kept candidate 1 and never drew candidate 2. The wasted sample is actually saved,
+    not just theoretically saved.
+
+THE PRE-REGISTERED NULL — ✓ HELD, which is the part that would have been easy to spin
+    internal/store/memory.go   2307 bytes
+    internal/store/store.go     381 bytes
+
+    Against the archived B arms: p6 2373/377, p7 2374/379, p8 2373/377. This draw sits squarely in
+    that band. The content still collects into whichever file is generated FIRST, exactly as before
+    — the consolidation is unchanged and the gate was, as measured, a bystander.
+
+    ⚠️ THIS IS THE OUTCOME I PRE-REGISTERED AND IT IS STILL THE ONE I HAD TO BE CAREFUL ABOUT. Had
+    memory.go come out thin on this draw I would have had a tidy story ready — "removing the demand
+    let the model split the package" — off a single draw against an outcome that varies 35/67/80% by
+    spec. Writing the expected null down first is the only reason that story is not in this file.
+
+WHAT IS NOW SETTLED ABOUT THE GATE
+    It demanded `Store` from the implementer in every spec, it was never satisfiable by the file
+    being asked, it cost one sample per occurrence, and removing it changes NOTHING about the
+    artifact. A real defect, correctly diagnosed, correctly fixed, and worth almost nothing — which
+    is a fair description of most of what a harness does wrong.
+
+STILL OPEN — and today has now spent four edits without touching it
+    How to make the model SPLIT a package's content correctly. Fix 2 made the repair applicable,
+    fix 1 made the failure visible, the survival run showed the repair works whenever it can run,
+    the gate fix removed a bystander demand. Every one of them is downstream of a model that puts
+    the whole package in the first file it is asked to write.
