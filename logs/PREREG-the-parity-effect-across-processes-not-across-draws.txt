@@ -1,0 +1,55 @@
+PREREG — repeat the parity pair across SERVER PROCESSES, which is the unit that actually varies
+================================================================================================
+31 July, written while the mis-designed version is still finishing. Supersedes the replication design
+in logs/PREREG-withhold-the-parity-clause-from-an-interface-only-file.txt; the ENDPOINT and REJECT
+conditions there stand unchanged.
+
+WHY THE FIRST DESIGN WAS WRONG, measured rather than suspected
+    Both parity controls produced BYTE-IDENTICAL projects — 19 files, two processes, 100 minutes
+    apart. The whole pipeline is a deterministic function of (spec, flags, server process).
+
+    So "3 pairs" was three copies of one observation. Meanwhile the campaign has measured that the
+    SAME prompt in a DIFFERENT server process yields different files — today, by rendering the
+    pre-today and post-today prompts for store.go and finding them byte-identical while the archived
+    and fresh outputs differ. Process is the variance; draw is not.
+
+THE CORRECTED DESIGN
+    For i in 1..3:
+        restart mlx_lm.server (fresh process, same model)
+        draw CONTROL  (GUILDLM_ENABLE_RULES='')                     on specs/ledger-origorder.yaml
+        draw ARM      (GUILDLM_ENABLE_RULES='interface_only_scope') SAME process, same flags
+        record the pid with both rows
+
+    Same six draws, same cost. The pair stays inside one process — that is what makes it a controlled
+    comparison — and the REPLICATION crosses processes, which is what makes three of them worth more
+    than one.
+
+    ⚠️ The pair must not straddle a restart. That is the one thing this design can get wrong, and it
+    is the same requirement the campaign already enforces with `_server_pid.sh` for reused controls.
+
+SCORING
+    PRIMARY   the control/arm difference (control SPLIT, arm CONSOLIDATED) reproduces in all three
+              processes. Predicted 2 of 3, confidence 50%.
+
+    ⚠️ 50% IS NOT HEDGING, IT IS THE HONEST NUMBER. I have exactly one process's worth of evidence
+    and a documented history of process-level variation changing outcomes for identical inputs. A
+    higher number would be borrowed from the byte-identical replication, which measures the pipeline
+    rather than the effect.
+
+    REJECT    if control and arm AGREE in any process — both SPLIT or both CONSOLIDATED — the effect
+              is process-dependent and the single-process result must be reported as such, not as
+              "the parity clause prevents consolidation".
+
+    NOT AN ENDPOINT   convergence (rc). arm-1 failed to converge and both controls went green, but
+              four files differ between the conditions and the failure could originate in any of
+              them. Recorded, never interpreted.
+
+WHAT IT STILL CANNOT REACH
+    One spec. ledger-origorder only. The cross-spec measurement today put workapi at a far higher
+    consolidation rate and showed that ledger's clean bimodality does not generalise, so nothing here
+    licenses a claim about specs other than this one.
+
+    ⚠️ AND IT CANNOT RUN YET. `src/builder.py` and `_parity_ab.sh` are frozen until the current pairs
+    finish — every draw is a fresh process that re-reads the harness, and bash reads a running script
+    incrementally. The queue after the run is: HEAD guard, app-log normalisation, stripper logging,
+    then this.
