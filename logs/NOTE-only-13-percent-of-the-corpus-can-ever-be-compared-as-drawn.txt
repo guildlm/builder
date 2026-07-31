@@ -31,3 +31,27 @@ WHERE THE SNAPSHOTS ARE, AND IT IS NOT RANDOM
 
     Anyone reaching for a corpus-wide as-drawn number should read that as: the answer will be about
     ledger and taskflow, whatever the query says.
+
+WHEN THE SNAPSHOT IS WRITTEN, which decides when the rule becomes usable on a LIVE draw
+    builder.py:5463, at the TOP of `_fix_loop`, before its first `check(out)`:
+
+        _snap = out / ".pre-fix.json"
+        if not _snap.exists():
+            _snap.write_text(json.dumps(written, ...))
+
+    So the ordering in a draw's life is:
+        generate all N files  ->  [.pre-fix.json written]  ->  first toolchain check  ->  fix rounds
+
+    ⚠️ WHICH MEANS THERE IS A WINDOW WHERE THE TREE IS COMPLETE AND THE SNAPSHOT DOES NOT EXIST.
+    arm-3 is in it right now: 19 of 19 files generated, 0 fix rounds, no .pre-fix.json. During that
+    window the on-disk tree IS the as-drawn tree — and there is no way to prove that from the tree
+    itself, which is exactly the inference that produced today's retraction.
+
+    The rule therefore has to be: WAIT FOR THE SNAPSHOT. Not "check whether the fix loop has started"
+    — that is the same fragile reasoning wearing a different hat. `_asdrawn_diff.py` already
+    enforces this by refusing, and refusing is right even in the window where the answer would have
+    been correct.
+
+    "First writer in a tree's life wins, which is the earliest and therefore truest state" — the
+    comment above that line. It is written once, at the only moment the pre-repair state exists in
+    memory, and a draw that dies before its fix loop starts leaves no snapshot at all.
