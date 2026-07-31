@@ -11,9 +11,28 @@ than a partial one.
     source file, every test file, after a fix loop that ran and converged.
 
 WHY THIS IS MORE THAN "generation is deterministic at temp 0.1"
-    That was already known and is about single completions. This says the WHOLE pipeline is a
-    deterministic function of (spec, flags, server process): generation, the deterministic gates, the
-    fix loop's model calls, and whatever the toolchain reported along the way all landed identically.
+    That was already known and is about single completions. This says generation, the deterministic
+    gates, and everything up to convergence landed identically.
+
+⚠️ CORRECTED WITHIN THE HOUR — "THE WHOLE PIPELINE" IS TOO STRONG, AND THE ARMS REFUTE IT
+    I wrote that the whole pipeline is a deterministic function of (spec, flags, server process),
+    naming "the fix loop's model calls" among the things that landed identically. The two ARM draws —
+    same spec, same flags, same process, byte-identical source — diverge at the first fix round:
+    error surface ba9e8bac vs 165d2d35.
+
+    The controls did not contradict it because they never reached the part that varies:
+        ctl-1: "converged to green after fix round 1 (deterministic)"
+    They were fixed by the deterministic gates alone. No model fix call, and no toolchain text ever
+    entered a prompt.
+
+    THE CORRECTED CLAIM: the pipeline is deterministic UP TO the point where run-varying toolchain
+    output enters a prompt. Beyond that it is not, because the output carries wall-clock timestamps
+    from the program's own logging (see
+    logs/FINDING-the-error-surface-hash-is-unique-by-construction-when-tests-serve.txt).
+
+    ⚠️ I generalised from the two cases that happened to stop before the boundary. The evidence was
+    19 identical files; the claim needed a case that crossed into the model-driven loop, and both
+    controls were exactly the cases that could not test it.
 
     So a control/arm pair from the same process is a clean two-condition comparison with zero
     within-condition variance — which is exactly why the parity result reads so sharply, and exactly
