@@ -1,0 +1,36 @@
+PREDICTION — arm-3 drifts from arm-1/arm-2, starts drifting at the same point, and still CONSOLIDATES
+======================================================================================================
+31 July 15:34, written with ctl-3 at 11 of 19 and arm-3 not yet started. Three predictions, and the
+second is the one that tests a mechanism rather than a pattern.
+
+THE SETUP
+    ctl-1 (11:50) == ctl-2 (13:37), byte-identical, 19 files.
+    ctl-3 (15:19) DIFFERS from both, first difference at file 5 of 19 (internal/models/models_test.go).
+    arm-1 (12:20) == arm-2 (13:57), byte-identical, 18 .go files.
+    arm-3 will start around 15:45, LATER in the same process than any draw so far.
+
+PREDICTIONS
+    1. arm-3 differs from arm-1 and arm-2.                                             75%
+       The process has already been shown to drift, and arm-3 is drawn after the drift was observed.
+       The 25% is that whatever changed is not monotonic — nothing here says the process cannot
+       return to an earlier state, and the cache size at ctl-3 (5.70 GB) equals the size at ctl-2,
+       which reproduced.
+
+    2. IF it differs, the FIRST differing file is at or near index 5, as ctl-3's was.               55%
+       This is the mechanism test. If drift onset is a property of the PROCESS STATE at draw time, it
+       should hit the same point in the generation sequence regardless of condition. If onset moves
+       around, the drift is not a clean function of when the draw started, and "the process changed"
+       becomes a weaker description than it currently sounds.
+       55% because I have exactly one observation of an onset and no reason beyond symmetry.
+
+    3. arm-3 still grades CONSOLIDATED.                                                 85%
+       The controls drifted in bytes and held their verdict 3 of 3. The manipulation is a
+       543-character prompt difference on one file, and its effect survived a byte change it did not
+       cause. The 15% is the reject condition from the parity pre-registration: if arm-3 SPLITS, the
+       effect is process-state-dependent and today's 2-of-2 is not a stable result.
+
+⚠️ WHAT WOULD MAKE ME WRONG IN THE MOST USEFUL WAY
+    Prediction 3 failing. Predictions 1 and 2 are about an artefact of the server; prediction 3 is
+    about whether the thing this whole experiment measured is real. A drifted arm that SPLITS would
+    mean the parity effect and the drift are entangled, and the six draws of today's A/B would need
+    re-reading rather than extending.
