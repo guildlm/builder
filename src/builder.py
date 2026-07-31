@@ -5190,6 +5190,23 @@ def _resample_temperature(attempt: int) -> float | None:
     return base + step * attempt
 
 
+def _stripped_names(before: str, after: str) -> list[str]:
+    """The declarations strip_redeclarations removed, derived by difference.
+
+    THE STRIPPER IS A DETERMINISTIC EDIT TO MODEL OUTPUT and until 31 July it recorded
+    only THAT it had run, never WHAT it removed. Measured that day: 526 stripping events
+    across 276 of 779 archived log files, every one of them anonymous — and a second call
+    site in the fix path that printed nothing at all, so its count is not recoverable even
+    in principle.
+
+    That matters because "the stripper removed what the model wrote" is a live hypothesis
+    for the EMPTY-file defect, and it cannot be tested against a record that does not name
+    the symbols. This buys FUTURE evidence only; nothing before today is recoverable.
+    """
+    return sorted((top_level_decls(before) | method_decls(before))
+                  - (top_level_decls(after) | method_decls(after)))
+
+
 def _sample_clean(
     coder: Coder,
     prompt: str,
@@ -5222,7 +5239,9 @@ def _sample_clean(
             # leaves behind is pruned by goimports on write.
             stripped = strip_redeclarations(last, sibling_decls)
             if stripped != last:
-                _log(f"    stripped redeclared symbols from {what} candidate")
+                gone = _stripped_names(last, stripped)
+                _log(f"    stripped redeclared symbols from {what} candidate"
+                     + (f": {', '.join(gone)}" if gone else " (no top-level decl removed)"))
                 last = stripped
         if _is_clean(last, is_go, toolchain, sibling_decls, require_assertions,
                      required_decls, module, previous):
@@ -5303,7 +5322,16 @@ def _sample_verified_fix(
     for attempt in range(max(1, candidates)):
         cand = extract_code(coder.generate(prompt))
         if is_go and sibling_decls:
+            # SECOND CALL SITE, and until 31 July it was silent. This one runs on every FIX
+            # candidate inside the loop, so it is the busier of the two — and the only evidence
+            # it had ever run would have been a line it did not write. The message says "fix"
+            # so the two sites stay distinguishable in a log.
+            _before = cand
             cand = strip_redeclarations(cand, sibling_decls)
+            if cand != _before:
+                _gone = _stripped_names(_before, cand)
+                _log("    stripped redeclared symbols from fix candidate"
+                     + (f": {', '.join(_gone)}" if _gone else " (no top-level decl removed)"))
         last = cand
         if not keeps_referenced(cand):
             continue

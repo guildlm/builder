@@ -141,3 +141,72 @@ def test_method_name_sharing_across_types_is_kept():
 def test_gomod_content_deterministic():
     from src.builder import _gomod_content
     assert _gomod_content("guildlm.dev/taskapi") == "module guildlm.dev/taskapi\n\ngo 1.23\n"
+
+
+# ── what the stripper REMOVED, by name (31 July) ────────────────────────────────────
+# Until today both call sites were anonymous: _sample_clean announced that stripping had
+# happened without naming a symbol, and _sample_verified_fix printed nothing at all.
+# Measured across the archive: 526 events in 276 of 779 log files, every one anonymous,
+# and the fix path's count unrecoverable in principle. "The stripper removed what the
+# model wrote" is a live hypothesis for the EMPTY-file defect and could not be tested
+# against a record that does not name the symbols.
+
+def test_stripped_names_reports_vars_and_methods():
+    from src.builder import _stripped_names
+    before = ("package x\n\ntype Store interface{}\n\nvar ErrX = 1\n\n"
+              "func (m *Mem) Get() {}\n")
+    after = "package x\n\ntype Store interface{}\n"
+    assert _stripped_names(before, after) == ["ErrX", "Mem.Get"]
+
+
+def test_stripped_names_is_empty_when_nothing_went():
+    from src.builder import _stripped_names
+    code = "package x\n\nfunc A() {}\n"
+    assert _stripped_names(code, code) == []
+
+
+def test_stripped_names_does_not_report_additions():
+    """A candidate that GAINS a declaration must not report it as removed — the set
+    difference runs one way and this pins the direction."""
+    from src.builder import _stripped_names
+    before = "package x\n\nfunc A() {}\n"
+    after = "package x\n\nfunc A() {}\n\nfunc B() {}\n"
+    assert _stripped_names(before, after) == []
+
+
+def test_generation_site_logs_the_names(capsys):
+    """Drives the real _sample_clean and reads what it printed. The control is the
+    assertion that the NAME appears, not merely that a message did — the old line
+    already said stripping had happened."""
+    from src.builder import _sample_clean, GoToolchain, FakeCoder
+    coder = FakeCoder({"main.go": [
+        "```go\npackage main\n\nvar ErrNotFound = 1\n\nfunc main() {}\n```",
+    ]})
+    _sample_clean(coder, "TARGET_FILE: main.go\n", True, 1, GoToolchain(), "gen",
+                  {"ErrNotFound"})
+    # _log writes to STDERR, not stdout
+    out = capsys.readouterr().err
+    assert "stripped redeclared symbols" in out
+    assert "ErrNotFound" in out, "the message must NAME the symbol, not just report the event"
+
+
+def test_fix_site_logs_the_names(tmp_path, capsys):
+    """The SECOND call site — _sample_verified_fix — printed nothing at all before today,
+    and it is the busier of the two: it runs on every fix candidate inside the loop.
+
+    This drives it with a real (tiny) Go module so the ground-truth gate has something to
+    run against. The message must say 'fix' so the two sites stay distinguishable in a log
+    that contains both."""
+    from src.builder import _sample_verified_fix, GoToolchain, FakeCoder, _write_file
+
+    (tmp_path / "go.mod").write_text("module example.com/m\n\ngo 1.22\n")
+    written = {"main.go": _write_file(tmp_path, "main.go", "package main\n\nfunc main() {}\n")}
+    coder = FakeCoder({"main.go": [
+        "```go\npackage main\n\nvar ErrTaken = 1\n\nfunc main() {}\n```",
+    ]})
+    _sample_verified_fix(coder, "TARGET_FILE: main.go\n", "main.go", tmp_path, written,
+                         1, GoToolchain(), sibling_decls={"ErrTaken"})
+    err = capsys.readouterr().err
+    assert "stripped redeclared symbols from fix candidate" in err, \
+        "the fix path must announce stripping at all -- it was silent before 31 July"
+    assert "ErrTaken" in err, "and it must NAME the symbol"
