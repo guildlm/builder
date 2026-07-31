@@ -190,3 +190,22 @@ PRE-FLIGHT OF THE QUEUED EDIT — all four target points located in the current 
     fix prompt. They were written separately, they missed the same two token classes separately, and
     they must each be fixed separately — a single shared normaliser would be the better design and is
     NOT what is queued, because redesigning three consumers is a larger change than fixing them.
+
+ALL THREE ARMS, COMPLETE — identical structure, zero repeats detected, every time
+    arm-1   surfaces 8 · distinct 8 · extension rounds [6,7,8] · "seen before" 0
+    arm-2   surfaces 8 · distinct 8 · extension rounds [6,7,8] · "seen before" 0
+    arm-3   surfaces 8 · distinct 8 · extension rounds [6,7,8] · "seen before" 0
+
+    Three draws, byte-identical as drawn, each producing eight distinct surfaces and each granted all
+    three extension rounds on the grounds that every surface was "new". The repeat detector fired
+    zero times in twenty-four opportunities.
+
+    ⚠️ AND IT IS STILL ONE OBSERVATION. The three arms cannot disagree — they are the same input.
+    What the triple gives is that the count is exact and stable, not that the phenomenon is common.
+    The generalising evidence remains the archive sweep: 654 builds, 9 with app-log lines, 5 of those
+    running extension rounds, 0 ever logging a repeat.
+
+    THE SHAPE OF THE WHOLE FINDING, in one line: a spec that asks for latency logging makes its
+    build's error surfaces unique by construction, so the extension-round budget is always spent in
+    full — and the fix is three normalisations, validated on this build's own output at 8 distinct
+    surfaces collapsing to 3.
