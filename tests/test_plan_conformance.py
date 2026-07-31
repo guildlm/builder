@@ -508,3 +508,99 @@ def test_the_real_refusal_from_the_corpus_still_refuses():
         "(/opt/homebrew/Cellar/go/1.25.3/libexec/src/models)\n"
     )
     assert len(after - before) == 1
+
+
+# --------------------------------------------------------------------------- #
+# ...and the repair itself now runs on a failing build too.
+#
+# It used to stay behind the green gate, on the reasoning that a move on a broken
+# tree cannot pass toolchain.check and reverts anyway. True of the old gate;
+# false by measurement once the gate became non-regressing — 52 of 59 red-tree
+# cases carried a correct move that was being discarded on evidence about errors
+# the move neither caused nor could fix.
+#
+# The fixture above keeps the NO-DONOR shape (store.go's purpose also promises
+# MemStore, so the ownership rule correctly refuses to take it) and therefore
+# still warns. This one gives the donor no claim on the symbol, so the move is
+# legitimate — on a project that does not compile.
+# --------------------------------------------------------------------------- #
+
+DONOR_SPEC = Spec(
+    name="conf2", description="d", go_module="guildlm.dev/conf",
+    files=(
+        FileSpec(path="go.mod", purpose="MARK_GOMOD. The module file."),
+        FileSpec(
+            path="internal/store/store.go",
+            # promises the interface ONLY — so MemStore is not its to keep
+            purpose="MARK_STORE. package store. The Store INTERFACE only.",
+        ),
+        FileSpec(
+            path="internal/store/memory.go",
+            purpose="MARK_MEMORY. package store. Implements the `MemStore` type.",
+        ),
+        FileSpec(
+            path="cmd/server/main.go",
+            purpose="MARK_MAIN. package main with func main, wiring the store.",
+        ),
+        FileSpec(
+            path="internal/bad/bad.go",
+            purpose="MARK_BAD. package bad. A helper.",
+        ),
+    ),
+)
+
+
+# The store package must COMPILE here, and the build must fail somewhere else.
+# The first version of this fixture reused CONF_STORE, whose MemStore.Get calls an
+# undefined helper — and the move was refused, because the error TRAVELS WITH the
+# declarations and (file, message) reads it as new in its new home. That is a real
+# limitation of the comparison key, recorded separately; it is not what this test
+# is about, and entangling the two would have tested neither.
+CLEAN_STORE = """package store
+
+type Store interface {
+	Get(id string) (string, error)
+}
+
+type MemStore struct{ items map[string]string }
+
+func NewMemStore() *MemStore { return &MemStore{items: map[string]string{}} }
+
+func (m *MemStore) Get(id string) (string, error) { return m.items[id], nil }
+"""
+
+
+class CleanStoreCoder(ScriptedCoder):
+    """store compiles; a DIFFERENT package does not, so the build cannot converge
+    and the failure has nothing to do with the declarations being moved."""
+
+    def generate(self, prompt: str, temperature: float | None = None) -> str:
+        if "MARK_STORE" in prompt:
+            return CLEAN_STORE
+        if "MARK_BAD" in prompt:
+            return "package bad\n\nfunc F() { undefinedCall() }\n"
+        return super().generate(prompt, temperature)
+
+
+def test_the_repair_runs_on_a_build_that_never_goes_green(tmp_path, capsys):
+    from src.builder import build
+
+    ok, written = build(
+        DONOR_SPEC, CleanStoreCoder(), tmp_path, max_fix_rounds=1,
+        toolchain=GoToolchain(),
+    )
+
+    assert not ok, "the fixture is only meaningful if the build FAILS"
+    # the declaration the plan gave memory.go is now IN memory.go, on a red tree
+    assert "internal/store/memory.go" not in empty_go_files(written)
+    assert "MemStore" in written["internal/store/memory.go"]
+    assert "type MemStore struct" not in written["internal/store/store.go"]
+    # and store.go keeps its own job
+    assert "type Store interface" in written["internal/store/store.go"]
+
+    err = capsys.readouterr().err
+    assert "moved MemStore" in err
+    assert "project still failing, but not for this" in err, (
+        "the log must say the project is still red, or a reader will take the "
+        "move for a fix:\n" + err
+    )

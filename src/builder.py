@@ -5777,10 +5777,20 @@ def build(
     if _fix_loop(tasks, written, out, toolchain, coder, rounds, candidates,
                  module=spec.go_module, retriever=retriever, shots=shots):
         return _finish_green()
-    # The plan-conformance check is NOT gated on convergence. The repair still is
-    # — moving declarations around a tree that does not compile cannot be checked
-    # for regression, so it would revert anyway — but the warning costs nothing
-    # and is the only record that this build lost a planned file.
+    # Plan conformance is NOT gated on convergence — neither the check nor, since
+    # the gate became non-regressing, the repair.
+    #
+    # The repair used to stay behind the green gate on the reasoning that "a move
+    # on a broken tree cannot pass toolchain.check and reverts anyway". That was
+    # true of the old gate and is now false by measurement: over the corpus, 52 of
+    # 59 red-tree cases carried a move that was correct and was being discarded on
+    # evidence about errors the move neither caused nor could fix.
+    # (logs/RESULT-the-non-regressing-gate-recovers-52-of-59.txt)
+    #
+    # A red tree with its planned file filled is still red. This buys plan
+    # conformance on a failing build, not convergence, and it is worth having
+    # because the artifact is what gets read afterwards.
+    _fill_empty_planned_files(spec, written, out, toolchain)
     warn_empty_planned_files(written, green=False)
     return False, written
 
