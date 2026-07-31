@@ -1,0 +1,37 @@
+FINDING — the error that cost today's draw is rare, and the loop usually recovers from it
+==========================================================================================
+31 July. Log-only, no corpus reads (the parity A/B is writing into generated/).
+
+WHAT KILLED THE DRAW
+`generated/ledger-gatefix-1` exhausted 6 fix rounds (5 budgeted) and stopped on a repeating error
+surface, all of it one line:
+
+    vet: internal/api/transactions_test.go:28:75: multiple-value json.Marshal(t1)
+         (value of type ([]byte, error)) in single-value context
+
+A textbook small-model Go error — a two-value call used where one value is expected. The harness
+carries a shelf of deterministic fixers (_fix_errors_wrap, _fix_struct_literal_key, _fix_atomic_inc,
+_fix_unused_var, _requalify_stdlib) and has none for this shape, so the obvious move is to write one.
+
+THE POPULATION SAYS OTHERWISE
+    651 builds segmented across the archive · 161 ended failing
+    27 builds show "multiple-value X(...)" anywhere · of those, 4 ended failing
+
+    So the shape appears in 4% of builds and the fix loop RECOVERS FROM IT 23 TIMES IN 27. It is not
+    a systemic blocker; today's draw is one of the four.
+
+    The call sites are spread, which is the other half of the argument against a fixer:
+        16  s.Totals        9  Decode        1  s.store.ListProjects        1  json.Marshal
+
+    json.Marshal — the one that killed today's draw — appears in exactly ONE build in the whole
+    archive. A deterministic fixer written from today's failure would be written for an n of 1.
+
+CONCLUSION: NOT WORTH BUILDING, on these numbers
+    A fixer here would address a shape the loop already resolves 85% of the time, and the specific
+    instance that motivated it has occurred once. The right response to today's failed draw is to
+    note it and move on, not to grow the deterministic shelf by one more pattern.
+
+⚠️ THE POINT OF WRITING THIS DOWN is that "the fix loop burned six rounds on one line" is a
+compelling story, and I went looking for the fixer before I went looking for the frequency. The
+frequency took one command and killed the idea. Same shape as the stripper decision earlier today:
+plausible mechanism, tiny population, don't build it.
