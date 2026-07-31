@@ -635,6 +635,18 @@ def rule_disabled(name: str) -> bool:
     return name in {p.strip() for p in raw.split(",") if p.strip()}
 
 
+# "The Store INTERFACE only — no implementation in this file". Strict on purpose:
+# a bare "no implementation" also matches ratelimit's and taskapipro's TEST
+# purposes ("no implementation can make that pass"), which mean no POSSIBLE
+# implementation, not none in this file. Those are test files and the rule is not
+# emitted for test files, so the loose version would have been harmless AND wrong
+# — it would have measured clean. Nine entries match today, all ledger store.go.
+_INTERFACE_ONLY_RE = re.compile(
+    r"\b(?:interface|abstraction)\s+only\b|no\s+implementation\s+in\s+this\s+file",
+    re.I,
+)
+
+
 def rule_enabled(name: str) -> bool:
     """True when GUILDLM_ENABLE_RULES names this default — the opt-IN side.
 
@@ -962,12 +974,24 @@ def _generate_prompt(
     # methods of an interface and STUB the rest (return ErrNotImplemented / panic
     # / TODO), which either references an undefined symbol or leaves the type not
     # satisfying its interface. Demand full implementations.
-    completeness_rule = (
-        "IMPLEMENT EVERY function and method FULLY with real working logic — do "
-        "NOT stub or leave placeholders (no `return ErrNotImplemented`, no "
-        "`panic(\"not implemented\")`, no TODO). If several methods are similar "
-        "(e.g. the Project methods mirror the Task methods), write out each one "
-        "completely. Never reference a symbol you have not defined or imported.\n"
+    # ...and the PARITY half of it tells a file holding only an interface to make
+    # every method "EXIST ON BOTH the interface and its implementation" — i.e. to
+    # write the implementation, in a file whose purpose says "The Store INTERFACE
+    # only — no implementation in this file". Rendered and read, 31 July: that
+    # sentence and STAY-IN-YOUR-LANE sit 900 characters apart in the same prompt,
+    # and the one that says write-it arrives first, twice, and more specifically.
+    #
+    # Gated behind a switch so it ships zero blast radius until an A/B earns it,
+    # exactly like mutex_intra. OFF (default) = today's wording, the arm already
+    # measured at 3/3 consolidation on ledger's original order. ON = the parity
+    # sentence is withheld from an interface-only file.
+    #
+    # ⚠️ NOT expected to be the cause. The implementer file receives the SAME
+    # parity sentence, disclaims the interface just as plainly, and does NOT write
+    # it (verified: both first-files get PARITY=YES and LANE=YES). The clause is
+    # demonstrably not sufficient to cause consolidation, so removing it may not
+    # be sufficient to prevent it — see logs/PREREG-withhold-the-parity-clause...
+    parity_clause = (
         "INTERFACE/IMPL PARITY & COMPLETENESS: implement every method an "
         "interface declares, and make sure every method a caller reaches through "
         "the type (a sibling file, or the method names listed in this file's own "
@@ -975,7 +999,19 @@ def _generate_prompt(
         "two disagree, ADD the missing method — never drop it from the other side "
         "to make them 'match': a `var _ Iface = (*Impl)(nil)` assertion still "
         "passes when a required method is absent from BOTH sides, yet a caller's "
-        "`x.Method` is then undefined and the build fails.\n\n"
+        "`x.Method` is then undefined and the build fails.\n"
+    )
+    if rule_enabled("interface_only_scope") and _INTERFACE_ONLY_RE.search(
+        task.spec.purpose or ""
+    ):
+        parity_clause = ""
+    completeness_rule = (
+        "IMPLEMENT EVERY function and method FULLY with real working logic — do "
+        "NOT stub or leave placeholders (no `return ErrNotImplemented`, no "
+        "`panic(\"not implemented\")`, no TODO). If several methods are similar "
+        "(e.g. the Project methods mirror the Task methods), write out each one "
+        "completely. Never reference a symbol you have not defined or imported.\n"
+        f"{parity_clause}\n"
         if task.spec.path.endswith(".go") and not task.spec.path.endswith("_test.go")
         else ""
     )
