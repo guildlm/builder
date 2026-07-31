@@ -1,0 +1,56 @@
+RESULT — withholding the parity clause CAUSED consolidation. The hypothesis was backwards.
+===========================================================================================
+31 July. Pairs 1 and 2 of 3 complete; pair 3 still drawing. Pre-registration:
+logs/PREREG-withhold-the-parity-clause-from-an-interface-only-file.txt, written before the switch
+existed, predicting the ARM would split on at least 2 of 3 at 45% confidence.
+
+    ledger-parity-ctl-1   SPLIT          store  413B   memory 2315B    clause PRESENT
+    ledger-parity-ctl-2   SPLIT          store  413B   memory 2315B    clause PRESENT
+    ledger-parity-arm-1   CONSOLIDATED   store 2295B   memory   14B    clause WITHHELD
+    ledger-parity-arm-2   CONSOLIDATED   store 2295B   memory   14B    clause WITHHELD
+
+    The arm's store.go holds Store AND MemStore AND all six methods; its memory.go is `package store`
+    and nothing else. The control's store.go holds the interface only.
+
+    ✗ PREDICTION REFUTED, AND IN THE OPPOSITE DIRECTION. I predicted the arm would SPLIT because the
+      parity sentence tells an interface-only file to write an implementation. Removing that sentence
+      is what PRODUCED the stub. The clause is protective here, not causal.
+
+⚠️ THE DRAWS WITHIN EACH CONDITION ARE BYTE-IDENTICAL — read this before reading the counts
+    shasum internal/store/store.go
+        28d42aac…  ctl-1        28d42aac…  ctl-2      identical
+        e926b654…  arm-1        e926b654…  arm-2      identical
+    memory.go likewise identical across the two controls.
+
+    Generation is deterministic at this temperature, which this campaign has measured before. So
+    "2 of 2" is the SAME draw twice: it replicates the pipeline, not the model's variability. The
+    effective n is ONE per condition. What the pairs establish is that a 543-character difference in
+    one prompt flips this outcome with everything else held identical — a clean controlled
+    comparison — and NOT how often that would hold across specs, processes or temperatures.
+
+    ⚠️ Pair 3 will also be byte-identical unless something else moves. Running it anyway, because
+    the runner was started with 3 and stopping early to avoid a foregone number is worse than the
+    two minutes it costs.
+
+THE TENSION THIS CREATES, which I cannot resolve and will not paper over
+    archived A arms, OLD harness, clause PRESENT   ->  CONSOLIDATED 3/3
+    fresh controls, NEW harness, clause PRESENT    ->  SPLIT        2/2
+    fresh arms,     NEW harness, clause WITHHELD   ->  CONSOLIDATED 2/2
+
+    The clause alone does not determine the outcome: with it present, the old harness consolidated
+    and the new one splits. So today's harness changes ALSO matter, and the clause appears to be
+    necessary-but-not-sufficient for the correct split under the current code.
+
+    I do not have a mechanism for the first row versus the second. The changes I made today act on
+    memory.go, which is generated SECOND, and cannot alter what store.go writes first. That gap was
+    already recorded when control-1 came in, and this result does not close it.
+
+WHAT IT COSTS THE ARM I ALMOST SHIPPED
+    The switch was built to be turned ON. Had I shipped `interface_only_scope` as a default on the
+    strength of the finding that motivated it, I would have reintroduced the stub on the spec this
+    campaign draws most. The pre-registration's value was not the prediction — that was wrong — it
+    was fixing the endpoint and the reject conditions before the table existed.
+
+ALSO OBSERVED
+    arm-1 exited rc=1 (never converged) where both controls exited rc=0 and went green. One draw,
+    and convergence was not an endpoint here, so it is recorded and not interpreted.
