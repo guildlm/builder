@@ -74,3 +74,28 @@ AND THE VERDICT SURVIVES THE DRIFT ON BOTH FILES
     That is the useful form of this refutation: the thing I predicted (identical bytes) was wrong,
     and the thing the experiment measures (the verdict) was unaffected. Had the endpoint been "bytes
     identical", today's parity result would have collapsed at the third control.
+
+⚠️ IT IS NOT ELAPSED TIME — the obvious hypothesis, measured and killed before it was written down
+    same-condition comparisons, by gap between draw starts:
+
+        ctl-1 vs ctl-2    107.2 min    28d42aac vs 28d42aac    IDENTICAL
+        ctl-2 vs ctl-3    101.5 min    28d42aac vs 7c9f06c7    DIFFERS
+        ctl-1 vs ctl-3    208.7 min    28d42aac vs 7c9f06c7    DIFFERS
+        arm-1 vs arm-2     96.4 min    e926b654 vs e926b654    IDENTICAL
+
+    A 107-minute gap reproduced EXACTLY and a 101-minute gap did not. So "determinism decays after
+    roughly N minutes" is refuted by its own data, and I was one sentence away from writing "the
+    threshold is somewhere between 107 and 209 minutes".
+
+WHAT THE INTERVALS ACTUALLY CONTAINED
+    ctl-1 -> ctl-2   one intervening build (arm-1, 77 min, 8 fix rounds, failed)
+    ctl-2 -> ctl-3   one intervening build (arm-2, 82 min, 8 fix rounds, failed)
+
+    The two intervals are near-identical in elapsed time AND in intervening work, and one reproduces
+    while the other does not. Cumulative usage is the surviving candidate — ctl-2 followed 2 builds,
+    ctl-3 followed 4 — but that is n=1 at the transition and it is a guess.
+
+    ⚠️ SO THE MECHANISM IS UNKNOWN AND THE HONEST CLAIM IS NARROW: within-process reproduction held
+    across two ~100-minute gaps and failed across a third. That is the whole of it. Anything about
+    thresholds, warm-up, cache growth or load is unsupported by these four points, and the campaign
+    already has one unanswered mechanism question of exactly this shape.
