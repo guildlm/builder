@@ -1,0 +1,34 @@
+PREDICTION — ctl-3 carries a real compile error and will not converge like ctl-1 and ctl-2 did
+===============================================================================================
+31 July 15:47, written with ctl-3 at 18 of 19 files and its fix loop not yet started.
+
+THE DEFECT, found by following the drift into the code rather than the byte counts
+    ctl-3's store.go declares:      Balances() map[string]models.Money
+    models.go (BYTE-IDENTICAL in both trees) defines Account, Posting, Transaction — and NO Money.
+    It IMPORTS money.Money from internal/money.
+
+    So `models.Money` does not exist. ctl-3's store package cannot compile: undefined: models.Money.
+    ctl-1 wrote money.Money and compiles.
+
+    The drift did not merely change bytes. It produced BROKEN CODE in one of the three controls.
+
+PREDICTIONS
+    1. ctl-3 does NOT converge in fix round 1.                                          90%
+       ctl-1 and ctl-2 both logged "converged to green after fix round 1 (deterministic)". ctl-3 has
+       an undefined type reference across a package boundary. The 10% is that a deterministic gate
+       already handles exactly this — `_requalify_stdlib` and the requalify gates exist to repair
+       bare/wrong package qualifications, and this is that shape.
+
+    2. IF the fix loop rewrites store.go, the parity VERDICT is at risk.                  —
+       The endpoint is "does store.go declare MemStore". A fix that moves declarations to resolve the
+       undefined type could change that, and every prior check of as-drawn vs shipped agreed only
+       because no control had ever needed real repair. I am NOT predicting the verdict flips — I am
+       recording that this is the first draw where it COULD, and that the 21-of-21 and 4-of-4
+       agreement measured earlier does not cover this case.
+
+WHY THIS MATTERS BEYOND ONE DRAW
+    The parity result reads "controls 3/3 SPLIT". If ctl-3 is a control that does not compile, the
+    3/3 is three draws of which one is a broken program that happens to grade SPLIT. That is still a
+    valid verdict — the grader asks a plan-conformance question, not a correctness one — but it is a
+    materially weaker third control than the first two, and the write-up must say so rather than
+    counting it as an equal.
