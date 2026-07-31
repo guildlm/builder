@@ -158,3 +158,24 @@ THE CORPUS GREW BY SIX TREES AND THE ENDPOINT DID NOT MOVE
     The pre-registered endpoint was "take EMPTY falls from 10 to 1, not 0". On a corpus with three
     fresh instances of the defect it reads 66 movable / 1 EMPTY, and the survivor is still the one
     named in advance for a reason that has nothing to do with the regex.
+
+VERIFIED IN THE CODE, not only through the metrics — 16:49
+    FIX 2, `_required_decls`:
+        _REQUIRED_BACKTICK_RE present     True
+        _REQUIRED_VARCONST_RE present     True
+        MixedCaps guard present           True
+        "Implements the `MemStore` type"          -> ['MemStore']      (the widening works)
+        "Treat an EMPTY env var EXACTLY like ..."  -> []               (the guard holds)
+
+    FIX 1, `build()`:
+        warn_empty_planned_files call sites        ['True', 'False']   (both exits)
+        _fill_empty_planned_files on the failing exit               True
+
+    Every claim made about these two fixes today is now confirmed three ways: by the corpus metric
+    (WIDE take-EMPTY 1 on 132 trees), by the test suite (435 passing, with control checks that fail
+    when each call is removed), and by reading the shipped source.
+
+    ⚠️ THE THIRD WAY MATTERS BECAUSE THE FIRST TWO SHARE A FAILURE MODE. A metric and a test can both
+    be computed against a build that is not the one shipping — which is, in a different costume,
+    exactly the error that cost this afternoon. Reading the function that will run is the only check
+    that does not route through an instrument.
