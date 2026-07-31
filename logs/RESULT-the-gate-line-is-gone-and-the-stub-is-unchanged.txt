@@ -29,8 +29,26 @@ THE PRE-REGISTERED NULL — ✓ HELD, which is the part that would have been eas
     internal/store/store.go     381 bytes
 
     Against the archived B arms: p6 2373/377, p7 2374/379, p8 2373/377. This draw sits squarely in
-    that band. The content still collects into whichever file is generated FIRST, exactly as before
-    — the consolidation is unchanged and the gate was, as measured, a bystander.
+    that band. The outcome is unchanged and the gate was, as measured, a bystander.
+
+    ⚠️ CORRECTION, WRITTEN MINUTES AFTER THE PARAGRAPH ABOVE. I first wrote that "the content still
+    collects into whichever file is generated FIRST — the consolidation is unchanged". That is the
+    wrong word for what this draw produced. Opening the two files:
+
+        store.go   package store + the Store interface, six methods, and nothing else
+        memory.go  MemStore, NewMemStore, and all six methods implementing it
+
+    THAT IS THE CORRECT SPLIT. There is no consolidation and no stub in this artifact. The archived
+    B arm is the same (store.go interface-only, memory.go six methods), and the A arm — the original
+    entry order — is the broken one: memory.go 14 bytes, store.go 2623.
+
+    I read byte counts, matched them to a band, and reached for the word that had described that
+    band all week, without opening either file. Ledger's reorder was recorded LAST NIGHT as an
+    improvement, in my own words, "store.go keeps its interface" — so I contradicted a finding I had
+    written ten hours earlier by trusting a proxy over the artifact.
+
+    The claim that survives is the one that was pre-registered: the outcome is UNCHANGED by the gate
+    fix. What is unchanged here happens to be correct behaviour, not a defect.
 
     ⚠️ THIS IS THE OUTCOME I PRE-REGISTERED AND IT IS STILL THE ONE I HAD TO BE CAREFUL ABOUT. Had
     memory.go come out thin on this draw I would have had a tidy story ready — "removing the demand
@@ -42,6 +60,12 @@ WHAT IS NOW SETTLED ABOUT THE GATE
     being asked, it cost one sample per occurrence, and removing it changes NOTHING about the
     artifact. A real defect, correctly diagnosed, correctly fixed, and worth almost nothing — which
     is a fair description of most of what a harness does wrong.
+
+AND THE CORRECTION SHARPENS THE OPEN QUESTION RATHER THAN BLURRING IT
+    ledger, in its current entry order, SPLITS THE PACKAGE CORRECTLY — reproducibly, across the
+    three archived B arms and this one. The stub is what the OTHER order produces (A arm: memory.go
+    14 bytes) and what the other specs still produce. So the failure is not "the model cannot split
+    a package"; it is narrower and more tractable than the phrase I have been using all week.
 
 STILL OPEN — and today has now spent four edits without touching it
     How to make the model SPLIT a package's content correctly. Fix 2 made the repair applicable,
