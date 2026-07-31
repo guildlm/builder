@@ -1,0 +1,40 @@
+FINDING — ledger's spec REQUIRES nondeterministic output, and the model implements it correctly
+================================================================================================
+31 July. Completes the causal chain behind "ledger 22/22, workapi 0/56" measured an hour ago.
+
+THE SPEC ASKS FOR IT, IN WORDS
+    specs/ledger-origorder.yaml, internal/api/middleware.go:
+
+        "A `Logging` middleware that records method, path, resolved status (via a statusRecorder
+         wrapping http.ResponseWriter and defaulting to 200) and LATENCY."
+
+    And the generated middleware does exactly that:
+
+        start := time.Now()
+        log.Printf("%s %s -> %d (%s)", r.Method, r.URL.Path, rec.status, time.Since(start))
+
+    `log.Printf` prefixes a wall-clock timestamp by default, and `time.Since(start)` is a fresh
+    duration on every request. So every test that serves a request through the chain emits a line
+    that CANNOT be the same twice.
+
+THE CHAIN, end to end
+    spec requires latency logging
+      -> model implements it correctly (this is not a model defect)
+        -> `go test` output contains a timestamp and a duration per request
+          -> `_canonical_toolchain_output` does not strip them  -> the FIX PROMPT varies per run
+          -> `_error_signature` does not strip them             -> repeat detection cannot fire
+          -> `_error_keys` does not strip them                  -> the repair gate refuses falsely
+
+    That is why ledger is 22 of 22 and workapi and taskapipro are 0 of 104: their specs do not ask
+    for latency logging. The distribution I measured is not a property of the model or of luck — it
+    is a property of what each spec asks for.
+
+WHY THE FIX HAS TO BE IN THE HARNESS
+    The obvious alternative — stop asking specs for latency logging — is wrong. A service that logs
+    request latency is ordinary and correct, and the campaign's whole premise is generating projects
+    a real developer would accept. A harness that can only stay deterministic on specs that never
+    log has narrowed the problem rather than solved it.
+
+    ⚠️ AND NOTE WHAT IS *NOT* BROKEN HERE. The model is right, the spec is reasonable, the generated
+    code is what was asked for. Three harness functions each assume toolchain output is a function of
+    the code, and for any spec that logs a duration it never has been. The assumption is the defect.
