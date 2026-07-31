@@ -32,3 +32,15 @@ WHY THIS MATTERS BEYOND ONE DRAW
     valid verdict — the grader asks a plan-conformance question, not a correctness one — but it is a
     materially weaker third control than the first two, and the write-up must say so rather than
     counting it as an equal.
+
+PREMISE CONFIRMED before the fix loop reported anything
+    grep "type Money" across ctl-3:  internal/money/money.go:9:  type Money int64   — and nowhere else.
+    Files referencing models.Money:  internal/store/store.go, internal/store/memory.go — two files.
+
+    So `Money` is defined in package `money`, and two files in package `store` refer to it as
+    `models.Money`. The reference is undefined; nothing else in the tree defines it. The premise does
+    not depend on reading the build's own output, which is the point of checking it first.
+
+    ⚠️ And note WHICH two files: store.go and memory.go are exactly the two the earlier count flagged
+    as swapping the type's package (money.Money 1->0 and 5->0). The counting and the type check agree,
+    which they need not have — the count could have been produced by an unrelated edit.
