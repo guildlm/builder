@@ -1,0 +1,79 @@
+PREREG — expose grouped var/const members in exported_api(), and what would count as it working
+==================================================================================================
+31 July, written while the cross-process parity run holds src/builder.py. The change is prototyped
+and validated on archived files; this fixes the endpoints BEFORE it is applied, because the
+measurement that motivates it is retrospective and retrospective measurements are the easiest to
+talk yourself into.
+
+THE CHANGE
+    exported_api() keeps single-line `var ErrX = ...` and drops every member of a grouped
+
+        var (
+            ErrInvalid      = errors.New("invalid")
+            ErrInsufficient = errors.New("insufficient funds")
+        )
+
+    because the block's first line is `var (` and `(?:var|const)\s+(\w+)` cannot match `(`. Parse
+    the block; emit its exported members. Prototyped outside the frozen file: all five ledger
+    sentinels appear, the single-line case is unchanged, unexported members are dropped.
+
+THE DEFECT, QUANTIFIED THREE WAYS — all retrospective, all on archived snapshots
+        trees with a snapshot                                    50
+        ...making a CROSS-PACKAGE sentinel reference             29
+        ...where the referenced sentinel does not exist          20   (69% of the 29)
+            repaired by the fix loop                             12
+            STILL broken in the final tree                        8
+
+        and by log, across a much larger and older population:
+        completed builds 854 · 99 (12%) show "undefined: pkg.X" · 53 (6%) a sentinel
+
+    ⚠️ THE 69% AND THE 6% ARE NOT THE SAME MEASUREMENT AND MUST NOT BE QUOTED TOGETHER AS A TREND.
+    69% is of trees that make such a reference at all, as-drawn, on 50 recent snapshotted draws.
+    6% is of every build in the archive, by log, most of them older and without snapshots. The
+    honest summary is: the defect is COMMON at generation, the fix loop repairs about three fifths
+    of it, and the remainder is fatal.
+
+THE SHAPE IS STABLE, which is why this is worth fixing rather than tolerating
+    Five of the eight still-broken trees inspected individually. Every one:
+
+        internal/api/response.go  wants  models.ErrInsufficientFunds
+        models' grouped block     offers ErrInsufficient (plus ErrExists, ErrInvalid, ErrNotFound,
+                                         ErrUnbalanced)
+
+    response.go's choice of name is STABLE across draws and processes; models.go's is NOT. So the
+    failure is not random drift — it is one file deriving a name from the spec's prose ("insufficient
+    funds") while the other abbreviates, with nothing in the prompt to reconcile them.
+
+PRE-REGISTERED ENDPOINTS
+
+  PRIMARY — as-drawn, does the consumer use the name that EXISTS?
+      Draw ledger-origorder with the fix applied. In .pre-fix.json, every `models.ErrX` referenced
+      by internal/api/ must be a name internal/models/ actually declares.
+          PREDICTED: yes. Confidence 70%.
+          Reason for 70% and not higher: the model already reads this block correctly for TYPES —
+          it uses models.Account and models.Transaction — so the channel demonstrably works. What
+          is unproven is whether a name it derives from prose loses to a name it is shown, and this
+          campaign has watched one prompt sentence lose to a model's default before.
+
+  REJECT — if the as-drawn tree still references a nonexistent sentinel, the fix does not do its
+      job, regardless of whether the build goes green. A build can go green because the FIX LOOP
+      repaired the reference; that is the 12-of-20 path and it is not evidence for this change.
+
+  ⚠️ NOT AN ENDPOINT — convergence, and this is the trap most available here. 8 of 20 broken trees
+      never converged, so "it went green" will be tempting to read as success. The fix targets
+      GENERATION. Grade .pre-fix.json, not the tree on disk — the same distinction that invalidated
+      _parity_grade.py this afternoon.
+
+  SECONDARY, free to collect — does the API block actually carry the sentinels in the rendered
+      prompt? That is checkable with zero GPU immediately after the edit and is a precondition,
+      not a result: offering a name is not using it.
+
+COST AND SEQUENCING
+    One draw, control conditions, ~20-30 minutes on ledger-origorder. It must NOT run until the
+    cross-process parity experiment finishes — builder.py is hashed and locked for that run, and a
+    prompt change mid-run would split six draws across two harnesses.
+
+    ⚠️ AND IT IS A PROMPT CHANGE, so the corpus's existing draws become non-comparable for anything
+    touching cross-package references. That is the same cost the timestamp fix's third consumer
+    carried, and it is worth paying for the same reason: the alternative is a 6%-of-builds failure
+    class that the harness itself creates.

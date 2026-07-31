@@ -97,3 +97,40 @@ THE FIX, PROTOTYPED OUTSIDE THE FROZEN FILE AND VALIDATED
     ⚠️ AND IT IS A PROMPT CHANGE, so it alters what the model READS. Like the timestamp fix's third
     consumer, it must be verified by a BUILD and not only by a self-test, and its first check should
     be whether the sentinel actually gets used rather than merely offered.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+REACH TURNED INTO A REAL NUMBER — the "46 of 475" upper bound replaced by a measurement
+════════════════════════════════════════════════════════════════════════════════════════════
+The section above says 46-of-475 is an upper bound on reach and not a claim about repair. Measured
+properly, on as-drawn snapshots:
+
+        trees with a snapshot                                    50
+        ...making a CROSS-PACKAGE sentinel reference             29
+        ...where the referenced sentinel does NOT exist          20   (69% of the 29)
+             repaired by the fix loop                            12
+             STILL broken in the final tree                       8
+
+        still broken: ledger-ctl-proc3, ledger-name1, ledger-name2, ledger-name3,
+                      ledger-pairB-p7, ledger-prose2, ledger-tagfix, ledger-xproc-ctl-1
+
+    Today's failing control is one of the eight, which closes the loop on how this was found.
+
+⚠️ THE 69% AND THE 6% ARE DIFFERENT MEASUREMENTS AND MUST NOT BE QUOTED AS A TREND. 69% is of trees
+that make such a reference at all, as-drawn, across 50 recent snapshotted draws. 6% is of all 854
+builds, by log, most older and without snapshots. Together they say: the defect is COMMON at
+generation, the fix loop repairs about three fifths of it, and the rest is fatal.
+
+THE SHAPE IS STABLE, and that is the argument for fixing rather than tolerating it
+    Five of the eight inspected individually. Every single one:
+
+        internal/api/response.go  wants  models.ErrInsufficientFunds
+        models' grouped block     offers ErrInsufficient, ErrExists, ErrInvalid, ErrNotFound,
+                                         ErrUnbalanced
+
+    response.go's chosen name is STABLE across draws and processes. models.go's is NOT — parity
+    ctl-1 wrote the long name, xproc ctl-1 wrote the short one. So one file derives its name from
+    the spec's prose ("insufficient funds") while the other abbreviates, and nothing in the prompt
+    reconciles them. It is not drift; it is two files guessing independently because the channel
+    that would tell them was empty.
+
+Pre-registered before application: logs/PREREG-expose-grouped-sentinels-in-the-cross-package-api-block.txt
