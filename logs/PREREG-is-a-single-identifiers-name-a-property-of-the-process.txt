@@ -65,3 +65,49 @@ PRE-REGISTERED PREDICTIONS, all resolved by pair 2 without any extra cost
     a cache, with anything else that differs between fresh interpreters. This measures the pattern,
     not the mechanism, and the mechanism question — what about a fresh process changes the output —
     has been open since 18 July.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️ P2 WAS MIS-SPECIFIED, AND THE DATA EXPOSED IT 90 SECONDS AFTER I WROTE IT
+════════════════════════════════════════════════════════════════════════════════════════════
+21:02. ledger-xproc-ctl-2's models.go was already on disk (written 20:58:25) when the
+pre-registration was committed. It declares:
+
+    var (
+        ErrInvalid    = errors.New("invalid")
+        ErrNotFound   = errors.New("not found")
+        ErrExists     = errors.New("already exists")
+        ErrUnbalanced = errors.New("unbalanced")
+    )
+
+FOUR sentinels. No insufficient-funds sentinel of ANY name.
+
+P2 ASKED A BINARY QUESTION — "ErrInsufficientFunds or ErrInsufficient?" — AND I HAD ALREADY
+MEASURED THAT A THIRD OUTCOME OCCURS IN 7 OF 25 TREES (28%). The number is in this file, four
+paragraphs above the prediction that ignores it. I collapsed a three-way outcome into a coin flip
+while looking at the table that showed three ways.
+
+    P2 as written    ErrInsufficientFunds 50% / ErrInsufficient 50%
+    P2 as it should  long ~36% / short ~36% / NEITHER ~28%
+    OBSERVED         NEITHER
+
+    Scored as written, P2 is REFUTED: the predicted name did not appear. Scored honestly, P2 was
+    not a well-formed prediction, and the correct record is that I mis-specified the outcome space
+    rather than that I was unlucky.
+
+⚠️ AND THE FILE EXISTED BEFORE I PREDICTED ON IT. models.go was written at 20:58:25; the
+pre-registration was committed at 21:01. I did not look — I checked `ctl-2 5/19` and assumed the
+early files were not yet the ones that mattered. That is not a pre-registration, it is a prediction
+made in ignorance of available data, and the two are only the same when the data does not exist yet.
+The honest label for P2 is VOID, not refuted.
+
+WHAT IS STILL GENUINELY OPEN, and was not visible at 21:02
+    P1  arm-2 has not been drawn. Whether it also declares four sentinels — agreeing with ctl-2 —
+        is the endpoint, and it remains untouched by this error.
+    P3  response.go is generated LATER in the spec order and does not exist yet. Whether it writes
+        `models.ErrInsufficientFunds` against a models.go that declares nothing of the kind, and
+        fails the way ctl-1 did, is the conditional test and it is still ahead of the data.
+
+    P3'S ANTECEDENT IS NOW SATISFIED in the broader form: models.go did not declare the long name.
+    The prediction stands as stated — ctl-2 should fail on `undefined: models.ErrInsufficientFunds`
+    — and it is now a sharper test than when written, because the sentinel is not merely misnamed
+    but absent.
