@@ -1,0 +1,31 @@
+PREDICTION — ctl-3 will be byte-identical to ctl-1 and ctl-2, all 19 files
+==========================================================================
+31 July 15:20, written with ctl-3 at 3 of 19 files. Resolves in about 25 minutes.
+
+THE SETUP
+    All three controls are drawn from the same spec, the same flags (GUILDLM_ENABLE_RULES=''), and
+    the SAME SERVER PROCESS — pid 7598, up since 10:08:30 and never restarted. ctl-1 at 11:50, ctl-2
+    at 13:37, ctl-3 at 15:19.
+
+    ctl-1 and ctl-2 are already byte-identical across all 19 files, measured by hash.
+
+PREDICTION
+    ctl-3 is byte-identical to ctl-1 in all 19 files.                                    93%
+
+    The 7% is not a hedge about determinism — it is about the two things that could differ without
+    contradicting it: the fix loop's ORDER instability (measured today: two deterministic-fix lines
+    swapped between the arms with no effect on output), and the possibility that ctl-3's fix loop
+    reaches a stage the earlier controls did not. Both controls converged in fix round 1 via the
+    deterministic gates, so neither ever entered the model-driven loop where today's timestamp noise
+    lives. If ctl-3 does, the output could differ for a reason already documented.
+
+WHAT IT TESTS THAT ctl-1 vs ctl-2 DID NOT
+    Elapsed time. ctl-1 and ctl-2 are 107 minutes apart; ctl-3 adds another 102, so the server has
+    served two more full builds and roughly 3.5 hours of inference between the first and last
+    control. If determinism is a property of the PROCESS rather than of its recent state, three
+    controls spread across the process's life should be identical.
+
+    ⚠️ And if ctl-3 DIFFERS, that is the more interesting outcome: it would mean within-process
+    determinism decays with use, which nothing in this campaign has tested and which would undercut
+    the 30 July result's "within-process floor is measured at zero" — measured there on two draws
+    close together.
