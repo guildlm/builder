@@ -27,6 +27,13 @@ SCORING THE THREE PRE-REGISTERED CLAIMS
     models.ErrInsufficientFunds; _fail-workapi-0712014714 has an unused variable in worker_test.go.
     Genuine failed artifacts, not an environment artifact of running the check today.
 
+⚠️ CORRECTED 31 July, later the same day: 59 IS 57 PLUS TWO OF SOMETHING ELSE. The paragraph above
+says all 59 "reverted ... not because the move was bad but because the tree was already red". The
+first run logged only 57 refusal lines. Two cases — taskapi-15b-base's internal/api/tasks.go among
+them — were never ATTEMPTED: movedecls exits non-zero or empty and the pass `continue`s with no log,
+so they would come back REVERTED under any gate, including one that accepted everything. See
+logs/FINDING-reverted-conflated-two-outcomes.txt. The gate's addressable population is 57.
+
 WHAT IT SETTLES — THE THIRD QUESTION, AND FIX 1'S SHAPE
 The repair only ever runs at `_finish_green`, so the operative population is the green one: WHEN THE
 PASS GETS TO RUN, IT WORKS, 11 OF 11, WITH NOTHING REVERTED. The failure mode was never that the

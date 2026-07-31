@@ -1,0 +1,50 @@
+FINDING — "REVERTED" was two outcomes wearing one label, and it moved the denominator
+=====================================================================================
+31 July, found while the second survival run was in flight, by looking at the one case that came
+back REVERTED under the new gate instead of accepting it as noise.
+
+THE CASE
+    taskapi-15b-base  internal/api/tasks.go  take={'TaskHandler'}   REVERTED in BOTH runs
+
+    It has a donor: internal/api/middleware.go declares TaskHandler — and, remarkably, also contains
+    tasks.go's ENTIRE PURPOSE pasted in as a comment above it. The model, writing middleware.go, took
+    the next file's spec text and implemented it.
+
+    But neither run logged "moved ... into tasks.go" OR "left tasks.go empty". No line at all. The
+    pass never reached its gate: `_fill_empty_planned_files` runs `go run tools/movedecls.go` and, on
+    a non-zero exit or empty stdout, `continue`s SILENTLY.
+
+THE COUNT THAT EXPOSES IT
+    first run   REVERTED rows 59  ·  explicit "does not stay green" refusal lines 57
+    second run  REVERTED rows  1  ·  refusal lines 0  ·  successful moves 32 (and counting)
+
+    So TWO of the 59 were never the gate's decision. They are silent non-attempts, and they would be
+    REVERTED under any gate whatsoever, including one that accepted everything.
+
+WHAT IT CHANGES
+    The pre-registered PRIMARY is "of the 59 RED-BEFORE / REVERTED cases, at least 45 accepted". The
+    achievable maximum is 57, not 59. I am scoring against 45-of-59 AS WRITTEN — moving a goalpost
+    after seeing the direction of travel is exactly the move the pre-registration exists to prevent —
+    and reporting the 57 alongside it so the ceiling is visible.
+
+    ⚠️ AND THE BASELINE SENTENCE WAS WRONG IN THE PRIOR RESULT. logs/RESULT-the-repair-survives-...
+    says "59 cases where the repair KNEW what to move and had a donor holding it, and reverted
+    anyway — not because the move was bad but because the tree was already red". That is true of 57.
+    For the other two the move was never attempted and the reason is unknown; it is a movedecls
+    failure, not a gate decision.
+
+THE INSTRUMENT DEFECT BEHIND IT
+    `_repair_survival.py` classifies by OUTCOME — "is the file still empty" — which cannot separate
+    "the gate refused" from "nothing was tried". Three states are needed and there were two:
+
+        FILLED         moved and accepted
+        REFUSED        moved, checked, put back      <- the gate's decision
+        NOT-ATTEMPTED  movedecls failed, silent      <- not the gate's decision at all
+
+    The pass's own silence is what made this invisible: a `continue` with no log, in a function whose
+    docstring complains that four suite artifacts shipped dead files and "nothing ever said so".
+
+    ⚠️ FOURTH INSTRUMENT DEFECT TODAY, and the fourth found by USING the tool for the next question
+    rather than by re-reading it. The others: the survival self-test asserting the gate it was about
+    to change, --fast running a Go self-test beside a live draw, and the TSV omitting the one column
+    the reject condition needs.
