@@ -1,0 +1,70 @@
+RESULT — 5 of 6 spec-required sentinels are declared 100% of the time. The sixth is 36%.
+==========================================================================================
+31 July, 21:15, while pair 2's control generates. Specs and archived snapshots only, no GPU.
+
+THE MEASUREMENT
+    Every sentinel any spec's purpose names, scored against every archived tree that declares
+    sentinels at all:
+
+        sentinel                    len   declared   trees    rate
+        ErrInsufficientFunds         20          9      25     36%
+        ErrUnbalanced                13         25      25    100%
+        ErrValidation                13         13      13    100%
+        ErrNotFound                  11         43      43    100%
+        ErrInvalid                   10         30      30    100%
+        ErrExists                     9         43      43    100%
+
+    FIVE OF SIX ARE PERFECT, across 13 to 43 trees each. The model declares the exact name the spec
+    asks for, every time, across a month of harness versions and at least three server processes.
+
+    THE ENTIRE DEFECT IS ONE IDENTIFIER. Restricted to ledger, where all five appear together:
+    ErrInvalid, ErrNotFound, ErrExists and ErrUnbalanced are 25/25 exact; ErrInsufficientFunds is
+    9/25, abbreviated to ErrInsufficient 9 times and omitted entirely 7 times.
+
+    That is not general non-compliance and it is not sloppiness. It is one name.
+
+⚠️⚠️ AND n=1 ON THE TREATMENT SIDE, SO NO EXPLANATION IS TESTABLE HERE
+    The obvious reading is length: 20 characters against a next-longest of 13, and the substituted
+    name is the first 15 of them. But there is exactly ONE name of 16+ characters in the entire
+    corpus, and it is the only failing one, so "long names fail" and "this name fails" are the same
+    observation wearing two labels.
+
+        names >= 16 chars   mean rate  36%   n = 1
+        names <  16 chars   mean rate 100%   n = 5
+
+    Every property unique to this identifier explains the data equally well:
+        · it is the longest
+        · it is the only TWO-CONCEPT compound (Insufficient + Funds)
+        · it is the only one with a natural shorter form that reads as complete —
+          `ErrInsufficient` is a plausible Go name; `ErrNot` and `ErrUn` are not
+        · it is the only one whose domain (money) has its own package in these specs
+
+    I CANNOT SEPARATE THEM AND I AM NOT GOING TO GUESS. The honest statement is the localisation,
+    not the cause.
+
+    ⚠️ A TEST EXISTS AND IT IS CHEAP: add a second long sentinel to a spec — say
+    `ErrDuplicateTransaction` — and draw. If it also degrades, length or compounding is implicated;
+    if it does not, the defect belongs to this name specifically. That is a spec change plus one
+    draw, and it is recorded rather than run because the harness and specs are frozen under the
+    cross-process experiment.
+
+WHY THE LOCALISATION IS WORTH HAVING ANYWAY
+    IT BOUNDS EVERY DOWNSTREAM CLAIM MADE TODAY. The cross-package sentinel defect, the 6%-of-builds
+    failure rate, ctl-1's green-to-red flip, P3's confirmed mismatch — all of them trace to this one
+    identifier. None of them is evidence of a broad naming problem, and the record should not read
+    as though it were.
+
+    IT ALSO EXPLAINS WHY THE CONSUMER IS PERFECT. response.go references five sentinels and gets all
+    five right, 26 of 26. It is not that consumers are more careful than declarers in general — four
+    of the five names are trivially right for everyone. The asymmetry is real but it is carried
+    entirely by one name, and the earlier result overstated it by describing "the declarer" and "the
+    consumer" as if the difference were about roles.
+
+    ⚠️ THAT IS A CORRECTION TO logs/RESULT-the-consumer-is-more-faithful-to-the-spec-than-the-
+    declarer-25-of-25.txt. Its numbers stand; its framing generalised from one identifier to a claim
+    about declarers versus consumers, and this measurement does not support that.
+
+WHAT SURVIVES UNCHANGED
+    The spec-phrasing fix still targets this correctly — backticking at the declaration site would
+    put ErrInsufficientFunds into _required_decls, and the gate would reject a candidate that
+    abbreviates or omits it. The fix does not depend on knowing WHY the model abbreviates.

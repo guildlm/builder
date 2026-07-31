@@ -67,3 +67,11 @@ WHY THIS SHARPENS TODAY'S CHAIN RATHER THAN ADDING TO IT
     AND 25 OF 25 IS A CEILING EFFECT. A perfectly stable consumer cannot get more stable, so this
     can only be broken by a future draw, never confirmed further. Pair 2's response.go, when it is
     written, is the 26th trial and the first one predicted in advance.
+
+⚠️ FRAMING CORRECTED — see logs/RESULT-the-defect-is-ONE-identifier-in-the-whole-corpus-and-n-
+equals-1-explains-nothing.txt. The numbers above stand, but "the consumer is more faithful than the
+declarer" generalises from ONE identifier to a claim about roles. Measured across every spec: 5 of
+6 spec-required sentinels are declared 100% of the time (13-43 trees each); only
+ErrInsufficientFunds is 36%. response.go gets five names right because four of them are trivially
+right for every file — the asymmetry is real and is carried entirely by one name, not by the
+declarer/consumer distinction.
