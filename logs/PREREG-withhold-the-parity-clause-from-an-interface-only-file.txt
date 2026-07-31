@@ -75,3 +75,23 @@ WHAT CHANGES
 
     ⚠️ The three archived draws still say something: the shape existed, on this spec's ancestor, in
     another process. That is a reason to run the experiment, not a substitute for its control.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+PRE-FLIGHT, and a trap that would have looked like contamination
+════════════════════════════════════════════════════════════════════════════════════════════
+Before starting the pairs: server pid 7598 matches the one the day's draw used, no draw is in flight,
+and no ledger-parity-* output directory exists, so the runner's three guards are all clear.
+
+⚠️ BUT `GET /v1/models` RETURNS `Qwen/Qwen2.5-3B-Instruct`, WHICH IS NOT THE MODEL THIS SERVER WAS
+STARTED WITH. That endpoint lists what is in the local HuggingFace cache, not what is loaded. The
+startup log settles it:
+
+    10:08:31 GET https://huggingface.co/api/models/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit/...
+
+The server fetched and loaded the 7B coder, which is also the model every draw names in its request.
+No contamination — but "check /v1/models to confirm the right model is serving" is a guard someone
+would write, and it would report the wrong answer with total confidence. The right check is the
+startup line, or the model field in the request the builder actually sends.
+
+Recorded here rather than in a scratch note because _server_pid.sh already exists for exactly this
+class of mistake — a plausible check that returns something else — and this is a second instance.
