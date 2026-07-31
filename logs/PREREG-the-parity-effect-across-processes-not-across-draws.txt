@@ -53,3 +53,20 @@ WHAT IT STILL CANNOT REACH
     finish — every draw is a fresh process that re-reads the harness, and bash reads a running script
     incrementally. The queue after the run is: HEAD guard, app-log normalisation, stripper logging,
     then this.
+
+COST OF THE RESTART, measured so the design is not rejected on a guess
+    From logs/mlx-server-0731.out, this morning's start:
+        httpd up            10:08:30
+        first inference     10:09:09
+        gap                 39 seconds  (model already in the HF cache — "Fetching 9 files" was
+                                         instant, so this is load-into-memory, not download)
+
+    Three restarts -> about 2 minutes of overhead across the whole experiment.
+
+    Against six draws that cost 20 to 77 minutes each — measured today: ctl 19.3 and 30.1 min, arm-1
+    77.0 min — the restart is under 1% of the run. There is no cost argument for keeping the broken
+    replication unit, which is worth stating because "restarting the server between pairs is
+    expensive" is exactly the kind of plausible objection that would have gone unchecked.
+
+    ⚠️ The 39s assumes a warm HF cache. A first-ever load of a model would download weights and take
+    far longer; every process in this experiment uses the same model that is already cached.
