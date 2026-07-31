@@ -42,3 +42,36 @@ THE FIX, and it is not a widening of the comparison
 ⚠️ FIFTH INSTRUMENT DEFECT TODAY, and the second in the gate I shipped this morning (the first being
 the TSV that omitted green_after). All five were found by USING the instrument on the next question.
 Not one was found by re-reading it, and I have re-read these files repeatedly.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+THE FIRST FIX DID NOT WORK — predicted a flip, got none. The second one did.
+════════════════════════════════════════════════════════════════════════════════════════════
+I dropped the goroutine-dump lines: `goroutine N [state]:`, `created by ... in goroutine N`, bare
+hex addresses, `+0x..` suffixes. Four tests, control-verified (removing the filter failed two of
+them), 424 passing. Then I re-ran the four falsely-refused trees expecting FILLED.
+
+    workapi14 REFUSED · workapi15 REFUSED · workapi16 REFUSED · workapi17 REFUSED
+
+    Not one flipped. The new refusal message shows why:
+        moving MemStore into it breaks : panic({0x1044529c0?, 0x140000160f0?});
+                                       : testing.tRunner.func1.2({0x1044529c0, 0x140000160f0})
+
+    Frame lines carrying pointer ARGUMENTS. Heap addresses, fresh every run. My filter was built
+    from the four messages I had READ, and those happened to show goroutine ids; the same trees
+    print different noise on the next run. I fixed the instance, not the class.
+
+WHAT ACTUALLY WORKS — NORMALISE, DO NOT DROP
+    `_canonical_error_line` rewrites `0x[0-9a-f]+` to `0xADDR` and `goroutine \d+` to `goroutine N`,
+    and every line is then compared. Dropping throws away signal — a genuinely different frame or a
+    new panic ought to register — while normalising removes exactly the tokens that vary.
+
+        after: workapi14/15/16/17 -> FILLED     (RED-BEFORE 12 cases: FILLED 11, REFUSED 1)
+        and    workapi2           -> REFUSED    "package models is not in std", the one REAL refusal
+
+    That last line is the whole test of it. A noise filter that also silenced the genuine refusal
+    would have shown a better number and been worse.
+
+⚠️ SCORING MYSELF: I predicted four flips and got zero, from a fix that passed four tests and a
+control check. The tests were right about what I wrote; what I wrote was the wrong generalisation.
+Nothing short of running the actual cases would have caught it — and the reason I ran them is that
+the pre-registration for this gate names its own reject conditions in terms of CASES, not counts.
