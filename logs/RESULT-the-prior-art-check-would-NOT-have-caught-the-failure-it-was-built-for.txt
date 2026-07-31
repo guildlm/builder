@@ -1,0 +1,80 @@
+RESULT — I built a prior-art check to stop a repeat, then measured that it would not have stopped it
+======================================================================================================
+31 July, while the cross-process parity run holds the GPU. Logs only, no GPU.
+
+WHY IT WAS BUILT
+    Three times today I claimed novelty or correctness that one command would have refuted:
+
+        "identical prompt, different output"  `ls logs/ | grep -i process` — the answer was in this
+            directory, from the day before, with a stronger design
+        the as-drawn grader   _asdrawn_diff.py was written that MORNING to enforce exactly the
+            distinction a new tool violated four hours later
+        the order channel     `grep -rl _package_context logs/` — PREDICTION-taskapipro.txt lists it
+            under "PROVEN (measured, no model needed)"
+
+    Each correction ended by noting the check costs one command. Writing that note three times did
+    not make me run it, so it became a tool — the same move that turned the segmentation lesson into
+    _logseg_audit.py.
+
+THE HONEST TEST, and it FAILED
+    Reconstructed the pre-correction text of this evening's result — the version that overreached,
+    before I added the banner citing the prior art — and asked the tool to find what covers it:
+
+        distinctive terms                          10
+        1.  80%  PREREG-withhold-the-parity-clause-from-an-interface-only-file.txt
+        2.  50%  RESULT-the-parity-effect-measured-with-the-instrument.txt
+        3.  50%  RESULT-the-gate-line-is-gone-and-the-stub-is-unchanged.txt
+
+        PREDICTION-taskapipro.txt — THE FILE I NEEDED —     NOT LISTED, of 48 matches
+
+    THE TOOL WOULD NOT HAVE CAUGHT IT. It surfaces genuinely related work — the parity prereg at 80%
+    is the right neighbour — and it misses the one file that made the claim an overreach.
+
+WHY, measured rather than guessed
+        _package_context occurrences in the pre-correction text:  0
+        what I wrote instead:  "prompt-assembly functions", "context block"
+
+        terms shared with PREDICTION-taskapipro.txt:  2   (internal/store/memory.go, memory.go)
+        threshold:                                    3
+
+    I described the mechanism in PROSE and never named the function. A vocabulary-based check can
+    only connect two notes that use the same words, and the prior art names `_package_context` while
+    my draft did not.
+
+    Lowering the threshold to 2 is not the fix: 2 shared terms is the noise floor across 355 files,
+    and the same change would surface dozens of unrelated notes for every draft.
+
+WHAT THIS ACTUALLY ESTABLISHES
+    THE TRANSFERABLE PRACTICE IS NOT THE TOOL, IT IS: NAME THE IDENTIFIER IN THE FINDING. Had the
+    draft said `_package_context` rather than "prompt-assembly functions", the grep I kept failing to
+    run would have worked, AND the tool would have ranked the right file first. Prose descriptions of
+    code are unsearchable, and this directory is searched constantly — by me, all day.
+
+    THE TOOL IS KEPT, with its limits stated in its own docstring, because it does find related work
+    and costs nothing. But its value is "read these neighbours", not "you are clear".
+
+    ⚠️ AND A ZERO FROM IT MEANS LESS THAN IT FEELS LIKE. "Nothing shares 3+ terms" says no file
+    shares your VOCABULARY, which is exactly the condition under which today's miss happened.
+
+A BYPRODUCT WORTH RECORDING — 47 near-duplicate pairs across 355 files
+        100%  AUDIT-taskapipro-sort-BEFORE.txt   /  AUDIT-taskapipro2-BEFORE.txt
+        100%  AUDIT-taskflow-sort-BEFORE.txt     /  AUDIT-taskflow-status-BEFORE.txt
+        100%  PREDICTION-arm-3-will-drift-too... /  RESULT-generation-drifted-in-one-process...
+         89%  gate-audit-current.txt             /  gate-audit.txt
+
+    The AUDIT pairs are mechanical dumps and identical vocabulary is expected. The third pair is a
+    PREDICTION and the RESULT that scored it — which is the shape the tool should ideally recognise
+    as legitimate rather than flag. Not fixed; recorded, because a checker that flags correct pairs
+    trains its reader to ignore it.
+
+⚠️ TWO DEFECTS IN THE TOOL ITSELF, both found by running it on the file it was built for
+    1. `[A-Z][a-zA-Z]{3,}[A-Z]` rejected MemStore — M-e-m-S leaves only TWO characters before the
+       second capital, so the identifier this entire campaign turns on was invisible to a tool for
+       finding notes about it. Then {2,} still rejected GoToolchain ("Go" leaves one). Now {1,}.
+    2. ALL-CAPS words matched the MixedCaps pattern, and this directory writes emphasis in capitals
+       constantly — BEFORE, MECHANISM, OUTPUT, COSTS dominated every ranking. The tool was measuring
+       shouting. A real identifier contains a lowercase letter; that is the filter.
+
+    And the largest term class here turned out to be neither: FILENAMES. On the target file, 12
+    dotted paths against 3 identifiers. A term extractor that sees only code names is blind to most
+    of what these notes are about.
