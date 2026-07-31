@@ -46,3 +46,25 @@ WHAT WOULD ANSWER THE QUESTION
     ⚠️ AND THE RESULT THAT LOOKED MOST INTERESTING IS THE ONE THAT SHOULD HAVE WARNED ME. A table
     contradicting two separately-measured facts at once is far more likely to be a broken join than a
     discovery, and noticing that took less time than computing it.
+
+HOW BIG THE CONSTRAINT IS — 191 spec edits across the campaign
+    specs/taskapipro.yaml   23 edits   most recent 07-27 07-28 07-30 07-31
+    specs/taskflow.yaml     22         07-25 07-26 07-27 07-29
+    specs/tasks-api.yaml    17         07-19 07-25 07-26 07-27
+    specs/workapi.yaml      15         07-13 07-27 07-28 07-30
+    specs/shortener.yaml    13         07-25 07-26 07-27 07-28
+    ... 51 spec files, 191 edits total
+
+    So the spec text under almost every tree in this corpus has moved, repeatedly, and often on the
+    same days the trees were drawn. taskapipro alone changed 23 times — a retrospective join across
+    its 48 trees is crossing up to 23 different versions of the question.
+
+    ⚠️ THIS IS NOT A FLAW IN THE CAMPAIGN. Editing a spec IS the experiment for most of these arms —
+    the whole nine-arm spec-edit series exists to measure what an edit does. The specs are supposed
+    to move. What cannot be done is treating trees drawn across those moves as one population.
+
+    THE RULE THAT FOLLOWS: any question of the form "across the corpus, does X correlate with a SPEC
+    PROPERTY" is unanswerable unless the property provably did not change. Questions about TREE
+    properties (does store.go declare MemStore, is a planned file empty) are fine — those are read
+    from the artifact, not from a spec that has since moved. Today's FIX 2 numbers are of the second
+    kind, which is why they survive.
