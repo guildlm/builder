@@ -1,0 +1,37 @@
+NOTE — audit: which of today's 63 log files could carry the repaired-vs-unrepaired error
+=========================================================================================
+31 July 16:10, after the retraction. Checking whether the error spread beyond the chain already
+withdrawn, rather than assuming it did not.
+
+FIRST ATTEMPT — A KEYWORD FILTER, AND IT IS NOT USABLE
+    "files that mention generated/ or shasum or IDENTICAL, without mentioning as-drawn or .pre-fix"
+    returned EIGHTEEN of 63. Reading them, almost none is a tree comparison: they are log analyses,
+    cost estimates, pre-registrations and error-key findings that happen to contain the word
+    IDENTICAL.
+
+    ⚠️ I nearly reported "18 files at risk". That number is an artifact of the filter, and treating
+    it as a finding would have been today's error in its purest form — for the ninth time.
+
+SECOND ATTEMPT — THE PRECISE CRITERION
+    The error requires comparing against a tree that was MID-GENERATION. Exactly two trees were ever
+    in that state while being compared today: ledger-parity-ctl-3 and ledger-parity-arm-3. So the
+    files at risk are precisely those that mention them.
+
+        6 files mention ctl-3 or arm-3
+          4 already carry the retraction banner
+          1 IS the retraction
+          1 is RESULT-the-parity-effect-measured-with-the-instrument.txt — written AFTER the
+            retraction, using _asdrawn_diff.py, which refuses mixed states by construction
+
+    So the error is fully contained. Everything else today compared FINISHED trees against FINISHED
+    trees (arm-1 vs arm-2, ctl-1 vs ctl-2), which is a valid comparison — both sides post-repair —
+    or did not compare trees at all.
+
+WHAT SURVIVES UNTOUCHED, AND WHY
+    FIX 2's numbers come from `_repair_take_audit.py` over the corpus, which reads SHIPPED trees
+    deliberately and says so, because the repair pass operates on shipped content. FIX 1 was verified
+    by tests and by two failing draws' log lines. The error-surface and timestamp findings are log
+    analyses. The repair-gate results come from `_repair_survival.py`, which copies trees and reads
+    them consistently.
+
+    None of those compares a draw against a repair, which is the only thing that went wrong.
