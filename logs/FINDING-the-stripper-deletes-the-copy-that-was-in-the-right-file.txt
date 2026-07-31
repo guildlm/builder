@@ -23,8 +23,24 @@ candidate consisted ENTIRELY of declarations a sibling already had. The model DI
 its methods into memory.go — the file the plan gave them to — and `strip_redeclarations` deleted
 them, because store.go had written the same symbols one file earlier.
 
-    The stub is not the model failing to write the file. It is the model writing it in BOTH places
-    and the harness deterministically deleting the copy that was in the RIGHT one.
+    The stub is not the model failing to write the file. It is the model writing SOMETHING the
+    sibling already had, and the harness deterministically deleting all of it.
+
+    ⚠️ WEAKENED 31 July, later the same day, by asking what evidence would establish the stronger
+    claim. I wrote "the model DID write MemStore and its methods into memory.go". The 14-byte result
+    proves only that EVERY top-level declaration in the candidate was one store.go already had — and
+    that is equally consistent with the candidate containing a duplicate of the Store INTERFACE and
+    no implementation at all. Both hypotheses strip to a bare `package store`.
+
+    Nothing in the record separates them. `strip_redeclarations` logs no names; the trace records the
+    response AFTER stripping (builder.py:5375, `response: code`, where code is already stripped); and
+    the generation gate cannot arbitrate either, because sibling_decls had already emptied memory.go's
+    demand, so there was no rejection to read.
+
+    WHAT WOULD SETTLE IT: log the stripped NAMES, or trace the pre-strip candidate — a one-line
+    change — then one draw of ledger-origorder. Until then the claim is "the candidate was entirely
+    redundant with its sibling", which is what the evidence supports, and NOT "the model put the
+    implementation in the right file".
 
 The stripper's rule is "a sibling already declares it, so drop it here". It has no notion of which
 file the PLAN gave the symbol to — although the harness computes exactly that, three functions away,
