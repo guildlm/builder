@@ -1,0 +1,95 @@
+RESULT — both repair holes closed, scored against the pre-registration
+======================================================================
+31 July, morning session. Pre-registration: logs/PREREG-fix-the-two-repair-holes.txt (03:45,
+amended 05:00). Zero GPU: neither fix needed a draw in the end, and the one that was pre-registered
+as needing a draw was answered more decisively without one.
+
+FIX 2 — `_required_decls` sees backticked and var/const names                    APPLIED (651c47b)
+────────────────────────────────────────────────────────────────────────────────────────────────
+    baseline reproduced first   125 trees · 64 empty planned files · movable 54 · take EMPTY 10
+    after                                                            movable 63 · take EMPTY  1
+    ./_selftest_all.sh --fast   37 ran · 5 skipped · 0 failed        (34 was the count at 03:45)
+    pytest                      409 passed
+
+    ✓ THE PRE-REGISTERED ENDPOINT HELD. 10 -> 1, and the reject condition (a fall to 0 means the
+      ownership rule is broken) did not fire.
+
+    ✗ THE SURVIVOR IS NOT THE ONE THE PRE-REGISTRATION NAMED. It said the last case standing would
+      be taskapipro-pairB-t1's store.go, refused because its donor is also promised Store — and
+      tied the reject condition to that reasoning. In fact the widening MOVES that case: it takes
+      {ErrExists, ErrNotFound} and still refuses Store, which is the ownership rule working, not
+      failing. The actual survivor is workapi-chain's middleware.go, whose purpose names no type in
+      any of the three shapes. So the number was right for a different reason than the one that
+      derived it. I checked the ownership rule directly rather than inferring it from the count —
+      which is the only reason this is a footnote and not a fourth retraction.
+
+    ⚠️ AND THE EDIT IS NOT THE ONE THAT WAS PRE-REGISTERED. The 05:00 blast-radius check covered
+      three specs; this extractor feeds every spec. Over ALL of them it turns up one false claim:
+
+          taskapi/internal/config/config.go — "Treat an EMPTY env var EXACTLY like an UNSET one"
+
+      `var EXACTLY` reads the ENGLISH noun "var" as a Go declaration, and config.go would have been
+      told it must declare EXACTLY. Guarded by keeping MixedCaps names only (Go exported
+      identifiers are MixedCaps; an all-caps token in prose is emphasis or an env var name). That
+      removes EXACTLY and nothing else — the 125-tree numbers are unchanged at 63/1 and the spec
+      directory now has zero over-claims. Residual, unfixed: "env var Timeout" would still be
+      misread. No spec writes that today.
+
+      A check calibrated to the subset it was designed on. Third time this campaign.
+
+    WHAT FIX 2 ALSO CHANGES, AND HAS NOT BEEN MEASURED. `_required_decls` feeds two generation-path
+    call sites, and both subtract sibling_decls first: a candidate is rejected for omitting a
+    promised symbol only when NO sibling already declares it. So the new symbols bite exactly when
+    the file is generated BEFORE its sibling has taken the job — which is the swapped-order arm.
+    That is the intended direction and it is UNMEASURED; it needs a draw, and no draw was spent
+    here. Stated so it is not later mistaken for something this session verified.
+
+FIX 1 — the plan-conformance warning runs on every exit                          APPLIED
+────────────────────────────────────────────────────────────────────────────────────────────────
+    `_fill_empty_planned_files` and the warning both lived inside `_finish_green`, so a project
+    that never converged got neither. The warning is now a module-level
+    `warn_empty_planned_files(written, green=...)` called on BOTH exits of `build()`. The REPAIR
+    stays green-gated, per the pre-registration's minimal version: moving declarations around a
+    tree that does not compile cannot be checked for regression, so it would revert anyway.
+
+    ✓ VERIFIED WITHOUT A DRAW, and more decisively than the pre-registered draw would have.
+      tests/test_plan_conformance.py drives the whole of build() with a scripted coder against a
+      store package that cannot compile: the build fails, memory.go comes out empty, and the
+      warning names it. The pre-registration asked for one not-green draw; a draw shows the line
+      appears once on one spec, whereas this pins the call site and stays pinned.
+
+    ✓ AND THE CONTROL EXHIBITS THE DEFECT. With the new call removed, the same test fails: the
+      failing build says nothing. Checked before claiming the fix works — the rule that arms 5 and
+      6 were wasted for want of.
+
+    The not-green wording differs from the green one ("came out EMPTY (build never went green)" vs
+    "shipped EMPTY") so a log reader is not left inferring that "shipped" meant something that
+    never shipped. The green-path phrase is untouched, so the 19 historical logs carrying it stay
+    comparable.
+
+THE INSTRUMENT NOW EXISTS AS CODE — `_repair_take_audit.py`
+────────────────────────────────────────────────────────────────────────────────────────────────
+The 03:30 baseline and the 04:05/05:00 simulations were run ad hoc and thrown away: the numbers
+went into logs/ and the code that produced them did not, so the pre-registration's own acceptance
+test could not be re-run, only reconstructed. Rebuilding it took most of this session's effort and
+it reproduces 64/54/10 exactly, which is what licenses the after-numbers. It keeps BOTH extractors
+so the before/after stays measurable now that builder.py has moved, and prints which one the
+shipped builder.py implements — drift is reported, not assumed. Self-test is in _selftest_all.sh.
+
+    ⚠️ Reconstructing it turned up how fragile the corpus definition is. "125 trees" needs three
+    separate tree->spec matching rules (dash-prefix, bare prefix, and name-in-the-middle for
+    _fail-/_iso-/ARM trees); with only the first, the same check reports 54 trees / 22 empty / 7
+    take-EMPTY and looks perfectly plausible. A corpus-wide ratio is only as good as the join that
+    built it, and this one was one rule away from a number I could not have caught by inspection.
+
+SIDE RESULT, free from building the instrument
+    20 trees carry a .pre-fix.json. All 20 differ in content from the shipped tree, and NOT ONE of
+    those differences changes which planned files are empty. Emptiness is decided when the file is
+    drawn; the fix loop neither creates nor clears it.
+
+WHAT IS STILL OPEN — unchanged by either fix, and still the real question
+    Neither fix stops the stub shipping. Fix 2 makes the repair APPLICABLE on ledger; fix 1 makes
+    the failure VISIBLE. Whether the move then survives toolchain.check is the third question, and
+    the open one from the save point stands: how do you get the model to SPLIT a package's content
+    correctly in the first place? `scope_rule` forbids consolidation in words and fails 58% of the
+    time, and reordering entries only chooses which file gets emptied.

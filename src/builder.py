@@ -1647,6 +1647,27 @@ def _fill_empty_planned_files(
                  f"does not stay green")
 
 
+def warn_empty_planned_files(written: dict[str, str], *, green: bool) -> None:
+    """Say so when a planned file declares nothing — on EVERY exit, not just green.
+
+    The repair and this warning both used to live inside ``_finish_green``, so a
+    project that never converged got neither: no repair, and — worse, because it
+    is free — not one line saying a planned file came out dead. Measured on five
+    draws: three green ones logged the warning, and the two that exhausted their
+    fix budget shipped an empty planned file in silence.
+
+    A failing build has plenty else wrong with it, and this is not the headline.
+    It is recorded anyway because the two defects are independent: converging is
+    about whether the code compiles and passes, conformance is about whether the
+    project is the one the plan described, and a build can lose the second while
+    still being judged only on the first.
+    """
+    for path in empty_go_files(written):
+        state = "shipped EMPTY" if green else "came out EMPTY (build never went green)"
+        _log(f"  WARNING: {path} {state} — a sibling did its job; the "
+             f"project does not match its own plan")
+
+
 def empty_go_files(written: dict[str, str]) -> list[str]:
     """Implementation files that were generated but declare NOTHING — a bare
     `package store`. The spec asked for content there; a sibling wrote it instead,
@@ -5549,9 +5570,7 @@ def build(
         # anyway. Four of the suite's multi-package artifacts carried a dead file
         # like this and nothing ever said so.
         _fill_empty_planned_files(spec, written, out, toolchain)
-        for path in empty_go_files(written):
-            _log(f"  WARNING: {path} shipped EMPTY — a sibling did its job; the "
-                 f"project does not match its own plan")
+        warn_empty_planned_files(written, green=True)
         if reviewer is not None and review_rounds > 0:
             _log("review pass (catch bugs that survive a green build)")
             _review_pass(spec, tasks, written, out, toolchain, reviewer, review_rounds)
@@ -5584,6 +5603,11 @@ def build(
     if _fix_loop(tasks, written, out, toolchain, coder, rounds, candidates,
                  module=spec.go_module, retriever=retriever, shots=shots):
         return _finish_green()
+    # The plan-conformance check is NOT gated on convergence. The repair still is
+    # — moving declarations around a tree that does not compile cannot be checked
+    # for regression, so it would revert anyway — but the warning costs nothing
+    # and is the only record that this build lost a planned file.
+    warn_empty_planned_files(written, green=False)
     return False, written
 
 
