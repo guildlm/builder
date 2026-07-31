@@ -1,0 +1,46 @@
+RESULT — the 93% prediction is REFUTED: ctl-3 differs from ctl-1 and ctl-2 in the SAME process
+===============================================================================================
+31 July 15:26. Pre-registered at 15:20 in
+logs/PREDICTION-ctl-3-will-be-byte-identical-to-the-first-two-controls.txt, with ctl-3 four files in.
+
+    ctl-1  11:50  store.go sha 28d42aac  413 bytes
+    ctl-2  13:37  store.go sha 28d42aac  413 bytes   byte-identical to ctl-1, all 19 files
+    ctl-3  15:19  store.go sha 7c9f06c7  377 bytes   ✗ DIFFERENT
+
+    Same spec. Same flags. Same server process — pid 7598, up since 10:08:30, never restarted.
+    Three and a half hours and two full builds between the first and the last.
+
+    ✗ PREDICTED byte-identical at 93%. REFUTED.
+
+THIS IS THE OUTCOME I FLAGGED AS THE MORE INTERESTING ONE, AND WROTE DOWN BEFORE IT HAPPENED
+    "⚠️ And if ctl-3 DIFFERS, that is the more interesting outcome: it would mean within-process
+     determinism decays with use, which nothing in this campaign has tested and which would undercut
+     the 30 July result's 'within-process floor is measured at zero' — measured there on two draws
+     close together."
+
+    That is now the measured situation. The 30 July floor stands for draws close together; it does
+    not survive 3.5 hours and two intervening builds in the same process.
+
+THE VERDICT IS UNCHANGED — AND THAT MATTERS FOR THE PARITY RESULT
+    ctl-3's store.go declares Store and nothing else. 377 bytes, no MemStore. So it grades SPLIT,
+    exactly like ctl-1 and ctl-2, and the parity table is unaffected:
+
+        controls SPLIT 3/3 · arms CONSOLIDATED 2/2
+
+    The manipulation's effect survives an output change that the manipulation did not cause. That is
+    a stronger result than three identical controls would have been: the control condition now has
+    genuine within-condition variation, and the arm/control difference persists across it.
+
+NOT A SMALL DISCRETE SET — CONSISTENT WITH 30 JULY
+    Hashing store.go across every ledger tree: ctl-3's 7c9f06c7 appears NOWHERE else. The corpus
+    holds at least nine distinct ledger store.go variants (28d42aac ×6, a8dd153e ×4, 28b6e821 ×2, and
+    seven singletons including this one). The 30 July draw asked whether output comes from a small
+    discrete set and found "proc3 matches neither predecessor"; this adds a tenth-ish variant from
+    inside a process rather than across one.
+
+⚠️ WHAT I DO NOT KNOW, AND WILL NOT GUESS
+    What changed inside pid 7598 between 13:37 and 15:19. Candidates include the prompt cache state
+    (the server logs "Prompt Cache: N sequences, X GB" and it grows), memory pressure, or sampler
+    state. Two builds ran in between, both of them the arms. Nothing here distinguishes those, and
+    the campaign's mechanism question — what varies per process — now has a within-process sibling
+    that is equally unanswered.
