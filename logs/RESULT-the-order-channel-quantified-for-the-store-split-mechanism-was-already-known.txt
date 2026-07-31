@@ -1,3 +1,35 @@
+⚠️⚠️ NOVELTY OVERSTATED — READ THIS FIRST. The headline below says this "now has a measured
+mechanism rather than an observation" and calls it the campaign's central open question. Both
+overreach, and the check that shows it costs one command: `grep -rl _package_context logs/`.
+
+ALREADY IN THE RECORD, BEFORE TODAY:
+  · THE ORDER FIX ITSELF — found, promoted and COSTED on 30 July. logs/FINDING-the-order-fix-has-
+    a-cost-the-stub-was-masking-work.txt, and commit d60657a 22:51 "promote the order fix:
+    implementation entries now precede the interfaces they satisfy" reordered ledger, taskapipro
+    and workapi. I did not discover that the order matters.
+  · THE CHANNEL — logs/PREDICTION-taskapipro.txt, listed under "PROVEN (measured, no model
+    needed)": "_generate_prompt embeds _package_context(written, ...) => every file's prompt
+    contains the files generated BEFORE it. A change to an early file's OUTPUT therefore perturbs
+    every LATER file's PROMPT." That is the mechanism, stated and measured, before today.
+
+WHAT IS ACTUALLY NEW BELOW, and it is narrower than the title:
+  1. the channel QUANTIFIED for this specific outcome — store.go's context is 0 chars in one order
+     and 2373 in the other, on real as-drawn files
+  2. the SECOND half — that memory.go's 14 bytes is the CORRECT response to a context naming
+     MemStore plus "do not redeclare", rather than a failure to write
+  3. the reinterpretation of the parity clause as the only constraint on the FIRST file, which
+     explains why withholding it caused consolidation — this afternoon's refuted prediction
+
+  (3) is the one that connects today's parity result to the known channel. (1) and (2) are
+  measurements of a mechanism already on record.
+
+⚠️ SECOND TIME TODAY. logs/FINDING-identical-prompt-different-output-across-processes.txt carries
+the same correction: "I WROTE 'THE QUESTION IS STILL OPEN' WITHOUT READING THE ANSWER IN THIS
+DIRECTORY ... THE CHECK I SKIPPED COSTS ONE COMMAND." I wrote that this morning and repeated the
+mistake this evening. Writing the lesson down did not prevent the repeat — the same thing the
+as-drawn grader taught four hours ago.
+====================================================================================================
+
 RESULT — the mechanism behind the package split: whichever file is generated FIRST has an empty context
 =========================================================================================================
 31 July, while the cross-process parity run holds the GPU. Zero GPU: real as-drawn files from existing
