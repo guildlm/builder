@@ -1,0 +1,91 @@
+RESULT — arm-4: the loop stopped at round 6 as predicted, and the repair MOVED MemStore
+=========================================================================================
+31 July, 17:46 -> 19:21 (95 min), pid 7598, the same server process that drew arm-1/2/3.
+Pre-registered: logs/PREREG-does-the-collapse-actually-stop-the-loop.txt, with the PRIMARY endpoint
+corrected at 17:58 — before any result — from "3 to 5 rounds" to "round 6".
+
+EVERY PRE-REGISTERED ENDPOINT HIT
+
+  REJECT CONDITION — generation must be untouched.                                    PASSED
+      as-drawn store.go   7f2e9f83   2263B   — byte-identical to arm-1 and arm-2
+      Checked at 18:00 while generation was still running, then again at the end. The fix reaches
+      the FIX prompt only; no toolchain output exists when the initial 19 files are written.
+
+  PRIMARY — fix rounds.                                                     PREDICTED 6, GOT 6
+      arm-1/2/3   8 rounds · 8 distinct surfaces · "seen before" printed 0 times in 24 chances
+      arm-4       6 rounds · 3 distinct surfaces · "seen before" printed 3 times
+
+          error surface 19a1f33c         round 1
+          error surface bf09f705         round 2
+          error surface 525e74ef         round 3
+          error surface 525e74ef  (seen before)   round 4   <- flagged, NOT acted on (in budget)
+          error surface 525e74ef  (seen before)   round 5   <- flagged, NOT acted on (in budget)
+          error surface 525e74ef  (seen before)   round 6   -> "error surface repeats — stopping"
+          exhausted 6 fix rounds (5 budgeted), still failing
+
+      The predicted sequence was A B C C C C C C stopping at 6; the observed sequence is A B C C C C,
+      which IS that sequence truncated where it was predicted to stop. Two rounds saved, exactly as
+      the corrected prediction said, and for the stated mechanism rather than by luck.
+
+  SECONDARY — the repair must no longer be refused on timestamps.                      PASSED,
+  AND IT DID MORE THAN THE ENDPOINT ASKED
+      arm-1/arm-2:  "left internal/store/memory.go empty: moving MemStore into it breaks
+                     2026/07/31 13:37:35 GET /accounts -> 200 (1.708µs)"      REFUSED
+      arm-4:        "moved MemStore from internal/store/store.go into internal/store/memory.go —
+                     the plan gave that file the job (project still failing, but not for this)"
+
+      The endpoint was "attempts and is not refused for that reason". It ATTEMPTED AND SUCCEEDED.
+
+  FIX 1's EMPTY warning: fired once in arm-1, ZERO times in arm-4 — correctly, because memory.go is
+      no longer empty. The warning going quiet is the repair working, not the warning breaking.
+
+  NOT AN ENDPOINT — the build still exits rc=1. arm-1/2/3 did too. Recorded, not interpreted.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️⚠️ AND THE FIX BROKE A MEASUREMENT INSTRUMENT — CAUGHT BEFORE IT COST ANYTHING
+════════════════════════════════════════════════════════════════════════════════════════════
+    ledger-stampfix-arm-4
+        AS-DRAWN   store 2263B 7f2e9f83   memory   14B     the MODEL wrote it CONSOLIDATED
+        ON DISK    store  468B 33eb663c   memory 1928B     after the repair: SPLIT
+
+    THE SAME TREE GRADES BOTH WAYS. `_parity_grade.py` read files off disk, so it now reports SPLIT
+    for a draw the model consolidated — it would measure THE REPAIR and report it as the model's
+    behaviour.
+
+    THE HAZARD IS NEW AND I CREATED IT THIS AFTERNOON. Before the timestamp fix the repair was
+    refused on app-log noise, so on-disk and as-drawn agreed and the distinction was invisible. The
+    fix made them diverge. arm-4 is the first tree in this archive where they disagree.
+
+    THIS IS THE RETRACTION'S MISTAKE IN A NEW COSTUME. On 31 July I spent two hours comparing a
+    repaired tree against an unrepaired one and built eight findings on a drift that did not exist.
+    The lesson was recorded, `_asdrawn_diff.py` was written to enforce it — and I then wrote a fresh
+    grader that reads off disk, four hours later. Writing the rule down did not stop me repeating it;
+    what stopped it this time was checking a surprising result against the snapshot.
+
+    FIXED: _parity_grade.py is AS-DRAWN by default, REFUSES with NO SNAPSHOT rather than falling
+    back to disk, and needs an explicit --on-disk (which prints the warning above). The self-test now
+    builds a tree whose two states disagree and asserts they do.
+
+    ⚠️ IT WOULD HAVE CORRUPTED THE NEXT EXPERIMENT SILENTLY. _parity_xproc.sh — the corrected
+    cross-process design, six draws, ~5.5 hours — was written two hours ago and calls this grader.
+    Every arm whose repair succeeded would have graded SPLIT, and the conclusion would have been
+    "the parity clause no longer matters", from a runner measuring its own repair step.
+
+    THE PUBLISHED RESULT SURVIVES, verified rather than assumed:
+
+        AS-DRAWN    ctl-1/2/3 SPLIT 377B/2282B      arm-1/2/3 CONSOLIDATED 2263B/14B
+        ON DISK     ctl-1/2/3 SPLIT 413B/2315B      arm-1/2/3 CONSOLIDATED 2295B/14B
+
+    Identical verdicts, different byte counts. For those six draws the repair was refused, so both
+    states tell the same story and nothing published needs retracting.
+
+WHAT THIS MEANS FOR THE CONSOLIDATION DEFECT
+    The campaign's central open question is how to make the model SPLIT a package correctly. arm-4
+    does not answer it — the model still consolidated, byte-identically to three earlier draws. What
+    changed is that the HARNESS now repairs it: a deterministic post-pass moved MemStore into the
+    file the plan assigned it, on a build that never went green.
+
+    ⚠️ That is a different thing from the model getting it right, and the two must not be conflated.
+    On disk the project now matches its plan; the model's output does not. Every future grading of
+    this endpoint has to say which one it means, which is precisely why the grader now prints its
+    state on the first line of every table.
