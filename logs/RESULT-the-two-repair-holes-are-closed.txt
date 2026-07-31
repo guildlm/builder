@@ -113,3 +113,23 @@ is not a measurement, so:
 That is what the drift check in `_repair_take_audit.py` was built for: it reports which extractor the
 SHIPPED code implements rather than assuming, so a later edit that silently reverted the widening
 would show up here as NARROW instead of as a number that quietly stopped meaning anything.
+
+FIX 1's GREEN-PATH WORDING VERIFIED UNCHANGED, against the archive it has to stay comparable with
+    Claimed this morning: "The green-path phrase is untouched, so the 19 historical logs carrying it
+    stay comparable." Verified by emitting both paths and diffing against every historical line:
+
+        green=True   WARNING: a/b.go shipped EMPTY — a sibling did its job; the project does not
+                     match its own plan
+        green=False  WARNING: a/b.go came out EMPTY (build never went green) — a sibling did its
+                     job; the project does not match its own plan
+
+        distinct historical phrasings found in logs/: 1
+            "shipped EMPTY — a sibling did its job; the project does not match its ..."
+
+    One phrasing across the whole archive, and today's green path emits exactly it. A grep written
+    before today still matches every green-path warning and matches no not-green one, which is what
+    makes the two populations separable in the logs rather than merged.
+
+    ⚠️ The check is trivial and the claim was made without it. "I did not change that string" is the
+    kind of statement that is true until an edit three hours later makes it false, and nothing would
+    have announced it — the not-green wording was added AFTER the claim, in the same function.
