@@ -1,0 +1,55 @@
+FINDING — a build whose tests serve requests can never repeat an error surface, by construction
+================================================================================================
+31 July. Found by predicting that the two arm draws would be byte-identical (the pipeline is
+deterministic within a process) and testing it.
+
+THE PREDICTION FAILED, AT LINE 39
+    arm-1: error surface ba9e8bac
+    arm-2: error surface 165d2d35
+
+    Same spec, same flags, same server process, BYTE-IDENTICAL source trees — and different error
+    surfaces on the first fix round.
+
+WHY: `_error_signature` MISSES THE PROGRAM'S OWN LOG OUTPUT
+    _SIG_NOISE_RE strips 0x addresses, `goroutine N`, `\d+\.\d+s` test times and `+0x` frame offsets.
+    Verified against a real line from the run:
+
+        raw        2026/07/31 13:37:35 GET /accounts -> 200 (1.708µs)
+        normalised 2026/07/31 13:37:35 GET /accounts -> 200 (1.708µs)   ← unchanged
+
+    The wall-clock timestamp survives, and so does the µs duration: `\d+\.\d+s` matches neither
+    `1.708µs` (the unit is µs) nor `834ns` (no decimal point).
+
+    So once a build's tests actually SERVE REQUESTS, every check embeds a fresh timestamp and the
+    surface hash is unique BY CONSTRUCTION. `surface seen before` can never fire, and the extension
+    rounds that flag exists to stop are always granted to the cap.
+
+    arm-1: eight surfaces, all distinct, three extension rounds each labelled "new error surface",
+    ending in "exhausted 8 fix rounds (5 budgeted), still failing". Not one repeat detected.
+
+THE COST, measured rather than asserted
+    654 builds · 9 contain app-log lines · 5 of those ran extension rounds · 0 of those 5 ever logged
+    "seen before" · 15 extension rounds granted inside them.
+
+    For contrast, 5 builds WITHOUT app-log lines also ran extension rounds — and those are the ones
+    where the repeat detector can work at all.
+
+    ⚠️ 15 rounds is the ceiling on what a fix would have saved, not the saving. Some of those rounds
+    would have been granted anyway on genuinely new surfaces. The honest claim is that in 5 builds
+    the repeat check was INCAPABLE of firing, not that 15 rounds were wasted.
+
+THE SAME BLIND SPOT, TWICE, INDEPENDENTLY
+    `_error_signature` handles heap addresses, goroutine ids and test wall times — and misses
+    timestamps and sub-second durations. `_error_keys`, which I wrote TODAY, handled exactly the same
+    three classes and missed exactly the same two; that cost four false refusals this morning and was
+    fixed in two attempts.
+
+    Two functions, written months apart by different reasoning, converged on the same incomplete list
+    of "things that vary between runs". That is not a coincidence — it is what happens when the list
+    is assembled from the failures one has already seen.
+
+FIX (queued, not applied — builder.py is frozen until the parity pairs finish)
+    Add to _SIG_NOISE_RE: `\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}` and `\d+(\.\d+)?(ns|µs|ms)`.
+    Reject condition: two genuinely different failures must still hash differently — the detector's
+    whole job is telling a repeat from a new stratum, and a normalisation that erased too much would
+    stop extension rounds that deserve to run.
