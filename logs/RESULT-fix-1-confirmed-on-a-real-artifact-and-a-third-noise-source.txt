@@ -1,0 +1,47 @@
+RESULT — FIX 1's warning fires on a real artifact, and the gate has a THIRD noise source
+=========================================================================================
+31 July, from `generated/ledger-parity-arm-1` — the first fresh draw that actually produced the
+defect. Two results, one confirming and one corrective.
+
+THE LOG, in order
+    exhausted 8 fix rounds (5 budgeted), still failing
+    left internal/store/memory.go empty: moving MemStore into it breaks
+        2026/07/31 13:37:35 GET /accounts -> 200 (1.708µs); 2026/07/31 13:37:35 GET /accounts -> 200 (834ns)
+    WARNING: internal/store/memory.go came out EMPTY (build never went green) —
+        a sibling did its job; the project does not match its own plan
+
+1. FIX 1 CONFIRMED, on the evidence its pre-registration asked for and could not get this morning
+    The pre-registration wanted one not-green draw showing the warning APPEAR. The gate-fix draw at
+    10:09 was NOT-GREEN but had no empty planned file, so it was recorded as uninformative. This one
+    is not-green AND has a genuinely empty planned file, and the warning names it.
+
+    The whole wired chain is visible in those three lines: the build fails, the repair runs on the
+    FAILING exit (which it did not do before today), it identifies MemStore and a donor, it attempts
+    the move, its gate refuses, and the warning then records the dead file. Before today, a
+    not-green build produced NONE of that — no repair, no attempt, no line.
+
+2. A THIRD NOISE SOURCE, and it is the program's OWN OUTPUT
+    "moving MemStore into it breaks 2026/07/31 13:37:35 GET /accounts -> 200 (1.708µs)" is not an
+    error. It is the ledger's request-logging middleware printing during `go test`, and it carries a
+    WALL-CLOCK TIMESTAMP and a NANOSECOND DURATION — both different on every run.
+
+    `_error_entries` keeps any line it cannot parse as file:line, so each of those lines is a
+    "message". The after-set contains timestamps the before-set cannot contain, the count rises, and
+    the move is refused for damage it did not do.
+
+    That is the same class as the two already fixed today — goroutine IDs, then hex pointer
+    arguments — and the third instance of it. `_canonical_toolchain_output` already strips per-test
+    durations and `(cached)` for exactly this reason; it does not strip the program's own stdout.
+
+    ⚠️ AND IT MEANS THE CORPUS NUMBERS ARE A FLOOR AGAIN. The 57-of-57 in v3 was measured on trees
+    whose tests do not print. A spec whose middleware logs will refuse legitimate moves under the
+    current gate, and ledger — the spec this campaign draws most — is exactly such a spec.
+
+NOT FIXED NOW, deliberately
+    `src/builder.py` is frozen until the parity pairs finish; every draw is a fresh process and an
+    edit now would land in some draws and not others. Queued after the run, in the order already
+    written down: the HEAD guard on `_parity_ab.sh` first, then this, then the stripper's logging.
+
+    The fix itself is one more normalisation in `_canonical_error_line` — timestamps and durations —
+    and its reject condition is already obvious: the one genuine refusal shape this campaign has
+    seen (a move that introduces a compile error) must still refuse.
