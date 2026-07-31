@@ -65,3 +65,28 @@ FIX, queued behind the freeze with the same normalisation as the other two consu
     Add the timestamp and unit-duration patterns to `_canonical_toolchain_output`. Reject condition:
     the fix prompt must still distinguish two genuinely different failures, or the loop loses the
     signal it fixes on.
+
+EXACT BOUND ON THE OBSERVABLE CONSEQUENCE — every differing line, categorised
+    220 comparable lines · 38 differ (17%)
+
+        28   app-log lines carrying a wall-clock timestamp   <- the noise itself
+         8   error surface hashes                            <- the consequence
+         2   "deterministic fix in <file>" lines, SWAPPED    <- see below
+
+    And 18 of 18 .go files byte-identical. So the timestamp noise is fully accounted for: it prints
+    itself 28 times, it corrupts 8 hashes, and it changes nothing else in the output.
+
+THE TWO LEFTOVER LINES ARE A GENUINE, HARMLESS ORDER SWAP
+        line 49  arm-1: deterministic fix in internal/store/memory_test.go
+                 arm-2: deterministic fix in internal/service/service_test.go
+        line 50  arm-1: deterministic fix in internal/service/service_test.go
+                 arm-2: deterministic fix in internal/store/memory_test.go
+
+    The same two deterministic fixes, applied in the opposite order. Both runs produce identical
+    files, so the swap costs nothing here — but it is a real ordering nondeterminism in a pass whose
+    name says "deterministic", and it is worth knowing that the pass's file iteration is not stable.
+
+    ⚠️ NOT CHASED. It has no measured consequence, the queue has four items with evidence behind
+    them, and "the deterministic pass is not order-stable" is the kind of finding that reads as
+    alarming and costs a day to establish is harmless. Recorded so the next person who sees an order
+    swap in a diff knows it has been seen and is not new.
