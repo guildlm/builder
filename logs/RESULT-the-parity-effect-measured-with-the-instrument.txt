@@ -65,3 +65,31 @@ THE COMPLETE PARITY TABLE, every pair measured as-drawn by `_asdrawn_diff.py`
       difference flips the outcome with everything else held identical — not how often it would flip
       across processes, specs or temperatures. That is what the corrected design
       (logs/PREREG-the-parity-effect-across-processes-not-across-draws.txt) is for.
+
+WHAT THE DESIGN ERROR COST, in minutes
+    pair 1 (ctl-1 + arm-1)     107.2 min   <- the informative unit
+    pairs 2 and 3 (4 draws)    131.9 min so far, plus arm-3 still running
+    projected redundant total  ~212 min (3.5 hours)
+
+    Every same-condition pair is byte-identical as drawn, so pairs 2 and 3 established that the
+    PIPELINE reproduces and contributed nothing about how often the effect holds. One pair would have
+    produced the same conclusion with the same confidence.
+
+    ⚠️ 3.5 HOURS OF GPU FOR ZERO ADDITIONAL EVIDENCE. That is the price of choosing the replication
+    unit wrong, and it is a bigger number than any efficiency finding today — the timestamp fix saves
+    ~20 min per affected build; this cost ten times that in one afternoon.
+
+WHAT THE THREE DRAWS PER CONDITION DID BUY, and it is not nothing
+    · a demonstration that generation is deterministic within a process, which is what exposed my
+      repaired-vs-unrepaired error when the numbers refused to line up
+    · three independent chances for the parity verdict to disagree with itself; it did not
+    · out-of-sample instances of the defect FIX 2 addresses, which the extractor then handled
+
+    None of those was the reason for running three pairs. They are consolation, not justification,
+    and calling them the justification afterwards is exactly the move a pre-registration exists to
+    prevent.
+
+    ⚠️ THE CORRECTED DESIGN ALREADY FIXES THIS: 1 pair × 3 PROCESSES is the same six draws with the
+    replication crossing the boundary that actually varies. Same cost, real evidence. The lesson is
+    not "run fewer draws" — it is "replicate over the thing that varies", and the cost of getting
+    that wrong is measured here at 3.5 hours.
