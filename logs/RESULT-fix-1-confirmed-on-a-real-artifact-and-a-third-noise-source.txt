@@ -97,3 +97,12 @@ THE FIX VALIDATED ON THE REAL REFUSAL TEXT, before it is applied
 ⚠️ ALL OF THIS IS PRE-APPLICATION. builder.py is frozen until arm-3 finishes. What is established is
 that the change does what it claims on data the harness actually produced — not that it behaves
 correctly once wired, which needs a build and is the first thing to check afterwards.
+
+⚠️ DENOMINATOR CORRECTED 31 July — the "651/654 builds" figure above comes from segmenting at
+"generate <file> (1/N)", which cannot see 103 log files holding 160 completed builds. The archive
+holds 853 completed builds (596 green + 257 failing), confirmed two independent ways. See
+logs/FINDING-the-build-segmenter-undercounts-by-a-quarter-and-FIX-1-is-bigger-than-published.txt
+
+For the app-log claims this is immaterial: the numerator is still 9, so the rate moves 1.4% -> 1.1%
+and "rare, live and narrow" stands. The figure that DOES change is FIX 1's population: 160 failing
+builds -> 257.

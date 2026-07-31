@@ -57,3 +57,12 @@ REVISED PLAN FOR ITEM 3
     ⚠️ BLOCKED until arm-4 lands. src/builder.py must not move while a draw whose result must be
     attributable to 53b9ab4 is in flight — that is the entire reason today's first queue item was
     the freeze guard.
+
+⚠️ DENOMINATOR CORRECTED 31 July — the "651/654 builds" figure above comes from segmenting at
+"generate <file> (1/N)", which cannot see 103 log files holding 160 completed builds. The archive
+holds 853 completed builds (596 green + 257 failing), confirmed two independent ways. See
+logs/FINDING-the-build-segmenter-undercounts-by-a-quarter-and-FIX-1-is-bigger-than-published.txt
+
+For the app-log claims this is immaterial: the numerator is still 9, so the rate moves 1.4% -> 1.1%
+and "rare, live and narrow" stands. The figure that DOES change is FIX 1's population: 160 failing
+builds -> 257.

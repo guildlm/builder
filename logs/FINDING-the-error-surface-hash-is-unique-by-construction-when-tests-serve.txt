@@ -209,3 +209,12 @@ ALL THREE ARMS, COMPLETE — identical structure, zero repeats detected, every t
     build's error surfaces unique by construction, so the extension-round budget is always spent in
     full — and the fix is three normalisations, validated on this build's own output at 8 distinct
     surfaces collapsing to 3.
+
+⚠️ DENOMINATOR CORRECTED 31 July — the "651/654 builds" figure above comes from segmenting at
+"generate <file> (1/N)", which cannot see 103 log files holding 160 completed builds. The archive
+holds 853 completed builds (596 green + 257 failing), confirmed two independent ways. See
+logs/FINDING-the-build-segmenter-undercounts-by-a-quarter-and-FIX-1-is-bigger-than-published.txt
+
+For the app-log claims this is immaterial: the numerator is still 9, so the rate moves 1.4% -> 1.1%
+and "rare, live and narrow" stands. The figure that DOES change is FIX 1's population: 160 failing
+builds -> 257.

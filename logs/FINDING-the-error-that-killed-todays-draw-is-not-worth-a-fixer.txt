@@ -35,3 +35,12 @@ CONCLUSION: NOT WORTH BUILDING, on these numbers
 compelling story, and I went looking for the fixer before I went looking for the frequency. The
 frequency took one command and killed the idea. Same shape as the stripper decision earlier today:
 plausible mechanism, tiny population, don't build it.
+
+⚠️ DENOMINATOR CORRECTED 31 July — the "651/654 builds" figure above comes from segmenting at
+"generate <file> (1/N)", which cannot see 103 log files holding 160 completed builds. The archive
+holds 853 completed builds (596 green + 257 failing), confirmed two independent ways. See
+logs/FINDING-the-build-segmenter-undercounts-by-a-quarter-and-FIX-1-is-bigger-than-published.txt
+
+For the app-log claims this is immaterial: the numerator is still 9, so the rate moves 1.4% -> 1.1%
+and "rare, live and narrow" stands. The figure that DOES change is FIX 1's population: 160 failing
+builds -> 257.
