@@ -145,3 +145,26 @@ VALIDATED ON REAL ARCHIVED OUTPUT, not synthetic lines
     The build failed after 8 rounds; stopping at round 3 or 4 would have failed sooner and cheaper,
     not converged. The saving is GPU, not green builds, and the earlier estimate of ~20 minutes per
     affected build stands as the honest value.
+
+arm-3 vs arm-1, ROUND BY ROUND — identical structure, different hashes
+    round   arm-1 app-log / surface      arm-3 app-log / surface
+      1       0 / a19c144f                 0 / 51bc4ef4     <- compile-only in BOTH
+      2       4 / 70a310da                 4 / 6a8b876f
+      3       4 / 95d6749f                 4 / 1d5e5cb3
+      4       4 / 4c864f3c                 4 / (running)
+
+    The app-log line COUNT matches exactly, round for round: zero in round 1 because the build fails
+    at compile before tests run, then four in every round after. Two byte-identical draws produce
+    byte-identical structure.
+
+    AND EVERY SURFACE HASH DIFFERS. Same code, same errors, same number of log lines — different
+    hashes, because each line carries a fresh wall-clock timestamp.
+
+    ⚠️ THIS IS THE MECHANISM WITH NOTHING ELSE MOVING. The two draws are identical as drawn (measured
+    with `_asdrawn_diff.py`), take identical fix trajectories, and emit identical counts of everything
+    — and still cannot share a signature. It is not a claim about variance any more; it is arithmetic
+    on the normalisation regex.
+
+    That is the strongest form the evidence takes, and it is worth noting that it only became
+    available because a redundant third pair was drawn. The design error that cost 3.5 hours produced
+    exactly one thing I could not have got otherwise, and this is it.
