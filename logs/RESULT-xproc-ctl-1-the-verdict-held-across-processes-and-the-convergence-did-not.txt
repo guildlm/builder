@@ -1,0 +1,66 @@
+INTERIM — xproc ctl-1: the pre-registered verdict held in a new process, and convergence flipped
+==================================================================================================
+31 July, 20:11. The first draw of the corrected cross-process parity run (`_parity_xproc.sh`),
+server pid 49288 — a process created by the runner's own restart, 15 seconds before the draw.
+arm-1 is still running; the pre-registered endpoint is control-vs-arm WITHIN a process and is NOT
+answered yet. This is what the control alone already shows.
+
+THE PRE-REGISTERED ENDPOINT HELD
+        ledger-xproc-ctl-1    SPLIT   store 382B   memory 2275B    pid 49288
+        ledger-parity-ctl-1   SPLIT   store 377B   memory 2282B    pid 7598
+
+    Graded AS-DRAWN, which since this afternoon is the only correct way to grade it. A control in a
+    brand-new process still splits.
+
+CROSS-PROCESS VARIATION IS REAL AND LARGE, measured with _asdrawn_diff.py
+        CODE      7 files      the two draws wrote different PROGRAMS
+        PROSE     6 files      same code, different wording
+        IDENTICAL 1 file
+        function-level collateral: 8 — NewLedger, NewMemStore, TestBalanceAfterTransaction,
+            TestParseRejects, TestParseRoundTrip, TestRecoverMiddleware, TestStringFormats,
+            TestStringParseRoundTrip
+
+    That is consistent with the 30 July measurement of 3-6 CODE files between processes, at the top
+    of its range.
+
+⚠️ AND THE FILE THE EXPERIMENT IS ABOUT DID NOT CHANGE
+        internal/store/store.go    377 vs 382 chars    PROSE — 0 of 0 funcs differ
+
+    Seven files were rewritten and store.go was not one of them: the difference is comments and
+    strings only. The endpoint's own subject is stable across the process boundary even while a
+    third of the project is rewritten around it. That is the single most useful thing this draw
+    says, because the corrected design's whole risk — recorded in its pre-registration at 35% — was
+    that store.go might be in the volatile set for some process.
+
+CONVERGENCE FLIPPED, AND I CANNOT ATTRIBUTE IT
+        ledger-parity-ctl-1    converged to green after fix round 1
+        ledger-parity-ctl-2    converged to green after fix round 1
+        ledger-parity-ctl-3    converged to green after fix round 1
+        ledger-xproc-ctl-1     exhausted 6 fix rounds, still failing        rc=1
+
+    Three greens in one round, then a failure. That is a large behavioural difference and it is
+    CONFOUNDED:
+
+        ledger-parity-ctl-1 drawn 12:20 · ledger-xproc-ctl-1 drawn 20:11
+        commits to src/builder.py in between:  7
+
+    Process changed AND the harness changed. The freeze guard prevents this WITHIN a run — it is
+    hashing five files for the run in flight right now — but it cannot make two runs eight hours
+    apart comparable, and nothing here separates the two causes.
+
+    ⚠️ THE TIMESTAMP FIX EXPLAINS THE 6 AND NOT THE FAILURE. "exhausted 6 fix rounds" with
+    "(surface seen before)" three times is exactly the fix working — before today it would have run
+    8. But a loop that stops at 6 instead of 8 is a truncation of a FAILING build; it does not turn
+    a green build red. Whatever made this control fail is something else, and one draw cannot name
+    it.
+
+WHAT THIS DOES NOT SAY
+    NOT the endpoint. That is control-vs-arm inside one process, and arm-1 is still drawing.
+
+    NOT a claim that controls now fail. n=1, against three controls drawn under a different harness.
+    If the remaining two xproc controls also fail, that is a pattern worth chasing; if they go green,
+    this one was noise and the honest record will say so.
+
+    AND IT SHIFTS NOTHING ABOUT THE PRIOR. The 35% was about whether the control/arm DIFFERENCE
+    reproduces across processes. A control that splits — which this one does — is the condition
+    under which that question is even askable.
