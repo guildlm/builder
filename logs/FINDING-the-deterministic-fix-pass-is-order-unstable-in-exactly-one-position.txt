@@ -1,0 +1,40 @@
+FINDING — the "deterministic" fix pass swaps two adjacent files, in the same position, every time
+==================================================================================================
+31 July 16:41. Third observation of a swap first noticed between arm-1 and arm-2 and set aside then
+as having no measured consequence. Three draws now make it characterisable.
+
+THE THREE SEQUENCES, first seven deterministic fixes
+    idx  arm-1                          arm-2                          arm-3
+     0   store.go                       store.go                       store.go
+     1   models_test.go                 models_test.go                 models_test.go
+     2   service.go                     service.go                     service.go
+     3   cmd/server/main.go             cmd/server/main.go             cmd/server/main.go
+     4   store/memory_test.go           service/service_test.go        service/service_test.go   <-
+     5   service/service_test.go        store/memory_test.go           store/memory_test.go      <-
+     6   service_test.go                service_test.go                service_test.go
+
+    Positions 0-3 and 6 are identical in all three. Positions 4 and 5 are the SAME TWO FILES in the
+    opposite order: arm-1 does memory_test then service_test; arm-2 and arm-3 do the reverse.
+
+    The MULTISET is identical in all three draws — same files, same counts. Only the order of one
+    adjacent pair moves.
+
+WHAT THAT NARROWS IT TO
+    Not "the pass is nondeterministic" in any broad sense: 5 of 7 positions are fixed, the file set is
+    fixed, and the instability is confined to two files that are tied at the same point. That is the
+    signature of an unordered container — a set or dict iteration — feeding a loop, where two entries
+    that arrive together can come out either way.
+
+    ⚠️ AND IT IS 2 OF 3 FOR ONE ORDER. arm-2 and arm-3 agree; arm-1 differs. With three draws from
+    byte-identical input that is not a rate, it is a note that the pair genuinely can land both ways
+    within one server process.
+
+STILL NOT WORTH CHASING, AND NOW FOR A BETTER REASON
+    The outputs are identical: arm-1 and arm-2 ship 18 byte-identical .go files despite taking these
+    two fixes in opposite orders. So the swap is provably inconsequential HERE — both orders reach the
+    same fixed point, which is what one wants from a set of independent deterministic repairs.
+
+    The reason to record it rather than fix it: if a future deterministic fix is ever ORDER-DEPENDENT,
+    this is the mechanism that would make its outcome a coin flip, and the symptom would look like
+    flaky repair rather than like an iteration-order bug. Someone will see a swap in a diff one day;
+    this file is so they know it has been seen, characterised, and found harmless in this instance.
