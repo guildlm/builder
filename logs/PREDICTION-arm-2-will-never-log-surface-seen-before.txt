@@ -1,0 +1,35 @@
+PREDICTION — arm-2 will never log "surface seen before", whatever else it does
+==============================================================================
+31 July 14:48, written while arm-2 is in fix round 5 of 5 budgeted and has not yet entered extension
+rounds. Tests the structural claim from
+logs/FINDING-the-error-surface-hash-is-unique-by-construction-when-tests-serve.txt on a live case.
+
+THE CLAIM BEING TESTED
+    A build whose tests serve requests embeds a fresh wall-clock timestamp in every check, and
+    `_error_signature` does not strip timestamps — so every surface hashes differently and the repeat
+    detector cannot fire. arm-2's log already contains
+    "! 2026/07/31 14:40:37 POST /accounts -> 201 (8µs)", so it is such a build.
+
+PREDICTIONS, in descending confidence
+    1. arm-2 NEVER logs "(surface seen before)".                                    97%
+       Structural: the timestamp differs between any two checks in the same run, so no two
+       signatures can be equal. The 3% is for a check that produces NO app-log output at all —
+       possible if a later round fails at compile before the tests run, which would make two
+       compile-only surfaces genuinely comparable.
+
+    2. IF arm-2 fails to converge, it exhausts at exactly 8 rounds (5 budgeted + 3 extension).       90%
+       arm-1 did exactly this. The extension rounds are granted while each surface is "new", and
+       every surface is new by construction.
+
+    3. Whether arm-2 converges AT ALL: no prediction.                                  —
+       Its fix loop already diverged from arm-1 at round 1, so arm-1's failure says nothing about it.
+       This is the part that is genuinely open and I am not going to guess it.
+
+WHAT WOULD REFUTE THE STRUCTURAL CLAIM
+    A "(surface seen before)" line in arm-2's log. That would mean two checks produced identical
+    normalised output despite the timestamps — which can only happen if a check emitted no app-log
+    lines, and would tell me the defect is narrower than "any build whose tests serve".
+
+    ⚠️ Recorded BEFORE the outcome, on a run already in flight, because the alternative is reading
+    the log afterwards and finding the claim confirmed by whatever it happens to say. That is the
+    error this session has now corrected five times, and the count is the cheap part.
