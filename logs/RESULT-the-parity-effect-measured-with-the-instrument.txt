@@ -93,3 +93,28 @@ WHAT THE THREE DRAWS PER CONDITION DID BUY, and it is not nothing
     replication crossing the boundary that actually varies. Same cost, real evidence. The lesson is
     not "run fewer draws" — it is "replicate over the thing that varies", and the cost of getting
     that wrong is measured here at 3.5 hours.
+
+THE FINAL TABLE — all six draws, as drawn, from their own snapshots
+    tree     as-drawn store.go        verdict
+    ctl-1    7c9f06c7   377B          SPLIT
+    ctl-2    7c9f06c7   377B          SPLIT
+    ctl-3    7c9f06c7   377B          SPLIT
+    arm-1    7f2e9f83  2263B          CONSOLIDATED
+    arm-2    7f2e9f83  2263B          CONSOLIDATED
+    arm-3    7f2e9f83  2263B          CONSOLIDATED
+
+    Two hashes. Three draws each. Zero within-condition variation, read from .pre-fix.json rather
+    than from the trees — the distinction that cost this afternoon and is now the default.
+
+    Every control produced byte-identical output; every arm produced byte-identical output; and the
+    two differ exactly where the manipulation was applied. A 543-character prompt difference is the
+    whole of what separates 377 bytes of interface from 2263 bytes of complete package.
+
+    ✗ THE PRE-REGISTERED PREDICTION WAS THAT THE ARM WOULD SPLIT ON AT LEAST 2 OF 3, AT 45%.
+      It consolidated 3 of 3. Refuted at full strength, on complete data, in the reverse direction.
+
+    ⚠️ AND THE EFFECTIVE n REMAINS ONE PER CONDITION. Six draws, two distinct outcomes. The table's
+    symmetry is the pipeline reproducing, not the effect recurring. What it licenses is a causal
+    claim about this spec in this process; what it does not license is any statement about how often
+    the clause matters elsewhere — which is precisely what the corrected across-processes design is
+    queued to find out, at a 35% prior.
