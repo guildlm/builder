@@ -70,3 +70,36 @@ COST OF THE RESTART, measured so the design is not rejected on a guess
 
     ⚠️ The 39s assumes a warm HF cache. A first-ever load of a model would download weights and take
     far longer; every process in this experiment uses the same model that is already cached.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+PRIOR REVISED — on evidence that existed before I set it, and which I had not read
+════════════════════════════════════════════════════════════════════════════════════════════
+logs/RESULT-process-identity-is-the-variable-and-the-boot-is-not.txt (30 July) contains two facts
+that bear directly on this design, and I set the 50% without either.
+
+    1. CROSS-PROCESS VARIATION IS LARGE. "Three processes, three distinct programs, mutually 3, 4 and
+       6 CODE files apart." And "two functions that no spec edit ever moved were moved by changing
+       nothing but the pid." So a fresh process does not perturb the output slightly — it rewrites
+       several files.
+
+    2. NO ARM IN THIS CAMPAIGN HAS EVER CROSSED THE PROCESS BOUNDARY. "Every one of those arms was
+       control-vs-arm inside ONE process ... Everything here happens BETWEEN processes, a boundary no
+       arm in that series ever crossed."
+
+       ⚠️ THIS DESIGN WOULD BE THE FIRST. That is the point of it, and it is also a warning: the pair
+       stays inside a process (correct), but the REPLICATION crosses a boundary that has never been
+       crossed with a manipulation attached, and cross-process variation is measured at 3-6 files.
+
+REVISED PREDICTION
+    The control/arm difference reproduces in all three processes: 35%, down from 50%.
+    Reason: the effect is one sentence changing one file, and a process change independently rewrites
+    3 to 6 files. If store.go is among the volatile set in some process, the control itself can
+    consolidate there — which is my REJECT condition, and it is now a live outcome rather than a
+    formality.
+
+    ⚠️ REVISED BEFORE THE RUN, ON PRIOR EVIDENCE, NOT AFTER SEEING ANYTHING. The distinction matters
+    and this is the legitimate case: new-to-me evidence that predates my prediction. Had I read the
+    directory first, 35% is the number I would have written.
+
+    AND THE CAMPAIGN'S OWN LEDGER ARGUES FOR HUMILITY: that same file records nine predictions with
+    three hits. A 35% on a first-ever boundary crossing is not pessimism.
