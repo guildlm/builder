@@ -1,0 +1,34 @@
+NOTE — the timestamp defect costs roughly 20 minutes of GPU per affected build
+==============================================================================
+31 July. A cost estimate for prioritising the queued fix, derived from today's own draws rather than
+from a guess.
+
+THE MEASUREMENT, straight from the parity run log
+    ledger-parity-ctl-1   30.1 min   1 fix round  (converged, deterministic gates)
+    ledger-parity-ctl-2   19.3 min   1 fix round  (converged, byte-identical output to ctl-1)
+    ledger-parity-arm-1   77.0 min   8 fix rounds (5 budgeted + 3 extension, never converged)
+
+    marginal for 7 extra rounds:  46.9 min  ->  ~6.7 min per fix round
+    3 extension rounds            ~20 min of GPU per affected build
+    15 extension rounds in the archive's app-log builds   ~100 min total
+
+⚠️ THE CONTROLS DISAGREE WITH EACH OTHER BY 11 MINUTES FOR BYTE-IDENTICAL OUTPUT
+    ctl-1 took 30.1 min and ctl-2 took 19.3 to produce the SAME 19 files. So per-round wall time is
+    noisy — server warm-up, prompt cache state, machine load — and 6.7 min/round is an average over
+    one build, not a constant.
+
+    Treat ~20 min/build as an order of magnitude, not a figure. The honest statement is "tens of
+    minutes per affected build, and about an hour and a half across the archive".
+
+WHAT IT MEANS FOR THE QUEUE
+    ~100 minutes of GPU already spent on rounds the repeat detector was designed to prevent, and the
+    detector was structurally incapable of firing on any of them. That is not catastrophic, and it is
+    not nothing — it is roughly two parity draws.
+
+    The stronger argument for the fix remains correctness rather than cost: the fix PROMPT varies per
+    run, so the fix loop is not reproducible on any ledger build that reaches its tests. An
+    irreproducible loop is worse than a slow one, because every A/B that touches it inherits the
+    variance — and the corrected parity experiment queued behind this one runs on ledger.
+
+    ⚠️ Which is the actual reason to do the normalisation BEFORE the process-level parity re-run,
+    rather than the 20 minutes. I derived the cost first and it turned out to be the weaker argument.
