@@ -44,6 +44,36 @@ _ERRLINE = "]     ! "
 _GREEN = re.compile(r"^\[guildlm-build\] converged to green", re.M)
 
 
+# ⚠️ A LOG FILE IS NOT A BUILD. Measured 31 July, AFTER this tool's first result was published:
+# 40 of 617 log files hold more than one build. iso-shortener-07170020.log holds FOUR, each with
+# its own "converged to green" and one failed round apiece — and reading the file as one build
+# turned that into a single build repeating the same surface four times, which is the exact
+# opposite of what happened. It was caught because a build reported four failed rounds AND
+# "converged to green after fix round 1", a contradiction that only a merged log can produce.
+# TERMINATOR-BASED, not start-based. The first attempt split on "generate <file> (1/N)" and
+# missed iso-shortener-07170020 entirely — that log's four builds print no (1/N) line at all,
+# so all four stayed merged and the tool still reported one build repeating a surface four
+# times. A build ENDS unambiguously in both outcomes and in every log format seen here:
+#     success   "Generated <name> into <path>"     (a failed build never prints this — checked
+#                                                   on arm-1 and arm-4, both 0)
+#     failure   "exhausted N fix rounds"
+_BUILD_END = re.compile(r"^Generated \S+ into |exhausted \d+ fix rounds")
+
+
+def builds_of(text: str) -> list[str]:
+    """Split a log into per-build segments on either terminator. A trailing segment with no
+    terminator is a build still in flight and is kept."""
+    segs, cur = [], []
+    for line in text.splitlines(keepends=True):
+        cur.append(line)
+        if _BUILD_END.search(line):
+            segs.append("".join(cur))
+            cur = []
+    if cur and "".join(cur).strip():
+        segs.append("".join(cur))
+    return segs or [text]
+
+
 def rounds_of(text: str) -> list[str]:
     """Per-round error output, reconstructed from the `!`-prefixed lines the builder logs."""
     out, cur = [], None
@@ -84,14 +114,20 @@ def sweep(paths: list[pathlib.Path]) -> int:
     import builder as B
 
     rows = []
+    segments = 0
     for p in paths:
         try:
-            r = analyse(p.read_text(errors="replace"), B._error_signature)
+            text = p.read_text(errors="replace")
         except OSError:
             continue
-        if r:
-            r["name"] = p.name
-            rows.append(r)
+        segs = builds_of(text)
+        segments += len(segs)
+        for i, seg in enumerate(segs):
+            r = analyse(seg, B._error_signature)
+            if r:
+                r["name"] = p.name if len(segs) == 1 else f"{p.name}#{i + 1}"
+                rows.append(r)
+    print(f"  log files {len(paths)} -> build segments {segments}")
 
     multi = len(rows)
     rep = [r for r in rows if r["first_repeat"]]
@@ -164,6 +200,25 @@ def self_test() -> int:
 
     # the reconstruction must not merge two rounds when the marker is missing
     chk("rounds counted from the marker", len(rounds_of(log("a", "b"))), 2)
+
+    # ── a log file is not a build ──
+    one = ("[guildlm-build] compile/test FAILED, fix round 1\n[guildlm-build]     ! boom\n"
+           "[guildlm-build] converged to green after fix round 1\n"
+           "Generated shortener into ./generated/x\n")
+    two = one + one
+    chk("two builds in one file are split", len(builds_of(two)), 2)
+    chk("...and neither has 2 rounds", [analyse(b, ident) for b in builds_of(two)], [None, None])
+    chk("merged, it would look like one build repeating", analyse(two, ident)["rounds"], 2)
+    chk("a single-build log is not split", len(builds_of(one)), 1)
+    # ⚠️ THE CASE THE FIRST SEGMENTER MISSED: no "(1/N)" line anywhere. iso-shortener-07170020
+    # is exactly this shape and stayed merged, so the tool reported one build repeating 4 times.
+    chk("split works with no (1/N) line", len(builds_of(two)), 2)
+    # a FAILED build prints no "Generated ... into" — it must still terminate
+    fail = ("[guildlm-build] compile/test FAILED, fix round 1\n[guildlm-build]     ! boom\n"
+            "[guildlm-build] exhausted 6 fix rounds (5 budgeted), still failing\n")
+    chk("a failed build terminates too", len(builds_of(fail + one)), 2)
+    chk("an in-flight trailing build is kept",
+        len(builds_of(one + "[guildlm-build] compile/test FAILED, fix round 1\n")), 2)
 
     # ── the green detector, and the two traps it fell into ──
     chk("real success line detected",

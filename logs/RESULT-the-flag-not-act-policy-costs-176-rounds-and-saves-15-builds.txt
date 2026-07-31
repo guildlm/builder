@@ -73,3 +73,64 @@ WHAT THIS DOES NOT SAY
     AND THE 145 DENOMINATOR IS RECONSTRUCTED, not authoritative. It counts logs where two or more
     fix rounds could be rebuilt from the `!`-prefixed lines the builder prints. A build whose output
     was captured differently is invisible here.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️⚠️ CORRECTED — "15 GREEN BUILDS SAVED" WAS 13 MERGED LOG FILES. THE REAL NUMBER IS ONE.
+════════════════════════════════════════════════════════════════════════════════════════════
+A LOG FILE IS NOT A BUILD, and this tool read one file as one build.
+
+    log files                                 781
+    ...holding more than one build             40      (FULL-SUITE.log holds 19)
+    build segments once split                1174
+
+CAUGHT BY A CONTRADICTION, not by suspicion: a "build" reported FOUR failed rounds AND
+"converged to green after fix round 1". Only a merged log can produce that. iso-shortener-07170020
+is four separate builds, each failing once with the same error and each converging — read as one
+build, it became a build repeating a surface four times and recovering. Thirteen of the fifteen
+"saves" were that artifact.
+
+⚠️ AND THE FIRST FIX FOR IT WAS ALSO WRONG. Splitting on the build's opening line,
+`generate <file> (1/N)`, left iso-shortener-07170020 merged — that log format never prints it. The
+tool reported the same wrong sequence with a segmenter that looked like it worked. Segmentation is
+now TERMINATOR-based, and a build ends unambiguously in both outcomes:
+
+    success   "Generated <name> into <path>"    (a failed build never prints this: arm-1 and
+                                                 arm-4 both 0, checked)
+    failure   "exhausted N fix rounds"
+
+RE-MEASURED PER BUILD SEGMENT
+        build segments with 2+ fix rounds                129     (was "145 logs")
+        ...that ever repeat a surface                     88
+        ...whose first repeat lands inside the budget     88
+        rounds spent after a first repeat                156     (was 176)
+        builds that went GREEN despite a repeat             1     (was 15)
+
+    THE ONE SURVIVOR: bitset-witness-07271826#1 — 2 rounds, sequence A A, converged at round 2.
+    It saw the same surface twice and the second round's fix worked.
+
+    SO THE EARLIER CONCLUSION IS WITHDRAWN. "The policy pays 16% of the time" was 13 merged files
+    and 1 real case. It pays 1 time in 88.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+AND THAT MAKES A CONCRETE POLICY CHANGE FREE — measured, not argued
+════════════════════════════════════════════════════════════════════════════════════════════
+Simulating "stop after K CONSECUTIVE identical surfaces" against every archived trajectory.
+Stopping can only TRUNCATE a trajectory, never redirect it, so a green build is lost only if it
+actually reached K consecutive repeats:
+
+        K=2   fires on 81 builds   saves 151 rounds   kills 1 green   <- the survivor above
+        K=3   fires on 59 builds   saves  83 rounds   kills 0 green   <- FREE
+        K=4   fires on 52 builds   saves  31 rounds   kills 0 green
+
+    NO GREEN BUILD IN THIS ARCHIVE EVER REACHED THREE CONSECUTIVE IDENTICAL SURFACES. So a
+    3-consecutive stop recovers 83 of the 156 wasted rounds at zero measured cost, and it does not
+    touch the flat budget or the extension rule — it is a separate, narrower condition.
+
+    ⚠️ NOT APPLIED. builder.py is frozen under the running cross-process parity experiment, and a
+    change to the fix loop mid-run would split that experiment across two harnesses — which is
+    what today's freeze guard exists to prevent. Queued.
+
+    ⚠️ AND IT IS A RETROSPECTIVE SIMULATION. Truncation is sound (it cannot invent trajectories),
+    but every archived build ran under the CURRENT policy; a build that changes behaviour because
+    it stopped earlier — the repair pass now runs sooner, and since this afternoon the repair
+    actually does something — is not modelled here. The zero is a zero on historical trajectories.
