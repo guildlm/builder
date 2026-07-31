@@ -45,3 +45,29 @@ WHAT IT DOES AND DOES NOT PRICE
     of which an unknown subset had something to say. Todays' earlier over-claim — attributing all 11
     survival fills to FIX 2 when 6 were its doing — is the same shape, and it is the reason this
     paragraph exists.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️ CORRECTED 31 July — THE COUNT IS LOW BY A QUARTER, AND FIX 1 IS BIGGER THAN THIS SAID
+════════════════════════════════════════════════════════════════════════════════════════════
+See logs/FINDING-the-build-segmenter-undercounts-by-a-quarter-and-FIX-1-is-bigger-than-published.txt
+
+The segmentation above uses the build's OPENING line, "generate <file> (1/N)". 103 log files record
+builds that complete and never print it — 160 build outcomes entirely invisible, not miscounted.
+
+    'generate X (1/N)'   658        'Generated X into' 596 + 'exhausted N fix rounds' 257 = 853
+
+                          published    corrected
+        green                  454          596
+        exhausted-and-failing  160          257     <- +97 builds, +61%
+
+THE CLOSING NOTE ABOVE PREDICTED THIS. It says the segmentation has a known edge "because nothing
+marks a build's END". Something does, in both outcomes, and a failed build prints the success marker
+zero times — checked on arm-1 and arm-4.
+
+THE LOAD-BEARING CLAIM SURVIVES THE LARGER DENOMINATOR AND IS STRENGTHENED BY IT:
+
+        green builds carrying an EMPTY-file warning    11 -> 19
+        FAILING builds carrying one                     0 ->  0     across 257, not 160
+
+Zero is still the number the mechanism predicts, now on 61% more builds. Nothing here is retracted —
+the conclusion was right and its scope was understated.

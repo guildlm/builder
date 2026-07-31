@@ -1,0 +1,79 @@
+FINDING — the archive holds 853 builds, not 654, and FIX 1's population is 60% larger than published
+======================================================================================================
+31 July, while the cross-process parity run holds the GPU. Logs only, no corpus reads, no GPU.
+Followed from today's discovery that a log file is not a build.
+
+THE DISCREPANCY THAT STARTED IT
+    Two instruments in this repo disagree about how many builds the archive contains:
+
+        published findings (29-31 July)   651 / 654 builds
+        _repeat_cost.py after today's fix  853 completed builds
+
+    Both segment logs. They disagree by a quarter, and the smaller number is the denominator of at
+    least three published percentages.
+
+WHY THE OLDER COUNT IS LOW, measured rather than assumed
+    logs/RESULT-how-big-the-silent-population-was.txt segments at "generate <file> (1/N)" — the
+    build's OPENING line. Counting markers across all 781 log files:
+
+        'generate X (1/N)'          build STARTS       658
+        'Generated X into'          build SUCCEEDED    596
+        'exhausted N fix rounds'    build FAILED       257
+        outcomes total                                 853
+
+        logs with OUTCOMES but NO start marker         103
+        build outcomes inside them                     160   (79 green, 81 failing)
+        logs with a start but no outcome                35   (killed, or still running)
+
+    103 log files record builds that ran to completion and never print the opening line. Every build
+    in them is INVISIBLE to a start-based segmenter — not miscounted, absent.
+
+    ⚠️ AND THAT RESULT PREDICTED THIS FAILURE IN ITS OWN TEXT. Its closing note says the segmentation
+    "has a known edge: the final segment of a multi-build log runs to EOF BECAUSE NOTHING MARKS A
+    BUILD'S END." Something does: a build ends at "Generated X into" or "exhausted N fix rounds", and
+    a failed build prints the former zero times (checked on arm-1 and arm-4). The limitation was
+    correctly identified and the fix for it was one regex away.
+
+RE-COUNTED, terminator-segmented
+                              published    corrected
+        green                      454          596
+        exhausted-and-failing      160          257      <- FIX 1's population, +97 builds (+61%)
+        completed                  614          853
+
+    TWO INDEPENDENT METHODS AGREE ON 853: summing per-segment outcomes gives 596 + 257, and counting
+    the raw outcome markers across whole files gives 596 + 257. That agreement is the check that
+    makes this number worth more than the one it replaces.
+
+    ⚠️ "INDETERMINATE" IS NOT COMPARABLE AND I AM NOT REPORTING IT AS A COUNT. Terminator
+    segmentation produces a trailing segment for whatever follows the last outcome — usually a suite's
+    RESULT summary, not a build. That inflates indeterminate from 36 to 177 and it is segmentation
+    debris. The trustworthy figures are the two with outcome markers in them.
+
+WHAT CHANGES, AND WHAT DOES NOT
+
+    FIX 1 IS BIGGER THAN PUBLISHED, NOT SMALLER. "160 failing builds, every one silent about whether
+    the project it gave up on matched its own plan" is really 257. The change I shipped this morning
+    addresses 61% more of the archive than the result claimed for it.
+
+    THE LOAD-BEARING CLAIM SURVIVES A 60% LARGER DENOMINATOR, which is the real test:
+
+        green builds carrying an EMPTY-file warning     11  ->  19
+        FAILING builds carrying one                      0  ->   0
+
+    Zero, still, across 257 failing builds instead of 160. Before FIX 1 the warning was structurally
+    unreachable on a failing exit, so zero is the number the mechanism predicts — and a structural
+    claim that holds on a denominator 60% larger is better evidenced than it was.
+
+    THE "1% CARRY A TIMESTAMPED APP LOG LINE" FIGURE BARELY MOVES. 9 of 654 is 1.4%; 9 of 853 is 1.1%.
+    The conclusion that drove the timestamp fix — the defect is real, live and narrow — is unaffected.
+
+⚠️ THE PATTERN, WHICH IS THE POINT OF FILING THIS
+    Every published number in this campaign that is a RATE has a segmenter under it, and the
+    segmenter was never itself measured. It was checked once against an expectation ("zero failing
+    builds carry a warning — that is what the mechanism predicts, so the segmentation is trustworthy")
+    and that check PASSED for both segmenters, because the property being checked is insensitive to
+    the 160 builds one of them cannot see.
+
+    A CHECK THAT PASSES ON A BROKEN INSTRUMENT IS NOT VALIDATION. What separated them here was
+    counting the same thing two independent ways and requiring the answers to match — which costs one
+    extra query and would have caught this a week ago.
