@@ -1,0 +1,69 @@
+RESULT — the CONSUMER follows the spec 25 of 25; the DECLARER follows it 9 of 25
+=================================================================================
+31 July, 21:05, while pair 2's control is at 6 of 19 files. Archived snapshots and specs only, no
+GPU. Verifies on the full population a claim I published this evening from five examples.
+
+THE CLAIM I MADE FROM FIVE CASES
+    "response.go's chosen name is STABLE across draws and processes. models.go's is NOT."
+
+    That was five hand-inspected trees. Checked on every ledger tree that has both files:
+
+        internal/api/response.go   references models.ErrInsufficientFunds    25 of 25
+        internal/models/models.go  declares   ErrInsufficientFunds            9 of 25
+                                              ErrInsufficient                 9
+                                              neither                         7
+
+    THE CLAIM HOLDS, AND THE ASYMMETRY IS STARKER THAN I STATED. The consumer is not merely more
+    stable — it is PERFECT. Twenty-five draws, across at least three server processes and a month
+    of harness versions, every one using the exact name the spec requires. The file that OWNS the
+    declaration manages it 36% of the time.
+
+⚠️ AND response.go IS NOT COPYING models.go's CODE — it cannot be
+    They are in different packages, so response.go receives models.go only through the
+    OTHER-PACKAGE APIs block — and that block carries NO SENTINELS AT ALL, because exported_api()
+    drops grouped var members (logs/FINDING-the-cross-package-API-block-drops-every-grouped-
+    sentinel-6pct-of-builds.txt).
+
+    So response.go is reading the SPEC. Every file's purpose appears in every file's prompt, and
+    models.go's purpose says:
+
+        "Sentinel errors, all matchable with errors.Is:
+         ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced, ErrInsufficientFunds."
+
+    THE PURPOSE TEXT IS A RELIABLE CHANNEL. 25 of 25 is as clean as this campaign measures anything.
+    The failure is not that the name is unavailable — it is available, and a file three packages
+    away uses it perfectly. The failure is the DECLARING file's compliance with its own purpose.
+
+WHAT DIFFERS BETWEEN THE TWO PROMPTS, measured
+        internal/models/models.go   purpose 1212 chars · 11 backticked items · _required_decls []
+        internal/api/response.go    purpose  471 chars ·  2 backticked items · _required_decls []
+
+    models.go is asked for two and a half times as much in one purpose, and the sentinel list is one
+    clause among eleven. response.go is asked for little and has to reference one name.
+
+    ⚠️ THAT IS A CORRELATION ACROSS TWO FILES AND I AM NOT CALLING IT A CAUSE. "Longer purposes are
+    complied with less" is a testable claim and this is not a test of it — n=2, one spec, and the
+    two files differ in role as well as length. It is recorded as the obvious next hypothesis, not
+    as a finding.
+
+WHY THIS SHARPENS TODAY'S CHAIN RATHER THAN ADDING TO IT
+    The cross-package API fix would let a consumer see what was actually declared. This result says
+    the consumer does not need that for THIS defect — it already gets the right name from the spec,
+    every single time. What it needs is for the declarer to comply.
+
+    And _required_decls, the gate that exists to force exactly that compliance, extracts NOTHING
+    from this purpose — [] for both files. The spec-phrasing fix measured earlier (backtick at the
+    declaration site, +52% recall at 93% precision) is therefore aimed at the right target, and this
+    result raises my confidence in it independently of that measurement.
+
+    ⚠️ THE API FIX STILL STANDS ON ITS OWN 3 CASES — the wrong-QUALIFIER trees, where the name is
+    right and the package is wrong. Those are unaffected by anything here.
+
+⚠️ WHAT THIS DOES NOT SAY
+    ONE SENTINEL, ONE SPEC. Every number above is ErrInsufficientFunds in ledger. The other four
+    sentinels are declared consistently, which is itself informative — whatever makes models.go
+    abbreviate is specific, not general sloppiness — but it is not measured here.
+
+    AND 25 OF 25 IS A CEILING EFFECT. A perfectly stable consumer cannot get more stable, so this
+    can only be broken by a future draw, never confirmed further. Pair 2's response.go, when it is
+    written, is the 26th trial and the first one predicted in advance.
