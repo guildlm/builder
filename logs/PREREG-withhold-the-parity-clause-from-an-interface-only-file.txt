@@ -95,3 +95,13 @@ startup line, or the model field in the request the builder actually sends.
 
 Recorded here rather than in a scratch note because _server_pid.sh already exists for exactly this
 class of mistake — a plausible check that returns something else — and this is a second instance.
+
+MANIPULATION CHECK, run against the live spec while the first control was drawing
+    control  prompt 25885 chars  PARITY present
+    arm      prompt 25342 chars  PARITY absent
+    delta       543 chars — the parity sentence, and nothing else
+
+    The arm is a one-sentence difference on the file under test, measured rather than asserted. Any
+    result from this A/B is a result about that sentence or about noise; it cannot be about some
+    other thing that moved at the same time, which is the failure mode "run the off-arm from an
+    older commit" produces and the reason the switch exists.
