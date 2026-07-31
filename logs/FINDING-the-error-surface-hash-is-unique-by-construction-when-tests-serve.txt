@@ -168,3 +168,25 @@ arm-3 vs arm-1, ROUND BY ROUND — identical structure, different hashes
     That is the strongest form the evidence takes, and it is worth noting that it only became
     available because a redundant third pair was drawn. The design error that cost 3.5 hours produced
     exactly one thing I could not have got otherwise, and this is it.
+
+PRE-FLIGHT OF THE QUEUED EDIT — all four target points located in the current module
+    _SIG_NOISE_RE definition            line 5392
+    _ADDR_RE / _GOROUTINE_ID_RE         line 1622
+    _canonical_error_line body          line 1626
+    _canonical_toolchain_output return  line 1283
+
+    and the three consumers are distinct, live call sites:
+        _error_signature            referenced 2x
+        _error_entries              referenced 3x   (feeds _error_keys and _error_counts)
+        _canonical_toolchain_output referenced 3x
+
+    So the edit is three additions in two regions — the shared normaliser near line 1622 and the
+    signature's own regex at 5392 — and nothing has moved under it during the eight code changes made
+    today. Checked now rather than at apply time because a queued edit whose landmarks have shifted
+    is how a careful change becomes a hurried one.
+
+    ⚠️ AND THE TWO REGIONS ARE NOT ONE. `_canonical_error_line` (1626) serves the repair gate;
+    `_SIG_NOISE_RE` (5392) serves the surface hash; `_canonical_toolchain_output` (1283) serves the
+    fix prompt. They were written separately, they missed the same two token classes separately, and
+    they must each be fixed separately — a single shared normaliser would be the better design and is
+    NOT what is queued, because redesigning three consumers is a larger change than fixing them.
