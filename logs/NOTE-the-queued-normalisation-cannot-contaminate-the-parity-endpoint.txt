@@ -1,0 +1,33 @@
+NOTE — the fix-loop normalisation and the parity experiment are independent, verified on today's trees
+======================================================================================================
+31 July. An ordering question settled by measurement rather than by reasoning about it, because the
+queue has four items and two of them touch ledger.
+
+THE WORRY
+    Queued: (2) normalise timestamps in `_canonical_toolchain_output`, `_error_signature` and
+    `_error_keys`; (4) re-run the parity pair across three server processes. Both act on ledger. If
+    (2) changed what (4) measures, the order would be a validity question and not just a cost one.
+
+MEASURED ON ALL FOUR PARITY TREES DRAWN SO FAR
+    arm-1   as-drawn CONSOLIDATED   shipped CONSOLIDATED   agree
+    arm-2   as-drawn CONSOLIDATED   shipped CONSOLIDATED   agree
+    ctl-1   as-drawn SPLIT          shipped SPLIT          agree
+    ctl-2   as-drawn SPLIT          shipped SPLIT          agree
+
+    The verdict is identical in the .pre-fix.json snapshot and in the shipped tree, on every arm and
+    every control. It matches the 21-of-21 agreement measured earlier on the older corpus, now
+    confirmed on trees drawn under today's harness with the repair wired into the failing exit —
+    which was the case the earlier check could not cover.
+
+CONCLUSION
+    The parity endpoint is decided at GENERATION, before any toolchain output exists. Item (2) only
+    touches text produced by running the toolchain, so it cannot move the endpoint of item (4).
+
+    So the order is a COST decision: doing (2) first stops each failing ledger arm from burning three
+    extension rounds it cannot escape, which is 100% of ledger failures per the capability
+    measurement. That is a real saving on a six-draw experiment and no risk either way.
+
+    ⚠️ What (2) WILL change in (4) is the convergence outcome — rc, round count, and which files the
+    fix loop touches. Convergence is not an endpoint of the parity experiment and was excluded in the
+    pre-registration precisely because four files differ between the conditions. That exclusion is
+    what makes this independence hold; without it, (2) would be a confound.
