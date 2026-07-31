@@ -1,0 +1,65 @@
+RESULT — the non-regressing gate recovers 52 of 59, and 4 of the 7 refusals are my own bug
+==========================================================================================
+31 July. Pre-registration: logs/PREREG-a-non-regressing-repair-gate.txt, written before the edit.
+Zero GPU. Same 74 cases as the first run, joined per case rather than compared as rates.
+
+    transition (green-requiring -> non-regressing)
+        REVERTED -> FILLED     52
+        FILLED   -> FILLED     11
+        REVERTED -> REVERTED    7
+        NO-DONOR -> NO-DONOR    4
+
+    ✓ PRIMARY (predicted >=45 of 59, confidence 60%)          52 of 59       HELD
+    ✓ REJECT  green-before fills unchanged                    11 -> 11       clear
+    ✓ REJECT  no case goes FILLED -> not-FILLED                0             clear
+
+THE SEVEN THAT DID NOT MOVE, each classified from the pass's own log rather than from the end state
+    NOT-ATTEMPTED  taskapi-15b-base     internal/api/tasks.go     no log line at all
+    NOT-ATTEMPTED  taskapipro-pairB-t1  internal/store/store.go   no log line at all
+    REFUSED FALSE  workapi14            internal/store/memory.go  goroutine dump
+    REFUSED FALSE  workapi15            internal/store/memory.go  goroutine dump
+    REFUSED FALSE  workapi16            internal/store/memory.go  goroutine dump
+    REFUSED FALSE  workapi17            internal/store/memory.go  goroutine dump
+    REFUSED REAL   workapi2             internal/store/memory.go  "package models is not in std"
+
+    So the honest reading of the seven: 2 were never the gate's decision (movedecls exits non-zero
+    and the pass continues silently), 4 are the gate misreading GOROUTINE IDs as new errors — my
+    defect, logged at logs/FINDING-the-gate-refuses-on-goroutine-numbers.txt — and exactly ONE is a
+    genuine refusal of a move that would have broken an import.
+
+    ADDRESSABLE POPULATION 57 (59 minus the two non-attempts).
+    ACCEPTED 52. Expected after the goroutine fix: 56, with workapi2 the only true refusal.
+
+⚠️ THE NUMBER THAT HELD IS A FLOOR, AND I ALMOST REPORTED IT AS THE VERDICT
+    52 is what the gate does WITH a bug that makes it refuse moves that changed nothing. Every false
+    refusal excludes a case, so the direction is conservative and the safety condition is untouched —
+    but "52 of 59" is not the gate's accuracy, it is the gate's accuracy minus however many trees
+    happen to have panicking tests. I found this by reading the refusal MESSAGES, which I only did
+    because a single REVERTED row appeared earlier than I expected and I went to look at it.
+
+WHAT IT SETTLES
+    The repair's green-requiring gate was discarding 52 correct moves on evidence that had nothing to
+    do with them. That is now the pre-registered, measured case for wiring the repair into the
+    not-green exit as well — which FIX 1 deliberately did NOT do this morning, on the grounds that
+    "a repair that fires on a broken tree cannot pass toolchain.check and will revert anyway". That
+    reasoning was correct about the OLD gate and is now obsolete by measurement.
+
+WHAT IT DOES NOT SETTLE, stated before anyone reads the number as a build improvement
+    A red tree with its planned file filled is STILL RED. Not one of these 52 becomes a working
+    project. This is plan conformance on failing builds — the artifact has its declarations where the
+    plan put them — and nothing here converges a single build that did not converge before.
+
+THE STRIPPER DECISION, resolved by the rule fixed in advance
+    logs/PREREG-decide-whether-the-stripper-fix-should-exist.txt said: if the four red strip-victims
+    all turn FILLED, the stripper edit buys only tidiness and will NOT be made; if some stay REVERTED,
+    it has a population the repair cannot reach and earns a real pre-registration.
+
+        ledger-prose2        REVERTED -> FILLED
+        taskapipro-pairA-t1  REVERTED -> FILLED
+        workapi-pairA-w1     REVERTED -> FILLED
+        taskapipro-pairB-t1  REVERTED -> REVERTED   (NOT-ATTEMPTED: movedecls failed silently)
+
+    Three of four. So the second branch applies and the stripper edit earns a PRE-REGISTRATION, not
+    an implementation. And the surviving case sharpens what it would have to argue: the repair failed
+    there because movedecls could not perform the move at all, which is precisely the failure mode a
+    fix that never deletes the model's correct output in the first place would never encounter.
