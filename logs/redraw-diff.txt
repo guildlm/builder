@@ -1,0 +1,14 @@
+rows: 149 old · 104 new · 98 COMPARABLE (same artifact+file+shape in both)
+      51 site(s) only in the old sweep, 6 only in the new — moved, added or lost, NOT verdict changes
+flips: 5 of 98 comparable (5 involving a live verdict)
+
+     3  SURVIVED      -> CAUGHT
+     2  NOAPPLY       -> CAUGHT
+
+   2 row(s) became MEASURABLE (dead verdict -> live) and 0 went dead.
+   Those are artifacts changing state, not defences changing.
+
+   DEFENCE GAINED in the redraw (was SURVIVED, now CAUGHT):
+      taskflow-v4                  models.go          %w -> %v (ErrValidation)  [site 2]
+      taskflow-v4                  models.go          %w -> %v (ErrValidation)  [site 3]
+      tasks-api-v4                 task.go            %w -> %v (ErrInvalidTask)

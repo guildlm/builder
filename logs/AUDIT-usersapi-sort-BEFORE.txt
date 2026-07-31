@@ -1,0 +1,9 @@
+func TestCreateReturns201AndEcho
+func TestDeleteExistingThen404
+func TestDeleteMissingReturns404
+func TestDuplicateReturns409
+func TestGetExistingReturns200
+func TestGetMissingReturns404
+func TestListReturnsAll
+func TestMalformedJSONReturns400
+func TestRecoverPanic

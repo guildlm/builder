@@ -1,0 +1,198 @@
+  already-green    bitset-v4
+  already-green    demo-small-v4
+  already-green    eventbus-v4
+  already-green    expreval-v4
+  already-green    genericset-v4
+  already-green    json-grd
+  advanced         json-nogrd
+  already-green    jsonapi-15b-base
+  already-green    jsonapi-15b-v3
+  already-green    jsonapi-mixed
+  already-green    jsonapi-v4
+  already-green    jsoncodec-v4
+  advanced         kv-base
+  advanced         kv-retr
+  already-green    kv-retr2
+  advanced         kv-spec
+  already-green    kvservice-green1
+  already-green    kvservice-green2
+  already-green    kvservice-mixed
+  already-green    kvservice-v4
+  already-green    logstats-green1
+  already-green    logstats-green2
+  already-green    logstats-v4
+  already-green    lrucache-v4
+  already-green    numkit-base
+  already-green    numkit-demo
+  already-green    numkit-v4
+  already-green    pool-grd
+  advanced         pool-nogrd
+  already-green    priorityqueue-v4
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewMemStore in store.go, delegating to NewStore
+[guildlm-build]   wrapped the argument to NewRouter in NewAPI in handlers_test.go (Store -> *API)
+  advanced         probe1
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewMemStore in store.go, delegating to NewStore
+[guildlm-build]   wrapped the argument to NewRouter in NewAPI in handlers_test.go (Store -> *API)
+  advanced         probe2
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewMemStore in store.go, delegating to NewStore
+[guildlm-build]   wrapped the argument to NewRouter in NewAPI in handlers_test.go (Store -> *API)
+  advanced         probe3
+  already-green    ratelimit-green1
+  already-green    ratelimit-green2
+  already-green    ratelimit-v4
+  already-green    shortener-green1
+  already-green    shortener-green2
+  already-green    shortener-v4
+  already-green    stringkit
+  stuck            stringkit-32b
+  advanced         stringkit-32b-v2
+  already-green    stringkit-32b-v3
+  already-green    stringkit-7b-v2
+  already-green    stringkit-algo
+  advanced         stringkit-demo
+  already-green    taskapi
+  advanced         taskapi-15b-base
+  advanced         taskapi-15b-v3
+  already-green    taskapi-7b-v3
+  advanced         taskapi-base7b
+  stuck            taskapi-dapt300
+  advanced         taskapi-dapt300-r2
+  stuck            taskapi-dapt600-r2
+  advanced         taskapi-qwen3
+  already-green    taskapi-regr
+  already-green    taskapi-speedcheck
+  already-green    taskapi-v4
+  advanced         taskapipro
+  advanced         taskapipro-7b-v3
+  advanced         taskapipro-base7b
+  advanced         taskapipro-fastgates
+  advanced         taskapipro-fieldgate
+  already-green    taskapipro-final-green
+  already-green    taskapipro-green1
+  already-green    taskapipro-retr
+  already-green    taskapipro-retr-green
+  advanced         taskapipro-routed
+  advanced         taskapipro-run7-2of3
+  advanced         taskapipro-run9-2of3
+  advanced         taskapipro-v2-c16
+  advanced         taskapipro-v2-c27
+  advanced         taskapipro-v4
+  already-green    taskflow-green1
+  already-green    taskflow-green2
+  already-green    taskflow-v2
+  already-green    taskflow-v4
+  advanced         tasks-api-32b
+  stuck            tasks-api-32b-r12
+  stuck            tasks-api-7b
+  stuck            tasks-api-7b-algo
+  stuck            tasks-api-7b-algo2
+  stuck            tasks-api-7b-algo3
+  stuck            tasks-api-7b-algo4
+  stuck            tasks-api-min-v4
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewMemStore in store.go, delegating to NewStore
+[guildlm-build]   wrapped the argument to NewRouter in NewAPI in handlers_test.go (Store -> *API)
+  advanced         tasks-api-noshadownudge-v4
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewStore in store.go, delegating to NewStoreImpl
+  advanced         tasks-api-roll1
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewStore in store.go, delegating to NewStoreImpl
+  advanced         tasks-api-roll2
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewStore in store.go, delegating to NewStoreImpl
+  advanced         tasks-api-roll3
+  stuck            tasks-api-roll4
+  stuck            tasks-api-roll5
+  already-green    tasks-api-roll6
+  already-green    tasks-api-roll7
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+  advanced         tasks-api-shadowed-t-repro
+  already-green    tasks-api-v4
+  already-green    tasksapi-green1
+  already-green    tasksapi-green2
+  stuck            usersapi-15b-base
+  stuck            usersapi-15b-v3
+  already-green    usersapi-final-green
+  already-green    usersapi-green1
+  already-green    usersapi-green2
+  stuck            usersapi-guild
+  advanced         usersapi-v2
+  already-green    usersapi-v4
+  already-green    walkv-v4
+  advanced         workapi
+  already-green    workapi-split-green1
+  already-green    workapi-split-green2
+  advanced         workapi-v4
+  advanced         workapi-v5   [RENAMED 2026-07-28 -> generated/workapi-v5-stale-0726.
+                                 The tree is intact; only the directory name moved, so the
+                                 whole-corpus -v5 redraw could not rm -rf the evidence behind
+                                 this row. See _sweep_v5.sh, which refuses rather than delete.]
+  advanced         workapi10
+  advanced         workapi11
+  advanced         workapi12
+  advanced         workapi13
+  advanced         workapi14
+  advanced         workapi15
+  advanced         workapi16
+  advanced         workapi17
+  advanced         workapi18
+  advanced         workapi19
+  advanced         workapi2
+  advanced         workapi20
+  advanced         workapi21
+  advanced         workapi22
+  advanced         workapi23
+  advanced         workapi24
+  advanced         workapi25
+  advanced         workapi26
+  already-green    workapi27
+  advanced         workapi3
+  advanced         workapi4
+  advanced         workapi5
+  advanced         workapi6
+  advanced         workapi7
+  advanced         workapi8
+  already-green    workapi9
+  already-green    workerpool-v4
+
+=== 138 artifacts ===
+   63  already-green
+   60  advanced
+   15  stuck
+
+=== of 75 broken artifacts, what still blocks them ===
+   47  still do not COMPILE  -> a gate could still help
+   28  compile, but a TEST fails -> only the spec or the model can
+
+=== residual COMPILE classes, by how many DISTINCT artifacts hit them ===
+    (the ranked backlog: what the gates still cannot repair)
+
+   19  too many errors
+    7  too many arguments in call to X
+    6  other declaration of X
+    6  X redeclared in this block
+    5  undefined: models.X
+    5  undefined: enq
+    4  syntax error: imports must appear before other declarations
+    4  syntax error: non-declaration statement outside function body
+    3  expected declaration, found 'package' (and X more errors)
+    3  undefined: X
+    3  invalid operation: too many arguments for X(X(X(), tc.limit, X, "…")) (expected X, found X)
+    2  syntax error: unexpected X, expected }
+    2  expected '}', found 'X'
+    2  no required module provides package github.com/gorilla/mux; to add it:
+    2  X X (type X has no field or method X)
+    2  X X (type X has no field or method tasks)
+    2  invalid receiver type X (pointer or interface type)
+    2  X X (type X has no field or method mu)
+    2  invalid composite literal type X
+    2  not enough arguments in call to X
+    2  cannot use X(X(X(), &X{})) (value of type *X) as service.X value in argument to X: *X does not implement X (wr
+    1  no required module provides package github.com/sirupsen/log/slog/text; to add it:
+    1  no required module provides package github.com/sirupsen/log/slog/json; to add it:
+    1  no required module provides package github.com/sirupsen/log/slog; to add it:
+    1  undefined: main

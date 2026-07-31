@@ -23,7 +23,25 @@ traces/
 # nothing. Excluding the CONTENTS instead leaves the directory visible, which is
 # what makes the exception work. (Found the way everything else was found today:
 # the commit refused the file and I read the error instead of retrying it.)
-logs/*
+# ⚠️ INVERTED 31 July, after this list went stale for the SEVENTH time. Every previous
+# note below explains the mechanism as though naming it were the fix; six of them add one
+# more prefix. It kept happening because the rule enumerated what to KEEP, so anything
+# with a new name was silently dropped, and the drop is invisible — `git commit` says
+# "nothing to commit" and looks like success.
+#
+# Measured before changing it: of 875 files in logs/, 852 are .log/.out/.nohup/.summary —
+# raw run output, regenerable by definition. The other 23 are records. Sixteen of those
+# were sitting UNTRACKED under the old rule: twelve AUDIT-*-BEFORE.txt baselines and four
+# repair-survival*.tsv gate baselines, which cannot be regenerated at all because the gate
+# they measured no longer exists in the code.
+#
+# So the rule now enumerates what to DISCARD, and a record with a name nobody predicted is
+# kept by default. That is the direction the last six notes each argued for and none took.
+logs/*.log
+logs/*.out
+logs/*.nohup
+logs/*.summary
+logs/.current-*
 
 # ...except the predictions. These are not run artifacts, they are the method:
 # each one is a claim written down BEFORE its measurement, including the outcome
@@ -47,8 +65,6 @@ logs/*
 # Untracked it is a scratch note; tracked it is checkable against what actually happened.
 # Caught the way the rest of this file was: the commit said "nothing to commit" and I read
 # that instead of retrying it.
-!logs/PENDING-*.txt
-!logs/hole-hunt-rows.tsv
 # ...AND EVERY OTHER GENERATION AND BASELINE OF IT, which the single-file rule above did not
 # cover and nothing announced. Found 29 July by creating logs/hole-hunt-rows-v5.tsv and
 # asking git: it is ignored. That file is the ENTIRE OUTPUT of the capstone redraw — the
@@ -64,27 +80,22 @@ logs/*
 # diff)" while git ignored the file. A tool asserting its output is tracked is not evidence
 # that it is; `git ls-files` is. That line has been printing a false claim since the tool
 # was written.
-!logs/hole-hunt-rows*.tsv
-!logs/reachability-rows*.tsv
 # Do not verify this with `git check-ignore` — it reports pattern matching and says
 # nothing about tracking, so it answered "ignored" for a file that was already
 # committed and diffing correctly. The question is whether a CHANGE shows up:
 #   git ls-files --error-unmatch logs/hole-hunt-rows.tsv   (tracked?)
 #   append a row, then `git status --short`                (does it diff?)
 
-!logs/PREDICTION-*.txt
 # ...and the findings. A FINDING is a prediction's sibling: a measured, model-free
 # result (a mutation that survives, a BEFORE artifact that proves a hole ships) —
 # not regenerable, because it records what a specific artifact did at a specific
 # commit. Same reason as the predictions; same exception.
-!logs/FINDING-*.txt
 # ...and the RESULTS, which are what a PREDICTION becomes once the run lands. Keeping the
 # prediction and ignoring the result is the worst of the three options: it preserves the
 # guess and discards the grade, so a later reader finds five confident predictions and no
 # record of which ones missed. Caught the first time a RESULT was written — the commit
 # reported "nothing to commit, working tree clean" for a file that had just been created,
 # which is exactly the silent-ignore failure the hole-hunt-rows note above describes.
-!logs/RESULT-*.txt
 # ...and the NOTES, the fourth member of the family. A NOTE records a CONDITION the
 # measurement was taken under — "these two of twenty-two specs were drawn against a second
 # server process after a reboot" — which is regenerable from nothing, because the condition
@@ -93,7 +104,6 @@ logs/*
 # four above, on the fourth consecutive occasion: `git add` refused the path and printed the
 # hint, which is louder than the "nothing to commit" that caught the others and is the only
 # reason this rule exists before the number it qualifies was read rather than after.
-!logs/NOTE-*.txt
 # ...and the PREREGS, which are the same thing as a PREDICTION under a different filename — and
 # that is the whole failure. This list has now gone stale SIX times, and every previous note
 # above explains the mechanism as though naming it were the fix. It is not. Five of the six were
@@ -112,4 +122,6 @@ logs/*
 # Caught by "nothing to commit, working tree clean" — the sixth consecutive time, and the one
 # failure mode line 48 explicitly warns about reading past. Do not add a seventh note. If a new
 # record filename appears, run `git ls-files --error-unmatch` on it BEFORE it holds a claim.
-!logs/PREREG-*.txt
+
+# The !logs/... exceptions that lived here are gone: with the rule inverted they were dead
+# text, and this file already warns that dead text silently does nothing. 9 removed.

@@ -1,0 +1,96 @@
+  advanced         _proof-middleware-wall
+  already-green    bitset-v4
+  already-green    demo-small-v4
+  already-green    eventbus-v4
+  already-green    expreval-v4
+  already-green    genericset-v4
+  already-green    jsonapi-v4
+  already-green    jsoncodec-v4
+  already-green    kvservice-green1
+  already-green    kvservice-green2
+  already-green    kvservice-v4
+  already-green    logstats-green1
+  already-green    logstats-green2
+  already-green    logstats-v4
+  already-green    lrucache-v4
+  already-green    numkit-v4
+  already-green    priorityqueue-v4
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewMemStore in store.go, delegating to NewStore
+[guildlm-build]   wrapped the argument to NewRouter in NewAPI in handlers_test.go (Store -> *API)
+  advanced         probe1
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewMemStore in store.go, delegating to NewStore
+[guildlm-build]   wrapped the argument to NewRouter in NewAPI in handlers_test.go (Store -> *API)
+  advanced         probe2
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewMemStore in store.go, delegating to NewStore
+[guildlm-build]   wrapped the argument to NewRouter in NewAPI in handlers_test.go (Store -> *API)
+  advanced         probe3
+  already-green    ratelimit-green1
+  already-green    ratelimit-green2
+  already-green    ratelimit-v4
+  already-green    shortener-green1
+  already-green    shortener-green2
+  already-green    shortener-v4
+  already-green    taskapi-v4
+  already-green    taskapipro-green1
+  advanced         taskapipro-v4
+  already-green    taskflow-green1
+  already-green    taskflow-green2
+  already-green    taskflow-v4
+  stuck            tasks-api-min-v4
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewMemStore in store.go, delegating to NewStore
+[guildlm-build]   wrapped the argument to NewRouter in NewAPI in handlers_test.go (Store -> *API)
+  advanced         tasks-api-noshadownudge-v4
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewStore in store.go, delegating to NewStoreImpl
+  advanced         tasks-api-roll1
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewStore in store.go, delegating to NewStoreImpl
+  advanced         tasks-api-roll2
+[guildlm-build]   renamed the loop variable shadowing t *testing.T in store_test.go
+[guildlm-build]   added the specified constructor NewStore in store.go, delegating to NewStoreImpl
+  advanced         tasks-api-roll3
+  stuck            tasks-api-roll4
+  stuck            tasks-api-roll5
+  already-green    tasks-api-roll6
+  already-green    tasks-api-roll7
+  already-green    tasks-api-v4
+  already-green    tasksapi-green1
+  already-green    tasksapi-green2
+  already-green    usersapi-green1
+  already-green    usersapi-green2
+  already-green    usersapi-v4
+  already-green    walkv-v4
+  already-green    workapi-split-green1
+  already-green    workapi-split-green2
+  advanced         workapi-v4
+  already-green    workerpool-v4
+
+=== 52 artifacts ===
+   39  already-green
+   10  advanced
+    3  stuck
+
+=== of 13 broken artifacts, what still blocks them ===
+    9  still do not COMPILE  -> a gate could still help
+    4  compile, but a TEST fails -> only the spec or the model can
+
+=== residual COMPILE classes, by how many DISTINCT artifacts hit them ===
+    (the ranked backlog: what the gates still cannot repair)
+
+    4  too many arguments in call to X
+    3  too many errors
+    2  tt.X X (type []models.X has no field or method X)
+    2  invalid operation: operator ! not defined on X() (value of type string)
+    2  undefined: store
+    2  X X (type X has no field or method X)
+    2  X X (type X has no field or method mu)
+    2  invalid receiver type X (pointer or interface type)
+    2  other declaration of X
+    2  invalid composite literal type X
+    2  X X (type X has no field or method tasks)
+    2  X redeclared in this block
+    1  undefined: X

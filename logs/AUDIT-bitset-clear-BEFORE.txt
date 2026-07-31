@@ -1,0 +1,3 @@
+bitset_test.go:func TestCount
+bitset_test.go:func TestSetTestClear
+bitset_test.go:func TestUnion

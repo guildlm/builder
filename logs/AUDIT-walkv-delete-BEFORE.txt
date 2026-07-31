@@ -1,0 +1,2 @@
+store_test.go:func TestRecoveryAfterReopen
+store_test.go:func TestSetGet

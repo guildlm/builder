@@ -1,0 +1,17 @@
+func TestCreateDuplicate
+func TestCreateInvalid
+func TestCreateOK
+func TestDelete
+func TestGetMissing
+func TestList
+func TestListLimit
+func TestMalformedJSON
+func TestPaginateNegativeOffset
+func TestPaginateOffsetPastEnd
+func TestProjectCreateGet
+func TestProjectCreateInvalid
+func TestProjectDelete
+func TestProjectDeleteMissing
+func TestProjectGetMissing
+func TestProjectList
+func TestRecoverPanic
