@@ -1,0 +1,35 @@
+NOTE — the queued stripper-logging change is one line, and it does NOT need the draw I budgeted
+================================================================================================
+31 July. Verifying a queued item's cost before the freeze lifts, because "it is a one-line change"
+was asserted when the retraction was written and never checked.
+
+THE CLAIM UNDER TEST
+    logs/FINDING-the-stripper-deletes-the-copy-that-was-in-the-right-file.txt says the open question
+    — did the stripped candidate hold the IMPLEMENTATION or a duplicate INTERFACE — could be settled
+    by "log the stripped NAMES, or trace the pre-strip candidate — a one-line change — then one draw
+    of ledger-origorder".
+
+VERIFIED: the names are derivable AT THE CALL SITE, with no change to strip_redeclarations
+    builder.py:5202 already holds both strings:
+
+        stripped = strip_redeclarations(last, sibling_decls)
+        if stripped != last:
+            _log(f"    stripped redeclared symbols from {what} candidate")
+
+    and (top_level_decls|method_decls) of `last` minus the same of `stripped` is exactly the removed
+    set. Demonstrated on a fixture: removing {MemStore, MemStore.Get} from a candidate yields
+    removed = ['MemStore', 'MemStore.Get'].
+
+    So the change is one line at 5204 and touches nothing else. The claim holds.
+
+⚠️ AND THE DRAW IS NOT NEEDED FOR THE PAST — ONLY FOR THE FUTURE
+    I budgeted "one draw of ledger-origorder" to settle what the stripped candidate contained. But
+    arm-1 and arm-2 ALREADY produced that exact case today, twice, byte-identically — and their
+    candidates are gone, because nothing logged the names and the trace records post-strip code.
+
+    A draw after the fix would answer it for a NEW build. It cannot recover what arm-1's candidate
+    held. So the honest statement is: the retraction stands permanently for today's artifacts, and
+    the fix makes the question answerable from the next occurrence onward.
+
+    That is a smaller claim than "one draw settles it", and it is the difference between fixing an
+    instrument and recovering data the instrument never captured.
