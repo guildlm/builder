@@ -53,3 +53,26 @@ FIX (queued, not applied — builder.py is frozen until the parity pairs finish)
     Reject condition: two genuinely different failures must still hash differently — the detector's
     whole job is telling a repeat from a new stratum, and a normalisation that erased too much would
     stop extension rounds that deserve to run.
+
+VALIDATED BEFORE THE EDIT, without touching the frozen file
+    Proposed: _SIG_NOISE_RE gains  \d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}  and  \d+(\.\d+)?(ns|µs|ms)
+
+    case                                   normalised now   normalised by proposal
+    app log "GET /accounts -> 200 (1.708µs)"     no                yes    <- the defect
+    app log "POST /accounts -> 201 (8µs)"        no                yes
+    "internal/api/x.go:12:5: undefined: Foo"     no                no     <- must not move
+    "--- FAIL: TestGet (0.00s)"                  yes               yes    <- already handled
+    "panic: assignment to entry in nil map"      no                no     <- must not move
+
+    AND THE TWO PROPERTIES THAT DECIDE IT:
+        same request, different timestamp AND different duration  ->  hashes EQUAL      ✓
+        different request (POST/201 vs GET/200)                   ->  hashes DIFFER     ✓
+
+    The second is the pre-registered reject condition: the detector exists to tell a repeat from a new
+    stratum, so a normalisation that erased too much would stop extension rounds that deserve to run.
+    It survives.
+
+    ⚠️ Validated by evaluating the regex, NOT by running the harness — builder.py stays frozen until
+    the parity pairs finish. What this does not test is whether the surrounding call site behaves as
+    expected once the hashes start colliding, which needs a build and is the first thing to check
+    after the edit lands.
