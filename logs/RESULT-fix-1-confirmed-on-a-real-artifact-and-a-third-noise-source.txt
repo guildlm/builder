@@ -33,9 +33,20 @@ THE LOG, in order
     arguments — and the third instance of it. `_canonical_toolchain_output` already strips per-test
     durations and `(cached)` for exactly this reason; it does not strip the program's own stdout.
 
-    ⚠️ AND IT MEANS THE CORPUS NUMBERS ARE A FLOOR AGAIN. The 57-of-57 in v3 was measured on trees
-    whose tests do not print. A spec whose middleware logs will refuse legitimate moves under the
-    current gate, and ledger — the spec this campaign draws most — is exactly such a spec.
+    ⚠️ I WROTE "SO THE CORPUS NUMBERS ARE A FLOOR AGAIN" AND THEN MEASURED IT. They are not.
+
+        builds segmented across the archive:                              654
+        builds whose captured output contains a timestamped app log line:   9  (1%)
+        by prefix: 6 ab-*, 2 ledger, 1 taskflow
+
+        And v3 refused NOTHING — zero refusals across 74 cases — so no case was lost to this or to
+        anything else. Noise of this kind causes false REFUSALS, never false accepts, so a run with
+        zero refusals cannot have been reduced by it. 57 of 57 addressable stands as measured, not
+        as a floor.
+
+    WHY IT IS RARE: the lines only appear when the tests actually RUN. Most failing builds die at
+    compile, so nothing executes and nothing prints. This one got far enough to serve requests. So
+    the defect is real, live, and narrow — it cost exactly one repair, on one artifact, today.
 
 NOT FIXED NOW, deliberately
     `src/builder.py` is frozen until the parity pairs finish; every draw is a fresh process and an
