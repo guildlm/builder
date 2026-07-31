@@ -1,0 +1,74 @@
+RESULT — the gate's gap closes with a SPEC edit, not a code change: +52% recall at 93% precision
+==================================================================================================
+31 July, while the parity run holds src/builder.py. Specs and archived snapshots only, no GPU.
+Answers the design question the previous finding refused to answer with a regex.
+
+THE QUESTION
+    _required_decls is blind to two thirds of the exported names the purposes promise
+    (logs/FINDING-the-required-decls-gate-sees-a-third-of-what-the-purposes-promise.txt), and the
+    obvious widening makes the recorded OVER-REACH failure worse. Which widening, if any, is worth
+    having?
+
+MEASURED — every candidate scored the same way, on 472 (tree, file) pairs
+    A demand is CORRECT if the as-drawn file actually declares it, OVER-REACH if it does not.
+    Ownership subtraction (_foreign_owned_decls, _disclaimed_decls) applied in every row.
+
+        extractor                                correct   over   precision
+        current (baseline)                           277     16       95%
+        + Err* convention                            431    314       58%
+        + New* convention                            472    156       75%
+        + Err* and New*                              626    454       58%
+        + backticked func signatures                 341     48       88%
+        + all three                                  626    478       57%
+
+        naive prose MixedCaps                        889   3564       20%
+            worst terms: Standard 246 · Imports 145 · Methods 114 · Create 100 · The 63
+
+    THE BASELINE IS 95% PRECISE. That is not an accident and it is the whole finding: the three
+    extractors key on DECLARATION SYNTAX — `Foo struct`, `var Foo`, a whole backtick holding one
+    identifier. Every widening toward prose collapses precision, because prose mentions are
+    dominated by USES. "returns ErrNotFound when missing" promises to RETURN it, not declare it, and
+    no lexical rule separates the two.
+
+    ⚠️ AND OWNERSHIP DOES NOT RESCUE IT. The previous finding proposed that a useful widening needs
+    ownership rather than extraction. Tested: adding sentinel-ownership subtraction to the Err*
+    widening moved precision 58% -> 63%. The hypothesis was mine, it was reasonable, and it is wrong.
+
+THE ANSWER — write the SPEC in the syntax the gate already reads
+        specs as they are                            277     16       95%
+        blanket backticking of every Err* mention    431    332       56%
+        BACKTICK ONLY AT THE DECLARATION SITE        421     31       93%
+
+    Backticking `ErrInsufficientFunds` only in the entry whose purpose INTRODUCES the sentinels —
+    the one that says "Sentinel errors, all matchable with errors.Is:" — gains 144 correct demands
+    (+52%) for 15 more over-reaches, and holds precision at 93%.
+
+    NO CODE CHANGE AT ALL. _required_decls already reads that form; the specs simply never used it
+    at the site where it matters. Blanket backticking is as bad as blanket widening (56%), for the
+    same use-vs-declaration reason — the edit has to be targeted.
+
+⚠️ AND MOST OF THE "NEW OVER-REACH" IS THE GATE WORKING
+    The extra over-reach term is ErrInsufficientFunds. Measured: 20 archived trees have an as-drawn
+    models.go that does NOT declare it — while ledger's spec names it explicitly in that file's own
+    purpose.
+
+    So the gate is demanding a declaration the spec requires and the model omitted. A precision
+    metric scored against the model's own output counts that as a miss; it is the gate CATCHING THE
+    DEFECT THIS WHOLE THREAD STARTED FROM. The true precision of the targeted edit is higher than
+    93%, and I am reporting the pessimistic number rather than the flattering one because separating
+    the two cases requires a judgement the metric cannot make.
+
+WHAT THIS DOES NOT ESTABLISH
+    THE DECLARATION SITE WAS FOUND BY A HEURISTIC — the phrase "Sentinel errors". That works on
+    these specs and is not a general rule. The general rule already exists and is the point:
+    BACKTICKS MEAN "THIS IS A DECLARATION" in this spec language, and the author should use them
+    there. This measurement says the convention pays; it does not automate finding where to apply it.
+
+    IT IS A RETROSPECTIVE SIMULATION. Every number is the gate re-run against archived as-drawn
+    files. A gate that rejects and RESAMPLES changes what gets written, so the real effect of the
+    edit can only be measured by drawing — and that is a spec change, so it makes the existing corpus
+    non-comparable for anything touching these files.
+
+    ⚠️ NOTHING APPLIED. specs/ledger-origorder.yaml is hashed and locked by the freeze guard for the
+    running experiment. specs/ledger.yaml is not locked, but editing a spec mid-experiment is the
+    same class of mistake, and this is a simulation result that has not yet earned a draw.
