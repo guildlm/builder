@@ -4602,6 +4602,12 @@ _ASSERTION_RE = re.compile(r"\bt\.(?:Error|Errorf|Fatal|Fatalf|Fail|FailNow)\b")
 # part of the file's contract with the rest of the project. A qualified
 # mention (http.Handler interface) is another package's type, not ours.
 _REQUIRED_TYPE_RE = re.compile(r"(?<![.\w])([A-Z]\w*)\s+(?i:struct|interface)\b")
+# The same promise, written the two other ways the specs actually write it:
+# "Implements the `MemStore` type", "Exported sentinels var ErrNotFound and
+# var ErrExists". Adjacency to the struct/interface keyword is a property of
+# how one entry was phrased, not of what it promised.
+_REQUIRED_BACKTICK_RE = re.compile(r"`([A-Z]\w*)`")
+_REQUIRED_VARCONST_RE = re.compile(r"\b(?:var|const)\s+([A-Z]\w*)")
 
 
 def _required_decls(purpose: str) -> set[str]:
@@ -4609,11 +4615,30 @@ def _required_decls(purpose: str) -> set[str]:
     candidate missing one compiles alone but breaks every package that was
     told (via the same spec) to reference it — the models.Event omission that
     no later fix round recovers, because each fix keeps resampling from the
-    same blind prior."""
-    required = set(_REQUIRED_TYPE_RE.findall(purpose or ""))
+    same blind prior.
+
+    The three patterns are one question asked three ways, and the reason the
+    set is not just ``Name struct|interface``: over the corpus, 10 of the 64
+    empty planned files this feeds ``_fill_empty_planned_files`` had NOTHING
+    movable purely because ledger's memory.go entry writes `MemStore` in
+    backticks. Widening moves that to 1 (measured; `_repair_take_audit.py`).
+
+    ⚠️ MixedCaps only, on the two added patterns. An all-caps token in a
+    purpose is prose emphasis or an env var name, not an identifier — taskapi's
+    config.go says "Treat an EMPTY env var EXACTLY like an UNSET one", where
+    the ENGLISH noun "var" otherwise makes this claim the file must declare
+    ``EXACTLY``. It was the only false claim in the whole spec directory, and
+    it is in a spec the original blast-radius check did not cover, which is why
+    the guard is here and not left to the specs to avoid.
+    """
+    purpose = purpose or ""
+    required = set(_REQUIRED_TYPE_RE.findall(purpose))
+    widened = set(_REQUIRED_BACKTICK_RE.findall(purpose))
+    widened |= set(_REQUIRED_VARCONST_RE.findall(purpose))
+    required |= {n for n in widened if any(c.islower() for c in n)}
     # `package main` needs its entrypoint: a main.go without func main fails
     # with a package-level error that carries NO file:line to route on
-    if re.search(r"\bfunc main\b|\bmain\(\)", purpose or ""):
+    if re.search(r"\bfunc main\b|\bmain\(\)", purpose):
         required.add("main")
     return required
 
