@@ -1,0 +1,32 @@
+NOTE — 141 commit messages audited for shell substitution damage; one real hit, already amended
+================================================================================================
+31 July 16:52. Follow-up to a commit whose backticked `MemStore` was eaten by zsh. Checking whether
+it happened elsewhere, because a mangled message is silent — the commit succeeds and reads plausibly.
+
+THE QUERY THAT LIED FIRST
+    `git log --since <today's date>` returned ZERO commits, on a day with 141. The date is 2026, and
+    whatever git does with a bare future-looking ISO date here, it is not what I meant. Switched to
+    `--since "16 hours ago"`, which returns 141.
+
+    ⚠️ I nearly wrote "0 commits today, nothing to audit" and moved on. A query returning zero is the
+    easiest result in the world to accept, and it was wrong — the same shape as every scope error
+    today, in the instrument rather than the claim.
+
+THE AUDIT
+    141 messages · 3 lines with a suspicious mid-sentence double space
+
+        0c006614  the amended message itself, quoting the damage it describes  — expected
+        2ca4521   "A arm, store.go first    store.go kept clean" — a deliberate column layout
+        8f2abd2   "+backticked capitalised    movable 62 · EMPTY 2" — a deliberate table
+
+    So ONE real instance, the one already caught and amended. The other two are aligned tables where
+    the double space is intentional.
+
+WHY ONLY ONE, AND IT IS NOT LUCK
+    Almost every commit today used `git commit -F -` with a quoted heredoc (`<<'MSG'`), which passes
+    the body through untouched. The single failure used `-m "…"` with a double-quoted string, and
+    double quotes in zsh perform command substitution on backticks.
+
+    The rule that follows is mechanical rather than attentional, which is the only kind that has
+    worked today: commit messages describing code go through `-F -` with a QUOTED delimiter. Never
+    `-m` with double quotes when the text contains backticks or `$`.
