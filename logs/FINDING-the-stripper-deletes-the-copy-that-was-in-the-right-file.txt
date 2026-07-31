@@ -1,5 +1,10 @@
-FINDING — the model writes the file's content in the right file; the STRIPPER deletes it
-=========================================================================================
+FINDING — the stub is produced by the STRIPPER, on a candidate wholly redundant with its sibling
+=================================================================================================
+⚠️ TITLE CORRECTED. It read "the model writes the file's content in the right file; the STRIPPER
+deletes it" — the stronger claim, retracted below. The evidence supports "the candidate was entirely
+redundant with its sibling", not "the implementation was in the right file". A correction in the body
+of a document whose TITLE still carries the retracted claim is not a correction; that lesson cost a
+separate fix this morning.
 31 July, from the logs and the trees on disk. Zero GPU. This reframes the defect the whole campaign
 has been calling "the model consolidates the package into one file".
 
@@ -19,9 +24,8 @@ THE TWO ARMS, SIDE BY SIDE, SAME SPEC, SAME MODEL, ONLY THE ENTRY ORDER DIFFEREN
 
 WHAT THE STRIP LINE MEANS, and it is the whole finding
 memory.go's candidate in the A arm was stripped and what remained was FOURTEEN BYTES. So the
-candidate consisted ENTIRELY of declarations a sibling already had. The model DID write MemStore and
-its methods into memory.go — the file the plan gave them to — and `strip_redeclarations` deleted
-them, because store.go had written the same symbols one file earlier.
+candidate consisted ENTIRELY of declarations store.go already had, and `strip_redeclarations` removed
+every one of them. WHICH declarations they were is not recorded — see the correction below.
 
     The stub is not the model failing to write the file. It is the model writing SOMETHING the
     sibling already had, and the harness deterministically deleting all of it.
@@ -66,7 +70,8 @@ HOW OFTEN — measured over the archive
 WHAT THIS CHANGES
     1. "The model cannot split a package" is wrong, and I have been repeating it for a week. Given
        the implementer's entry first, the model splits correctly — four draws for four, no stripping
-       needed, both files right.
+       needed, both files right. This one does NOT depend on the retracted claim: it rests on the B
+       arm's artifacts, which are on disk and were read directly.
     2. The remaining question is much narrower: why does the model, writing the INTERFACE file first,
        also write the implementation — into a file whose purpose says, verbatim, "The Store INTERFACE
        only — no implementation in this file"? That is the strongest prohibition available and it is
