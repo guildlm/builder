@@ -1,0 +1,44 @@
+RESULT — v3: 57 of 57 addressable, and the gate now refuses nothing at all
+==========================================================================
+31 July. Corpus re-run under the multiset key. Pre-registration:
+logs/PREREG-compare-message-multisets-so-a-travelled-error-is-not-new.txt, written before the edit
+and while the previous run was still in flight.
+
+    transition (green-requiring -> non-regressing + multiset key)
+        REVERTED -> FILLED          57
+        FILLED   -> FILLED          11
+        NO-DONOR -> NO-DONOR         4
+        REVERTED -> NOT-ATTEMPTED    2
+
+    GREEN-BEFORE  12 cases · FILLED 11 · REFUSED 0 · NOT-ATTEMPTED 0 · NO-DONOR 1
+    RED-BEFORE    62 cases · FILLED 57 · REFUSED 0 · NOT-ATTEMPTED 2 · NO-DONOR 3
+
+    ✓ PRIMARY   workapi2 flips, red fills reach 57 of 57 addressable   (predicted, 85%)   HELD
+    ✓ REJECT    green fills 11 -> 11                                                      clear
+    ✓ REJECT    FILLED -> not-FILLED: 0                                                   clear
+
+THE PROGRESSION, three runs of the same 74 cases
+    green-requiring gate          0 red fills · 59 refused
+    non-regressing, (file,msg)   52 red fills ·  5 refused (4 goroutine noise, 1 travelled)
+    non-regressing, message counts 57 red fills · 0 refused
+
+    The gate now refuses NOTHING in the corpus, which is the correct outcome and not a suspicious
+    one: it was established separately that not one move in 59 introduces a defect that was not
+    already present. A gate that refuses none of them is agreeing with that, not failing to check.
+
+WHAT REMAINS, and it is not the gate's
+    2 NOT-ATTEMPTED — taskapi-15b-base/internal/api/tasks.go and taskapipro-pairB-t1/internal/store/
+    store.go. movedecls exits non-zero or empty and the pass continues with no log. Nothing is
+    compared, so no key can reach them. An undiagnosed defect in a Go tool, and the honest total is
+    57 of 59, not 59 of 59.
+
+    3 NO-DONOR — nothing to move.
+
+⚠️ WHAT THIS IS NOT
+    Not a convergence result. All 57 are red trees that are still red. Not an independent
+    confirmation either: the same 74 cases, the same instrument, one key change. What makes it worth
+    recording is that the number, the flip, and the zero were all predicted in the pre-registration
+    written before the code changed.
+
+    And the safety property this all rests on — a move that breaks a GREEN project must still be
+    refused — had NO TEST until today, only an argument. It has one now, with a control check.
