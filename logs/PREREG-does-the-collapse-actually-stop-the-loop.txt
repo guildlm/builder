@@ -1,0 +1,62 @@
+PREREG — the timestamp fix collapses 8 surfaces to 3 in ANALYSIS. Does it stop the loop in a BUILD?
+====================================================================================================
+31 July, written before the draw starts. Queue item 2's own caveat, recorded this morning, was:
+"'No GPU' means cheap to apply, not verified ... what is unchecked is the call sites behaving once
+hashes start colliding, which needs a build." This is that build.
+
+WHY THIS PARTICULAR DRAW IS UNUSUALLY WELL CONTROLLED
+    The server is STILL pid 7598 — the same process that drew ledger-parity-arm-1, arm-2 and arm-3.
+    Generation is deterministic within a process (measured repeatedly today: both controls and both
+    arms byte-identical within condition). So a fourth arm on the same spec, same flags, same process
+    differs from arm-1 in EXACTLY ONE THING: the normalisation landed in between.
+
+    That is a cleaner comparison than the parity experiment it comes out of, and it costs one draw.
+
+    ⚠️ It is an ARM draw (GUILDLM_ENABLE_RULES=interface_only_scope), and that switch was measured
+    today to CAUSE the consolidation defect and must stay OFF by default. Using it here is
+    deliberate: it is the only configuration known to produce the 8-round, app-log-printing failure
+    this fix targets. Drawing a control would exercise nothing — control-1 went green in one round
+    with a single surface.
+
+PRE-REGISTERED ENDPOINTS
+
+  PRIMARY — fix rounds. arm-1, arm-2 and arm-3 each ran 8 (5 budgeted + 3 extension), because every
+      round's surface hash looked new. Under the fix those 8 outputs carry only 3 distinct surfaces.
+          PREDICTED: 3 to 5 rounds. Confidence 60%.
+          The loop grants an extension round only on a NEW surface, so once round N repeats a
+          previous surface the extensions stop being granted.
+
+      ⚠️ 60% AND NOT HIGHER, because the collapse was measured on the outputs AS LOGGED, and the
+      repeat detector compares surfaces in an order I have not simulated. Three distinct surfaces
+      across eight rounds does NOT guarantee that a repeat lands where the loop checks for one — the
+      sequence could be 1,2,3,1,2,3,1,2 (repeats early, stops early) or 1,1,1,2,2,2,3,3 (also stops
+      early) but a pathological order could still grant extensions. I know the multiset, not the
+      sequence.
+
+  SECONDARY — the repair. arm-1 and arm-2 both ended with the gate REFUSING to move MemStore because
+      the app-log lines counted as 2 new messages. Measured on their real refusal text, the fixed
+      gate calls 0 messages new.
+          PREDICTED: the repair ATTEMPTS the move and is no longer refused for that reason.
+          It may still refuse for a REAL reason, which is a pass, not a failure — the endpoint is
+          "not refused on timestamps", not "the move succeeds".
+
+  REJECT — generation must be untouched. The as-drawn store.go in .pre-fix.json must hash to
+      7f2e9f83 at 2263 bytes, exactly as arm-1 and arm-2 did.
+          If it differs, the change reached GENERATION, which it must not: consumer 3
+          (_canonical_toolchain_output) feeds the fix prompt, and no toolchain output exists when
+          the initial 19 files are written. A difference there means I have misunderstood where the
+          function is called and the whole comparison is void.
+
+  NOT AN ENDPOINT — whether the build goes green. arm-1/2/3 all exited rc=1. If this one goes green
+      that is interesting and it is NOT what the fix was built to do; it would be reported as an
+      observation, and one draw cannot attribute it.
+
+COST, from today's measured arm durations
+    arm-1 77.0 min · arm-2 82.2 min · arm-3 96.9 min. If the primary endpoint holds, this draw
+    should be SHORTER — that is a consequence of the prediction, not an independent one, so a short
+    run is not extra evidence.
+
+WHAT IT CANNOT REACH
+    One spec, one switch, one process. The 13-of-778 figure says app-log output is rare in this
+    archive, so this fix is narrow by construction. Nothing here licenses a claim that fix loops in
+    general get shorter.

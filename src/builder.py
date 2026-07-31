@@ -1280,7 +1280,15 @@ def _canonical_toolchain_output(error_output: str) -> str:
     runs generate DIFFERENT files. Something upstream of the fix loop varies per
     process. Look there, not here.
     """
-    return _GO_CASE_TIME_RE.sub(r"\1", _GO_PKG_TIME_RE.sub("", error_output))
+    # ⚠️ THIS ONE IS NOT LIKE THE OTHER TWO. _canonical_error_line and _SIG_NOISE_RE only
+    # change how outputs are COMPARED. This function's result is pasted into the fix prompt
+    # (see the "--- toolchain output ---" block), so normalising here changes what the model
+    # READS and therefore what it writes. Deliberate — a prompt that carries a wall-clock
+    # stamp differs from itself run to run for no reason — but it means builds whose tests
+    # actually execute and print (13 of 778 logs in this archive) will generate differently
+    # after this change, and that is a behaviour change, not a comparison change.
+    out = _GO_CASE_TIME_RE.sub(r"\1", _GO_PKG_TIME_RE.sub("", error_output))
+    return _SUBSEC_DUR_RE.sub("DUR", _APP_LOG_TS_RE.sub("TIMESTAMP", out))
 
 
 def _is_test_failure(error_output: str) -> bool:
@@ -1621,11 +1629,24 @@ _ERROR_LINE_RE = re.compile(r"^(\S+?\.go):\d+(?::\d+)?:\s*(.*)$")
 # still letting a genuinely different frame, or a new panic message, register.
 _ADDR_RE = re.compile(r"0x[0-9a-f]+")
 _GOROUTINE_ID_RE = re.compile(r"goroutine \d+")
+# THIRD NOISE SOURCE, and it is the program's OWN OUTPUT rather than the toolchain's.
+# ledger's spec REQUIRES request logging with latency, so `go test` prints lines like
+#     2026/07/31 13:37:35 GET /accounts -> 200 (1.708µs)
+# which carry a wall-clock stamp and a nanosecond duration and therefore differ on every
+# run. _error_entries keeps any line it cannot parse as file:line, so each one counts as a
+# "message", the after-set contains stamps the before-set cannot, and the gate refuses a
+# repair for damage it did not do. Measured live on ledger-parity-arm-1 and again on arm-2.
+_APP_LOG_TS_RE = re.compile(r"\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?")
+# `us` as well as `µs`: Go writes µs, but terminal and file encodings in this archive
+# contain both. \b keeps a bare status code out of it — 200ms is noise, 200 is not.
+_SUBSEC_DUR_RE = re.compile(r"\d+(?:\.\d+)?(?:ns|µs|us|ms)\b")
 
 
 def _canonical_error_line(line: str) -> str:
     """A toolchain line with its run-to-run stamps removed. Same idea as
     ``_canonical_toolchain_output`` (durations, ``(cached)``) one level down."""
+    line = _APP_LOG_TS_RE.sub("TIMESTAMP", line)
+    line = _SUBSEC_DUR_RE.sub("DUR", line)
     return _GOROUTINE_ID_RE.sub("goroutine N", _ADDR_RE.sub("0xADDR", line))
 
 
@@ -5389,8 +5410,13 @@ _FLEET_ESCALATE_AFTER = 2
 # Run-specific noise in toolchain/test output that must not make two otherwise
 # identical error surfaces look different: heap addresses, goroutine ids, test
 # wall times, and the pointer-suffixed frame offsets in panic traces.
+# ...and the app's own log lines: a wall-clock stamp and a sub-second latency, which made
+# arm-1 show EIGHT distinct surfaces where there were three, so the repeat detector never
+# fired and the loop spent all three extension rounds on the same failure.
 _SIG_NOISE_RE = re.compile(
     r"0x[0-9a-f]+|goroutine \d+|\d+\.\d+s|\+0x[0-9a-f]+"
+    r"|\d{4}/\d{2}/\d{2} \d{2}:\d{2}:\d{2}(?:\.\d+)?"
+    r"|\d+(?:\.\d+)?(?:ns|µs|us|ms)\b"
 )
 
 
