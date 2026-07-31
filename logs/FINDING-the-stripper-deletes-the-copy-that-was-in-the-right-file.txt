@@ -1,0 +1,66 @@
+FINDING — the model writes the file's content in the right file; the STRIPPER deletes it
+=========================================================================================
+31 July, from the logs and the trees on disk. Zero GPU. This reframes the defect the whole campaign
+has been calling "the model consolidates the package into one file".
+
+THE TWO ARMS, SIDE BY SIDE, SAME SPEC, SAME MODEL, ONLY THE ENTRY ORDER DIFFERENT
+    A arm — store.go first
+        generate internal/store/store.go (6/19)     best-of-N gen: kept candidate 1 of 2
+        generate internal/store/memory.go (7/19)    STRIPPED REDECLARED SYMBOLS
+                                                    best-of-N gen: kept candidate 1 of 2
+        result: store.go 2623 bytes holding Store AND MemStore AND all six methods
+                memory.go 14 bytes — `package store`
+
+    B arm — memory.go first (and this morning's gate-fix draw, identically)
+        generate internal/store/memory.go (6/19)    kept candidate 1 of 2      no strip
+        generate internal/store/store.go (7/19)     kept candidate 1 of 2      no strip
+        result: memory.go MemStore + NewMemStore + six methods
+                store.go the Store interface and nothing else — THE CORRECT SPLIT
+
+WHAT THE STRIP LINE MEANS, and it is the whole finding
+memory.go's candidate in the A arm was stripped and what remained was FOURTEEN BYTES. So the
+candidate consisted ENTIRELY of declarations a sibling already had. The model DID write MemStore and
+its methods into memory.go — the file the plan gave them to — and `strip_redeclarations` deleted
+them, because store.go had written the same symbols one file earlier.
+
+    The stub is not the model failing to write the file. It is the model writing it in BOTH places
+    and the harness deterministically deleting the copy that was in the RIGHT one.
+
+The stripper's rule is "a sibling already declares it, so drop it here". It has no notion of which
+file the PLAN gave the symbol to — although the harness computes exactly that, three functions away,
+in `_required_decls`, and `_fill_empty_planned_files` exists solely to put the declaration BACK
+afterwards. The harness creates this stub and then repairs it.
+
+HOW OFTEN — measured over the archive
+    379 generation candidates were stripped, across 241 logs. Stripping is common and mostly
+    correct: of the 86 that could be matched to a tree still on disk, 78 left the file non-empty.
+
+    8 left it EMPTY, and 7 of the 8 are the interface/implementer pair:
+        ledger-pairA-p6/p7/p8   internal/store/memory.go
+        ledger-prose2           internal/store/memory.go
+        taskapipro-pairA-t1     internal/store/memory.go
+        taskapipro-pairB-t1     internal/store/store.go
+        workapi-pairA-w1        internal/store/memory.go
+        workapi-chain           internal/api/middleware.go   (the known spec-text gap)
+
+    ⚠️ 8 IS A COUNT WITHIN THE MATCHED SUBSET, NOT A RATE. Only 86 of 379 stripped candidates have a
+    tree still on disk to check; the rest were deleted or renamed. The denominator for "how often
+    does stripping empty a file" is not 379 and I do not have it.
+
+WHAT THIS CHANGES
+    1. "The model cannot split a package" is wrong, and I have been repeating it for a week. Given
+       the implementer's entry first, the model splits correctly — four draws for four, no stripping
+       needed, both files right.
+    2. The remaining question is much narrower: why does the model, writing the INTERFACE file first,
+       also write the implementation — into a file whose purpose says, verbatim, "The Store INTERFACE
+       only — no implementation in this file"? That is the strongest prohibition available and it is
+       ignored. `scope_rule` is emitted for it too (checked: `_siblings` comes from the PLAN, not
+       from written files, so the first file of a package gets the rule).
+    3. And there is a fix upstream of all of today's: the stripper should not delete a symbol THIS
+       file's purpose promises and the sibling's purpose does not. That is the ownership rule the
+       repair already uses, applied when the damage is done rather than after.
+
+⚠️ NOT IMPLEMENTED HERE. It is the sixth harness edit of the day and it needs its own
+pre-registration, because the obvious version — "strip it from the sibling instead" — mutates an
+already-written file during another file's generation, and there is a live question about whether
+that is better than letting the repair do it at the end, where it already works 11 times out of 11.
