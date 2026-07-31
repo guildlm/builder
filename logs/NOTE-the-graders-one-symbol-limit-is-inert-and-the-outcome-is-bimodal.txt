@@ -1,0 +1,32 @@
+NOTE — the grader's one-symbol limit changes no verdict, because the outcome is all-or-nothing
+==============================================================================================
+31 July. Tests the caveat recorded an hour ago against every graded tree, rather than leaving it as
+a stated risk.
+
+THE CAVEAT
+    `_parity_ab.sh` grades SPLIT vs CONSOLIDATED by asking whether store.go declares MemStore. A
+    store.go that took the SENTINELS but not MemStore would grade SPLIT while still violating its
+    purpose, "The Store INTERFACE only — no implementation in this file".
+
+THE TEST — a strict check beside the grader on all 11 ledger pair/parity trees
+    strict = does store.go declare EXACTLY {Store} and nothing else
+
+    grader SPLIT        (5 trees)  store.go declares ['Store']                       strict: pass
+    grader CONSOLIDATED (6 trees)  store.go declares 9 to 11 symbols                 strict: fail
+
+    AGREEMENT: 11 of 11. The one-symbol grader and the declaration-only check never disagree on any
+    tree this campaign has produced.
+
+AND THE REASON IS THE INTERESTING PART: THE OUTCOME IS BIMODAL
+    Every SPLIT store.go declares exactly one symbol. Every CONSOLIDATED one declares nine to eleven
+    — the interface, MemStore, its constructor, all six methods, and on four of them the sentinels
+    too. There is no middle: not one tree took the sentinels and left MemStore, or took the
+    constructor and left the methods.
+
+    So the failure mode is not "store.go drifts past its purpose by degrees". It is a switch between
+    two whole shapes: a declaration file, or a complete working package. That is worth knowing before
+    designing any finer-grained measure of it — a scale would have nothing to measure.
+
+⚠️ THE CAVEAT STANDS AS A CAVEAT. Nothing here says a partial over-reach cannot happen; it says it has
+not happened in 11 trees, all of one spec. The grader is safe to keep using and unsafe to generalise
+from, which is the same sentence as before the test — only now with a number attached.
