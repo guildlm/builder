@@ -132,12 +132,19 @@ def self_test() -> int:
         "FILLED\tTrue\tt2\tp.go\tX\n"
         "FILLED\tTrue\tt3\tp.go\tX\n"
         "NO-DONOR\tFalse\tt4\tp.go\t\n"
+        "REVERTED\tFalse\tt5\tp.go\tX\n"
+        "REVERTED\tFalse\tt6\tp.go\tX\n"
     )
+    # the AFTER file speaks the three-state vocabulary the tool gained after the first
+    # run — REFUSED and NOT-ATTEMPTED where there used to be one REVERTED. A scorer that
+    # only knew the old labels would silently count these as neither win nor regression.
     a.write_text(
-        "FILLED\tFalse\tTrue\tt1\tp.go\tX\n"       # the intended win
+        "FILLED\tFalse\tTrue\tt1\tp.go\tX\n"           # the intended win
         "FILLED\tTrue\tTrue\tt2\tp.go\tX\n"
-        "REVERTED\tTrue\tTrue\tt3\tp.go\tX\n"      # the impossible regression
+        "REVERTED\tTrue\tTrue\tt3\tp.go\tX\n"          # the impossible regression
         "NO-DONOR\tFalse\tFalse\tt4\tp.go\t\n"
+        "REFUSED\tFalse\tFalse\tt5\tp.go\tX\n"         # the gate's decision
+        "NOT-ATTEMPTED\tFalse\tFalse\tt6\tp.go\tX\n"   # never the gate's decision
     )
     rb, ra = load(str(b)), load(str(a))
     shared = set(rb) & set(ra)
@@ -154,6 +161,13 @@ def self_test() -> int:
     if wins != [("t1", "p.go")]:
         failures += 1
         print(f"FAIL: win not detected, got {wins}")
+    labels = {ra[k]["outcome"] for k in shared}
+    if not {"REFUSED", "NOT-ATTEMPTED"} <= labels:
+        failures += 1
+        print(f"FAIL: three-state labels not round-tripped, saw {sorted(labels)}")
+    if ra[("t2", "p.go")]["green_after"] != "True":
+        failures += 1
+        print("FAIL: green_after not parsed from the six-column layout")
     if len(load(str(b)) if b.exists() else {}) not in (0, 4):
         failures += 1
     print("self-test:", "OK — the win is counted and the impossible regression is caught"
