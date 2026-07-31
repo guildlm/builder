@@ -1,4 +1,5 @@
-RESULT — the gate demand is gone, the saved draw is visible, and the stub is exactly where it was
+RESULT — the gate demand is gone, the saved draw is real, and the artifact is unchanged
+         (and what is unchanged turned out to be the CORRECT split — see the correction)
 ==================================================================================================
 31 July. One ledger draw, fresh mlx_lm.server pid 7598, spec order unchanged (memory.go entry 5,
 store.go entry 6 — the swapped arm where the demand bit). Pre-registration:
@@ -70,5 +71,7 @@ AND THE CORRECTION SHARPENS THE OPEN QUESTION RATHER THAN BLURRING IT
 STILL OPEN — and today has now spent four edits without touching it
     How to make the model SPLIT a package's content correctly. Fix 2 made the repair applicable,
     fix 1 made the failure visible, the survival run showed the repair works whenever it can run,
-    the gate fix removed a bystander demand. Every one of them is downstream of a model that puts
-    the whole package in the first file it is asked to write.
+    the gate fix removed a bystander demand. But the correction above narrows what "it" is: the
+    model DOES split correctly under ledger's current order, four draws for four. The question is
+    why the same model, on the same package, consolidates under the other order and on the other
+    specs — which is a question about the CONDITIONS, not about a blanket inability.
