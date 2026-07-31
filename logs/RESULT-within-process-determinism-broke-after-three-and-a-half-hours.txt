@@ -279,3 +279,44 @@ WHICH RAISES A QUESTION ABOUT THE 30 JULY CROSS-PROCESS RESULT THAT NOBODY ASKED
     depend on the magnitude. It is a question about the magnitude only, it is answerable from trees
     still on disk, and it is not queued: the queue has four items with evidence behind them and this
     has a hypothesis behind it.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️⚠️ THE REFUTATION WAS CALLED ON AN UNFINISHED DRAW. THE SHIPPED ARTIFACTS ARE IDENTICAL.
+════════════════════════════════════════════════════════════════════════════════════════════
+    ctl-3 converged to green after fix round 1 (deterministic) — exactly like ctl-1 and ctl-2.
+    Then:
+
+        store.go    ctl-1 28d42aac  ==  ctl-3 28d42aac
+        memory.go   ctl-1 73b02cdb  ==  ctl-3 73b02cdb
+        FULL TREE   18 .go files · identical 18 · differ 0
+
+    AS-DRAWN, ctl-3 differed from ctl-1 in six files and could not compile (models.Money undefined).
+    SHIPPED, it is byte-identical to ctl-1 in every file.
+
+WHAT ACTUALLY HAPPENED
+    Generation drifted — that part stands, and the identical-prompt/different-output measurement is
+    unaffected: store.go really was drawn twice from a byte-identical prompt with different results,
+    377B using models.Money versus 413B using money.Money.
+
+    Then the DETERMINISTIC FIX GATES repaired the drift away. The requalify gate turned models.Money
+    back into money.Money, and the result is the canonical program, byte for byte.
+
+    So the harness has a convergence property nobody here had measured: generation nondeterminism
+    that produces a WRONG cross-package qualification is erased before it ships, without a model call.
+
+⚠️ AND I SCORED MY OWN PREDICTION AGAINST A HALF-FINISHED ARTIFACT
+    logs/PREDICTION-ctl-3-will-be-byte-identical-to-the-first-two-controls.txt said "ctl-3 is
+    byte-identical to ctl-1 in all 19 files, 93%". I measured at file 7 of 19, saw six differences,
+    and wrote a RESULT declaring it refuted — with the draw still generating and its fix loop not yet
+    run.
+
+    The prediction was RIGHT. The artifact is identical. I was wrong to score it, and the error is
+    the one this repo has a guard for: `_corpus_state.py` exists because a corpus-wide number taken
+    from a half-written tree looks exactly like a result. I did not run it, because I was reading one
+    tree rather than the corpus — and the failure mode did not care about the distinction.
+
+    ⚠️ EVERY DOWNSTREAM CLAIM BUILT ON THAT REFUTATION NEEDS RE-READING: the propagation model and its
+    refutation, the containment analysis, the "materially different programs" note, and the
+    compile-error prediction. They are all TRUE OF THE AS-DRAWN TREES and none of them is true of what
+    shipped. The as-drawn facts stand; every sentence that said "the controls differ" is wrong about
+    the artifacts.
