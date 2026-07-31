@@ -28,3 +28,17 @@ WHAT WAS ADDED
 ⚠️ AN INDEX IS NOT A GUARANTEE. It goes stale the moment a file is renamed — as one was today, when
 the drift RESULT was retitled. The save point now names files by path, so a rename breaks the link
 silently. That is a known cost, accepted because the alternative measured at 1 of 70.
+
+INDEX VERIFIED — every referenced file resolves
+    filenames referenced in the top save point   19
+    present in logs/                             19
+    missing                                       0
+
+    Checked immediately after writing it, because the weakness I named in the paragraph above — an
+    index breaks silently on rename — is not hypothetical: the drift RESULT was renamed today, hours
+    before the index was written. Had I indexed from memory rather than from the directory, that one
+    entry would already be dead.
+
+    ⚠️ THIS CHECK IS THE INDEX'S ONLY GUARD, AND IT IS ONE COMMAND. Anyone editing the save point's
+    index should re-run it; a dangling reference costs a future session the exact trace it went
+    looking for, and produces no error until someone follows it.
