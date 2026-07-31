@@ -206,3 +206,51 @@ WHAT THE PREDICTION GOT RIGHT AND WHAT IT GOT WRONG
 STATUS OF THE OTHER PREDICTIONS
     P1  arm-2 is not yet drawn. Still the endpoint, still open.
     P2  VOID — mis-specified as binary and predicted on data that already existed.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+P1 — CONFIRMED. The endpoint holds: both draws in pid 86026 chose the same sentinel set.
+════════════════════════════════════════════════════════════════════════════════════════════
+21:35. arm-2's models.go landed while the draw was at 5 of 19 files.
+
+        ledger-xproc-ctl-2  AS-DRAWN   ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced
+        ledger-xproc-arm-2  AS-DRAWN   ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced
+        both recorded to pid 86026
+
+    IDENTICAL, including the omission. Predicted at 85%; the endpoint was chosen over P2 precisely
+    because "do the two agree" is the claim that survives whichever name turns up, and it did.
+
+    ⚠️ COMPARED AS-DRAWN ON BOTH SIDES. ctl-2's ON-DISK models.go now has FIVE sentinels — the fix
+    loop added ErrInsufficientFunds — so an on-disk comparison would have shown them DISAGREEING
+    and refuted the endpoint on an artefact of repair. arm-2 has no .pre-fix.json yet (still
+    generating), so its file is read from disk, which equals as-drawn only because no fix round has
+    run. That will be re-confirmed from the snapshot when the draw completes.
+
+    This is the third time today the as-drawn/on-disk distinction changed a verdict rather than a
+    detail: _parity_grade.py, the repair-survival scoring, and now this.
+
+THE THREE-PROCESS PICTURE, with every label now recorded rather than inferred except the first
+        pid 7598     ErrInsufficientFunds   7 draws   consistent   (label inferred)
+        pid 49288    ErrInsufficient        2 draws   consistent   (recorded)
+        pid 86026    neither                2 draws   consistent   (recorded)
+
+    THREE PROCESSES, THREE DIFFERENT CHOICES, EACH INTERNALLY CONSISTENT. That is the exact shape
+    "the process selects among a small set of stable alternatives" predicts, and the third process
+    picked a third alternative rather than repeating either earlier one.
+
+⚠️ AND IT IS STILL NOT A SAMPLE, exactly as this pre-registration said before any of it resolved:
+    "THREE LABELLED PROCESSES IS NOT A SAMPLE. Even a clean 3-for-3 leaves 'per-process' as a
+    description of three processes, not a law."
+
+    Two draws per process is also thin. Pair 3 adds a fourth process and two more draws, and that is
+    the whole of what this experiment can contribute — it was designed to test the parity effect,
+    and this is a passenger measurement riding on it for free.
+
+SCORECARD FOR THIS PRE-REGISTRATION
+    P1  CONFIRMED   the endpoint, predicted 85%
+    P2  VOID        mis-specified as binary, and predicted on a file that already existed
+    P3  antecedent and mechanism CONFIRMED before the data existed; consequent REFUTED, and the
+        base rate for the refutation was written in the pre-registration itself
+
+    One clean hit, one void, one half-hit whose failing half I had the evidence to get right. The
+    endpoint was the one I reasoned about most carefully and it is the one that held, which is at
+    least the right correlation.
