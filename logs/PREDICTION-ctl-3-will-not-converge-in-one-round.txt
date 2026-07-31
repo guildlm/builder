@@ -1,3 +1,11 @@
+🚨 RETRACTED IN FULL — see logs/RESULT-RETRACTION-there-was-no-drift-i-compared-repaired-
+against-unrepaired.txt. Every 'difference' recorded below is the FIX LOOP'S REPAIR, not a
+difference in what the model wrote: a finished tree was compared against a mid-generation
+one. All three controls' as-drawn store.go is 7c9f06c7 (377B) and both arms' is 7f2e9f83
+(2263B). Generation in this process is deterministic. Kept unedited below as the record of
+how the mistake was made.
+====================================================================================================
+
 PREDICTION — ctl-3 carries a real compile error and will not converge like ctl-1 and ctl-2 did
 ===============================================================================================
 31 July 15:47, written with ctl-3 at 18 of 19 files and its fix loop not yet started.
