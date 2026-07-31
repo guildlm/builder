@@ -1,0 +1,38 @@
+NOTE — the inherited 35/67/80 stub rate and today's counts disagree on one spec
+===============================================================================
+31 July 17:08. Connecting an inherited memory claim to today's data, because a number carried forward
+in a save point for days is exactly the kind that stops being questioned.
+
+THE INHERITED CLAIM, and it is honestly caveated where it lives
+    "Stub oranı neden spec'e göre değişiyor (35/67/80)? n=3, güçsüz."
+    — an OPEN question in the save point, explicitly marked n=3 and weak.
+
+TODAY'S COUNTS, from store.go declaring MemStore across every shipped tree
+    workapi     42/55   76%
+    taskapi      7/19   37%
+    ledger       8/22   36%
+    taskapipro  12/44   27%
+
+WHERE THEY AGREE AND WHERE THEY DO NOT
+    If 35/67/80 maps to ledger/…/workapi, then 35 vs 36 and 80 vs 76 line up closely. The middle
+    value does not: 67 against taskapipro's 27 today.
+
+    ⚠️ AND NEITHER NUMBER IS STRONG ENOUGH TO CALL THE OTHER WRONG.
+      · the inherited one is n=3 by its own admission
+      · today's is a MIXTURE over months, harness versions, both entry orders, and arms drawn
+        specifically to produce or suppress the defect — I flagged it as such when I computed it
+      · taskapipro's spec was edited 23 times, more than any other, so its trees span the most
+        versions of the question
+
+    The disagreement is therefore expected rather than informative. What it does do is put a number
+    on how unstable this quantity is: two attempts at "the stub rate for taskapipro" differ by 40
+    points, and both are defensible given what each measured.
+
+WHAT WOULD SETTLE IT, AND WHY IT IS NOT QUEUED
+    Deliberate draws: one spec version, one process, N draws, count stubs. That is a clean category-1
+    measurement and it would cost N × 20-80 minutes per spec.
+
+    Not queued, because the campaign's actual question is not "what is the rate" but "what makes the
+    model split correctly", and the rate has never been the thing under test. Recorded so that the
+    35/67/80 in the save point is read as what it is — an open question with two weak, disagreeing
+    estimates — rather than as an established distribution.
