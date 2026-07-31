@@ -1,0 +1,43 @@
+RESULT — the parity experiment is complete: 3 pairs, 3 of 3, hypothesis refuted in reverse
+===========================================================================================
+31 July 17:26. Six draws, 5 hours 36 minutes, one server process (pid 7598). The runner's own verdict:
+
+    pair          control                              arm
+     1   SPLIT store 413B mem 2315B    CONSOLIDATED store 2295B mem 14B
+     2   SPLIT store 413B mem 2315B    CONSOLIDATED store 2295B mem 14B
+     3   SPLIT store 413B mem 2315B    CONSOLIDATED store 2295B mem 14B
+
+    ctl-1 rc=0 30.1m · arm-1 rc=1 77.0m · ctl-2 rc=0 19.3m · arm-2 rc=1 82.2m
+    ctl-3 rc=0 30.4m · arm-3 rc=1 96.9m
+
+    ✗ PRE-REGISTERED: the ARM splits on at least 2 of 3, 45%. It CONSOLIDATED 3 of 3.
+      Refuted in the reverse direction, on complete data, with the reject condition never reached.
+
+WHAT IS ESTABLISHED
+    Withholding one 543-character clause from ONE file's prompt turns a 377-byte interface
+    declaration into a 2263-byte complete package and empties its sibling to 14 bytes. Everything
+    else in the six draws is byte-identical within condition, measured from .pre-fix.json.
+
+    The switch `interface_only_scope` stays OFF. Shipping it as a default — which is what the finding
+    that motivated it argued for — would have reintroduced the stub on the spec this campaign draws
+    most.
+
+WHAT IS NOT
+    Effective n is ONE per condition: three byte-identical draws are one draw confirmed reproducible.
+    Nothing here says how often the clause matters on another spec, another process, or another
+    temperature. That is the corrected design's job, queued at a 35% prior.
+
+AND THE ARMS REPLICATED EVERY SECONDARY FINDING, THREE TIMES EACH
+    · exhausted 8 fix rounds (5 budgeted + 3 extension), all three
+    · 8 error surfaces, 8 distinct, zero "seen before", all three — 24 opportunities, 0 detections
+    · the repair refused on the program's own timestamped log output, all three
+    · FIX 1's warning fired on every one, which is the evidence its pre-registration asked for
+
+    ⚠️ Those are three replications of one input, not three independent observations. They establish
+    that the behaviour is exact and stable, and the archive sweep (654 builds) is what establishes
+    that it generalises.
+
+THE COST, RECORDED BECAUSE THE DESIGN WAS WRONG
+    5h36m of GPU. One pair would have produced the same conclusion; ~3.5 hours went to replicating a
+    deterministic pipeline. The corrected design spends the same six draws across THREE PROCESSES,
+    which is the boundary that actually varies — and no arm in this campaign has ever crossed it.
