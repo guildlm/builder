@@ -1,0 +1,30 @@
+NOTE — one sentence in one prompt changes 4 of 18 files, and the chain is legible
+=================================================================================
+31 July. Control-1 vs arm-1, every .go file hashed. A NOTE because it bounds what the A/B's
+difference can be attributed to.
+
+    18 .go files present in both trees
+    14 BYTE-IDENTICAL
+     4 differ:   internal/store/store.go        <- the manipulated prompt, directly
+                 internal/store/memory.go       <- generated next, in the same package
+                 internal/store/memory_test.go
+                 internal/api/middleware.go     <- a DIFFERENT package
+
+THE CHAIN, which is worth stating because it is not obvious that a store-package change reaches api
+    The parity sentence is withheld from store.go and from nothing else — 543 characters, measured.
+    store.go's content then changes. Every later file's prompt embeds the already-written files:
+    same-package siblings verbatim, other packages as an API summary. So memory.go and its test see a
+    different store.go, and internal/api/middleware.go sees a different store PACKAGE.
+
+    That is the whole causal path from one withheld sentence to a file in another directory, and it
+    is visible in the hashes rather than inferred.
+
+WHAT IT BOUNDS
+    ✓ The A/B's endpoint — does store.go absorb MemStore — is attributable to the manipulation. It is
+      the file whose prompt changed, and its content is where the difference starts.
+    ⚠️ arm-1 exited rc=1 where both controls went green, and that is NOT cleanly attributable. Four
+      files differ; the failure could originate in any of them, including middleware.go in another
+      package. Convergence was never an endpoint here and this is why it should not become one after
+      the fact.
+    ✓ The other 14 files being byte-identical is the check that the manipulation did not leak: the
+      switch touches one clause on one file, and nothing outside that causal chain moved.
