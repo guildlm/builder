@@ -111,3 +111,48 @@ WHAT IS STILL GENUINELY OPEN, and was not visible at 21:02
     The prediction stands as stated — ctl-2 should fail on `undefined: models.ErrInsufficientFunds`
     — and it is now a sharper test than when written, because the sentinel is not merely misnamed
     but absent.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+P3's MECHANISM CONFIRMED — predicted at 21:00, file written at 21:10:44
+════════════════════════════════════════════════════════════════════════════════════════════
+ledger-xproc-ctl-2/internal/api/response.go references:
+
+    models.ErrExists · models.ErrInsufficientFunds · models.ErrInvalid ·
+    models.ErrNotFound · models.ErrUnbalanced
+
+and its models.go declares ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced — NOT
+ErrInsufficientFunds.
+
+    `undefined: models.ErrInsufficientFunds` is set up exactly as pre-registered.
+
+    ⚠️ THIS ONE IS A GENUINE PRE-REGISTRATION, unlike P2. response.go did not exist when the
+    prediction was written and I verified that twice — at 21:02 and again at 21:05 — before
+    committing. The file appeared at 21:10:44.
+
+WHAT IS RESOLVED AND WHAT IS NOT
+    ✓ antecedent   models.go did not declare the long name              (resolved 21:02)
+    ✓ mechanism    response.go wrote the long name anyway -> undefined  (resolved 21:11)
+    ✗ consequent   ctl-2 fails to converge                              STILL OPEN
+
+    The fix loop repaired 12 of 20 archived cases of exactly this, so the mismatch arising does NOT
+    entail the build failing. Predicting the mismatch and predicting the failure are two claims and
+    only the first has landed.
+
+AND THE CONSUMER CLAIM IS NOW 26 OF 26
+    Every ledger response.go ever drawn references models.ErrInsufficientFunds — now including one
+    drawn in a process whose models.go declares NO insufficient-funds sentinel at all.
+
+    THAT IS THE STRONGEST FORM THE CLAIM HAS TAKEN. The consumer's fidelity to the spec is invariant
+    to what the declarer does: long name, short name, or nothing, response.go writes what the purpose
+    says. A ceiling effect that can only be broken has now survived the trial most likely to break it.
+
+⚠️ AND THREE PROCESSES HAVE NOW MADE THREE DIFFERENT CHOICES
+        pid 7598    ErrInsufficientFunds   (7 draws, inferred label)
+        pid 49288   ErrInsufficient        (2 draws, recorded)
+        pid 86026   neither                (1 draw so far, recorded)
+
+    Three for three, each internally consistent so far. That is what "the process selects among
+    stable alternatives" predicts, and it is now the third alternative rather than a repeat of the
+    first two — which makes the pattern more interesting and the sample no larger.
+
+    P1 remains the endpoint: arm-2, in this same process, must also declare four sentinels.
