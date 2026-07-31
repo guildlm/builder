@@ -123,3 +123,25 @@ THIRD INSTANCE — arm-3, and the pattern is exact across all three arms
     output makes any two surfaces differ, and ledger's spec requires latency logging. Nothing in
     these three runs adds independent evidence for that; the archive measurement (654 builds, 9 with
     app-log lines, 5 of those running extension rounds, 0 ever logging "seen before") is what does.
+
+VALIDATED ON REAL ARCHIVED OUTPUT, not synthetic lines
+    Taking arm-1's eight rounds of captured toolchain output (the `!`-prefixed subset the log keeps)
+    and signing each with the current regex and with the proposal:
+
+        distinct signatures NOW       8 of 8
+        distinct signatures PROPOSED  3 of 8
+        -> 5 previously-"new" surfaces collapse onto an earlier one
+
+    So on this build the repeat detector would have fired instead of granting extension rounds. Five
+    of the eight rounds were re-examining a surface it had already seen and could not recognise.
+
+    ⚠️ AND 3 OF 8 IS THE RIGHT SHAPE, NOT 1 OF 8. If the proposal collapsed everything to a single
+    signature it would have erased the signal along with the noise — the build genuinely passed
+    through three distinct error strata, and the fix leaves those three distinguishable. That is the
+    pre-registered reject condition ("two genuinely different failures must still hash differently")
+    tested against real data rather than a fixture.
+
+    ⚠️ WHAT IT STILL DOES NOT SHOW: whether stopping earlier would have produced a BETTER outcome.
+    The build failed after 8 rounds; stopping at round 3 or 4 would have failed sooner and cheaper,
+    not converged. The saving is GPU, not green builds, and the earlier estimate of ~20 minutes per
+    affected build stands as the honest value.
