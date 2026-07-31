@@ -1,0 +1,33 @@
+NOTE — 47 of 353 trees carry a .pre-fix.json, so 87% of the corpus can never be compared as drawn
+==================================================================================================
+31 July 16:19. Measured after the retraction, because "use .pre-fix.json" is only a usable rule if
+the snapshots exist.
+
+    ledger      21 / 28        taskapipro   3 / 48
+    taskflow    13 / 31        workapi      2 / 56
+    ratelimit    4 / 19        taskapi      0 / 19
+    other        4 / 105       usersapi     0 / 13
+                               shortener    0 / 34
+    TOTAL       47 / 353  (13%)
+
+WHAT THIS MEANS FOR THE RULE THE RETRACTION PRODUCED
+    The rule is: comparing what a model WROTE means .pre-fix.json; comparing what a build SHIPPED
+    means the tree. For 87% of this corpus the first half is simply unavailable — those trees can
+    only be compared post-repair, and `_asdrawn_diff.py` will refuse them by design.
+
+    That is not a gap to fix retroactively: a snapshot cannot be recovered after the fact, which is
+    the same lesson as the stripper's deleted candidates this morning. It is a constraint on what
+    questions the corpus can answer.
+
+    ⚠️ AND IT EXPLAINS WHY THE ERROR WAS AVAILABLE TO MAKE. `_untouched_diff.py` exists precisely for
+    snapshotless pairs and answers a narrower question honestly; `_asdrawn_diff.py` refuses. Between
+    them the repo covers both cases correctly — but only if one of them is reached. An ad-hoc shasum
+    covers neither and works on every tree, which is exactly why it is the thing that gets typed.
+
+WHERE THE SNAPSHOTS ARE, AND IT IS NOT RANDOM
+    ledger 21 of 28 and taskflow 13 of 31 are the two specs this campaign has drawn most recently;
+    shortener, taskapi and usersapi have none at all. So as-drawn analysis is possible almost only on
+    the specs currently under investigation, and impossible on the older ones.
+
+    Anyone reaching for a corpus-wide as-drawn number should read that as: the answer will be about
+    ledger and taskflow, whatever the query says.
