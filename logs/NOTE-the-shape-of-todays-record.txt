@@ -1,0 +1,35 @@
+NOTE — 67 files, 21 of them containing a self-correction
+=========================================================
+31 July 16:39, measured while the last draw finishes. A description of the day's record, not a claim
+about the work.
+
+    FINDING     20        files carrying a retraction banner :  5
+    RESULT      18        files containing a self-correction : 21  (31%)
+    NOTE        15
+    PREREG      10
+    PREDICTION   4
+    TOTAL       67
+
+WHAT THE 31% IS AND IS NOT
+    It is not a virtue. Twenty-one files needed correcting because twenty-one claims were published
+    before they were checked — and the checks that caught them were, almost every time, one command
+    that could have been run first. The count is a measure of how often I wrote before measuring.
+
+    The five banners are one incident: the repaired-vs-unrepaired comparison, which invalidated eight
+    findings at once and took two hours to notice.
+
+WHAT THE DISTRIBUTION SAYS ABOUT THE DAY
+    10 PREREGs and 4 PREDICTIONs against 38 FINDINGs and RESULTs. Roughly one claim in three was
+    committed to in advance. Every prediction that resolved was scored — two held, one was refuted in
+    the reverse direction, one was scored wrong on a half-finished artifact and then re-scored.
+
+    The pre-registered ones are the claims that survived the day intact: FIX 2's endpoint, FIX 1's
+    verification, the non-regressing gate, the parity reject conditions. The retracted ones are, with
+    no exception, the claims I made because a number appeared and looked like it meant something.
+
+⚠️ THE HONEST SUMMARY OF THE DAY IS NOT "MANY FINDINGS". It is: two pre-registered fixes applied and
+verified, one experiment completed with its hypothesis refuted in the reverse direction, one
+harness defect measured across the archive and validated three ways, and one two-hour investigation
+that measured an artifact against itself in the wrong state. The last of those is the reason 31% of
+the files carry a correction, and the reason the day's most useful output is a rule about which file
+to read rather than anything about Go.
