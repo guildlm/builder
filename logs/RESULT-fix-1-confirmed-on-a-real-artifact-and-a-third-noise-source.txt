@@ -56,3 +56,22 @@ NOT FIXED NOW, deliberately
     The fix itself is one more normalisation in `_canonical_error_line` — timestamps and durations —
     and its reject condition is already obvious: the one genuine refusal shape this campaign has
     seen (a move that introduces a compile error) must still refuse.
+
+REPLICATED ON arm-2, which finished rc=1 at 15:19
+    exhausted 8 fix rounds (5 budgeted), still failing
+    left internal/store/memory.go empty: moving MemStore into it breaks
+        2026/07/31 15:19:04 GET /accounts -> 200 (1.208µs); ... -> 200 (1.25µs)
+    WARNING: internal/store/memory.go came out EMPTY (build never went green) — ...
+
+    The same three lines as arm-1, with different timestamps and different µs values — which is the
+    defect restating itself. Two artifacts, same structural outcome:
+
+        FIX 1's warning fires on a failing build with a genuinely empty planned file   ✓ twice
+        the repair runs on the failing exit, finds MemStore and a donor, attempts it   ✓ twice
+        the gate refuses on the program's own log output                               ✓ twice
+
+    ⚠️ AND THIS IS NOT TWO INDEPENDENT OBSERVATIONS. arm-1 and arm-2 are byte-identical in all 18 .go
+    files and identical in fix targets; the only differences in the whole log are 28 app-log lines, 8
+    surface hashes and one swapped pair of deterministic-fix lines. So this is the same run twice,
+    and what it confirms is REPRODUCIBILITY, not frequency. The refusal is not a fluke of one
+    trajectory — it is what this input does — and that is all two identical runs can establish.
