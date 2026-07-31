@@ -181,6 +181,12 @@ if __name__ == "__main__":
     if not args:
         raise SystemExit(__doc__)
     text = pathlib.Path(args[0]).read_text(errors="ignore")
+    # ⚠️ THIS TOOL GRADES ONE DRAW with whole-text matching ("converged to green" in text), so a
+    # multi-build log would be scored against whichever build's marker appeared anywhere. 53 logs
+    # in this archive hold more than one build. Refuse rather than report a number from the wrong
+    # one — the failure would be invisible in the output.
+    from _logseg import assert_single_build
+    assert_single_build(text, pathlib.Path(args[0]).name)
     rows = grade(text)
     print(f"{pathlib.Path(args[0]).name}\n")
     for i, v, detail in rows:

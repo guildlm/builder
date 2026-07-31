@@ -50,28 +50,9 @@ _GREEN = re.compile(r"^\[guildlm-build\] converged to green", re.M)
 # turned that into a single build repeating the same surface four times, which is the exact
 # opposite of what happened. It was caught because a build reported four failed rounds AND
 # "converged to green after fix round 1", a contradiction that only a merged log can produce.
-# TERMINATOR-BASED, not start-based. The first attempt split on "generate <file> (1/N)" and
-# missed iso-shortener-07170020 entirely — that log's four builds print no (1/N) line at all,
-# so all four stayed merged and the tool still reported one build repeating a surface four
-# times. A build ENDS unambiguously in both outcomes and in every log format seen here:
-#     success   "Generated <name> into <path>"     (a failed build never prints this — checked
-#                                                   on arm-1 and arm-4, both 0)
-#     failure   "exhausted N fix rounds"
-_BUILD_END = re.compile(r"^Generated \S+ into |exhausted \d+ fix rounds")
-
-
-def builds_of(text: str) -> list[str]:
-    """Split a log into per-build segments on either terminator. A trailing segment with no
-    terminator is a build still in flight and is kept."""
-    segs, cur = [], []
-    for line in text.splitlines(keepends=True):
-        cur.append(line)
-        if _BUILD_END.search(line):
-            segs.append("".join(cur))
-            cur = []
-    if cur and "".join(cur).strip():
-        segs.append("".join(cur))
-    return segs or [text]
+# ⚠️ A LOG FILE IS NOT A BUILD. Segmentation lives in _logseg.py — one definition, because
+# two disagreeing segmenters is exactly how the 654-vs-853 discrepancy happened.
+from _logseg import builds_of  # noqa: E402
 
 
 def rounds_of(text: str) -> list[str]:
