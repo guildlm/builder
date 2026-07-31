@@ -1,0 +1,48 @@
+NOTE — a cross-spec order measurement, computed and discarded in four minutes
+=============================================================================
+31 July 17:00. The fourth measurement today thrown away, and the second-to-last one caught BEFORE it
+was written up rather than after.
+
+THE QUESTION
+    Today established that ledger splits correctly with the implementer entry first and consolidates
+    with the interface first. Does the order effect hold on the other specs? The corpus has 350+
+    trees; the join looked trivial — read each tree's spec, note whether store.go precedes memory.go,
+    check whether store.go declares MemStore.
+
+WHAT IT RETURNED
+        spec        entry order    split   CONSOLIDATED
+        ledger      iface-first        5             1
+        ledger      impl-first        12            10
+        taskapi     iface-first       12             7
+        taskapipro  iface-first       32            12
+        workapi     impl-first        13            42
+
+    Which says ledger CONSOLIDATES LESS with the interface first, and workapi consolidates MOST with
+    the implementer first — the reverse of everything measured today, on both specs at once.
+
+WHY IT IS INVALID, AND IT IS NOT SUBTLE
+    `spec_for(tree)` returns TODAY's spec. The entry order in specs/ledger.yaml was CHANGED on
+    30 July at 22:51 ("promote the order fix: implementation entries now precede the interfaces they
+    satisfy").
+
+        ledger-v4          drawn 26 July      under iface-first
+        ledger-name1       drawn 30 July 12:09 under iface-first
+        ledger-pairA-p6    drawn 30 July 19:42 under iface-first
+        ledger-parity-ctl-1 drawn 31 July      under impl-first
+
+    Every ledger tree drawn before 22:51 on 30 July is being labelled with an order it was never
+    drawn under. The table is not measuring the order effect; it is measuring when the spec changed.
+
+    ⚠️ SAME CLASS AS THE AFTERNOON'S RETRACTION: attributing a CURRENT state to an artifact produced
+    under a DIFFERENT one. There it was repaired-vs-unrepaired; here it is today's spec vs the spec
+    of the day. The corpus does not record which spec version produced a tree, so this join cannot be
+    fixed by being more careful — it needs data that was never captured.
+
+WHAT WOULD ANSWER THE QUESTION
+    Draws made deliberately, both orders, same process, same spec text otherwise — which is what the
+    pairA/pairB series did for ledger on 30 July and what the corrected parity design does for one
+    clause. A retrospective sweep over trees drawn across a spec edit cannot substitute for it.
+
+    ⚠️ AND THE RESULT THAT LOOKED MOST INTERESTING IS THE ONE THAT SHOULD HAVE WARNED ME. A table
+    contradicting two separately-measured facts at once is far more likely to be a broken join than a
+    discovery, and noticing that took less time than computing it.
