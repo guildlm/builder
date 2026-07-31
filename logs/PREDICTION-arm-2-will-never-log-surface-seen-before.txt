@@ -33,3 +33,33 @@ WHAT WOULD REFUTE THE STRUCTURAL CLAIM
     ⚠️ Recorded BEFORE the outcome, on a run already in flight, because the alternative is reading
     the log afterwards and finding the claim confirmed by whatever it happens to say. That is the
     error this session has now corrected five times, and the count is the cheap part.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+RESOLVED — 15:12, arm-2 in its final extension round
+════════════════════════════════════════════════════════════════════════════════════════════
+    compile/test FAILED, extension round 6 (new error surface)
+    compile/test FAILED, extension round 7 (new error surface)
+    compile/test FAILED, extension round 8 (new error surface)
+
+    "(surface seen before)" occurrences in arm-2's whole log:  0
+
+    ✓ PREDICTION 1 HELD (97%). Not one repeat detected across every round. Each extension round is
+      labelled "new error surface", which is the detector affirming that it found nothing to match —
+      exactly what a timestamped output guarantees.
+
+    ✓ PREDICTION 2 HELD (90%). Rounds 6, 7 and 8 are all three extension rounds, so the budget is
+      exhausted at 8 (5 + _EXTENSION_ROUNDS=3), the same as arm-1.
+
+    — PREDICTION 3 correctly declined. Whether arm-2 would converge was left unpredicted because its
+      fix loop had already diverged from arm-1 at round 1; it did not converge, and I would have been
+      right by luck rather than by reasoning had I guessed.
+
+WHAT THE RESOLUTION ADDS BEYOND arm-1
+    arm-1 could be read as one build that happened to produce eight distinct surfaces. arm-2 is a
+    SECOND build, from byte-identical source in the same process, taking a DIFFERENT path through the
+    fix loop — different files fixed, different surfaces — and reaching the identical structural
+    outcome: eight rounds, zero repeats.
+
+    Two different trajectories, same structural ceiling. That is what distinguishes "this build was
+    unlucky" from "this build class cannot detect a repeat", and it is the reason the prediction was
+    worth writing down rather than just observing the second run.
