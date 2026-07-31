@@ -1,0 +1,84 @@
+RESULT — the mechanism behind the package split: whichever file is generated FIRST has an empty context
+=========================================================================================================
+31 July, while the cross-process parity run holds the GPU. Zero GPU: real as-drawn files from existing
+trees fed through builder's own prompt-assembly functions. This is the campaign's central open
+question — "how do you make the model SPLIT a package's content correctly" — and it now has a
+measured mechanism rather than an observation.
+
+THE NATURAL EXPERIMENT THAT WAS ALREADY IN THE REPO
+    specs/ledger.yaml and specs/ledger-origorder.yaml differ in EXACTLY ONE LINE — the position of
+    internal/store/memory.go, before or after internal/store/store.go:
+
+        diff <(grep path: ledger.yaml) <(grep path: ledger-origorder.yaml)
+        6d5   <   - path: internal/store/memory.go
+        7a7   >   - path: internal/store/memory.go
+
+        memory.go FIRST  ->  SPLIT         4 draws for 4
+        store.go  FIRST  ->  CONSOLIDATED  4 draws for 4 (arms), and the defect this campaign chases
+
+MEASURED — store.go's PACKAGE CONTEXT block under each order, using a real 2282-byte memory.go
+        order B (store.go first)      context     0 chars   names MemStore: False
+        order A (memory.go first)     context  2373 chars   names MemStore: True
+
+    Order A's context is the FULL TEXT of memory.go, and it arrives with builder's own rule
+    attached: "Every function, type, constant and variable they declare already exists — call and
+    reference them directly, and do NOT redeclare or reimplement any of them."
+
+    Order B's context is EMPTY. When store.go is generated first, the model is told nothing about
+    memory.go at all. It has no way to know an implementation file exists.
+
+AND THE SECOND HALF, which is where the EMPTY file comes from
+    What memory.go sees when IT is the second file, measured on both real store.go variants:
+
+        control store.go   377B, interface only    context  467 chars   names MemStore: False
+        arm     store.go  2263B, consolidated      context 2353 chars   names MemStore: True
+
+        -> control memory.go   2282B   declares MemStore: True
+        -> arm     memory.go     14B   declares MemStore: False    <- `package store` and nothing else
+
+    The arm's memory.go is not "failing to write". It is being told, correctly, that MemStore
+    already exists and must not be redeclared — and it has nothing else assigned to it.
+
+THE MECHANISM, both halves measured rather than reasoned
+    WHICHEVER FILE IS GENERATED FIRST HAS AN EMPTY CONTEXT AND WRITES WHATEVER ITS PURPOSE ALLOWS.
+    THE FILE GENERATED SECOND RECEIVES THE FIRST ONE'S FULL TEXT PLUS "DO NOT REDECLARE", AND WRITES
+    ONLY WHAT IS LEFT.
+
+    Everything else this campaign has measured about this defect follows from that:
+
+    - THE PARITY CLAUSE IS PROTECTIVE, which surprised me this afternoon and now has a reason. It is
+      the only thing constraining the FIRST file. With it, store.go writes 377 bytes of interface and
+      leaves MemStore for its sibling. Without it, store.go writes the entire package and its sibling
+      is left with nothing. The clause is not "the sentence that stops the implementation moving" —
+      it is the sentence that stops the FIRST file taking everything.
+
+    - REORDERING FIXES IT WITHOUT THE CLAUSE. Put memory.go first and it writes MemStore from an
+      empty context; store.go then receives memory.go and the redeclaration rule does the work. The
+      split becomes STRUCTURAL rather than dependent on one prompt sentence surviving.
+
+    - THE DEFECT IS NOT A MODEL FAILURE, which is the part I had wrong. Consolidation is the correct
+      response to the prompt the model is handed: write a complete store package, with no indication
+      that any sibling exists. Four draws produced byte-identical consolidated output because that is
+      what the input asks for.
+
+WHAT THIS DOES NOT ESTABLISH — the scope, stated because the mechanism is tempting to over-apply
+    ONE SPEC, ONE PACKAGE PAIR. Everything above is ledger's internal/store. The cross-spec sweep
+    already measured workapi at a far higher consolidation rate, so ledger's clean bimodality does
+    not generalise and neither does this without testing.
+
+    IT DOES NOT PREDICT WHICH FILE SHOULD BE FIRST IN GENERAL. The rule "implementation before
+    interface" works here because the implementation's purpose is the more complete description. A
+    spec whose first file has a vague purpose would have the same empty context and less to write
+    into it.
+
+    AND REORDERING IS NOT FREE. The 4/4 SPLIT under ledger.yaml is EXISTING evidence gathered under
+    that order; nothing here re-measures it. What is new is why it works, not that it does.
+
+    ⚠️ NO NEW DRAW WAS TAKEN. Every number above comes from prompt-assembly functions run over
+    as-drawn files already on disk. It explains four archived outcomes and predicts none.
+
+THE CHEAP TEST THIS SUGGESTS, recorded rather than run
+    If the mechanism is right, moving the IMPLEMENTATION file ahead of the INTERFACE file in
+    specs/workapi.yaml should reduce its consolidation rate — and the prediction can be made before
+    any GPU is spent, because the context blocks can be rendered exactly as they were here. That is
+    a pre-registration, not a result, and it belongs after the parity run.
