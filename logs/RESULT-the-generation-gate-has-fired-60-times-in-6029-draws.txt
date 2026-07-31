@@ -1,0 +1,64 @@
+RESULT — the best-of-N gate rejects 1 candidate in 100, and _required_decls accounts for half of that
+=======================================================================================================
+31 July, 21:20, while pair 2's control generates. Logs only, no GPU. Bounds the expected value of the
+queued spec-phrasing fix, which works by making this gate fire more often.
+
+MEASURED across 1028 build segments and 6029 best-of-N events
+        a candidate PASSED the gate          5999     99.5%
+        ALL candidates failed, fell back       30      0.5%
+
+        kept candidate 1 of 2                4142     99.7% of generation events
+        kept candidate 2 of 2                   5      0.1%
+        (fix path: 1803 / 4, same shape)
+
+    THE SECOND CANDIDATE IS ALMOST NEVER USED. In 6029 draws the gate advanced past candidate 1
+    five times in generation and four times in fixes. Best-of-2 is, in practice, best-of-1.
+
+EVERY REJECTION THE GATE HAS EVER LOGGED — 60 of them, across the whole archive
+        31   missing promised X            <- _required_decls
+        19   drops failX — still used, no sibling declares it
+         8   X re-locks a mutex it already holds (deferred unlock)
+         2   does not parse
+
+    And the 31 `missing promised` rejections name exactly TWO symbols:
+        20  NewRouter
+        11  Store
+
+    THE GATE THIS CAMPAIGN SPENT THE EVENING ANALYSING HAS FIRED 31 TIMES IN 1028 BUILDS, ON TWO
+    SYMBOLS, AND NEVER ONCE ON A SENTINEL. That is the direct consequence of _required_decls
+    extracting nothing from the purposes these specs are written in — measured earlier today at
+    67% of exported names invisible — and it is what that number looks like from the other end.
+
+WHAT THIS DOES TO THE QUEUED SPEC FIX'S EXPECTED VALUE
+    The fix makes the gate demand ErrInsufficientFunds. Two things follow, and they point opposite
+    ways:
+
+    IN ITS FAVOUR — the gate is nowhere near saturated. 60 rejections in 6029 draws means there is
+    no cost story about over-rejection from the current baseline; the simulated widening (+144
+    correct demands at 93% precision) would multiply the gate's activity several-fold from a very
+    low base.
+
+    AGAINST IT — a rejection is only useful if the RESAMPLE differs, and the archive says candidate
+    2 is chosen 9 times in 6029. That is not evidence that candidate 2 is IDENTICAL — it is chosen
+    only when candidate 1 fails, which is itself rare — but it means the resample path is almost
+    entirely untested by this corpus. Combined with this evening's finding that the model
+    abbreviates despite seeing the name three times, the honest expectation is that a rejected
+    candidate may well abbreviate again and the loop falls back after 2 tries.
+
+    ⚠️ WHICH IS EXACTLY WHY THE PRE-REGISTERED ENDPOINT IS "THE GATE FIRES" AND NOT "THE TREE IS
+    CORRECT". That wording was chosen this evening on a different argument; this measurement is a
+    second, independent reason for it. If the endpoint had been the tree, the fix could look like a
+    failure while doing precisely what it was designed to do.
+
+    AND IT SUGGESTS A CHEAP COMPANION: raise `--candidates` for the file that fails. 30 fallbacks in
+    6029 events means the budget is almost never exhausted, so more candidates cost almost nothing
+    on average and only spend where the gate is actually struggling. Recorded, not proposed — it
+    changes generation cost and needs its own pre-registration.
+
+⚠️ WHAT THE 0.5% DOES NOT MEAN
+    IT IS NOT "THE MODEL IS RIGHT 99.5% OF THE TIME". It is the rate at which a candidate satisfies
+    the checks the gate ACTUALLY PERFORMS — parse, stdlib-only, no cross-file redeclaration, and the
+    thin slice of promised declarations _required_decls can see. Today established that the last of
+    those misses two thirds of what the purposes promise. A gate that rarely fires is evidence about
+    the gate before it is evidence about the model, which is the same lesson as this morning's
+    "a gate that never failed isn't a gate".
