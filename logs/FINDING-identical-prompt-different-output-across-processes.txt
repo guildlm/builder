@@ -1,0 +1,50 @@
+FINDING — store.go's prompt is byte-identical before and after today's edits, and the output changed
+=====================================================================================================
+31 July. Zero GPU: the pre-today builder.py was checked out to a scratch path and both versions were
+asked to render the same prompt. Closes — negatively — the gap left open when control-1 landed.
+
+THE GAP
+    archived A arms, OLD harness, parity clause present  ->  CONSOLIDATED 3/3
+    fresh controls,  NEW harness, parity clause present  ->  SPLIT        2/2
+
+    Same spec text for this package, same model id, same clause. I claimed the harness could not be
+    responsible because today's changes all act on memory.go, which is generated SECOND.
+
+MEASURED, NOT ASSERTED
+    store.go generation prompt, pre-today harness (8f2abd2):  25885 chars
+    store.go generation prompt, today's harness:              25885 chars
+    IDENTICAL: True
+
+    The model is asked exactly the same question it was asked yesterday.
+
+⚠️ AND MY REASON FOR SAYING SO WAS WRONG, WHICH THE SAME CHECK EXPOSED
+    "Today's changes act only on memory.go" is false. store.go's post-generation `sibling_decls` DID
+    change:
+
+        pre-today : []
+        today     : ['AccountHandler', 'Ledger', 'Logging', 'Recover', 'TransactionHandler']
+
+    FIX 2's widening made `_foreign_owned_decls` see backticked names in OTHER packages' purposes, so
+    store.go now carries five forbidden names it did not carry before. They feed the redeclaration
+    stripper and the candidate-rejection check.
+
+    They are all irrelevant to THIS outcome — none of them is Store or MemStore, and store.go's
+    candidate declares neither of those five — so the conclusion survives. But it survives for a
+    different reason than the one I gave: not "the changes cannot reach store.go" (they do) but "the
+    symbols they add are not the symbols in question".
+
+WHAT IS LEFT, ONCE THE PROMPT AND THE STRIP SET ARE ACCOUNTED FOR
+    Identical prompt, identical model id, different output. Within a single server process today's
+    draws are byte-identical (28d42aac for both controls, e926b654 for both arms — measured by hash).
+    Across processes they are not.
+
+    So the determinism this campaign has relied on is WITHIN-PROCESS determinism. It does not license
+    pooling an archived draw with a fresh one, and the archived 3/3 cannot be treated as three more
+    observations of the same experiment as today's controls.
+
+    ⚠️ This is not a new claim for this repo — `_canonical_toolchain_output`'s docstring already ends
+    with "generation is deterministic (measured: three 1200-token completions at temp=0.1,
+    byte-identical) and yet same-arm runs generate DIFFERENT files. Something upstream of the fix loop
+    varies per process. Look there, not here." That was written on 18 July and the question is still
+    open. Today's contribution is only that the prompt has now been ELIMINATED as the variable, by
+    rendering both versions and diffing them.
