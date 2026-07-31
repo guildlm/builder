@@ -1,0 +1,54 @@
+RESULT — v2: 56 of 59, and the single remaining refusal is one I have already retracted
+========================================================================================
+31 July. Re-run of the corpus under the gate with the goroutine/pointer normalisation applied.
+Pre-registrations: logs/PREREG-a-non-regressing-repair-gate.txt (the gate) and
+logs/FINDING-the-gate-refuses-on-goroutine-numbers.txt (the fix, whose first attempt did nothing).
+
+    transition (green-requiring -> non-regressing, v2)
+        REVERTED -> FILLED          56
+        FILLED   -> FILLED          11
+        NO-DONOR -> NO-DONOR         4
+        REVERTED -> NOT-ATTEMPTED    2
+        REVERTED -> REFUSED          1
+
+    GREEN-BEFORE  12 cases · FILLED 11 · REFUSED 0 · NOT-ATTEMPTED 0 · NO-DONOR 1
+    RED-BEFORE    62 cases · FILLED 56 · REFUSED 1 · NOT-ATTEMPTED 2 · NO-DONOR 3
+
+    ✓ PRIMARY  56 of 59, pre-registered at >=45          HELD
+    ✓ REJECT   green fills 11 -> 11                      clear
+    ✓ REJECT   FILLED -> not-FILLED: 0                   clear
+    ✓ REJECT   no green tree ends red (--verify-green)   clear, verified on v1's twelve
+
+    PREDICTED 56 after the fix, and it is 56. The four false refusals became fills, exactly the four
+    named in advance (workapi14/15/16/17), and nothing else moved.
+
+THE THREE THAT REMAIN, and not one of them is the gate working correctly
+    NOT-ATTEMPTED  taskapi-15b-base     internal/api/tasks.go
+    NOT-ATTEMPTED  taskapipro-pairB-t1  internal/store/store.go
+        movedecls exits non-zero or empty and the pass continues with no log. No gate can reach
+        these because nothing is ever compared. An undiagnosed defect in a Go tool.
+
+    REFUSED        workapi2             internal/store/memory.go
+        The travelled error. store.go already contains `import "models"`, bare and unresolvable; the
+        move carries it to memory.go and (file, message) calls it new. RETRACTED as genuine earlier
+        today — logs/FINDING-a-pre-existing-error-that-travels-reads-as-new.txt — and the multiset
+        key is pre-registered to fix it.
+
+    SO: ZERO cases in the whole corpus where the gate correctly refused a move. Not one move in 59
+    introduced a defect that was not already there.
+
+WHAT THE WHOLE SEQUENCE COST AND BOUGHT
+    The green-requiring gate discarded 59 correct moves. 56 are recovered by the non-regressing gate
+    as measured; 1 more by a key change already pre-registered; 2 are blocked by a different tool.
+    The repair is now wired into the failing exit as well, so this is production behaviour, not a
+    corpus statistic.
+
+    ⚠️ AND IT CONVERGES NOTHING. Every one of the 56 is a red tree that is still red, now holding its
+    declarations where the plan put them. Anyone reading "56 of 59" as builds fixed has read it
+    wrong, and the sentence is repeated here because the number is attractive.
+
+⚠️ WHAT THIS RUN IS NOT: an independent confirmation. It is the same 74 cases, the same instrument,
+one bug removed. The pre-registered PRIMARY was already met at 52 before the fix; the fix moved it to
+56 and that movement was predicted in advance, which is the only sense in which 56 is stronger than
+52. A third run under the multiset key will be the same corpus again — these numbers describe THIS
+corpus and the gate's behaviour on it, and nothing about specs nobody has drawn.
