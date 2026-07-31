@@ -1,0 +1,63 @@
+FINDING — the generation gate DEMANDS the over-reach it later repairs, on exactly one symbol per spec
+=====================================================================================================
+31 July, morning. Zero GPU: log archaeology plus a static read of every spec. Raised as a causal
+hypothesis, then partly refuted by the next line of the same log, which is why the number below is
+1-of-6 and not "the cause".
+
+WHAT THE GATE DOES
+`_generate_file` computes `required = _required_decls(purpose) - sibling_decls`, where sibling_decls
+is same-directory files ALREADY WRITTEN plus symbols owned by OTHER packages' purposes. A candidate
+missing anything still in `required` is rejected and resampled (`missing promised X`).
+
+The subtraction has a hole. `_foreign_owned_decls` arbitrates ownership ACROSS directories only.
+Inside a directory the only arbitration is which file happened to be written first — so for a file
+generated BEFORE its sibling, `required` still contains the symbols the sibling owns.
+
+THE AMBIGUOUS SYMBOL, static over every spec
+    ledger · workapi · taskapipro · taskapi   — all four, one symbol each:
+
+        internal/store/store.go    demands Store       <- correct, it owns it
+        internal/store/memory.go   demands Store       <- WRONG, it only implements it
+
+    Exactly the interface/implementer pair that yesterday's consolidation law names, now visible in
+    the GATE rather than in the output. No other symbol in any spec is demanded of two files in the
+    same package.
+
+    ⚠️ AND FIX 2 DOES NOT WIDEN THIS. Store is ambiguous under both extractors. What the widening
+    added — MemStore to memory.go, ErrExists/ErrNotFound to store.go — is unambiguous in every case.
+    Checked because "my own change made this worse" was the live possibility.
+
+WHAT IT COSTS, from the logs
+    17 attempts across the archive were rejected for a missing promised symbol. In 16 of them the
+    gate was NEVER satisfied: every candidate was rejected and the harness fell back to the first
+    one — the very candidate it had just called dirty. The rejection bought nothing and cost a draw.
+
+        6x   internal/store/memory.go   missing Store     5 fell back · 1 SATISFIED
+       10x   cmd/server/main.go         missing NewRouter  all fell back  (an OLD spec text; no
+                                                           current spec produces this demand)
+        1x   users_test.go              missing Store,User  fell back
+
+    ⚠️ THE ONE THAT WAS SATISFIED IS THE INTERESTING ROW. It means a later draw DID declare Store in
+    memory.go — the gate pushed the implementer into declaring its sibling's interface. That is
+    harness-caused consolidation, observed once.
+
+HOW I NEARLY GOT THIS WRONG
+    I wrote it up as "the harness manufactures the consolidation it repairs" after reading the
+    rejection lines, and the NEXT LINE of the same log refuted it: `no clean candidate; using the
+    first of 2`. Five of six times the model refused and the harness shipped the refusal. The honest
+    statement is 1 of 6, not a cause — and the difference was one line of context I had already
+    printed and not read. That is the same shape as 15:00, 21:40 and 01:35 yesterday: the tool had
+    already emitted the contradicting detail.
+
+WHAT WOULD FIX IT, AND WHY IT IS NOT APPLIED HERE
+    The repair pass already owns the right rule — `wanted - _required_decls(donor_purpose)`, take
+    only what the sibling was not asked to declare. The same subtraction at generation time gives
+    memory.go {MemStore} and store.go {}. Note the asymmetry: it disarms the demand for BOTH files,
+    because nothing in the extracted names says which entry OWNS Store and which merely names it.
+    Buying that back needs a verb distinction (declares/defines vs implements/satisfies) that the
+    specs happen to use consistently but that nothing checks.
+
+    Not applied in this session. It is a third generation-path edit in one morning, the payoff is
+    measured in wasted draws rather than in artifacts, and one of its two plausible forms silently
+    disarms a gate that does real work elsewhere. It gets its own pre-registration and its own
+    scoring, or it does not get made.
