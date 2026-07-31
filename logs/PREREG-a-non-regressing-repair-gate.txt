@@ -1,0 +1,54 @@
+PREREG — let the repair fire on a red tree, gated on NO NEW ERRORS instead of on green
+======================================================================================
+Written before any code change, 31 July, after logs/RESULT-the-repair-survives-whenever-it-can-run.txt.
+
+WHAT THE SURVIVAL RESULT HANDED ME
+    GREEN-BEFORE   12 cases · FILLED 11 · REVERTED  0
+    RED-BEFORE     62 cases · FILLED  0 · REVERTED 59 · NO-DONOR 3
+
+    59 cases where the repair KNEW what to move and had a donor holding it, and reverted anyway —
+    not because the move was bad but because the tree was already red for unrelated reasons. The
+    pass asks "is the whole project green after the move", which an already-broken project cannot
+    answer, so the move is discarded on evidence that has nothing to do with it.
+
+    ⚠️ THIS IS THE ARM THE MORNING'S FIX 1 DELIBERATELY DID NOT TAKE, and the survival result is
+    what makes it worth taking now. Moving the repair out of the green gate WITHOUT changing the
+    check would attempt 59 moves and revert 59 — I said so, and the number proved it. Changing the
+    CHECK is the different edit that the same number argues for.
+
+THE CHANGE
+    After the move, accept when the toolchain reports NO ERROR IT WAS NOT ALREADY REPORTING, rather
+    than requiring zero errors. Same non-regressing principle the review pass uses; strictly weaker
+    requirement, strictly same guarantee about what the move itself did.
+
+    ⚠️ LINE NUMBERS MUST BE NORMALISED OUT OF THE COMPARISON. Moving declarations between files
+    SHIFTS every line number after them, so a naive before/after set difference reports every
+    pre-existing error in the donor as "new". The comparison key is (file, message) with line and
+    column stripped. Getting this wrong would make the gate reject everything and look exactly like
+    a null result — the same shape as the disclaimer rule silently doing nothing this morning.
+
+SCORING — measured on the same 74 cases, no draws, generated/ copied not touched
+    PRIMARY   of the 59 RED-BEFORE / REVERTED cases, how many are accepted under the new gate with
+              no new (file, message) pair. I predict 45 or more, i.e. at least 75%. Confidence 60%.
+              The move is same-package and `tools/movedecls.go` carries imports with the
+              declarations, so the failure mode is narrow: an import that goimports then prunes or
+              cannot resolve. 60% and not higher because I have never once run this pass against a
+              red tree, and every number I have produced today about an unexamined population has
+              been off.
+
+    REJECT    the 11 GREEN-BEFORE fills must stay 11, and no green tree may go red. If a
+              green-before tree ends red under the weaker gate, the gate is wrong — not tunable —
+              because the whole point is that it may never make anything worse.
+
+    REJECT    no accepted move may leave a NEW (file, message) pair anywhere. This is true by
+              construction of the check, so if the measurement finds one, the comparison key is
+              broken and the number means nothing.
+
+WHAT THE NUMBER CANNOT REACH — stated before I have it
+    A red tree that gets its planned file filled is STILL RED. This does not fix a single build; it
+    means the artifact that eventually ships (or is abandoned) has its declarations where the plan
+    put them. The honest framing is plan-conformance on failing builds, not a convergence
+    improvement, and I will not report it as one.
+
+    And it does nothing for the 3 NO-DONOR red cases or the 1 NO-DONOR green case (workapi-chain's
+    middleware.go, whose purpose names no type at all). Those are spec-text gaps.
