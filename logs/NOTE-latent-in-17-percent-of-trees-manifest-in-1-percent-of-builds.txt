@@ -1,0 +1,37 @@
+NOTE — the timestamp defect is LATENT in 17% of trees and MANIFEST in 1% of builds
+==================================================================================
+31 July. Two numbers that only mean something together, measured because "how big is this" has been
+answered three different ways today and two of them were wrong.
+
+CAPABILITY — trees whose non-test source calls log.Print* and can therefore emit app-log lines
+    ledger        22 / 22   100%
+    taskflow      26 / 31    83%
+    usersapi       5 / 13    38%
+    taskapi        2 / 19    10%
+    taskapipro     0 / 48     0%
+    workapi        0 / 56     0%
+    other          4 / 158    2%
+    TOTAL         59 / 347   17%
+
+OCCURRENCE — builds whose captured output actually contains a timestamped line
+    9 / 654   1.4%
+
+WHY THE TWO DIFFER, and it is not a contradiction
+    Emitting requires the tests to RUN and the logging path to execute. Most builds either converge
+    before a failing test runs, or fail at compile and never reach execution. So the defect is latent
+    in a sixth of the corpus and fires in about one build in seventy.
+
+    ⚠️ THE CONCENTRATION IS THE POINT, NOT THE AVERAGE. ledger is 22 of 22 — every single tree — and
+    ledger is the spec this campaign draws most and the one both parity arms used. taskapipro and
+    workapi are zero of a hundred and four; nothing in those two specs can ever trigger it. An
+    average of 17% describes no spec in the corpus.
+
+WHAT IT MEANS FOR THE THREE CONSUMERS
+    For workapi and taskapipro, `_error_signature`, `_error_keys` and `_canonical_toolchain_output`
+    are all correct today and would gain nothing from the queued fix.
+    For ledger, any build that fails AFTER its tests run hits all three at once — which is exactly
+    what arm-1 did (8 surfaces, all distinct, three extension rounds, and a repair refused on log
+    output).
+
+    So the queued normalisation is not a 1%-of-builds fix. It is a 100%-of-ledger-failures fix, and
+    ledger is where this campaign spends its draws.
