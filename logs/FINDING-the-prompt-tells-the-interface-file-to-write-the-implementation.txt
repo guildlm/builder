@@ -1,0 +1,54 @@
+FINDING — the prompt instructs the interface-only file to write the implementation
+==================================================================================
+31 July. Zero GPU: the prompt was RENDERED for the real spec and task and read. This is a fact about
+the prompt text, checkable by anyone in one command; whether it CAUSES the A-arm consolidation is a
+separate claim and is NOT made here.
+
+THE FILE
+    specs/ledger-origorder.yaml, internal/store/store.go — the first file of its package, purpose:
+        "package store. The Store INTERFACE only — no implementation in this file."
+
+THE PROMPT IT RECEIVES, three rules, in this order, within 900 characters of each other
+    offset 23929  IMPLEMENT EVERY function and method FULLY with real working logic — do NOT stub
+                  or leave placeholders ... Never reference a symbol you have not defined or
+                  imported.
+    offset 24277  INTERFACE/IMPL PARITY & COMPLETENESS: implement every method an interface
+                  declares, and make sure every method a caller reaches through the type ... EXISTS
+                  ON BOTH THE INTERFACE AND ITS IMPLEMENTATION. When the two disagree, ADD the
+                  missing method — never drop it from the other side.
+    offset 24821  STAY IN YOUR LANE: write ONLY what THIS file's purpose asks for ... if another
+                  file is responsible for something (the in-memory implementation ...), do NOT also
+                  write it here.
+
+    A file told "the interface only, no implementation in this file" is then told to implement every
+    method the interface declares and to make sure each exists on BOTH the interface and its
+    implementation. The instruction to write the implementation arrives FIRST, twice, and in the
+    more specific and more emphatic language. The instruction not to arrives last, in general terms,
+    naming "the in-memory implementation" as a category rather than MemStore as a symbol.
+
+    ⚠️ AND "Never reference a symbol you have not defined or imported" is a third pull in the same
+    direction, for a file whose whole job is to declare a type that something ELSE defines.
+
+WHAT THIS DOES AND DOES NOT ESTABLISH
+    ESTABLISHED, by reading: the prompt contradicts itself for exactly the file that consolidates,
+    and the side of the contradiction that wins in the A arm is the side the prompt states first,
+    twice, and most specifically.
+
+    NOT ESTABLISHED: that this contradiction CAUSES the consolidation. The B arm is the reason for
+    the caution — memory.go receives the same completeness/parity rule, its purpose disclaims the
+    interface in the same explicit way, and it does NOT write the interface. The model resolves the
+    identical contradiction correctly in one order and incorrectly in the other. So the contradiction
+    is real, and by itself it does not explain the asymmetry.
+
+    ⚠️ I have already had to retract one causal story today off less than this (the generation gate,
+    refuted by the next line of the same log). This one is being written as a defect in the prompt,
+    which it certainly is, and not as the answer.
+
+THE ARM IT SUGGESTS — a PROMPT edit, which is cheaper and safer than the five code edits today
+    Do not emit the INTERFACE/IMPL PARITY clause for a file whose purpose disclaims implementation,
+    or rephrase it so parity is a property of the PACKAGE rather than of this file. `_disclaimed_decls`
+    already detects that disclaimer, and was built and tested this morning.
+
+    It needs its own pre-registration with a scored endpoint and an A/B on the ORIGINAL entry order
+    (the arm that consolidates), because the current order already produces the correct split and
+    would show nothing.
