@@ -246,3 +246,36 @@ CAVEAT ON THE PROMPT COMPARISON, stated because it is the load-bearing measureme
 
     The conclusion therefore stands without its caveat: store.go received the same prompt twice and
     wrote different programs.
+
+THE DIFFERENCE IS CONTAINED TO ONE LAYER, AND "SIX FILES APART" OVERSTATES IT
+    ctl-3 at 15 .go files: 9 identical, 6 differing. Every one of the six is in models/store/service;
+    the ENTIRE api package (accounts, middleware, response, router, router_test, transactions) is
+    byte-identical, despite those files' prompts differing.
+
+    Counting the literal `money.Money` in the six differing files:
+
+        models_test.go     ctl-1 7   ctl-3 7
+        store.go           ctl-1 1   ctl-3 0     <- the type's package changes here
+        memory.go          ctl-1 5   ctl-3 0     <- and here
+        memory_test.go     ctl-1 6   ctl-3 6
+        service.go         ctl-1 1   ctl-3 1
+        service_test.go    ctl-1 9   ctl-3 9
+
+    Only TWO files actually swap the type's package. The other four differ for other reasons — a
+    two-line import in models_test.go, and whatever the tests do around it — and four of the six
+    still use money.Money identically in both trees.
+
+    ⚠️ SO "THE TREES ARE SIX FILES APART" IS TRUE AND MISLEADING. The substantive divergence is one
+    type's package in the store layer, invisible to the api layer above it, with four more files
+    differing in smaller ways. A file count treats all six as equal evidence.
+
+WHICH RAISES A QUESTION ABOUT THE 30 JULY CROSS-PROCESS RESULT THAT NOBODY ASKED
+    That result reported programs "3, 4 and 6 CODE files apart" and read the counts as a magnitude.
+    Nothing there checked whether those differences were independent or contained the way these are.
+    If cross-process divergence is also one root difference plus insensitive downstream files, then
+    "6 files apart" and "4 files apart" may not be the ordering the result treated them as.
+
+    ⚠️ NOT A CRITICISM OF THAT RESULT'S CONCLUSION — process identity being the variable does not
+    depend on the magnitude. It is a question about the magnitude only, it is answerable from trees
+    still on disk, and it is not queued: the queue has four items with evidence behind them and this
+    has a hypothesis behind it.
