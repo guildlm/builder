@@ -1570,6 +1570,31 @@ _METHOD_DECL_RE = re.compile(
 _MOVEDECLS = Path(__file__).resolve().parent.parent / "tools" / "movedecls.go"
 
 
+_ERROR_LINE_RE = re.compile(r"^(\S+?\.go):\d+(?::\d+)?:\s*(.*)$")
+
+
+def _error_keys(output: str) -> set[tuple[str, str]]:
+    """Toolchain errors as (file, message), with line and column stripped.
+
+    ⚠️ THE STRIPPING IS THE WHOLE POINT. Moving declarations between files shifts
+    every line number after them, so comparing raw output before and after a move
+    reports every pre-existing error in the donor as brand new. A gate built on
+    that rejects everything and looks exactly like a correct, disappointing null.
+    """
+    keys: set[tuple[str, str]] = set()
+    for line in _canonical_toolchain_output(output or "").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or line.startswith("?"):
+            continue
+        if m := _ERROR_LINE_RE.match(line):
+            keys.add((m.group(1), m.group(2).strip()))
+        else:
+            # test failures, link errors, anything without a file:line — keyed
+            # whole, so they still count as "new" if the move introduces one
+            keys.add(("", line))
+    return keys
+
+
 def _fill_empty_planned_files(
     spec: "Spec",
     written: dict[str, str],
@@ -1593,6 +1618,10 @@ def _fill_empty_planned_files(
     """
     if not _MOVEDECLS.exists():
         return
+    # What the project was ALREADY failing on, so a move can be judged on what IT
+    # did rather than on the state it inherited. On a green project this is empty
+    # and the gate below is exactly the old "must be green" one.
+    baseline_errors: set[tuple[str, str]] | None = None
     for path in empty_go_files(written):
         by_path = {f.path: f.purpose or "" for f in spec.files}
         wanted = _required_decls(by_path.get(path, ""))
@@ -1633,18 +1662,29 @@ def _fill_empty_planned_files(
         except json.JSONDecodeError:
             continue
 
+        if baseline_errors is None:
+            _, baseline_output = toolchain.check(out)
+            baseline_errors = _error_keys(baseline_output)
+
         before = {donor: written[donor], path: written[path]}
         written[donor] = _write_file(out, donor, moved["source"])
         written[path] = _write_file(out, path, moved["moved"])
-        ok, _ = toolchain.check(out)
-        if ok:
+        ok, output = toolchain.check(out)
+        # Non-regressing, not green-requiring. A project that was already failing
+        # cannot answer "are you green now", so it used to discard the move on
+        # evidence that had nothing to do with it: measured, 59 of 74 corpus cases
+        # reverted for errors the move did not cause and could not fix.
+        introduced = _error_keys(output) - baseline_errors
+        if ok or not introduced:
+            baseline_errors = _error_keys(output)
             _log(f"  moved {', '.join(sorted(wanted))} from {donor} into {path} — "
-                 f"the plan gave that file the job")
+                 f"the plan gave that file the job"
+                 + ("" if ok else " (project still failing, but not for this)"))
         else:
             for p, c in before.items():
                 written[p] = _write_file(out, p, c)
             _log(f"  left {path} empty: moving {', '.join(sorted(wanted))} into it "
-                 f"does not stay green")
+                 f"breaks {'; '.join(sorted(f'{f}: {m}' for f, m in introduced)[:2])}")
 
 
 def warn_empty_planned_files(written: dict[str, str], *, green: bool) -> None:

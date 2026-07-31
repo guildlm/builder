@@ -323,3 +323,51 @@ def test_a_sibling_in_another_package_is_not_a_tie():
     # start second-guessing it: same NAME, different directory, no tie to break.
     files = _files(("store/store.go", OWNER_PURPOSE), ("api/handler.go", IMPL_PURPOSE))
     assert _disclaimed_decls(files, "api/handler.go", IMPL_PURPOSE) == set()
+
+
+# --------------------------------------------------------------------------- #
+# The gate on the move itself: no NEW error, rather than no error at all.
+#
+# Measured on the corpus: 59 of 74 cases had a donor and a symbol to move and
+# reverted anyway, because the project was already red for reasons the move
+# neither caused nor could fix. The comparison that makes the weaker gate safe
+# has one hard requirement — line numbers must not be part of it, since moving
+# declarations shifts every line after them.
+# --------------------------------------------------------------------------- #
+
+from src.builder import _error_keys  # noqa: E402
+
+
+def test_the_same_error_at_a_different_line_is_not_a_new_error():
+    before = _error_keys("store/store.go:41:2: undefined: helper\n")
+    after = _error_keys("store/store.go:12:2: undefined: helper\n")
+    assert after - before == set(), "a shifted line number must not read as a new error"
+
+
+def test_a_genuinely_new_error_is_seen():
+    before = _error_keys("store/store.go:41:2: undefined: helper\n")
+    after = _error_keys(
+        "store/store.go:41:2: undefined: helper\n"
+        "store/memory.go:7:6: undefined: sync\n"
+    )
+    assert after - before == {("store/memory.go", "undefined: sync")}
+
+
+def test_a_different_message_in_the_same_file_is_new():
+    before = _error_keys("store/store.go:41:2: undefined: helper\n")
+    after = _error_keys("store/store.go:41:2: undefined: OtherThing\n")
+    assert after - before == {("store/store.go", "undefined: OtherThing")}
+
+
+def test_package_headers_and_no_test_files_lines_are_not_errors():
+    keys = _error_keys(
+        "# guildlm.dev/x/internal/store\n"
+        "?   \tguildlm.dev/x/cmd/server\t[no test files]\n"
+    )
+    assert keys == set()
+
+
+def test_a_failure_without_a_file_line_still_counts():
+    before = _error_keys("")
+    after = _error_keys("--- FAIL: TestGet\n")
+    assert after - before == {("", "--- FAIL: TestGet")}

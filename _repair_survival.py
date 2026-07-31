@@ -18,11 +18,14 @@ as builder.py calls it, and record the outcome.
 against the copy. This is not caution for its own sake: a destructive command run beside a live
 build already cost that build its files once this campaign.
 
-⚠️ AND THE SPLIT IS THE RESULT, NOT THE RATE. The pass checks the WHOLE project after moving, so a
-tree that was already red fails that check for its own unrelated reasons and reverts no matter how
-good the extractor is. Pooling those with the green-before trees would produce a single success
-rate that describes neither population. Green-before and red-before are reported separately and a
-combined rate is deliberately not printed.
+⚠️ AND THE SPLIT IS THE RESULT, NOT THE RATE. Green-before and red-before are reported separately
+and a combined rate is deliberately not printed — one number over both describes neither.
+
+⚠️ THE GATE UNDER TEST CHANGED AFTER THE FIRST RUN, so the two runs are not the same experiment.
+The first (logs/repair-survival.tsv, 74 cases) measured the GREEN-REQUIRING gate: the pass demanded
+the whole project be green after the move, so all 59 red-tree cases reverted on evidence that had
+nothing to do with the move. The gate is now NON-REGRESSING (no error the project did not already
+have), and the first run is the baseline the second is scored against.
 """
 from __future__ import annotations
 
@@ -126,8 +129,15 @@ def report(args) -> int:
 
 
 def self_test() -> int:
-    """A tree the move fixes, and a tree that is broken for an unrelated reason — the
-    second is the whole point, since it is the shape that must come back REVERTED."""
+    """A tree the move fixes, and a tree broken for an unrelated reason.
+
+    ⚠️ THE SECOND CASE FLIPPED, AND THAT IS THE POINT. It asserted REVERTED, because the
+    pass required the whole project to be green after the move. Under the non-regressing
+    gate the same tree comes back FILLED: the move introduces no error the project did not
+    already have, so the unrelated breakage is no longer its problem. Rewritten rather than
+    deleted, so the flip is recorded where the old expectation was — an instrument that
+    silently agrees with whatever the code now does is worth nothing.
+    """
     import shutil as _shutil
     if _shutil.which("go") is None:
         print("self-test: SKIPPED (needs the Go toolchain)")
@@ -149,8 +159,10 @@ def self_test() -> int:
     failures = 0
     for name, extra, want in (
         ("clean", None, "FILLED"),
-        ("broken", ("bad/bad.go", "package bad\n\nfunc F() { undefinedCall() }\n"),
-         "REVERTED"),
+        # unrelated breakage in ANOTHER package: the move is still clean, so the
+        # non-regressing gate accepts it where the green-requiring gate refused
+        ("broken-elsewhere", ("bad/bad.go", "package bad\n\nfunc F() { undefinedCall() }\n"),
+         "FILLED"),
     ):
         tmp = pathlib.Path(tempfile.mkdtemp(prefix=f"rs-self-{name}-"))
         tree = tmp / "tree"
@@ -170,7 +182,8 @@ def self_test() -> int:
             failures += 1
             print(f"FAIL {name}: got {got}, want {want}")
         _shutil.rmtree(tmp, ignore_errors=True)
-    print("self-test:", "OK — the move lands on a clean tree and reverts on a broken one"
+    print("self-test:", "OK — the move lands on a clean tree, and on a tree broken "
+          "elsewhere (which the green-requiring gate refused)"
           if not failures else f"{failures} FAILED")
     return 1 if failures else 0
 
