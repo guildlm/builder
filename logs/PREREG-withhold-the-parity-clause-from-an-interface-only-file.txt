@@ -49,3 +49,29 @@ SCORING — the endpoint, and what it cannot reach
     dead: the same model, same spec, implementer-first, splits correctly four times out of four.
     Whatever this arm returns, the asymmetry between the two orders is the thing that needs
     explaining, and this arm tests only one candidate explanation for it.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+AMENDED before any draw — THE ARCHIVED CONTROLS PREDATE THE SPEC THEY WOULD BE COMPARED TO
+════════════════════════════════════════════════════════════════════════════════════════════
+I justified n=3 above with "the defect is reproducible and already documented — 3 of 3 on the paired
+arms". Checked the timestamps rather than trusting the sentence:
+
+    ledger-pairA-p6   drawn 30 July 19:42
+    ledger-pairA-p7   drawn 30 July 20:31
+    ledger-pairA-p8   drawn 30 July 21:18
+    specs/ledger-origorder.yaml last changed 31 July 01:28 (c7f7c10, the JSON-tag fix, applied to
+    BOTH twins so the paired instrument would survive)
+
+All three predate the spec text this A/B will draw from. They also predate five harness edits made
+today. So they are not controls for this experiment, and the phrase "3 of 3" cannot carry the weight
+I put on it.
+
+WHAT CHANGES
+    Nothing about the design — the runner already draws a FRESH control for every arm draw, in the
+    same process and from the same commit, precisely so that archived draws are never load-bearing.
+    What changes is the claim: the control rate is ESTABLISHED BY THIS RUN, not inherited. If the
+    fresh controls do not consolidate, the experiment has no defect to remove and the arm result is
+    uninterpretable — that is a real possible outcome and it is now written down as one.
+
+    ⚠️ The three archived draws still say something: the shape existed, on this spec's ancestor, in
+    another process. That is a reason to run the experiment, not a substitute for its control.
