@@ -1,0 +1,43 @@
+RESULT — the parity effect, re-measured with _asdrawn_diff.py instead of by hand
+================================================================================
+31 July 16:08. Replaces every ad-hoc shasum comparison in today's parity write-ups. Same draws, same
+conclusion, correct instrument — and it reports structure the hand comparison could not.
+
+SAME-CONDITION REPRODUCIBILITY, as drawn
+    ctl-1 vs ctl-2   19 common files · IDENTICAL 19
+    ctl-1 vs ctl-3   19 common files · IDENTICAL 19
+    ctl-2 vs ctl-3   19 common files · IDENTICAL 19
+    arm-1 vs arm-2   19 common files · IDENTICAL 19
+
+    Three controls byte-identical. Two arms byte-identical. Generation in this process is
+    deterministic, and the "drift" I spent two hours on does not exist.
+
+CROSS-CONDITION, ctl-1 vs arm-1, with --target=internal/store/store.go
+    CODE 3 · IDENTICAL 16 of 19
+
+        internal/store/store.go        377 vs 2263 chars   <- THE TARGET
+        internal/store/memory.go      2282 vs   14 chars
+        internal/store/memory_test.go 2835 vs 2820 chars
+
+    edit landed in CODE: YES (internal/store/store.go)
+    COLLATERAL: 2 of 3 — memory.go, memory_test.go
+    FUNCTION-LEVEL COLLATERAL: 2 — TestCreateAccountDuplicate, TestGetAccountMissing
+
+WHAT THE INSTRUMENT ADDS OVER "SPLIT vs CONSOLIDATED"
+    1. THE EDIT LANDED. Withholding 543 characters from store.go's prompt changed store.go. That is
+       not trivial — a null edit that changed only collateral would mean the manipulation missed.
+    2. THE BLAST RADIUS IS TWO FILES, both in the same package, and 16 of 19 files are untouched
+       across conditions. The effect is local, not a different program.
+    3. THE FUNCTION-LEVEL COLLATERAL IS TWO TEST FUNCTIONS. memory.go's seven functions are
+       "ctl-1-only" — they exist in the control and not in the arm, which is the stub — so the tool
+       reports zero CHANGED functions there and names the asymmetry instead of scoring it as churn.
+
+    ⚠️ Point 3 is the one I could not have produced by hand and nearly got wrong in the opposite
+    direction: a naive function diff would call seven functions "changed" when they are seven
+    functions PRESENT ON ONE SIDE. That distinction is exactly what the 21:40 note on 30 July said
+    the FUNCTION-LEVEL COLLATERAL column exists to make.
+
+THE VERDICT IS UNCHANGED AND NOW RESTS ON THE RIGHT MEASUREMENT
+    controls SPLIT 3/3 (store.go 377B, interface only) · arms CONSOLIDATED 2/2 (store.go 2263B with
+    MemStore, memory.go a 14-byte stub). Effective n is still ONE per condition, because the draws
+    within a condition are identical — which is now measured rather than assumed.
