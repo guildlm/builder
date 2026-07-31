@@ -44,3 +44,33 @@ NOT A SMALL DISCRETE SET — CONSISTENT WITH 30 JULY
     state. Two builds ran in between, both of them the arms. Nothing here distinguishes those, and
     the campaign's mechanism question — what varies per process — now has a within-process sibling
     that is equally unanswered.
+
+THE DIVERGENCE IS LOCALISED — it starts at the FIFTH generated file
+    1  go.mod                             identical
+    2  internal/money/money.go            identical
+    3  internal/money/money_test.go       identical
+    4  internal/models/models.go          identical
+    5  internal/models/models_test.go     ✗ FIRST DIFFERENCE
+    6  internal/store/store.go            ✗ 413B -> 377B
+    7  internal/store/memory.go           ✗ 2315B -> 2282B
+
+    Four files reproduce exactly and then it drifts. So this is not "a different process writes a
+    different program from the start" — the same process, hours later, agrees on the opening of the
+    build and diverges partway through.
+
+    ⚠️ THAT IS A DIFFERENT SHAPE FROM THE 30 JULY CROSS-PROCESS RESULT, which reported whole programs
+    3 to 6 CODE files apart without a stated onset. Whether cross-process divergence also has an
+    onset was never asked; nothing here answers it, and the comparison is not available because
+    those trees are from another spec.
+
+AND THE VERDICT SURVIVES THE DRIFT ON BOTH FILES
+    ctl-1  store  413B  memory 2315B   SPLIT
+    ctl-3  store  377B  memory 2282B   SPLIT
+
+    Both store.go files differ, both memory.go files differ, and BOTH grade SPLIT — store.go declares
+    only Store, memory.go carries MemStore and its methods. The split/consolidate outcome is stable
+    across output that is not.
+
+    That is the useful form of this refutation: the thing I predicted (identical bytes) was wrong,
+    and the thing the experiment measures (the verdict) was unaffected. Had the endpoint been "bytes
+    identical", today's parity result would have collapsed at the third control.
