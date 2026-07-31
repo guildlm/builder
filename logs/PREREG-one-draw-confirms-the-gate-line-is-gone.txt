@@ -1,0 +1,39 @@
+PREREG — one ledger draw, to confirm the gate fix end to end
+============================================================
+Written before the draw, 31 July. The gate fix (b2685f8) was scored statically: 17 entries change,
+all memory.go, all losing exactly {Store}, neither reject condition tripped. What static scoring
+cannot show is the RUNTIME consequence, which is the whole claim.
+
+THE DRAW
+    specs/ledger.yaml — memory.go is entry 5, store.go entry 6, so memory.go is generated BEFORE the
+    sibling that owns Store. That is precisely the arm where the demand bit: every archive
+    occurrence of "missing promised Store" is this shape.
+    One draw, fresh mlx_lm.server pid 7598, same flags as the standing ledger arms
+    (--candidates 2 --shots 2 --max-fix-rounds 5).
+
+WHAT MUST HAPPEN — the primary, and it is binary
+    The log must contain NO "rejected gen candidate N: missing promised Store" line for
+    internal/store/memory.go. Confidence 95%. It is a subtraction that the static check already
+    shows removes Store from that entry's demand set; the 5% is for the demand arriving by some path
+    I have not read.
+
+    NEGATIVE CONTROLS ALREADY IN HAND, and this is why one draw is enough: six archived ledger and
+    taskapipro/workapi draws of this exact shape logged that line — ledger-pairB-p6/p7/p8,
+    ledger-order1, taskapipro-pairB-t1, workapi-pairB-w1. The line is not rare and it is not random;
+    it appeared in every prior draw of the swapped order.
+
+WHAT MUST NOT HAPPEN — the pre-registered null, restated so it cannot be quietly dropped
+    The stub/consolidation outcome should be UNCHANGED. The archive says the model REFUSED this
+    demand in 5 of 6 occurrences and the harness shipped the refusal anyway, so removing the demand
+    should not change what the model writes. Expect memory.go to come out FULL and store.go THIN
+    (this is the B-arm shape: content collects in whichever file is generated first).
+
+    ⚠️ IF THE STUB PATTERN CHANGES ON THIS DRAW, THAT IS ONE DRAW AGAINST A KNOWN-NOISY OUTCOME AND
+    NOT A RESULT. The stub rate varies 35/67/80% by spec on n=3. A single draw cannot move it, and I
+    am recording that now precisely because a surprising single draw is exactly what I would be
+    tempted to write up.
+
+WHAT THIS DRAW CANNOT ANSWER
+    Whether removing the demand helps the ARTIFACT. It buys back one wasted sample per occurrence
+    and closes the 1-in-6 path where the gate pushed the interface into the implementer. Measuring
+    that needs many draws, and it is not what this one is for.
