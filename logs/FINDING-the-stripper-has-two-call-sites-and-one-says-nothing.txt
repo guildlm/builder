@@ -1,0 +1,59 @@
+FINDING — queue item 3 is two edits, not one, and the second site logs nothing at all
+=======================================================================================
+31 July, read-only while the arm-4 verification draw holds src/builder.py. No GPU.
+
+WHAT THE QUEUE SAID
+    "Stripper removed-name logging — one line at builder.py:5204, derived at the call site from
+    (top_level_decls|method_decls)(last) - (…)(stripped)."
+
+WHAT IS ACTUALLY THERE
+    strip_redeclarations is called from TWO places:
+
+        _sample_clean()         ~5223   logs "stripped redeclared symbols from {what} candidate"
+                                        — announces that it happened, names NOTHING
+        _sample_verified_fix()  ~5306   `cand = strip_redeclarations(cand, sibling_decls)`
+                                        — no log line of any kind
+
+    The queued one-liner covers the first. The second is the FIX path — the one that runs repeatedly
+    inside the loop, on every fix candidate — and today it deletes declarations from model output
+    and says nothing whatsoever.
+
+HOW MUCH IS AT STAKE, measured on the archive rather than guessed
+        log files in logs/                                   779
+        log files containing the site-A message              276     (35%)
+        site-A stripping events across those logs            526
+        site-B events                                        UNMEASURABLE — it prints nothing,
+                                                             which is precisely the finding
+
+    So 526 times this harness deleted declarations from a model's output and recorded only that it
+    had done so. The names are gone. And the count for the busier of the two sites cannot be
+    recovered at all, because the only evidence it ever ran would have been a log line it does not
+    write.
+
+    ⚠️ 276 of 779 is LOG FILES, not builds. The archive segments to ~654 builds and a log file is
+    not one-to-one with a build. The honest statement is "a third of the log files in this
+    archive", not "a third of builds".
+
+WHY THIS MATTERS BEYOND TIDINESS
+    The stripper is a DETERMINISTIC EDIT to model output, applied before the candidate is judged
+    clean. When a file ships EMPTY — the consolidation defect this whole campaign is chasing — one
+    of the live hypotheses is that the stripper removed what the model wrote because a sibling had
+    already claimed the names. Today that hypothesis cannot be tested against the record, because
+    the record does not contain the names.
+
+    ⚠️ AND IT STILL CANNOT BE TESTED RETROSPECTIVELY AFTER THIS FIX. Logging from now on recovers
+    nothing about the 526 events already past, or about today's parity arms. This buys future
+    evidence only, which is why it sits behind the two fixes that produced evidence immediately.
+
+REVISED PLAN FOR ITEM 3
+    Both sites, named symbols, derived at the call site:
+
+        removed = (top_level_decls(before) | method_decls(before)) - (top_level_decls(after) | method_decls(after))
+
+    at site A alongside the existing message, and at site B as a new message that distinguishes the
+    fix path from generation — otherwise the two become indistinguishable in the log and the count
+    above stays unrecoverable for the same reason it is unrecoverable now.
+
+    ⚠️ BLOCKED until arm-4 lands. src/builder.py must not move while a draw whose result must be
+    attributable to 53b9ab4 is in flight — that is the entire reason today's first queue item was
+    the freeze guard.
