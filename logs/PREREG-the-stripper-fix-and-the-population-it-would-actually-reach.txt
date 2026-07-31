@@ -1,0 +1,52 @@
+PREREG — the stripper fix, and the three cases it would actually reach
+======================================================================
+31 July. Owed by logs/PREREG-decide-whether-the-stripper-fix-should-exist.txt, whose rule was: if
+all four red strip-victims turn FILLED under the non-regressing gate, the stripper edit buys only
+tidiness and is NOT made; if some stay REVERTED, it earns a real pre-registration with a scored
+endpoint. Three of four turned FILLED. So this document exists, and it starts by counting.
+
+THE CHANGE THAT WOULD BE MADE
+    `strip_redeclarations` deletes any declaration a same-package sibling already holds. It has no
+    notion of which file the PLAN gave the symbol to. When the interface file is generated first and
+    over-reaches, the implementer's candidate — which contained exactly the right content — is
+    stripped to a bare `package store`. Measured: that is how the stub is produced, not by the model
+    failing to write the file (logs/FINDING-the-stripper-deletes-the-copy-that-was-in-the-right-file).
+
+    The fix: do not strip a symbol THIS file's purpose promises and the sibling's purpose does not —
+    and, because leaving it would then be a redeclaration, remove it from the SIBLING instead. That
+    is the repair's ownership rule, applied when the damage is done rather than afterwards.
+
+THE POPULATION, counted before deciding — and it is SMALL
+    Of the 8 known cases where stripping emptied a planned file:
+        3   green trees      the repair already fixes them today
+        3   red trees        the non-regressing gate now fixes them (measured this session)
+        1   taskapipro-pairB-t1   NOT-ATTEMPTED — movedecls fails, so the repair cannot reach it
+        1   workapi-chain         NO-DONOR — its purpose names no type at all, so the stripper fix,
+                                  which also keys off `_required_decls`, CANNOT REACH IT EITHER
+
+    Plus, from the corpus run, the cases the repair still cannot reach for reasons a generation-time
+    fix would never encounter:
+        taskapi-15b-base  internal/api/tasks.go   NOT-ATTEMPTED
+        workapi2          internal/store/memory.go  REFUSED, the move breaks an import
+
+    UNIQUE ADDRESSABLE POPULATION: THREE CASES. taskapipro-pairB-t1, taskapi-15b-base, workapi2.
+
+SCORING — and the bar is set by that number, not by the elegance of the argument
+    PRIMARY   all three of those cases ship with the planned file POPULATED, on a fresh draw of each
+              spec with the fix enabled. Anything less than 3 of 3 does not justify the change.
+    REJECT    any spec that currently splits correctly must continue to. The fix mutates an
+              ALREADY-WRITTEN sibling during another file's generation, which nothing in the harness
+              does today, and the blast radius of getting that wrong is every multi-file build.
+    REJECT    `./_selftest_all.sh` and pytest stay green, and the corpus survival numbers do not move
+              — a generation-time change that alters what the REPAIR does is not the change I
+              described.
+
+⚠️ MY HONEST EXPECTATION, WRITTEN BEFORE ANY WORK: this will not clear that bar, and I think it
+should not be built. Three cases, two of which are a tool failing (movedecls) rather than the
+stripper being wrong, against a change that rewrites a file the generator has already emitted. The
+argument FOR it is that the harness manufactures a defect and then repairs it, which is a good
+sentence — and the earlier pre-registration already rejected that as a reason in advance.
+
+    The reason to write this down rather than drop it: the finding underneath is real and worth
+    keeping. Whoever reads "the stripper deletes the model's correct output" should find, attached to
+    it, the count of what fixing it would buy. That is what stopped this being a sixth edit today.
