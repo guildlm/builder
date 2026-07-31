@@ -1,0 +1,48 @@
+FINDING — the throwaway classifier failed on the one case with ground truth, and the number was 15
+===================================================================================================
+31 July. A measurement discarded before it was reported, and then re-done with components that had
+already been validated. Recorded because the discarded version is the more useful half.
+
+THE QUESTION
+    Ledger's implementer-first order splits the store package correctly, four draws for four. How
+    many specs still carry the OTHER order — the one that consolidates?
+
+THE FIRST ANSWER, AND WHY IT IS GARBAGE
+    I wrote two prose regexes on the spot: IFACE for "interface only / no implementation in this
+    file / INTERFACE", IMPL for "implementation of / implements / impl / satisfies". It reported
+    26 pairs, 15 of them in the consolidating order.
+
+    Checked against the one case where the answer is MEASURED — ledger, whose current order is known
+    correct — and it labelled ledger as interface-first. Wrong. So I stopped and looked:
+
+        internal/store/memory.go   IFACE matches "interface"        IMPL matches "implementation of"
+        internal/store/store.go    IFACE matches "INTERFACE only"   IMPL matches "implements"
+
+    BOTH FILES MATCH BOTH PATTERNS. The classifier discriminates nothing; which file it called the
+    interface was decided by iteration order. The 26 pairs and the 15 were an artifact of a for-loop.
+
+    ⚠️ AND THE NUMBER WAS ACTIONABLE. "15 specs are in the order that consolidates" invites
+    reordering fifteen spec files. That is the damage this class of error does — it does not look
+    wrong, it looks like a finding.
+
+THE SECOND ANSWER, using only predicates already built and tested TODAY
+    `_INTERFACE_ONLY_RE` identifies the owner (the entry that says it holds the interface only) and
+    `_disclaimed_decls` identifies the borrower (the entry whose own words hand a symbol to a
+    sibling). Both were written this morning against these exact specs and both have tests.
+
+        9 pairs · implementer FIRST 2 · interface FIRST 7
+        VALIDATION: ledger -> owner store.go (#6), borrower memory.go (#5) -> implementer first.
+        Matches the four draws. The classifier now agrees with the only ground truth available.
+
+    The seven are all ledger VARIANTS (name1/2/3, origorder, prose1/2, tagfix) — experiment twins
+    that deliberately preserve the original order. The live spec is already correct.
+
+WHAT IT ACTUALLY SETTLES
+    Almost nothing, and that is the honest headline: the only specs still carrying the consolidating
+    order are the ones kept that way ON PURPOSE, as controls. There is no fleet of misordered specs
+    to fix. The first answer would have invented one.
+
+⚠️ SIXTH INSTRUMENT DEFECT TODAY, AND THE FIRST CAUGHT BEFORE IT PRODUCED A NUMBER I ACTED ON. The
+difference was not care — it was having a case whose answer I already knew from draws, and checking
+against it before reading the rest of the table. Every ad-hoc classifier should be pointed at a
+known answer first; this one took four lines to falsify.
