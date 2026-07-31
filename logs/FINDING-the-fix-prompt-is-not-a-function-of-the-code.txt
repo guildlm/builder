@@ -90,3 +90,22 @@ THE TWO LEFTOVER LINES ARE A GENUINE, HARMLESS ORDER SWAP
     them, and "the deterministic pass is not order-stable" is the kind of finding that reads as
     alarming and costs a day to establish is harmless. Recorded so the next person who sees an order
     swap in a diff knows it has been seen and is not new.
+
+THE THREE ARMS' FIX-LOOP WORKLOADS ARE IDENTICAL, AND THEIR WALL TIMES ARE NOT
+    arm-1  model fixes 58 · deterministic 7 · kept 58 · fell back 0    77.0 min
+    arm-2  model fixes 58 · deterministic 7 · kept 58 · fell back 0    82.2 min
+    arm-3  model fixes 55 · deterministic 7 · kept 54 · fell back 0    93+ min, still running
+
+    arm-1 and arm-2 did exactly the same work — same counts in every column — and differed by 5.2
+    minutes. arm-3 is at 55 of the same 58 and has already run 11 minutes longer than arm-2's total.
+
+    So the fix loop's WORK is deterministic and its DURATION is not. That is unsurprising for an
+    inference server under varying load, and it is worth recording only because it bounds what a
+    duration can be used for: NOTHING comparative. Today's "~6.7 min per fix round" and "arms are 72%
+    of wall clock" are averages over a quantity that varies by 20% between byte-identical runs.
+
+    ⚠️ WHICH SLIGHTLY WEAKENS THE COST ARGUMENT FOR THE QUEUED FIX. "~20 minutes saved per affected
+    build" was derived from arm-1's marginal minutes; on arm-3's pace the same three extension rounds
+    would cost more, on arm-2's less. The ROUND COUNT saved (3 of 8) is the stable number; the
+    minutes attached to it are not, and the finding should be read as "three rounds" first and
+    "twenty minutes" second.
