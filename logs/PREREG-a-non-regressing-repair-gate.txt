@@ -52,3 +52,21 @@ WHAT THE NUMBER CANNOT REACH — stated before I have it
 
     And it does nothing for the 3 NO-DONOR red cases or the 1 NO-DONOR green case (workapi-chain's
     middleware.go, whose purpose names no type at all). Those are spec-text gaps.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+OPERATIONAL PRECONDITION, checked live rather than assumed
+════════════════════════════════════════════════════════════════════════════════════════════
+This measurement reads every tree in generated/, and a draw was writing into that directory while I
+wanted to start it. Rather than reason about whether that matters, I ran the guard:
+
+    $ .venv/bin/python _corpus_state.py
+    WARNING: the corpus is moving — 1 generation(s) in flight (writing: ./generated/ledger-gatefix-1).
+      A corpus-wide number taken now is not reproducible, and a half-written tree with no
+      _test.go survives every mutation.
+
+It correctly named the live tree. So the run WAITS. The guard was written after a corpus-wide number
+was taken off a half-written tree and after a destructive command cost a live build its files; this
+is the first time in this session it has actually been consulted before a corpus run rather than
+cited afterwards.
+
+    RUN ONLY WHEN `_corpus_state.py` PRINTS `clear`.
