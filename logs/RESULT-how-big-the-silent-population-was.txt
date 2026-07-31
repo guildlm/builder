@@ -1,0 +1,47 @@
+RESULT — 160 failing builds in the archive, and not one of them could report plan conformance
+==============================================================================================
+31 July, from the logs only. No corpus reads (a draw was writing into generated/ and
+`_corpus_state.py` says warn), no GPU, no CPU contention with the live draw.
+
+FIX 1 moved the empty-planned-file warning out of `_finish_green` so it runs on every exit. This
+prices that change against the archive: how many builds ended NOT green, and therefore said nothing?
+
+    BUILDS, segmented at "generate <file> (1/N)"
+        green                    454
+        exhausted-and-failing    160
+        indeterminate             36
+
+        green builds carrying an EMPTY-file WARNING      11
+        FAILING builds carrying one                       0
+
+    Zero is the expected number and the reason to trust the segmentation: before FIX 1 the warning
+    was structurally unreachable on a failing build. Every one of those 160 was silent about whether
+    the project it gave up on matched its own plan.
+
+TWO CORRECTIONS I HAD TO MAKE TO MY OWN COUNT BEFORE IT MEANT ANYTHING
+    1. I first counted LOGS, not builds: green 413 / failing 216. Driver and suite logs hold several
+       builds each (19 such logs), so a single file can carry both outcomes and was being counted as
+       whichever regex hit first. Segmenting per build moved the numbers to 454/160.
+    2. Even segmented, ONE failing build appeared to carry a warning — impossible by construction, so
+       I opened it instead of rounding it off. FULL-SUITE.log, build 16 of 16: the warning belongs to
+       a green taskapi build, and the suite's trailing RESULT summary (including another spec's
+       failure text) falls inside that last segment because nothing marks a build's END. The count is
+       0, and the segmentation has a known edge: the final segment of a multi-build log runs to EOF.
+
+    ⚠️ THE OUTLIER WAS THE ONLY THING WORTH EXAMINING IN THE WHOLE MEASUREMENT. Both counts would have
+    been quoted without it, and both would have been wrong — the first materially (216 vs 160).
+
+WHAT IT DOES AND DOES NOT PRICE
+    ESTABLISHED: 160 of 650 terminal builds (26%) ended failing, and plan conformance was
+    unreportable on all of them. That is the population FIX 1 newly covers.
+
+    NOT ESTABLISHED: how many of those 160 actually shipped an empty planned file. That needs the
+    trees, most of the 160 no longer have one, and the corpus is moving. The warning rate among green
+    builds is 11 of 454 (2.4%), but green builds are exactly the ones where the repair ALSO ran and
+    may have fixed the file before the warning could fire — so 2.4% is a floor for green builds and
+    tells us nothing directly about failing ones.
+
+    ⚠️ SO THIS DOES NOT SAY "160 SILENT DEFECTS". It says 160 builds where the check could not speak,
+    of which an unknown subset had something to say. Todays' earlier over-claim — attributing all 11
+    survival fills to FIX 2 when 6 were its doing — is the same shape, and it is the reason this
+    paragraph exists.
