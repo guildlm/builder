@@ -130,3 +130,21 @@ SHARPENED — the SPEC delta is negligible; the HARNESS delta is the reason fres
 GRADER RE-VALIDATED immediately before use, several commits after it was written:
     ledger-pairA-p6/p7/p8  CONSOLIDATED    ledger-pairB-p6, ledger-gatefix-1  SPLIT
     Identical verdicts. No drift.
+
+THE GENERATION-TIME STATE THESE DRAWS ARE ACTUALLY TESTING, measured while control-1 ran
+    entry order: #5 internal/store/store.go, #6 internal/store/memory.go — interface FIRST, the
+    order that consolidates.
+
+    internal/store/store.go   promises {Store}          disclaims {}       DEMANDED {Store}
+    internal/store/memory.go  promises {MemStore,Store} disclaims {Store}  DEMANDED {MemStore}
+
+    Each file is now asked for exactly its own job, and that was NOT true this morning. Before
+    today's changes memory.go was demanded {Store} — the interface its sibling owns — which the
+    archive shows the model refused five times in six and the harness then shipped the refusal
+    anyway. FIX 2 added MemStore to that demand; `_disclaimed_decls` removed Store from it.
+
+    ⚠️ SO THE A/B IS NARROWER THAN THE FINDING THAT MOTIVATED IT. The prompt's demands are already
+    correct in BOTH arms. The only difference is whether store.go is additionally told to make every
+    method "EXIST ON BOTH the interface and its implementation" — a sentence that survives in the
+    control and is withheld in the arm. If the arm changes nothing, the honest conclusion is that
+    the sentence was never the lever, not that prompts cannot fix consolidation.
