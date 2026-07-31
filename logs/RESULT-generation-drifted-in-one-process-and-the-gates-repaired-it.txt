@@ -1,5 +1,14 @@
-RESULT — the 93% prediction is REFUTED: ctl-3 differs from ctl-1 and ctl-2 in the SAME process
-===============================================================================================
+RESULT — generation drifted inside one process, and the deterministic gates repaired it away
+=============================================================================================
+⚠️ TITLE CORRECTED. It read "the 93% prediction is REFUTED: ctl-3 differs from ctl-1 and ctl-2". The
+prediction was RIGHT: the SHIPPED artifacts are byte-identical across all 18 .go files. What is true
+is the narrower statement in this title — generation produced different output from an identical
+prompt, and the requalify gate then erased the difference before it shipped.
+
+⚠️ EVERYTHING BELOW UNTIL THE FINAL SECTION DESCRIBES THE AS-DRAWN TREES. Every sentence of the form
+"the controls differ" is TRUE of .pre-fix.json and FALSE of the artifacts. Read it as a report on
+generation, not on what this campaign ships. The correction is at the end and this header exists so
+nobody reaches it after believing the rest.
 31 July 15:26. Pre-registered at 15:20 in
 logs/PREDICTION-ctl-3-will-be-byte-identical-to-the-first-two-controls.txt, with ctl-3 four files in.
 
