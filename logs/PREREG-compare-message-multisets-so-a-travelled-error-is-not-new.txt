@@ -1,0 +1,45 @@
+PREREG — key the gate on message MULTISETS, so an error that changes address is not a new error
+================================================================================================
+31 July, written while the v2 corpus run is still in flight and BEFORE any code change, so the run
+measures the gate it was started against.
+
+THE DEFECT (logs/FINDING-a-pre-existing-error-that-travels-reads-as-new.txt)
+    `_error_keys` keys on (file, message). The declarations a move relocates take their errors with
+    them, so a defect that existed in the donor is reported against the target afterwards — a new
+    key for the same broken code. Measured: it is the ONLY thing still refusing anything in the
+    corpus, and I had already published it as the run's one genuine refusal.
+
+        workapi2/internal/store/store.go:6   import "models"   — bare, unresolvable, ALREADY failing
+        after the move, goimports carries it into memory.go and the same error is reported there
+
+THE CHANGE
+    Compare a Counter of MESSAGES instead of a set of (file, message) pairs. A relocated defect keeps
+    its message and its count; a genuinely new one raises a count or introduces a message.
+
+    Refuse when: any message's count AFTER exceeds its count BEFORE.
+    Accept when: every message's count is unchanged or lower.
+
+SCORING — no draws, the corpus is the instrument
+    PRIMARY   workapi2 flips REFUSED -> FILLED, and the red-tree fills reach 57 of 57 addressable
+              (59 minus the two NOT-ATTEMPTED, which no gate can reach). Confidence 85%. It is a
+              mechanical consequence of the key, and the 15% is for a second defect in that tree
+              that only shows up once the first stops masking it.
+
+    REJECT    the 11 green fills stay 11, and no green tree ends red (--verify-green).
+    REJECT    a move that produces a SECOND instance of an existing message must still refuse. This
+              is the condition the change is most likely to break, so it gets a unit test with a
+              fixture rather than a corpus check: same message, count 1 -> 2, must refuse.
+    REJECT    a move that introduces an entirely new message must still refuse — the base case, and
+              the one the goroutine fix nearly broke by silencing too much.
+
+WHAT IT CANNOT REACH, stated first
+    The two NOT-ATTEMPTED cases. movedecls exits non-zero or empty and the pass continues with no
+    log; no comparison key can help, because nothing is ever compared. If the number lands at 57 of
+    57 addressable that is 57 of 59 REAL, and the remaining two are a separate defect in a Go tool
+    that has not been diagnosed at all.
+
+⚠️ AND THE KNOWN BLIND SPOT OF THE NEW KEY, named before it is built
+    A move that FIXES one occurrence of a message and CAUSES a different occurrence of the SAME
+    message elsewhere leaves the count unchanged and would be accepted. That is contrived and I
+    cannot construct a realistic instance — but it is exactly the shape of thing I have missed five
+    times today by not writing it down first, so it is written down.
