@@ -89,3 +89,35 @@ WHAT THIS MEANS FOR THE CONSOLIDATION DEFECT
     On disk the project now matches its plan; the model's output does not. Every future grading of
     this endpoint has to say which one it means, which is precisely why the grader now prints its
     state on the first line of every table.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️ THE COST PROJECTION WAS WRONG IN THE OPPOSITE DIRECTION — FEWER ROUNDS, MORE WALL CLOCK
+════════════════════════════════════════════════════════════════════════════════════════════
+logs/PREREG-the-parity-effect-across-processes-not-across-draws.txt predicted:
+
+    "IF THE TIMESTAMP NORMALISATION LANDS FIRST, the arms should get cheaper: 5 of their 8 surfaces
+    collapse under the fix, so the repeat detector would stop them at round 3 or 4 rather than
+    granting all three extension rounds. That is ~20 minutes per arm, ~60 minutes off the corrected
+    run — the first concrete reason to keep the queue in its current order beyond correctness."
+
+MEASURED
+        arm-1   8 rounds   77.0 min
+        arm-2   8 rounds   82.2 min
+        arm-3   8 rounds   96.9 min
+        arm-4   6 rounds   95.0 min     <- two FEWER rounds, and slower than two of the three
+
+The round saving is real and was predicted exactly. THE TIME SAVING IS NOT THERE. arm-4 is within
+the spread of the 8-round arms, and slower than arm-1 and arm-2.
+
+TWO REASONS, and I can separate neither with n=1:
+    - the three 8-round arms already spanned 77 to 97 minutes doing IDENTICAL work, so a ~20 minute
+      difference is inside this pipeline's own noise. The campaign already recorded that durations
+      vary ~20% for byte-identical work; a 2-round saving is smaller than that spread.
+    - arm-4 did something the others did not: the REPAIR SUCCEEDED, which runs the full toolchain
+      over a modified tree. The fix bought rounds and spent some of them back on work that
+      previously did not happen.
+
+⚠️ SO "~60 MINUTES OFF THE CORRECTED RUN" SHOULD NOT BE PLANNED AGAINST. The stable unit is rounds
+saved (8 -> 6, exact and predicted); the minutes attached to it were an inference and this draw
+refutes them. That is the same lesson already on record — "durations cannot be used for comparison,
+the stable number is the ROUND COUNT" — and I wrote a minutes-based projection anyway.
