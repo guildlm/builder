@@ -1,0 +1,68 @@
+FINDING — the name is in the prompt three times, verbatim, and models.go abbreviates it anyway
+================================================================================================
+31 July, 21:18, while pair 2's control generates. Prompt rendered from the shipped builder with the
+real spec; no model called, no GPU.
+
+THE ASSUMPTION I HAD NOT CHECKED
+    Every claim today about ErrInsufficientFunds assumes the model SEES the name and abbreviates it.
+    If the prompt truncated or reformatted the purpose, the model would never have had it, and the
+    whole chain — the gate, the spec-phrasing fix, the compliance framing — would be aimed at the
+    wrong thing. Rendering the real prompt costs one command and I had not run it.
+
+MEASURED — internal/models/models.go's generation prompt, 24670 chars
+        "ErrInsufficientFunds"   3 occurrences
+        "ErrInsufficient"        3 occurrences (all as prefixes of the above; the bare
+                                  abbreviation appears ZERO times)
+
+        1. Sentinel errors, all matchable with errors.Is: ErrInvalid, ErrNotFound, ErrExists,
+           ErrUnbalanced, ErrInsufficientFunds.            <- models.go's own purpose
+        2. the same text again                              <- the all-files list
+        3. ErrNotFound -> 404, ErrExists -> 409, ErrInvalid -> 400, ErrUnbalanced -> 422,
+           ErrInsufficientFunds -> 422, anything else -> 500   <- response.go's purpose
+
+    THE PROMPT-ASSEMBLY EXPLANATION IS DEAD. The name is present, repeated, unambiguous, and the
+    abbreviation the model writes appears NOWHERE in any purpose in the spec. models.go sees the
+    exact string three times and writes a different one 64% of the time.
+
+⚠️ AND IT REFINES THE CONSUMER/DECLARER STORY ONE MORE STEP
+    I wrote earlier that response.go "is reading the SPEC" — specifically models.go's purpose, since
+    the cross-package API block carries no sentinels. That is true but incomplete:
+
+        purposes naming ErrInsufficientFunds:  internal/models/models.go
+                                               internal/api/response.go
+
+    RESPONSE.GO HAS THE NAME IN ITS OWN PURPOSE, in the HTTP status mapping. It is not reaching
+    across to models.go's entry at all for this symbol.
+
+    So the two files are in the SAME position — each has the exact name in its own purpose — and one
+    complies 26 of 26 while the other complies 9 of 25. That makes models.go's failure harder to
+    explain, not easier, and removes the last structural difference I had been leaning on.
+
+WHAT REMAINS AS A DIFFERENCE, and it is not much
+        models.go    purpose 1212 chars · 11 backticked items · the sentinel is one clause of many
+                     · must DECLARE the symbol
+        response.go  purpose  471 chars ·  2 backticked items · the sentinel appears in a mapping
+                     · must REFERENCE the symbol
+
+    Declare-versus-reference is now the cleanest remaining candidate, and today's discarded
+    measurement (logs/NOTE-the-compliance-vs-purpose-length-measurement-was-void-at-the-instrument
+    .txt) is exactly the attempt to test the length version of this that failed at the instrument.
+
+    ⚠️ I AM NOT PROPOSING A MECHANISM. Two files, one spec, one identifier. The previous result
+    established that n=1 on the treatment side makes every such explanation untestable here, and
+    nothing in this rendering changes that. What this adds is the ELIMINATION of one candidate —
+    "the model never saw the name" — which was the cheapest to check and the only one that would
+    have invalidated the fixes.
+
+WHY THIS MATTERS FOR WHAT IS QUEUED
+    The spec-phrasing fix works by making _required_decls extract the name so the gate REJECTS a
+    candidate that omits or abbreviates it. That mechanism does not care why the model abbreviates —
+    but it does require the name to be in the prompt for the resampled candidate to have any chance
+    of getting it right. It is, three times over.
+
+    ⚠️ AND IT PREDICTS A LIMIT: if the model abbreviates despite seeing the name three times,
+    rejection alone may not fix it — the resample could abbreviate again. The gate would then
+    exhaust its candidates and fall back, which _sample_clean does by design. So the pre-registered
+    endpoint for that fix should NOT be "the tree is correct" but "the gate fires", and the
+    pre-registration already says exactly that: AS-DRAWN, every models.ErrX referenced must exist.
+    This finding is the reason that wording was right.
