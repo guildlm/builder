@@ -33,6 +33,44 @@ PRE-REGISTERED ENDPOINTS
       early) but a pathological order could still grant extensions. I know the multiset, not the
       sequence.
 
+  ⚠️⚠️ PRIMARY CORRECTED BEFORE THE RESULT — "3 to 5 rounds" WAS WRONG ON MECHANISM
+      Written at 17:44 from the surface COUNT. At 17:58, still mid-generation and with no result
+      in hand, I read the loop instead of reasoning about it:
+
+          while rnd < max_fix_rounds + _EXTENSION_ROUNDS:      # 5 + 3 = 8
+              rnd += 1
+              sig = _error_signature(output)
+              if rnd > max_fix_rounds and sig in seen_surfaces:   # ONLY past round 5
+                  break
+              seen_surfaces.add(sig)
+
+      THE REPEAT CHECK CANNOT FIRE BEFORE ROUND 6. Repeats inside the flat budget are logged
+      ("surface seen before") and deliberately NOT acted on — the code says so explicitly, so the
+      corpus stays measured under one behaviour. So no amount of collapsing can stop this loop at
+      3, 4 or 5. My prediction was outside the reachable range.
+
+      REPLAYING THE LOOP ON THE REAL SEQUENCES, both arms:
+
+          surface sequence under the new signature    A B C C C C C C
+          distinct                                    3
+          loop stops at round                         6
+          actually ran                                8
+
+      ROUNDS 3 THROUGH 8 ARE ONE UNCHANGED SURFACE. Six rounds on the same error, all of which
+      looked new because each carried a fresh wall-clock stamp.
+
+      REVISED PREDICTION: the draw stops at ROUND 6, saving 2 rounds, not 5. Confidence 75%.
+      Higher than the original 60% because the mechanism is now known rather than inferred; short
+      of certainty because consumer 3 changed the FIX PROMPT, so arm-4's round-2+ outputs need not
+      reproduce arm-1's sequence exactly. If the sequence changes, the stopping round changes with
+      it and the endpoint becomes "fewer than 8", not "exactly 6".
+
+      ⚠️ AND IT QUANTIFIES A DESIGN DECISION NOBODY HAD COSTED. The repeat at round 4 is VISIBLE
+      (C was seen at round 3) and ignored by design. On this input that choice costs 2 rounds —
+      rounds 4 and 5 are spent on an error already known to be unchanged. That is a finding about
+      the flag-not-act policy, not about the timestamp fix, and it is recorded here because this
+      is where it was found.
+
   SECONDARY — the repair. arm-1 and arm-2 both ended with the gate REFUSING to move MemStore because
       the app-log lines counted as 2 new messages. Measured on their real refusal text, the fixed
       gate calls 0 messages new.
