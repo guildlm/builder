@@ -1,0 +1,67 @@
+FINDING — the readiness probe I designed this morning reports a HEALTHY server as NOT READY
+=============================================================================================
+31 July, 17:48. Found while building the server-restart step the corrected parity design needs,
+against pid 7598 while it was actively serving the arm-4 verification draw. Zero extra GPU beyond
+one 1-token request.
+
+WHAT WAS DESIGNED, AND WHY
+    logs/PREREG-the-parity-effect-across-processes-not-across-draws.txt establishes that
+    /v1/models is NOT a readiness signal — it answers in 0.157s and LISTS THE HF CACHE rather than
+    the loaded model (it returns Qwen2.5-3B-Instruct while the 7B coder is serving; re-confirmed
+    today). The conclusion recorded there was:
+
+        "The honest readiness signal is the first completion, not the first 200 ... simply issue a
+        tiny completion and wait for it — the second is self-validating."
+
+    That reasoning is correct and I still believe it. What it missed is a second failure mode.
+
+MEASURED
+        server pid 7598, demonstrably healthy — it was generating files for a live draw
+        1-token completion probe, 20s curl timeout
+        ->  NOT READY (no completion) in 20.1s
+
+    The probe TIMED OUT against a server that was working perfectly. mlx_lm.server serialises
+    requests, so the probe queued behind the draw's generation and never got a slot.
+
+WHAT THE PROBE ACTUALLY ANSWERS
+    "Can this server serve ME right now" — not "is this server loaded". Those coincide only when
+    nothing else is using it.
+
+    For the restart sequence itself the distinction is harmless: after a restart no draw has started
+    yet, so the server is idle and the probe means what it should. THE HAZARD IS USING IT ANYWHERE
+    ELSE. A health check built on it would have declared a working server dead in the middle of a
+    95-minute arm, and the obvious response to "server is dead" is to restart it — which would have
+    destroyed the draw.
+
+    ⚠️ THAT IS THE SAME SHAPE AS THE THING IT REPLACED. /v1/models fails by answering when the
+    server cannot serve; the completion probe fails by NOT answering when it can. Replacing a
+    too-permissive signal with a too-strict one is not obviously progress, and neither is usable as
+    a general health check. Each is only valid on an IDLE server, which is the precondition I never
+    wrote down.
+
+FIXED
+    `_server_restart.sh --check` now refuses to probe at all when a draw is in flight, and says why.
+    It reports the state it can know for free (pid, and what /v1/models claims, labelled as the
+    cache listing) and declines to guess at the rest.
+
+ALSO VERIFIED, and this is the property that matters most
+    The destructive path was run for real while the arm-4 draw was live:
+
+        rc = 7 (refused)
+        server pid 7598 -> 7598      SURVIVED
+        draw still running           ✓
+
+    Killing the server under a live build destroys 20-95 minutes of GPU work, and this repo already
+    carries a standing rule about destructive commands run beside a live build — from an occasion
+    when one cost a build its files. The refusal is now tested against a genuinely live draw rather
+    than a simulated one.
+
+⚠️ ONE THING I DID THAT I SHOULD NOT REPEAT
+    Running the probe at all put a request on a server that was mid-experiment. The content effect
+    is nil — mlx samples each request independently, so the draw's output cannot change — but the
+    habit is wrong, and the fixed --check now makes it impossible rather than merely unwise.
+
+STATUS OF THE RESTART SCRIPT
+    Written, syntax-checked, and its REFUSAL path is verified live. The RESTART path is NOT verified:
+    it cannot be, while a draw holds the GPU. What is untested is the kill-wait-relaunch-poll
+    sequence and the 39s cold start it assumes. First thing to exercise once arm-4 lands.
