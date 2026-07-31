@@ -76,3 +76,31 @@ VALIDATED BEFORE THE EDIT, without touching the frozen file
     the parity pairs finish. What this does not test is whether the surrounding call site behaves as
     expected once the hashes start colliding, which needs a build and is the first thing to check
     after the edit lands.
+
+ROUND-LEVEL EVIDENCE from arm-1, which pins exactly when the blindness starts
+    round            app-log lines   surface
+    fix 1/5                0         a19c144f     <- failed at COMPILE, tests never ran
+    fix 2/5                4         70a310da     <- from here on, tests serve requests
+    fix 3/5                4         95d6749f
+    fix 4/5                4         4c864f3c
+    fix 5/5                4         7d644cfa
+    extension 6            4         971c719a
+    extension 7            4         f16f76f8
+    extension 8            5         (log ends)
+
+    Exactly ONE round was compile-only. From round 2 onward every check emitted four app-log lines,
+    and every surface after that is distinct — seven consecutive rounds, no repeat possible.
+
+    SO THE 3% ESCAPE HATCH IN THE PREDICTION IS NARROWER THAN I WROTE. A compile-only round does
+    occur — round 1 was one — but a DETECTABLE repeat needs TWO of them carrying the same errors.
+    One compile-only round has nothing to be compared against.
+
+⚠️ AND THE STRUCTURAL IRONY, which is the part worth remembering
+    A build only stays comparable while it is failing to COMPILE. Once it compiles well enough to run
+    its tests, the detector goes blind. But a build that never compiles fails fast and does not need
+    extension rounds; a build that compiles and then fails its tests is exactly the one that grinds
+    through the budget.
+
+    The repeat detector works where it is least needed and is blind where it would pay. That is not a
+    tuning problem — it follows from what output each stage produces, and it is why the fix is a
+    normalisation rather than a threshold.
