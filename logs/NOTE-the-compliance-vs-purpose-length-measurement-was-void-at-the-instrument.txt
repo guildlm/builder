@@ -1,0 +1,63 @@
+NOTE — a measurement attempted, found void at the instrument, discarded before publication
+============================================================================================
+31 July, 21:10. Archived snapshots and specs only, no GPU. Recorded because the discard is the
+result; the numbers below are not.
+
+THE HYPOTHESIS
+    The previous result observed that models.go's purpose is 1212 chars with 11 backticked items and
+    complies 36% of the time, while response.go's is 471 chars with 2 items and complies 25 of 25.
+    It flagged "longer purposes are complied with less" as the obvious next hypothesis AND EXPLICITLY
+    REFUSED TO CALL IT A FINDING at n=2. This was the attempt to test it properly.
+
+WHAT I BUILT AND WHAT IT PRODUCED
+    demand  = MixedCaps identifiers inside backticks (the spec language's explicit marker)
+    compliance = |demand ∩ (top_level_decls | method_decls)| / |demand|
+
+        purpose length   pairs   mean compliance          demands   pairs   mean compliance
+        400-799            102        51%                 2-4          81        41%
+        800-1199             8        40%                 5-9          50        60%
+        1200+               71        40%                 10-19        50        39%
+
+    Length looked weakly monotonic. Demand count did NOT — 41% then 60% then 39% — which is what
+    stopped me from writing it up.
+
+THE INSTRUMENT IS VOID, and one look at the extraction shows why
+    ledger models.go's backticked chunks, and what my extractor pulled from each:
+
+        `Account{ID string, Name string}`            -> Account, Name
+        `Posting{AccountID string, Amount money.Money}` -> Posting, AccountID, Amount, Money
+        `Transaction{ID string, Memo string, ...}`   -> Transaction, Memo, Postings, Posting
+        `func (a Account) Validate() error`          -> Account, Validate
+        `total.Add(...)`                             -> Add
+        `var total money.Money`                      -> Money
+
+    Of those: Account, Posting, Transaction and Validate are things this file declares. Name,
+    AccountID, Amount, Memo and Postings are STRUCT FIELDS. Money and Add belong to ANOTHER PACKAGE
+    (money.Money). None of the latter can ever appear in top_level_decls, so they are counted as
+    failures by construction.
+
+    THE 40-50% "COMPLIANCE" IS THE FIELD-AND-FOREIGN-NAME FRACTION, not a property of the model.
+    Both tables measure my regex. They are void and are not to be quoted.
+
+WHY I AM NOT FIXING THE EXTRACTOR AND RE-RUNNING
+    A correct demand set would have to recognise struct-literal type names, func and method
+    signatures, and var/const declarations — while excluding fields and foreign qualified names.
+    THAT IS EXACTLY _required_decls, and exactly the problem measured earlier today: the shipped
+    extractor is 95% precise BECAUSE it keys on declaration syntax and refuses to guess, and every
+    widening collapsed precision (logs/RESULT-widen-the-spec-not-the-extractor-93pct-precision-for-
+    zero-code.txt).
+
+    So "what does this purpose demand" is not a cheap sub-step of the compliance question — it IS
+    the hard problem. The hypothesis is not testable by this route at this cost, and that is the
+    honest closure rather than leaving it dangling as future work.
+
+    ⚠️ A ROUTE THAT WOULD WORK: score compliance only against demands _required_decls already
+    extracts, where precision is known. That measures a narrow, real subset — but the subset is
+    biased toward exactly the syntax-explicit purposes, which is plausibly correlated with the thing
+    being tested. Recorded as a design note, not attempted.
+
+⚠️ FIFTH TIME TODAY A NUMBER NEEDED THE UNDERLYING CASE READ — after the green detector's 0, the
+merged-log 15, the failing-build tail, and the redundant-vs-complementary inversion. THE DIFFERENCE
+HERE IS THAT IT WAS CAUGHT BEFORE PUBLICATION, and what caught it was the non-monotonic column: a
+result that did not behave like a trend is a reason to inspect the instrument, not to pick the
+column that does.
