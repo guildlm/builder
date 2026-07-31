@@ -174,3 +174,33 @@ SO THE MODEL THAT FITS IS PROPAGATION FROM ONE ROOT EVENT, NOT REPEATED NONDETER
     That is a different API against a different package. Both grade SPLIT, and the parity verdict is
     unaffected — but "the controls differ" understates it: they disagree about which package owns the
     Money type.
+
+THE PROPAGATION MODEL TESTED ON THE api PACKAGE — it survives, but only after a closer look
+    ctl-1 vs ctl-3, internal/api:
+
+        accounts.go     IDENTICAL   mentions "Money/Balances": True
+        middleware.go   IDENTICAL   mentions: False
+        response.go     IDENTICAL   mentions: False
+
+    accounts.go looked like a counterexample: it references Balances and came out identical anyway.
+    Opening it settles it — the only match is a COMMENT:
+
+        // Balance 200 with {"balance": "12.34"} using money.Money.String()
+
+    identical in both trees. The file calls the store and encodes JSON; it never names the type whose
+    package changed. So the differing content never reaches its output, exactly as the model
+    requires.
+
+    ⚠️ A GREP FOR "Money" WOULD HAVE SCORED THIS AS A REFUTATION. The word is present, the file is
+    identical, and the naive reading is "a file that uses the changed type did not change". It is a
+    comment. This is the same shape as every scope error today: the instrument matched a token and I
+    nearly read it as matching a fact.
+
+WHERE THE MODEL NOW STANDS
+    Consistent with every file examined: one root divergence at file 5, inherited by files whose
+    output depends on it, absent from files whose output does not — including three api files that
+    embed the difference in their prompts and ignore it.
+
+    Still not proven, and the same caveat as before applies: separating this from repeated drift
+    needs pinned predecessors. But it has now survived a test that could have refuted it, on a
+    package chosen because it sits downstream of the divergence.
