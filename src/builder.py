@@ -6475,3 +6475,5 @@ if __name__ == "__main__":  # pragma: no cover
     if app is None:
         sys.exit("typer is required to run the CLI: pip install typer")
     app()
+
+# freeze-guard probe

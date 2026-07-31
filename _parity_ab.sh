@@ -23,39 +23,18 @@ EXAMPLES="examples/verified_contracts.jsonl"
 
 WANT_PID=$(./_server_pid.sh) || exit 4
 
-# THE HARNESS MUST NOT MOVE UNDER A MULTI-HOUR RUN. Every draw is a fresh `guildlm-build`
-# process that re-reads src/builder.py, so an edit landing mid-run puts some draws on one
-# harness and the rest on another — and the whole design of a paired A/B is that control and
-# arm share a commit. On 31 July this nearly happened: a one-line logging change was queued,
-# would have been applied between pairs, and was caught only because I stopped to check.
-#
-# HASHED, NOT `git rev-parse HEAD`. Measured the same day: appending a line to src/builder.py
-# leaves HEAD unchanged and changes the file. A HEAD guard would have missed exactly the edit
-# it was written to catch. `git status --porcelain` catches THAT case but answers "is the tree
-# dirty", not "is it what I started with" — a file edited and reverted to a different commit's
-# content reads clean and is wrong.
-#
-# EVERY INPUT A DRAW READS, not just the code. Measured after the guard was first written with
-# two files: a draw also reads $SPEC and $EXAMPLES, and the spec is the MOST-EDITED file in this
-# campaign — 191 edits on record, against a handful for the runner. Guarding builder.py while
-# leaving the spec free would have watched the quiet door and left the busy one open.
-HARNESS_FILES=(src/builder.py "$0" "$SPEC" "$EXAMPLES")
-harness_hash () { shasum "${HARNESS_FILES[@]}" | awk '{print $1}' | tr -d '\n'; }
-WANT_HARNESS=$(harness_hash)
+# The freeze guard lives in _harness_lock.sh so this runner and _parity_xproc.sh cannot drift
+# apart; _selftest_freeze_guard.sh extracts its lines from there.
+source ./_harness_lock.sh
 
 echo "=== parity A/B · $PAIRS pairs · spec=$SPEC · server pid=$WANT_PID · $(date) ==="
-echo "=== harness locked at ${WANT_HARNESS:0:16} (${#HARNESS_FILES[@]} files: builder, runner, spec, examples) ==="
+harness_lock_init "$0" "$SPEC" "$EXAMPLES"
 
 draw () {   # draw <out> <log> <enable_rules>
   local out="$1" log="$2" rules="$3"
   local pid; pid=$(./_server_pid.sh) || return 4
   [[ "$pid" == "$WANT_PID" ]] || { echo "REFUSING: server pid changed $WANT_PID -> $pid"; return 5; }
-  local now; now=$(harness_hash)
-  [[ "$now" == "$WANT_HARNESS" ]] || {
-    echo "REFUSING: the harness changed mid-run (${WANT_HARNESS:0:16} -> ${now:0:16})."
-    echo "  Draws already taken used the OLD harness; continuing would split this experiment"
-    echo "  across two versions of the code. Restart the run, or revert src/builder.py."
-    return 6; }
+  harness_check || return $?
   pgrep -f "\.venv/bin/guildlm-build" >/dev/null && { echo "REFUSING: a draw is in flight."; return 8; }
   [[ -e "$out" ]] && { echo "REFUSING: $out exists."; return 9; }
   echo "--- draw $out (GUILDLM_ENABLE_RULES='$rules') $(date +%H:%M:%S)"
@@ -73,25 +52,8 @@ done
 
 echo
 echo "=== VERDICT — the pre-registered endpoint is per draw and binary ==="
-echo "    store.go must NOT declare MemStore, and memory.go must not be empty."
-.venv/bin/python - "$PAIRS" <<'PY'
-import pathlib, re, sys
-pairs = int(sys.argv[1])
-decl = re.compile(r"^\s*type\s+MemStore\b|^\s*func\s+\(\w+\s+\*?MemStore\)", re.M)
-def grade(tree):
-    d = pathlib.Path("generated")/tree
-    s, m = d/"internal/store/store.go", d/"internal/store/memory.go"
-    if not s.exists() or not m.exists():
-        return "NO TREE", "", ""
-    st, mm = s.read_text(), m.read_text()
-    split_ok = not decl.search(st) and bool(decl.search(mm))
-    return ("SPLIT" if split_ok else "CONSOLIDATED"), f"{len(st)}B", f"{len(mm)}B"
-print(f"  {'pair':6s} {'control':>34s}    {'arm':>34s}")
-for i in range(1, pairs + 1):
-    cv, cs, cm = grade(f"ledger-parity-ctl-{i}")
-    av, as_, am = grade(f"ledger-parity-arm-{i}")
-    print(f"  {i:<6d} {cv:>14s} store={cs:>7s} mem={cm:>7s}    {av:>14s} store={as_:>7s} mem={am:>7s}")
-print("\n  Read the pre-registration before reading this table: the arm was predicted to SPLIT on")
-print("  at least 2 of 3, at only 45%, because the implementer file gets the same clause and")
-print("  already resists it. A null here does NOT revive 'the model cannot split a package'.")
-PY
+.venv/bin/python _parity_grade.py $(for i in $(seq 1 "$PAIRS"); do echo "./generated/ledger-parity-ctl-$i" "./generated/ledger-parity-arm-$i"; done)
+echo
+echo "  Read the pre-registration before reading that table: the arm was predicted to SPLIT on at"
+echo "  least 2 of 3, at only 45%, because the implementer file gets the same clause and already"
+echo "  resists it. A null does NOT revive 'the model cannot split a package'."
