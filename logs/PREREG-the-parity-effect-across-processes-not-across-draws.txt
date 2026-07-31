@@ -103,3 +103,26 @@ REVISED PREDICTION
 
     AND THE CAMPAIGN'S OWN LEDGER ARGUES FOR HUMILITY: that same file records nine predictions with
     three hits. A 35% on a first-ever boundary crossing is not pessimism.
+
+WHAT THE CORRECTED RUN WILL COST, from today's actual durations
+    completed draws today:
+        ctl-1  30.1 min   arm-1  77.0 min
+        ctl-2  19.3 min   arm-2  82.2 min
+        ctl-3  30.4 min   arm-3  running (arms have taken 77.0 and 82.2)
+
+        5 draws · 239 min · projected 6-draw total ~319 min (5.3 hours)
+
+    The corrected design runs the SAME six draws plus three server restarts at 39s each:
+    ~321 minutes. The restarts are 0.6% of the run, which is the number the earlier note predicted
+    and now has today's own durations behind it rather than an estimate.
+
+    ⚠️ AND THE COST IS ASYMMETRIC BY CONDITION, which matters for scheduling. Controls converge in
+    fix round 1 and take 19-30 min. Arms exhaust 8 rounds and take 77-82. So the arm draws are 72%
+    of the wall clock, and any decision to shorten the experiment should cut arm draws, not pairs —
+    cutting a pair removes one control AND one arm, which is the only unit that answers anything.
+
+    ⚠️ AND IF THE TIMESTAMP NORMALISATION LANDS FIRST, the arms should get cheaper: 5 of their 8
+    surfaces collapse under the fix (measured on arm-1's real output), so the repeat detector would
+    stop them at round 3 or 4 rather than granting all three extension rounds. That is ~20 minutes
+    per arm, ~60 minutes off the corrected run — the first concrete reason to keep the queue in its
+    current order beyond correctness.
