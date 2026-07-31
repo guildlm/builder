@@ -29,3 +29,14 @@ WHAT IT TESTS THAT ctl-1 vs ctl-2 DID NOT
     determinism decays with use, which nothing in this campaign has tested and which would undercut
     the 30 July result's "within-process floor is measured at zero" — measured there on two draws
     close together.
+
+PARTIAL CHECK at 15:22, ctl-3 four files into generation
+    3 files written and comparable · identical to ctl-1: 3 · differing: 0
+
+    Nothing decided yet — these are go.mod and the first two generated files, and the interesting
+    ones (internal/store/store.go and memory.go, entries 5 and 6) are still being written. But an
+    early DIFFERENCE would have refuted the prediction immediately, and there is none.
+
+    ⚠️ Recorded because a partial check that agrees is worth almost nothing and is easy to mistake
+    for progress. Its only value is as a cheap refutation channel: it could have said no by now, and
+    it did not.
