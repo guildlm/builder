@@ -1,0 +1,32 @@
+NOTE — every take-audit triple quoted today sums correctly, and the growth is legible
+=====================================================================================
+31 July 16:37. A consistency audit of the record itself, run because the same numbers appear in many
+of today's files and a transcription slip would be invisible.
+
+    corpus      NARROW                    WIDE                    empty files
+      6 trees   movable  0 · EMPTY  3     movable  3 · EMPTY 0        3
+    126 trees   movable 54 · EMPTY 10     movable 63 · EMPTY 1       64
+    132 trees   movable 54 · EMPTY 13     movable 66 · EMPTY 1       67
+
+    Every pair sums to the same empty-file count for its corpus (0+3=3, 3+0=3; 54+10=64, 63+1=64;
+    54+13=67, 66+1=67). No triple contradicts another.
+
+THE GROWTH IS LEGIBLE, WHICH IS THE POINT OF CHECKING
+    126 -> 132 trees is the six parity draws. Empty planned files 64 -> 67 is the three ARM trees'
+    14-byte memory.go.
+
+    NARROW movable stays at 54 while NARROW EMPTY goes 10 -> 13: the three new stubs are BLOCKED
+    under the old extractor, exactly as its known failure shape predicts.
+    WIDE movable goes 63 -> 66 while WIDE EMPTY stays 1: all three are repairable under the new one,
+    and the single survivor is unchanged.
+
+    ⚠️ THAT PATTERN IS WHAT A CORRECT FIX LOOKS LIKE FROM THE OUTSIDE, and it is worth stating because
+    the opposite would have been easy to miss. If the widening had been fitted to the original corpus,
+    new instances would have landed anywhere — some movable, some not. All three landing movable, with
+    the survivor count unmoved, is the signature of a rule that generalises rather than one that
+    memorised.
+
+⚠️ WHAT THIS AUDIT DOES NOT CHECK: whether the numbers are RIGHT, only whether they AGREE. They come
+from one instrument, `_repair_take_audit.py`, so a bug in it would produce a perfectly consistent set
+of wrong numbers. The instrument's own guard against that is its self-test and its drift check
+(builder.py = WIDE), both of which pass — a separate claim from this one.
