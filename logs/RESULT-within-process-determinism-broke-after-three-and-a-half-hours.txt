@@ -232,5 +232,17 @@ CAVEAT ON THE PROMPT COMPARISON, stated because it is the load-bearing measureme
     query, so the two draws should receive identical shots. But I did not reproduce them, and if the
     retriever were order-unstable the real prompts could differ where my render does not.
 
-    That is the one way this result could be wrong, and it is checkable by rendering with a retriever
-    — not done here, and named so it is not forgotten.
+    ✓ CAVEAT CLOSED, same session. Built the retriever from examples/verified_contracts.jsonl (37
+    examples) exactly as the CLI does and re-rendered:
+
+        WITH shots   ctl-1 30495 chars   ctl-3 30495 chars   IDENTICAL
+
+    And the reasoning is tighter than the render. `_generate_file` asks for
+    top_k(f"{path} {purpose}", 2, prefer_tests=...). Every input to that call is fixed: the query is
+    built from the SPEC, which is byte-identical between the draws; k and prefer_tests are constants;
+    the corpus is one file on disk. `Retriever.top_k` sorts and contains no randomness (verified by
+    reading it). So the retriever CANNOT return different shots for these two draws, and the full
+    prompt — context plus examples — was identical.
+
+    The conclusion therefore stands without its caveat: store.go received the same prompt twice and
+    wrote different programs.
