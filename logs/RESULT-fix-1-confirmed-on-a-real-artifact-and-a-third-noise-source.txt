@@ -75,3 +75,25 @@ REPLICATED ON arm-2, which finished rc=1 at 15:19
     surface hashes and one swapped pair of deterministic-fix lines. So this is the same run twice,
     and what it confirms is REPRODUCIBILITY, not frequency. The refusal is not a fluke of one
     trajectory — it is what this input does — and that is all two identical runs can establish.
+
+THE FIX VALIDATED ON THE REAL REFUSAL TEXT, before it is applied
+    Feeding the gate the two runs' ACTUAL app-log output — arm-1's and arm-2's, differing only in
+    timestamp and µs values:
+
+        CURRENT gate    introduced messages 2  ->  REFUSES     (this is the live defect)
+        PROPOSED gate   introduced messages 0  ->  ACCEPTS
+        genuine refusal ("package models is not in std")  1 new  ->  STILL REFUSES
+
+    So the same normalisation fixes all three consumers, and each has now been checked against real
+    text rather than a fixture:
+
+        _error_signature            8 distinct surfaces -> 3, on arm-1's captured output
+        _error_counts (the gate)    2 false "new" messages -> 0, on arm-1/arm-2's refusal text
+        _canonical_toolchain_output the prompt stops carrying a wall-clock stamp
+
+    And the reject condition survives in both places: a genuinely new compile error still registers,
+    and three genuinely distinct error strata still hash apart.
+
+⚠️ ALL OF THIS IS PRE-APPLICATION. builder.py is frozen until arm-3 finishes. What is established is
+that the change does what it claims on data the harness actually produced — not that it behaves
+correctly once wired, which needs a build and is the first thing to check afterwards.
