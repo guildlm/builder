@@ -1,0 +1,70 @@
+RESULT — pair 1 of 3: the parity effect reproduced in a second server process
+===============================================================================
+31 July, 19:38-20:55. First pair of the corrected cross-process design
+(logs/PREREG-the-parity-effect-across-processes-not-across-draws.txt). Both draws in pid 49288, a
+process the runner created itself; the pid is recorded inside each tree. Pairs 2 and 3 pending.
+
+THE PRE-REGISTERED ENDPOINT, GRADED AS-DRAWN
+        ledger-xproc-ctl-1    SPLIT          store  382B   memory 2275B    pid 49288
+        ledger-xproc-arm-1    CONSOLIDATED   store 2233B   memory   14B    pid 49288
+
+        for comparison, the single-process experiment in pid 7598:
+        ledger-parity-ctl-1   SPLIT          store  377B   memory 2282B
+        ledger-parity-arm-1   CONSOLIDATED   store 2263B   memory   14B
+
+    THE CONTROL/ARM DIFFERENCE REPRODUCED. 1 of 3 pairs. The pre-registration predicted all three at
+    35%, revised down from 50% before any run on the evidence that a process change independently
+    rewrites 3-6 code files.
+
+    ⚠️ THIS IS THE FIRST TIME AN ARM IN THIS CAMPAIGN HAS CROSSED A PROCESS BOUNDARY. The
+    pre-registration flagged that explicitly: "NO ARM IN THIS CAMPAIGN HAS EVER CROSSED THE PROCESS
+    BOUNDARY ... THIS DESIGN WOULD BE THE FIRST." One crossing is now made, and it held.
+
+CROSS-PROCESS VARIATION, measured in BOTH conditions with _asdrawn_diff.py
+        control   7 CODE files · 6 PROSE ·  8 functions differ
+        arm       8 CODE files · 4 PROSE · 14 functions differ
+
+    Both at or above the 3-6 CODE files measured on 30 July.
+
+⚠️ AND THE ENDPOINT'S OWN FILE BEHAVES DIFFERENTLY IN THE TWO CONDITIONS
+        control   internal/store/store.go   377 vs 382 chars   PROSE — 0 of 0 funcs differ
+        arm       internal/store/store.go  2263 vs 2233 chars   CODE  — 2 of 7 funcs differ
+                                                                (CreateAccount, GetAccount)
+
+    In the CONTROL the endpoint's subject is stable across processes: comments and strings only,
+    while seven other files were rewritten. In the ARM it is not — store.go there holds the whole
+    consolidated package, and two of its methods changed.
+
+    That asymmetry is expected once stated — 382 bytes of interface has little to vary and 2.2KB of
+    implementation has plenty — but it matters for how much this design can ever prove. The
+    experiment asks whether the CLAUSE flips store.go's content; in the arm condition, the process
+    flips part of it too. The VERDICT is robust to that (a file either declares MemStore or does
+    not) which is exactly why the endpoint was defined as a binary and not as a diff.
+
+CONVERGENCE — recorded, not an endpoint
+        parity ctl-1   converged to green after fix round 1
+        parity arm-1   exhausted 8 fix rounds
+        xproc  ctl-1   exhausted 6 fix rounds
+        xproc  arm-1   exhausted 6 fix rounds
+
+    In the old process the control converged and the arm did not. In the new process NEITHER did.
+
+    THE CONTROL'S FAILURE HAS A KNOWN CAUSE and it is not the manipulation: models.go declared
+    `ErrInsufficient` where response.go wrote `ErrInsufficientFunds`, and no fix round could
+    reconcile them (logs/FINDING-the-cross-package-API-block-drops-every-grouped-sentinel-6pct-of-
+    builds.txt). That is a defect of the harness and the spec phrasing, independent of the parity
+    clause, and it happens to have landed in this control.
+
+    ⚠️ WHICH IS A REASON TO WATCH PAIRS 2 AND 3 RATHER THAN CONCLUDE ANYTHING. If their controls also
+    fail on the same sentinel, the cross-process control condition is being sampled with a known
+    confound sitting inside it — one that does not touch the SPLIT/CONSOLIDATED endpoint, but does
+    make "the control went green" unavailable as a sanity check.
+
+    Both arms stopping at 6 rather than 8 is the timestamp fix working, as arm-4 already established.
+
+WHAT PAIR 1 DOES NOT SETTLE
+    One pair. The prediction is about all three, and the reject condition — control and arm AGREEING
+    in any process — has not fired yet and cannot be ruled out from one observation.
+
+    Pair 2 began at 20:55 in pid 86026, restarted by the runner. The harness has not moved: five
+    files hashed at a1a2de7b since 19:38.
