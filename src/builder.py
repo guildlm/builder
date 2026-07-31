@@ -14,6 +14,7 @@ Run ``guildlm-build --spec spec.yaml --out ./generated`` to drive it.
 
 from __future__ import annotations
 
+import collections
 import dataclasses
 import json
 import os
@@ -1628,27 +1629,47 @@ def _canonical_error_line(line: str) -> str:
     return _GOROUTINE_ID_RE.sub("goroutine N", _ADDR_RE.sub("0xADDR", line))
 
 
-def _error_keys(output: str) -> set[tuple[str, str]]:
-    """Toolchain errors as (file, message), with line and column stripped.
-
-    ⚠️ THE STRIPPING IS THE WHOLE POINT. Moving declarations between files shifts
-    every line number after them, so comparing raw output before and after a move
-    reports every pre-existing error in the donor as brand new. A gate built on
-    that rejects everything and looks exactly like a correct, disappointing null.
-    """
-    keys: set[tuple[str, str]] = set()
+def _error_entries(output: str) -> list[tuple[str, str]]:
+    """Toolchain errors as (file, message), line and column stripped, DUPLICATES
+    KEPT. Go reports the same error once per dependent package, so the repetition
+    is information: a move that turns one occurrence into two has broken
+    something, even though the message was already present."""
+    entries: list[tuple[str, str]] = []
     for line in _canonical_toolchain_output(output or "").splitlines():
-        line = line.strip()
+        line = _canonical_error_line(line.strip())
         if not line or line.startswith("#") or line.startswith("?"):
             continue
-        line = _canonical_error_line(line)
         if m := _ERROR_LINE_RE.match(line):
-            keys.add((m.group(1), m.group(2).strip()))
+            entries.append((m.group(1), m.group(2).strip()))
         else:
-            # test failures, link errors, anything without a file:line — keyed
+            # test failures, link errors, anything without a file:line — kept
             # whole, so they still count as "new" if the move introduces one
-            keys.add(("", line))
-    return keys
+            entries.append(("", line))
+    return entries
+
+
+def _error_keys(output: str) -> set[tuple[str, str]]:
+    """(file, message) pairs. Used for reporting; NOT for the gate — see
+    ``_error_counts`` for why the file is dropped there."""
+    return set(_error_entries(output))
+
+
+def _error_counts(output: str) -> collections.Counter:
+    """How many times each MESSAGE appears, with the FILE deliberately dropped.
+
+    ⚠️ THE FILE IS DROPPED BECAUSE ERRORS TRAVEL. A move relocates declarations,
+    and any error inside them moves too — workapi2's store.go holds a bare
+    `import "models"` that already fails, and after the move the identical defect
+    is reported against memory.go. Keyed by (file, message) that is a new error
+    and the move is refused for damage it did not do; measured, it was the only
+    thing still refusing anything in the corpus.
+
+    Counting instead of set-comparing keeps the case the file used to cover: a
+    move that produces a SECOND instance of an existing message raises its count
+    and is still refused. Verified on workapi2 that a legitimate relocation does
+    NOT move any count, so the repetition is stable enough to gate on.
+    """
+    return collections.Counter(msg for _, msg in _error_entries(output))
 
 
 def _fill_empty_planned_files(
@@ -1677,7 +1698,7 @@ def _fill_empty_planned_files(
     # What the project was ALREADY failing on, so a move can be judged on what IT
     # did rather than on the state it inherited. On a green project this is empty
     # and the gate below is exactly the old "must be green" one.
-    baseline_errors: set[tuple[str, str]] | None = None
+    baseline_errors: "collections.Counter | None" = None
     for path in empty_go_files(written):
         by_path = {f.path: f.purpose or "" for f in spec.files}
         wanted = _required_decls(by_path.get(path, ""))
@@ -1720,7 +1741,7 @@ def _fill_empty_planned_files(
 
         if baseline_errors is None:
             _, baseline_output = toolchain.check(out)
-            baseline_errors = _error_keys(baseline_output)
+            baseline_errors = _error_counts(baseline_output)
 
         before = {donor: written[donor], path: written[path]}
         written[donor] = _write_file(out, donor, moved["source"])
@@ -1730,9 +1751,12 @@ def _fill_empty_planned_files(
         # cannot answer "are you green now", so it used to discard the move on
         # evidence that had nothing to do with it: measured, 59 of 74 corpus cases
         # reverted for errors the move did not cause and could not fix.
-        introduced = _error_keys(output) - baseline_errors
+        after_errors = _error_counts(output)
+        introduced = {
+            msg for msg, n in after_errors.items() if n > baseline_errors.get(msg, 0)
+        }
         if ok or not introduced:
-            baseline_errors = _error_keys(output)
+            baseline_errors = after_errors
             _log(f"  moved {', '.join(sorted(wanted))} from {donor} into {path} — "
                  f"the plan gave that file the job"
                  + ("" if ok else " (project still failing, but not for this)"))
@@ -1740,7 +1764,7 @@ def _fill_empty_planned_files(
             for p, c in before.items():
                 written[p] = _write_file(out, p, c)
             _log(f"  left {path} empty: moving {', '.join(sorted(wanted))} into it "
-                 f"breaks {'; '.join(sorted(f'{f}: {m}' for f, m in introduced)[:2])}")
+                 f"breaks {'; '.join(sorted(introduced)[:2])}")
 
 
 def warn_empty_planned_files(written: dict[str, str], *, green: bool) -> None:

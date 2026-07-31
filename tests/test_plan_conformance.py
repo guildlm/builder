@@ -604,3 +604,46 @@ def test_the_repair_runs_on_a_build_that_never_goes_green(tmp_path, capsys):
         "the log must say the project is still red, or a reader will take the "
         "move for a fix:\n" + err
     )
+
+
+# --------------------------------------------------------------------------- #
+# The gate counts MESSAGES, and drops the file — because errors travel.
+#
+# A move relocates declarations, and any error inside them moves with the code.
+# workapi2's store.go holds a bare `import "models"` that already fails; after
+# the move the identical defect is reported against memory.go. Keyed by
+# (file, message) that reads as new, and it was the only thing still refusing
+# anything in the corpus — a move punished for damage it did not do.
+#
+# Counting keeps what the file used to cover: a SECOND instance of an existing
+# message raises the count and is still refused.
+# --------------------------------------------------------------------------- #
+
+from src.builder import _error_counts  # noqa: E402
+
+
+def test_an_error_that_changes_file_is_not_new():
+    before = _error_counts("internal/store/store.go:6:2: package models is not in std\n")
+    after = _error_counts("internal/store/memory.go:4:2: package models is not in std\n")
+    assert not {m for m, n in after.items() if n > before.get(m, 0)}
+
+
+def test_a_second_instance_of_the_same_message_IS_new():
+    before = _error_counts("a.go:1:1: undefined: X\n")
+    after = _error_counts("a.go:1:1: undefined: X\nb.go:9:2: undefined: X\n")
+    assert {m for m, n in after.items() if n > before.get(m, 0)} == {"undefined: X"}
+
+
+def test_a_brand_new_message_is_still_new():
+    before = _error_counts("a.go:1:1: undefined: X\n")
+    after = _error_counts("a.go:1:1: undefined: X\na.go:2:2: undefined: Y\n")
+    assert {m for m, n in after.items() if n > before.get(m, 0)} == {"undefined: Y"}
+
+
+def test_go_repeating_one_error_per_package_does_not_read_as_growth():
+    # go prints the same failure once per dependent package; that repetition is
+    # stable across a relocation (verified on workapi2) and must not itself
+    # register as an increase when the text is identical.
+    text = "a.go:1:1: undefined: X\n" * 5
+    before, after = _error_counts(text), _error_counts(text)
+    assert not {m for m, n in after.items() if n > before.get(m, 0)}
