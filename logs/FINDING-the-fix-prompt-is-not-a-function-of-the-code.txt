@@ -22,8 +22,28 @@ three that CAUSES divergence rather than failing to detect it.
 THIS IS THE MECHANISM BEHIND THE DIVERGENCE OBSERVED TODAY
     arm-1 and arm-2: same spec, same flags, same server process, BYTE-IDENTICAL source trees, and
     different error surfaces at fix round 1. Generation was identical; the first thing that differed
-    was the first prompt built from toolchain output. That is no longer an observation with an
-    unknown cause.
+    was the first prompt built from toolchain output.
+
+⚠️ CORRECTED — "THE FIX LOOP ITSELF DIVERGES" IS WRONG. ONLY THE HASH DOES.
+    I wrote that the varying prompt makes the fix loop diverge, and then measured both arms end to
+    end:
+
+        fix targets, in order   IDENTICAL (arm-2's sequence is a prefix of arm-1's, no differing
+                                index in the common length)
+        final .go files         18 of 18 BYTE-IDENTICAL, none present in only one tree
+
+    So the timestamped prompt did NOT change what the model fixed or what it wrote. The two runs
+    differ in exactly one observable: the error-surface HASH, which is computed from the same
+    unnormalised text.
+
+    THE CORRECTED CLAIM: the prompt is not a function of the code — that part stands, and it is a
+    real defect because nothing guarantees the model ignores the varying tokens. But on these two
+    runs it evidently did ignore them, and the only measured consequence is the defeated repeat
+    detector.
+
+    ⚠️ I inferred "the fix loop diverges" from a divergence at line 39 of a log, without checking
+    whether anything downstream of that line differed. The hash line WAS the divergence. Sixth time
+    today that a real mechanism got attached to a consequence the evidence did not show.
 
     Three consumers, one blind spot:
         _error_signature          fails to DETECT a repeat        -> extension rounds run to the cap
