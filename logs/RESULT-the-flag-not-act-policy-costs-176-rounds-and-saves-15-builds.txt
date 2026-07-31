@@ -1,0 +1,75 @@
+RESULT — in-budget repeats: 176 rounds spent, and 15 builds that went green anyway
+====================================================================================
+31 July, while the arm-4 verification draw holds the GPU. Zero GPU, archive only. Found by
+following a question the arm-4 prediction correction raised rather than by planning it.
+
+THE POLICY UNDER TEST
+    The extension guard stops the fix loop when an error surface repeats — but only past the flat
+    budget:
+
+        if rnd > max_fix_rounds and sig in seen_surfaces: break
+
+    A repeat inside the budget is logged ("surface seen before") and deliberately NOT acted on, so
+    the corpus stays measured under a single behaviour. That decision is documented in builder.py
+    and has never been costed with the current signature.
+
+MEASURED across logs/ with `_error_signature` as it stands after today's timestamp normalisation
+        logs with 2+ reconstructable fix rounds        145      <- the denominator
+        ...that ever repeat a surface                   96      (66%)
+        ...whose FIRST repeat lands inside the budget   95      <- the policy's cases
+        rounds spent after a first repeat, total       176
+        median rounds after a first repeat               2
+        builds that went GREEN despite a repeat          15     (16%)
+
+    So acting on in-budget repeats — stopping the loop the moment a surface recurs — would buy back
+    176 rounds and would have KILLED 15 builds that converged.
+
+    THE WORST OFFENDER IS ONE OF THE FIFTEEN. iso-shortener-07161437 repeated at round 2, ran
+    seven more rounds, and went green. Under a stop-on-repeat policy it would have died at round 2
+    with the most rounds-after-repeat in the archive.
+
+    THE POLICY IS THEREFORE DEFENSIBLE ON THIS EVIDENCE, which is not what I expected to find and
+    is the opposite of what the first version of this measurement said.
+
+⚠️⚠️ THE FIRST VERSION SAID ZERO, AND IT WAS THE INSTRUMENT
+    The green detector was `re.compile(r"green|all checks passed|BUILD OK", re.I)` applied to
+    `text.rsplit("\n", 40)[-1]`. Both halves are wrong, in opposite directions:
+
+    FALSE NEGATIVE — `rsplit("\n", 40)[-1]` is the LAST LINE, not the last 40 lines. A green
+        build's final line is `Generated ledger into ./generated/x`; the marker
+        `converged to green after fix round 1` sits two lines above it. Checked against
+        ledger-parity-ctl-1, which exited rc=0: last-line match FALSE, whole-text match TRUE.
+
+    FALSE POSITIVE — the bare word `green` matches FIX 1'S OWN WARNING, "build never went green".
+        A build that explicitly announces it never converged reads as converged. That warning is
+        the newest line in this repo, added today, and it is in 3 logs.
+
+    Fixed to the builder's single success marker, `^\[guildlm-build\] converged to green`, and
+    both traps are now assertions in the self-test.
+
+        broken detector    0 of 96 went green   ->  "the policy never pays"
+        fixed detector    15 of 96 went green   ->  "the policy pays 16% of the time"
+
+    ⚠️ A ZERO IS A CLAIM ABOUT THE INSTRUMENT BEFORE IT IS A CLAIM ABOUT THE WORLD. This one was
+    caught because the number was surprising enough to check, which is not a method — the check
+    should not depend on the answer being interesting. What made it checkable in one command was
+    having a KNOWN-LABELLED case to hand: ctl-1 exited rc=0, so any detector that calls it not-green
+    is broken regardless of what the aggregate says.
+
+WHAT THIS DOES NOT SAY
+    NOT a claim about the timestamp fix. That fix acts past the budget, where the loop already
+    stops on repeats; it makes the stop FIRE (arm-1: 8 rounds -> 6). This is a different policy
+    question that the same reading of the loop happened to expose.
+
+    NOT comparable to the 27 in-budget repeats counted on 29 July. That count used the error-LINE-SET
+    signature; this uses the whole-output fingerprint plus today's normalisation. Third instrument,
+    third set of numbers, and builder.py already warns that the two share a name and are not the
+    same object.
+
+    NOT a full accounting of cost. "176 rounds" is rounds, not minutes: today's own durations showed
+    two arms doing IDENTICAL work 5.2 minutes apart, so round counts are the stable unit and any
+    minutes attached to them are an average dressed as a measurement.
+
+    AND THE 145 DENOMINATOR IS RECONSTRUCTED, not authoritative. It counts logs where two or more
+    fix rounds could be rebuilt from the `!`-prefixed lines the builder prints. A build whose output
+    was captured differently is invisible here.
