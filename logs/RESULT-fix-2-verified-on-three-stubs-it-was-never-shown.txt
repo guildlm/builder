@@ -1,0 +1,32 @@
+RESULT — FIX 2 handles all three stubs generated today, case by case
+====================================================================
+31 July 16:29. A verification the pre-registration could not have arranged: the parity experiment
+produced three fresh instances of the exact defect FIX 2 addresses, on trees that did not exist when
+the widening was designed.
+
+    $ _repair_take_audit.py --specs ledger-parity --cases
+
+    NARROW  6 trees · 3 with an empty planned .go file · take non-empty 0 · take EMPTY 3
+    WIDE    6 trees · 3 with an empty planned .go file · take non-empty 3 · take EMPTY 0
+
+    EMPTY -> MOVABLE  ledger-parity-arm-1  internal/store/memory.go  wants=[MemStore, Store] take=[MemStore]
+    EMPTY -> MOVABLE  ledger-parity-arm-2  internal/store/memory.go  wants=[MemStore, Store] take=[MemStore]
+    EMPTY -> MOVABLE  ledger-parity-arm-3  internal/store/memory.go  wants=[MemStore, Store] take=[MemStore]
+
+    Three of three. Under the OLD extractor all three are blocked — `wants` collapses to {Store},
+    which store.go legitimately owns, so `take` is empty and the repair no-ops silently. Under the
+    widened one, `MemStore` becomes visible in the backticked purpose and the repair has a symbol and
+    a donor.
+
+WHY THIS IS A BETTER TEST THAN THE CORPUS IT WAS SCORED ON
+    The 125-tree baseline FIX 2 was measured against consisted of trees that already existed. Any
+    regex tuned against them risks fitting them. These three were generated hours after the widening
+    shipped, by an experiment about a prompt clause that has nothing to do with the extractor, and
+    the fix was never adjusted afterwards.
+
+    ⚠️ AND THE THREE ARE NOT INDEPENDENT. arm-1, arm-2 and arm-3 are byte-identical as drawn, so this
+    is one stub confirmed three times, not three stubs. The strength here is that the case is NEW,
+    not that there are three of it.
+
+    Which is the honest form of the claim: FIX 2 was shown to handle a defect instance it was not
+    designed against. Once.
