@@ -75,3 +75,31 @@ STILL OPEN — and today has now spent four edits without touching it
     model DOES split correctly under ledger's current order, four draws for four. The question is
     why the same model, on the same package, consolidates under the other order and on the other
     specs — which is a question about the CONDITIONS, not about a blanket inability.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+THE DRAW'S FINAL OUTCOME, and what it did and did not settle for FIX 1
+════════════════════════════════════════════════════════════════════════════════════════════
+    [guildlm-build] error surface repeats — stopping extension rounds
+    [guildlm-build] exhausted 6 fix rounds (5 budgeted), still failing
+
+It ended NOT GREEN, failing in internal/api (transactions_test.go, the same error surface four
+rounds running). So it took the exit FIX 1 was built for, on a real build, for the first time.
+
+    no warning line — and that is CORRECT. The tree has NO empty planned .go file (checked
+    directly, not inferred from the log's silence). The store package split properly, so
+    warn_empty_planned_files(green=False) ran and had nothing to say.
+
+    ⚠️ SO THIS DRAW IS UNINFORMATIVE FOR FIX 1'S POSITIVE CLAIM, and the pre-registration asked for
+    a not-green draw precisely to see the warning APPEAR. It did not, because this build did not
+    produce the defect. What it does establish is narrower and still worth having: the new exit path
+    executes on a real failing build without crashing and without a spurious warning. The decisive
+    evidence for the positive case remains the test that drives all of build() and fails when the
+    call is removed.
+
+    Recording it as uninformative rather than as confirmation. A silent correct run and a silent
+    broken run look identical from the log, which is the whole reason the warning exists.
+
+AND A THIRD DATA POINT FOR THE CORRECTED READING: ledger in its current entry order split the store
+package correctly again (memory.go implementation, store.go interface only), on a build that FAILED
+for entirely unrelated reasons in another package. Convergence and plan conformance are independent,
+which is exactly what FIX 1 was arguing by existing.
