@@ -1,0 +1,36 @@
+NOTE — the A/B's validity depends on builder.py being frozen for four hours, and nothing enforces it
+=====================================================================================================
+31 July, written after nearly breaking it. A NOTE because it records a CONDITION the parity result
+will have to be read under.
+
+THE NEAR MISS
+The stripper finding was weakened an hour ago, and what would settle the open version is a one-line
+change: log the NAMES `strip_redeclarations` removes. Cheap, low risk, and it makes the next
+occurrence self-documenting. I was about to make it.
+
+    `_parity_ab.sh` invokes `.venv/bin/guildlm-build` ONCE PER DRAW — a fresh Python process every
+    time, which re-reads builder.py. A change made now would land in draws 2 through 6 and NOT in
+    draw 1, which already ran.
+
+    The entire design of this A/B is that control and arm share a commit. logs/PREREG-withhold-...
+    says so in those words, and the switch exists instead of a revert for exactly this reason. A
+    logging change is harmless to behaviour and fatal to the guarantee.
+
+VERIFIED FROZEN so far
+    commits touching src/ or _parity_ab.sh since 11:50:24 (run start):  NONE
+
+    ⚠️ And _parity_ab.sh must not be edited either — bash reads a script INCREMENTALLY while running
+    it, so editing the file underneath a live loop can corrupt execution. That rules out adding the
+    obvious guard (record git HEAD at start, refuse a draw if it moved) until the run finishes.
+
+WHAT TO DO AFTER THE RUN
+    1. Add the HEAD guard to `_parity_ab.sh`, so the next multi-hour A/B refuses to continue across a
+       code change instead of relying on someone remembering.
+    2. Then the stripper's one-line logging change, and one draw of ledger-origorder to settle
+       whether the stripped candidate held the implementation or a duplicate interface.
+
+    In that order. The guard is what makes the second safe to do while anything else is drawing.
+
+⚠️ NOTHING ENFORCES THIS TODAY. The freeze held because I checked, and I only checked because I had
+already started reaching for the editor. A four-hour window in which any harness edit silently
+invalidates the experiment is a guard-shaped hole, and it has been open all day.
