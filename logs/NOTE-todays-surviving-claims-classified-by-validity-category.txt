@@ -1,0 +1,36 @@
+NOTE — every surviving numeric claim from today, classified by what makes it valid
+==================================================================================
+31 July 17:06. Applying the three-category rule to the day's own output, since deriving a rule and
+then misapplying it within three minutes is what produced the rule.
+
+    THE THREE CATEGORIES
+      1  TREE-PROPERTY          read from the artifact; retrospectively valid however specs moved
+      2  SPEC-PROPERTY          depends on the spec text of the day; retrospectively INVALID
+      3  HYPOTHETICAL-APPLICATION  "if today's code/spec ran on these trees"; valid, not historical
+
+    claim                                                cat  basis
+    FIX 2: take-EMPTY 10 -> 1 (132 trees)                  3  today's specs applied to old trees
+    FIX 2: 3 new arm stubs handled                         1  drawn today, under today's spec
+    repair gate: 57 of 57 addressable, 0 refusals          3  today's gate applied to old trees
+    FIX 1: warning fired on 2 real failing draws           1  those draws' own logs
+    app-log defect: 9 of 654 builds                        1  each build's own log
+    error surface: 8 distinct, 0 repeats                   1  that build's own log
+    parity: controls SPLIT 3/3, arms CONSOLIDATED 3/3      1  six draws today, one spec version
+    snapshot coverage 47 of 353                            1  file presence on disk
+    191 spec edits across 51 files                         1  git history, not a join
+
+      category 1: 7    category 3: 2    category 2: 0
+
+WHAT THE TALLY SAYS
+    No surviving claim is category 2. That is not luck — the only category-2 measurement attempted
+    today was the entry-order sweep, and it was discarded within four minutes of being computed.
+
+    The two category-3 claims are the day's two headline numbers, and both are correctly framed in
+    their own files: FIX 2's endpoint is about the extractor's behaviour on current spec text, and the
+    repair gate's 57/57 is about what the gate would accept if run now. Neither says anything about
+    what those trees experienced when they were drawn, and neither was ever supposed to.
+
+    ⚠️ THE RISK IN CATEGORY 3 IS NOT INVALIDITY, IT IS DRIFT OF MEANING. "57 of 57" reads like a
+    historical success rate. It is a forward-looking capability measure. Six weeks from now the
+    difference is invisible unless it is written next to the number — which is why this file exists
+    rather than a note in my head.
