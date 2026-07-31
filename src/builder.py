@@ -4664,6 +4664,72 @@ def _required_decls(purpose: str) -> set[str]:
     return required
 
 
+# "the Store interface DECLARED IN store.go", "reference Store ... DO NOT
+# REDECLARE", "an implementation OF the Store interface". A purpose that names a
+# type this way is pointing at it, not promising it.
+_DISCLAIMER_RE = re.compile(
+    r"do\s+not\s+redeclare|don't\s+redeclare|declared\s+in\b|from\s+\w+\.go\b"
+    r"|implementation\s+of\b|implements\b|satisfy(?:ing|s)?\b",
+    re.I,
+)
+_SENTENCE_SPLIT_RE = re.compile(r"(?<=[.;:])\s+|\n+")
+
+
+def _disclaimed_decls(
+    files: Sequence[FileSpec], target_path: str, own_purpose: str
+) -> set[str]:
+    """Symbols this entry NAMES but a same-package sibling OWNS, per the entry's
+    own words.
+
+    ``_foreign_owned_decls`` arbitrates ownership across directories. Inside a
+    directory there was no arbitration at all, so a file generated BEFORE its
+    sibling was required to declare what the sibling owns: every spec has exactly
+    one such symbol, and it is always the same one — memory.go required to declare
+    the ``Store`` interface store.go owns. Sixteen of seventeen such rejections in
+    the archive were never satisfied; the harness rejected every candidate and
+    then shipped the first one anyway.
+
+    The specs already settle it in plain English — "the Store interface DECLARED
+    IN STORE.GO", "reference Store, ErrNotFound, ErrExists directly, DO NOT
+    REDECLARE" — so this reads the disclaimer rather than guessing from verbs.
+
+    ⚠️ SCOPED TO THE SENTENCE HOLDING THE SYMBOL, not the whole purpose. taskapi's
+    store.go says "use models.Task / models.Project (qualified — do NOT redeclare
+    them here)" about the MODELS types, in a different sentence from the one
+    declaring Store. A purpose-wide match would have disarmed the owner as well
+    as the borrower — the reject condition the pre-registration named, tripped by
+    the obvious implementation.
+
+    ⚠️ AMBIGUOUS SYMBOLS ONLY. A symbol no sibling claims is never dropped,
+    whatever words surround it: the point is to break a tie, not to let prose
+    talk a file out of its own job.
+    """
+    own = _required_decls(own_purpose)
+    if not own:
+        return set()
+    target_dir = _dir_of(target_path)
+    shared: set[str] = set()
+    for f in files:
+        if f.path != target_path and _dir_of(f.path) == target_dir:
+            shared |= _required_decls(f.purpose)
+    shared &= own
+    if not shared:
+        return set()
+    sentences = _SENTENCE_SPLIT_RE.split(own_purpose or "")
+    disclaimed = set()
+    for name in shared:
+        # ONLY the sentences that made the promise — the ones the extractor
+        # itself fires on. ledger's memory.go also says "a missing method is a
+        # compile error at the first assignment to a Store variable", which is a
+        # reference, creates no demand, and carries no disclaimer; requiring
+        # EVERY mention to disclaim let that one sentence veto the whole rule and
+        # the fix silently did nothing at all.
+        sources = [s for s in sentences if name in _required_decls(s)]
+        if sources and all(_DISCLAIMER_RE.search(s) for s in sources):
+            disclaimed.add(name)
+    return disclaimed
+
+
 def _foreign_owned_decls(
     files: Sequence[FileSpec], target_path: str, own_purpose: str
 ) -> set[str]:

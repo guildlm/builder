@@ -1,0 +1,65 @@
+RESULT — the move survives toolchain.check 11 times out of 11, and the red trees never get a turn
+==================================================================================================
+31 July morning. Zero GPU. Pre-registration: logs/PREREG-does-the-repair-survive-the-green-check.txt,
+written before the run. Instrument: `_repair_survival.py` (self-tested on both outcomes; every tree
+copied, generated/ untouched).
+
+    72 trees carrying an empty planned .go file · 74 cases
+
+    GREEN-BEFORE   12 cases · FILLED 11 · REVERTED  0 · NO-DONOR 1
+    RED-BEFORE     62 cases · FILLED  0 · REVERTED 59 · NO-DONOR 3
+
+    No combined rate. The two are not the same experiment and one number over both describes neither.
+
+SCORING THE THREE PRE-REGISTERED CLAIMS
+    ✓ 1 (95%)  every case in a red tree comes back REVERTED — 59 of 59, no exceptions. The pass
+               re-checks the WHOLE project after moving, so a tree that is already red fails for its
+               own unrelated reasons and the move is put back.
+    ✓ 2 (70%)  at least 80% of movable green-before cases come back FILLED — 11 of 11. Every one is
+               internal/store/memory.go taking MemStore, and every one stays green.
+    ✓ 3        declining to predict the green/red split was right, and the split is the surprise:
+               only 12 of 74 cases live in a tree that is green today. Whatever fraction I would
+               have guessed, I would have guessed too high.
+
+    ⚠️ I CHECKED THAT THE RED TREES ARE REALLY RED rather than red at me — a corpus-wide null is a
+    claim about the instrument until proven otherwise. Sampled three: workapi8 has a syntax error in
+    service_test.go and an undefined `err` in memory_test.go; ledger-v5 references an undefined
+    models.ErrInsufficientFunds; _fail-workapi-0712014714 has an unused variable in worker_test.go.
+    Genuine failed artifacts, not an environment artifact of running the check today.
+
+WHAT IT SETTLES — THE THIRD QUESTION, AND FIX 1'S SHAPE
+The repair only ever runs at `_finish_green`, so the operative population is the green one: WHEN THE
+PASS GETS TO RUN, IT WORKS, 11 OF 11, WITH NOTHING REVERTED. The failure mode was never that the
+move breaks the build.
+
+And this retroactively prices the choice FIX 1 made on a hunch. Moving the REPAIR out of the green
+gate — the arm deliberately not taken — would attempt 59 moves on red trees and revert all 59. The
+minimal version (warning only, repair still green-gated) was not merely the cautious option; it is
+the one the numbers support, and the number did not exist when the choice was made.
+
+WHAT FIX 2 IS ACTUALLY WORTH, END TO END — 6 CASES, NOT 11
+Of the 11 fills, the split matters and I nearly reported the larger number:
+
+    6   UNBLOCKED BY FIX 2   take was EMPTY under the old extractor and is {MemStore} under the new
+                             one — _ledger-ARM-A/B, _ledger-BEFORE-specfix, ledger-pairA-p6/p7/p8.
+                             These shipped a dead file WITH a warning in the log, and would now ship
+                             the file the plan asked for.
+    5   ALREADY MOVABLE      taskapi-regr, taskapi-speedcheck, workapi-split-green1/2, workapi27 —
+                             the old extractor could already see MemStore. They ship empty because
+                             they predate the repair pass, not because anything blocked it.
+
+    So FIX 2's end-to-end payoff on this corpus is 6 artifacts, and the honest headline is "11 of 11
+    movable green cases survive", not "FIX 2 fixes 11". Attributing all 11 would have been the same
+    over-claim as 01:55 yesterday: a number that is true next to a cause that is not.
+
+THE ONE GREEN CASE THAT STAYS BROKEN
+    workapi-chain internal/api/middleware.go — the same survivor the take-audit found. Its purpose
+    names no type in any shape, so there is nothing to demand and nothing to move. A spec-text gap;
+    no extractor change should be made to chase it.
+
+STILL OPEN, AND UNCHANGED BY ANY OF TODAY'S THREE EDITS
+    How do you get the model to SPLIT a package's content correctly in the first place? Everything
+    measured today is downstream repair: making it applicable (fix 2), making it visible (fix 1),
+    and showing it survives when it runs (this). The generation-side gate turns out to have been
+    demanding the over-reach on one symbol per spec, and even that is a bystander — the model
+    refused the demand in 5 of 6 archive occurrences and consolidated anyway.
