@@ -66,5 +66,21 @@ HOW BIG THE CONSTRAINT IS — 191 spec edits across the campaign
     THE RULE THAT FOLLOWS: any question of the form "across the corpus, does X correlate with a SPEC
     PROPERTY" is unanswerable unless the property provably did not change. Questions about TREE
     properties (does store.go declare MemStore, is a planned file empty) are fine — those are read
-    from the artifact, not from a spec that has since moved. Today's FIX 2 numbers are of the second
-    kind, which is why they survive.
+    from the artifact, not from a spec that has since moved.
+
+    ⚠️ AND I IMMEDIATELY MISAPPLIED MY OWN RULE. I wrote "today's FIX 2 numbers are of the second kind,
+    which is why they survive". They are NOT. `_repair_take_audit.py` computes `wanted` from
+    `by_path = {f.path: f.purpose ...}` — TODAY's spec purposes — against trees drawn under older
+    ones. Its own docstring says so: "uses TODAY's spec text for a tree drawn from an older one,
+    which is a real limitation of every corpus-wide number here."
+
+    WHAT FIX 2's NUMBERS ACTUALLY ARE, stated correctly: not "how often the repair was blocked
+    historically", but "if the repair ran TODAY, on these trees, with TODAY's specs, how often would
+    it find something to move". That is a hypothetical-application measurement, it is exactly what
+    the fix needed to be scored on, and it is well-defined — but it is a THIRD category, not the
+    tree-property one I put it in three minutes ago.
+
+    The distinction matters for the endpoint: "take EMPTY falls 10 -> 1" is a claim about the
+    extractor's behaviour on current spec text, which is what was changed. It was never a claim about
+    the history of those trees, and reading it as one would be wrong in the same way the discarded
+    table was wrong.
