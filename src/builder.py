@@ -5238,8 +5238,13 @@ def _generate_file(
     # to the owner — instead of a second, unconvertible store.Task
     sibling_decls |= _foreign_owned_decls(spec.files, task.spec.path, task.spec.purpose)
     is_test = task.spec.path.endswith("_test.go")
+    # ...minus what this entry's own words hand to a same-package sibling. Without
+    # it, whichever of an interface/implementer pair is generated FIRST is
+    # required to declare the other's type — measured at one symbol per spec, and
+    # never once satisfiable by the file being asked.
     required = (
         _required_decls(task.spec.purpose) - sibling_decls
+        - _disclaimed_decls(spec.files, task.spec.path, task.spec.purpose)
         if is_go and not is_test
         else None
     )
@@ -5520,8 +5525,15 @@ def _fix_loop(
                                 rf"\b{re.escape(own_pkg)}\.(\w+)", content))
                     must_keep = used & top_level_decls(written[path])
                 # types the PURPOSE promises must exist even if the initial
-                # generation omitted them — otherwise no fix ever adds them
-                must_keep |= _required_decls(task.spec.purpose) - sibling_decls
+                # generation omitted them — otherwise no fix ever adds them.
+                # Same subtraction as generation: a type the entry says is
+                # "declared in store.go" is not this file's to keep.
+                must_keep |= (
+                    _required_decls(task.spec.purpose) - sibling_decls
+                    - _disclaimed_decls(
+                        [t.spec for t in tasks], task.spec.path, task.spec.purpose
+                    )
+                )
             # The verified path writes each candidate and checks the WHOLE
             # project, keeping the one that turns it green. That is only
             # ACHIEVABLE when this file is the last thing standing: with other

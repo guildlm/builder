@@ -249,3 +249,77 @@ def test_the_empty_file_is_reported_even_when_the_build_never_goes_green(
     # and it says which kind of build it was, so a log reader is not left to
     # infer that "shipped" meant something that never shipped
     assert any("never went green" in ln for ln in warned), warned
+
+
+# --------------------------------------------------------------------------- #
+# The gate demanded the over-reach it repairs.
+#
+# `required = _required_decls(purpose) - sibling_decls` arbitrates ownership
+# ACROSS packages only. Inside a package the only arbitration was which file got
+# written first, so whichever of an interface/implementer pair came first was
+# required to declare the other's type. Every spec has exactly one such symbol
+# and it is always the same one: memory.go required to declare Store.
+#
+# The specs already settle it in plain English, so the rule reads the disclaimer.
+# Both tests below are traps a plausible implementation falls into — the first
+# one silently did nothing, the second silently disarmed the owner.
+# --------------------------------------------------------------------------- #
+
+from src.builder import _disclaimed_decls  # noqa: E402
+
+
+def _files(*pairs):
+    return [FileSpec(path=p, purpose=q) for p, q in pairs]
+
+
+IMPL_PURPOSE = (
+    "package store. `MemStore` — the in-memory implementation of the Store "
+    "interface declared in store.go IN THIS SAME PACKAGE. It must implement "
+    "EVERY method of that interface; a missing method is a compile error at the "
+    "first assignment to a Store variable."
+)
+OWNER_PURPOSE = "package store. The Store INTERFACE only — no implementation in this file."
+
+
+def test_the_implementer_is_not_asked_to_declare_the_interface():
+    files = _files(("store/store.go", OWNER_PURPOSE), ("store/memory.go", IMPL_PURPOSE))
+    assert _disclaimed_decls(files, "store/memory.go", IMPL_PURPOSE) == {"Store"}
+
+
+def test_a_bare_reference_elsewhere_in_the_purpose_does_not_veto_it():
+    # IMPL_PURPOSE's last sentence mentions "a Store variable" with no disclaimer.
+    # Requiring EVERY mention to disclaim let that sentence veto the rule, and the
+    # fix did nothing at all on any spec. Only the sentence that MADE the promise
+    # — the one the extractor fires on — can take it back.
+    assert "Store" in _disclaimed_decls(
+        _files(("store/store.go", OWNER_PURPOSE), ("store/memory.go", IMPL_PURPOSE)),
+        "store/memory.go", IMPL_PURPOSE,
+    )
+
+
+def test_the_owner_keeps_its_own_type_even_when_it_disclaims_another():
+    # taskapi's store.go says "use models.Task / models.Project (qualified — do
+    # NOT redeclare them here)" about the MODELS types, in a different sentence
+    # from the one declaring Store. A purpose-wide match disarms the owner too,
+    # which is the pre-registered reject condition.
+    owner = (
+        "package store. Import the models package and use models.Task / "
+        "models.Project (qualified — do NOT redeclare them here). A Store "
+        "INTERFACE with CreateTask(models.Task) error."
+    )
+    files = _files(("store/store.go", owner), ("store/memory.go", IMPL_PURPOSE))
+    assert _disclaimed_decls(files, "store/store.go", owner) == set()
+
+
+def test_an_unambiguous_type_is_never_dropped():
+    # MemStore is claimed by no sibling, so no amount of "implementation of"
+    # prose may talk this file out of declaring it.
+    files = _files(("store/store.go", OWNER_PURPOSE), ("store/memory.go", IMPL_PURPOSE))
+    assert "MemStore" not in _disclaimed_decls(files, "store/memory.go", IMPL_PURPOSE)
+
+
+def test_a_sibling_in_another_package_is_not_a_tie():
+    # cross-package ownership is _foreign_owned_decls' job, and this must not
+    # start second-guessing it: same NAME, different directory, no tie to break.
+    files = _files(("store/store.go", OWNER_PURPOSE), ("api/handler.go", IMPL_PURPOSE))
+    assert _disclaimed_decls(files, "api/handler.go", IMPL_PURPOSE) == set()
