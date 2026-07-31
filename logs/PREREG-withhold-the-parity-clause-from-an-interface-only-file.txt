@@ -1,0 +1,51 @@
+PREREG — withhold the INTERFACE/IMPL PARITY clause from a file whose purpose forbids implementation
+====================================================================================================
+31 July. Follows logs/FINDING-the-prompt-tells-the-interface-file-to-write-the-implementation.txt.
+This is the first arm today aimed at the OPEN QUESTION rather than at cleaning up after it, and it
+is a PROMPT change, not a sixth generation-path code change.
+
+THE CHANGE
+    Do not emit the completeness rule's "INTERFACE/IMPL PARITY ... EXISTS ON BOTH THE INTERFACE AND
+    ITS IMPLEMENTATION" clause for a file whose purpose says it holds the interface only. Detector:
+
+        r"\b(?:interface|abstraction)\s+only\b|no\s+implementation\s+in\s+this\s+file"   (case-insens.)
+
+    BLAST RADIUS, measured over the whole spec directory: NINE entries, every one of them
+    `internal/store/store.go` in a ledger variant, ZERO of them test files. No other spec disclaims
+    implementation, so no other spec's prompt changes at all.
+
+    ⚠️ THE LOOSE VERSION OF THIS PREDICATE IS WRONG AND I CHECKED BEFORE WRITING IT. Matching bare
+    "no implementation" also hits ratelimit's and taskapipro's TEST purposes — "no implementation can
+    make that pass", "no implementation can satisfy both" — which mean the opposite thing (no
+    possible implementation, not "none in this file"). They are test files and the completeness rule
+    is not emitted for test files anyway, so the loose version would have been harmless AND wrong,
+    which is the worst kind: it would have measured clean.
+
+THE A/B — and it must run on the ORIGINAL entry order
+    CONTROL   specs/ledger-origorder.yaml, store.go FIRST. This is the arm that consolidates:
+              pairA-p6, pairA-p7, pairA-p8 all produced memory.go = 14 bytes, and
+              _ledger-ARM-A-oldspec-ruleoff, _ledger-BEFORE-specfix and ledger-prose2 are the same
+              shape. The defect is reproducible and already documented — 3 of 3 on the paired arms.
+    ARM       identical spec and flags, parity clause withheld from store.go, SAME SERVER PROCESS.
+
+    Running this on specs/ledger.yaml (the current, reordered spec) would show nothing: that order
+    already splits correctly, four draws for four. The control has to be the broken order.
+
+SCORING — the endpoint, and what it cannot reach
+    PRIMARY   store.go does NOT declare MemStore, and memory.go is not empty. Binary, per draw.
+    PREDICTION  the arm splits correctly on at least 2 of 3 draws. Confidence 45%.
+
+    ⚠️ 45% IS DELIBERATELY LOW AND IT IS THE HONEST NUMBER. The B arm already shows the model
+    resolving this exact contradiction CORRECTLY while receiving the parity clause — verified: both
+    first-files get PARITY=YES and LANE=YES. So the clause is demonstrably not sufficient to cause
+    consolidation, and removing it may well not be sufficient to prevent it. I am running this
+    because the prompt defect is real and cheap to remove, not because I expect it to be the cause.
+
+    REJECT    if the arm consolidates on all three draws, the parity clause is not the lever and the
+              finding stays a prompt defect worth fixing on its own terms — NOT a failed hypothesis
+              to be re-explained. I will not go looking for a reason it "almost worked".
+
+    ⚠️ AND A NULL HERE DOES NOT RESTORE "the model cannot split a package". That claim is already
+    dead: the same model, same spec, implementer-first, splits correctly four times out of four.
+    Whatever this arm returns, the asymmetry between the two orders is the thing that needs
+    explaining, and this arm tests only one candidate explanation for it.
