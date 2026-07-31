@@ -56,3 +56,41 @@ WHAT SURVIVES, AND IT IS THE PART THAT MATTERED
     about ctl-3's LENGTH and not as a fact about which SOURCE to read. The fix is mechanical, not
     attentional: when comparing what a model WROTE, read .pre-fix.json. When comparing what a build
     SHIPPED, read the tree. Never one against the other.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+THE TOOL THAT PREVENTS THIS EXISTS, IN THIS DIRECTORY, AND ITS DOCSTRING NAMES MY ERROR
+════════════════════════════════════════════════════════════════════════════════════════════
+    $ python _asdrawn_diff.py generated/ledger-parity-ctl-1 generated/ledger-parity-ctl-3
+      as-drawn on BOTH sides: 19 common file(s) (18 .go + 1 non-Go) · IDENTICAL 19
+      Byte-identical as drawn.
+
+    One command. The entire two-hour investigation, answered correctly, in one line.
+
+    And on a pair where one side is still generating:
+
+    $ python _asdrawn_diff.py generated/ledger-parity-arm-1 generated/ledger-parity-arm-3
+      REFUSING: generated/ledger-parity-arm-3 carries no .pre-fix.json, so its as-drawn contents are
+      not recoverable.
+        NOT falling back to the tree on disk: that is POST-REPAIR, and reading a repaired tree as a
+        draw is the error behind every retraction on 29 July.
+
+    IT REFUSES. It would have refused me, by name, at the first comparison.
+
+⚠️ AND ITS DOCSTRING, WRITTEN BEFORE TODAY, DESCRIBES EXACTLY WHAT I DID
+    "mistaking a post-repair tree for a draw is the single error behind every retraction on 29 July.
+     A tool that silently degrades to the wrong measurement is worse than one that stops."
+
+    Two days ago this error caused every retraction of that day. Someone — me, on 29 July — built a
+    tool whose whole purpose is to make it impossible, gave it a self-test, and wrote the reason into
+    the first paragraph. Today I did the comparison by hand with `shasum` and a python one-liner,
+    twenty times, and reproduced the error the tool exists to prevent.
+
+    THE LESSON IS NOT "read the docstring". It is that an ad-hoc `shasum a b` is always available and
+    always looks sufficient, while the correct tool must be REMEMBERED. The repo already knew this:
+    "an eyeballed number in a headline is the same class of mistake with no instrument at all, so the
+    ad-hoc snippet is being replaced by something with a self-test." I then used an ad-hoc snippet.
+
+    ⚠️ There is no process fix to add here. The instrument, the refusal, the self-test and the
+    written warning all existed and none of them fired, because none of them is in the path of
+    typing `shasum`. What would have caught it is asking "is there a tool for this" BEFORE the first
+    measurement rather than after the eighth finding.
