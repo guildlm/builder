@@ -1,0 +1,29 @@
+NOTE — the four recovered baselines reproduce every number published today
+==========================================================================
+31 July, immediately after `logs/*` was inverted and four repair-survival TSVs went from untracked
+to tracked. A NOTE rather than a RESULT because it records the CONDITION the day's numbers rest on,
+not a new measurement.
+
+    file                                  rows   RED (green_before=False)                      GREEN
+    repair-survival.tsv                     74   REVERTED 59 · NO-DONOR 3                      FILLED 11 · NO-DONOR 1
+    repair-survival-nonregressing.tsv       74   FILLED 52 · REVERTED 7 · NO-DONOR 3           FILLED 11 · NO-DONOR 1
+    repair-survival-nonregressing-v2.tsv    74   FILLED 56 · REFUSED 1 · NOT-ATTEMPTED 2 · ND 3 FILLED 11 · NO-DONOR 1
+    repair-survival-multiset-v3.tsv         74   FILLED 57 · NOT-ATTEMPTED 2 · NO-DONOR 3      FILLED 11 · NO-DONOR 1
+
+    Every published figure checks out against the files, not against my memory of them:
+        59 red REVERTED under the green-requiring gate          ✓
+        52 red FILLED under the non-regressing gate             ✓
+        56 after the goroutine/pointer normalisation            ✓
+        57 under the message-count key, zero refusals           ✓
+        11 green fills, unchanged across all four runs          ✓
+        74 cases in every file — the same population throughout ✓
+
+WHY THIS IS WORTH A FILE
+    Three hours of results rest on the FIRST row of that table, and until an hour ago it existed only
+    on this disk, ignored by git. It is also the one file that cannot be regenerated: the gate it
+    measured was replaced twice today, so re-running `_repair_survival.py` now produces v3's numbers,
+    not the baseline's. A "before" column that cannot be re-derived is not a log, it is evidence.
+
+    The check itself is trivial — four counts read off four files. It is recorded because the failure
+    it guards against is not: a baseline that quietly stopped matching the claims built on it would
+    look exactly like nothing at all.
