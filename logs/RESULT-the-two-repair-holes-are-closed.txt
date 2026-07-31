@@ -93,3 +93,23 @@ WHAT IS STILL OPEN — unchanged by either fix, and still the real question
     the open one from the save point stands: how do you get the model to SPLIT a package's content
     correctly in the first place? `scope_rule` forbids consolidation in words and fails 58% of the
     time, and reordering entries only chooses which file gets emptied.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+RE-VERIFIED at the end of the day, after seven further changes to builder.py
+════════════════════════════════════════════════════════════════════════════════════════════
+Everything below FIX 2 was measured before the warning was moved, before the repair was wired into
+the failing exit, before the gate became non-regressing, before two error-key rewrites, and before
+`_disclaimed_decls` and the parity switch. None of those should touch `_required_decls`. "Should"
+is not a measurement, so:
+
+    builder.py = WIDE (FIX 2 applied)          <- the instrument's own drift check, still WIDE
+    NARROW  126 trees · 64 empty · take non-empty 54 · take EMPTY 10
+    WIDE    126 trees · 64 empty · take non-empty 63 · take EMPTY  1
+
+    Identical to this morning on every figure. The corpus grew by one tree — generated/ledger-gatefix-1,
+    today's draw — and it contributes ZERO empty planned files, which is a second, independent
+    confirmation that ledger's current entry order splits the store package correctly.
+
+That is what the drift check in `_repair_take_audit.py` was built for: it reports which extractor the
+SHIPPED code implements rather than assuming, so a later edit that silently reverted the widening
+would show up here as NARROW instead of as a number that quietly stopped meaning anything.
