@@ -19,20 +19,49 @@ cd "$(dirname "$0")"
 PAIRS="${1:-3}"
 SPEC="specs/ledger-origorder.yaml"
 MODEL="mlx-community/Qwen2.5-Coder-7B-Instruct-4bit"
+EXAMPLES="examples/verified_contracts.jsonl"
 
 WANT_PID=$(./_server_pid.sh) || exit 4
+
+# THE HARNESS MUST NOT MOVE UNDER A MULTI-HOUR RUN. Every draw is a fresh `guildlm-build`
+# process that re-reads src/builder.py, so an edit landing mid-run puts some draws on one
+# harness and the rest on another — and the whole design of a paired A/B is that control and
+# arm share a commit. On 31 July this nearly happened: a one-line logging change was queued,
+# would have been applied between pairs, and was caught only because I stopped to check.
+#
+# HASHED, NOT `git rev-parse HEAD`. Measured the same day: appending a line to src/builder.py
+# leaves HEAD unchanged and changes the file. A HEAD guard would have missed exactly the edit
+# it was written to catch. `git status --porcelain` catches THAT case but answers "is the tree
+# dirty", not "is it what I started with" — a file edited and reverted to a different commit's
+# content reads clean and is wrong.
+#
+# EVERY INPUT A DRAW READS, not just the code. Measured after the guard was first written with
+# two files: a draw also reads $SPEC and $EXAMPLES, and the spec is the MOST-EDITED file in this
+# campaign — 191 edits on record, against a handful for the runner. Guarding builder.py while
+# leaving the spec free would have watched the quiet door and left the busy one open.
+HARNESS_FILES=(src/builder.py "$0" "$SPEC" "$EXAMPLES")
+harness_hash () { shasum "${HARNESS_FILES[@]}" | awk '{print $1}' | tr -d '\n'; }
+WANT_HARNESS=$(harness_hash)
+
 echo "=== parity A/B · $PAIRS pairs · spec=$SPEC · server pid=$WANT_PID · $(date) ==="
+echo "=== harness locked at ${WANT_HARNESS:0:16} (${#HARNESS_FILES[@]} files: builder, runner, spec, examples) ==="
 
 draw () {   # draw <out> <log> <enable_rules>
   local out="$1" log="$2" rules="$3"
   local pid; pid=$(./_server_pid.sh) || return 4
   [[ "$pid" == "$WANT_PID" ]] || { echo "REFUSING: server pid changed $WANT_PID -> $pid"; return 5; }
+  local now; now=$(harness_hash)
+  [[ "$now" == "$WANT_HARNESS" ]] || {
+    echo "REFUSING: the harness changed mid-run (${WANT_HARNESS:0:16} -> ${now:0:16})."
+    echo "  Draws already taken used the OLD harness; continuing would split this experiment"
+    echo "  across two versions of the code. Restart the run, or revert src/builder.py."
+    return 6; }
   pgrep -f "\.venv/bin/guildlm-build" >/dev/null && { echo "REFUSING: a draw is in flight."; return 8; }
   [[ -e "$out" ]] && { echo "REFUSING: $out exists."; return 9; }
   echo "--- draw $out (GUILDLM_ENABLE_RULES='$rules') $(date +%H:%M:%S)"
   GUILDLM_ENABLE_RULES="$rules" .venv/bin/guildlm-build main --spec "$SPEC" --out "$out" \
     --model "$MODEL" --base-url http://localhost:8080/v1 \
-    --candidates 2 --examples examples/verified_contracts.jsonl --shots 2 \
+    --candidates 2 --examples "$EXAMPLES" --shots 2 \
     --max-fix-rounds 5 > "$log" 2>&1
   echo "--- rc=$? $(date +%H:%M:%S)"
 }

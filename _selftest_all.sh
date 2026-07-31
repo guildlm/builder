@@ -64,6 +64,35 @@ for t in _*.py; do
   fi
 done
 
+# ...and the SHELL instruments, which the loop above cannot see. It globs `_*.py` and runs
+# `python $t --self-test`; a .sh tool matches neither. _selftest_freeze_guard.sh was written
+# 31 July, passed 4/4 by hand, and was invisible to this suite — the same "correct when
+# written, silently uncovered afterwards" shape the header above describes, reproduced by the
+# fix for it. Discovery again, not a list.
+#
+# ⚠️ THE GLOB MATCHES THIS FILE. Without the skip, the suite runs itself, which runs itself.
+me=$(basename "$0")
+for t in _selftest_*.sh; do
+  [[ -e "$t" ]] || continue
+  [[ "$t" == "$me" ]] && continue
+  slow=0
+  grep -q '# selftest: slow' "$t" && slow=1
+  if [[ $FAST -eq 1 && $slow -eq 1 ]]; then
+    printf '  %-34s SKIPPED (--fast: shells out to go)\n' "$t"
+    SKIPPED=$((SKIPPED + 1))
+    continue
+  fi
+  RAN=$((RAN + 1))
+  if out=$(./"$t" 2>&1); then
+    printf '  %-34s %s\n' "$t" "$(echo "$out" | tail -1 | sed 's/^ *//' | cut -c1-84)"
+  else
+    printf '  %-34s ** SELF-TEST FAILED **\n' "$t"
+    echo "$out" | sed 's/^/        /' | tail -8
+    FAILED=1
+    FAILS+=("$t")
+  fi
+done
+
 echo
 echo "  ran $RAN · skipped $SKIPPED · failed ${#FAILS[@]}"
 if [[ $FAILED -eq 1 ]]; then

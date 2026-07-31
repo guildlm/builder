@@ -1,0 +1,117 @@
+RESULT — queue item 1 done: the freeze guard exists, covers four files, and has been SEEN to fire
+==================================================================================================
+31 July, after the parity run released the harness. Specified by measurement in
+logs/PREREG-the-parity-effect-across-processes-not-across-draws.txt ("THE FREEZE GUARD, SPECIFIED BY
+MEASUREMENT RATHER THAN BY NAME"). Zero GPU.
+
+WHAT SHIPPED
+    _parity_ab.sh hashes its inputs at start and re-checks before EVERY draw, refusing with rc 6.
+    Not `git rev-parse HEAD` — measured earlier today, appending a line to src/builder.py leaves HEAD
+    unchanged and changes the file, so a HEAD guard would have missed precisely the edit it was
+    written to catch.
+
+    _selftest_freeze_guard.sh is new and runs in the suite. It lifts the guard's lines OUT of the
+    runner by marker rather than retyping them: a hand-copied guard would pass forever after the
+    runner's version drifted.
+
+FOUR FILES, NOT TWO — the widening is the part I nearly got wrong
+    The guard as first written hashed src/builder.py and the runner. Then I asked what a draw
+    actually reads:
+
+        src/builder.py                    309528 B   guarded from the start
+        _parity_ab.sh                          —     guarded from the start
+        specs/ledger-origorder.yaml        24829 B   ADDED — and it is the busiest file here
+        examples/verified_contracts.jsonl  87364 B   ADDED — few-shot text, enters every prompt
+        src/__init__.py                       31 B   left out: 31 bytes, imports nothing
+
+    THE SPEC HAS 191 EDITS ON RECORD IN THIS CAMPAIGN, against a handful for the runner. The first
+    version watched the quiet door and left the busy one open. A spec edit mid-run splits an
+    experiment exactly as a harness edit does, and it is the far likelier event.
+
+    EXAMPLES was hardcoded inline in the draw command; it is now a variable used by both the lock and
+    the draw, so the guard cannot hash a different file than the run uses.
+
+MEASURED — the guard fires, on each guarded file
+        unchanged harness                    silent
+        builder.py edited mid-run            REFUSED
+        harness restored                     silent again
+        the SPEC edited mid-run              REFUSED
+        the EXAMPLES file edited mid-run     REFUSED
+        the runner itself edited mid-run     REFUSED        6/6
+
+    "Restored -> silent again" is in there because a guard that latches would refuse every draw after
+    any touch, which is a different failure and would look like success in a test that only mutates.
+
+⚠️ THE FIRST TEST OF THIS GUARD WAS INCONCLUSIVE BY CONSTRUCTION, AND LOOKED LIKE A PASS
+    I mutated src/builder.py and THEN launched the runner. The runner locked the mutated file, had
+    nothing to detect, and refused for an unrelated reason (output dir exists). I read a refusal and
+    nearly filed it as the guard working.
+
+    The mutation has to land BETWEEN the lock and the check — a window of milliseconds inside a real
+    multi-hour run. That is why the test extracts the guard's lines and drives them directly.
+
+⚠️⚠️ AND THE SAME MISTAKE HAPPENED AGAIN, TWICE MORE, ON THE TEST'S OWN SAFETY TRAP
+    The test mutates the REAL builder.py, the REAL spec and the REAL examples file — it has to; a
+    guard only ever shown a copy is not shown to guard anything. So a kill between mutation and
+    restore would leave the project dirty. I added a trap and then tried to verify it:
+
+    ATTEMPT 1 — kill the test at 0.10s, 0.20s, 0.30s, with the trap disabled as a control.
+        All three came back clean, reported as "window not hit".
+        FALSE. The variant copy lived in the scratchpad, and the test's own `cd "$(dirname "$0")"`
+        moved it out of the repo, where it aborted at the extraction check before touching a byte.
+        Three "controls" that never executed the code under test.
+
+    ATTEMPT 2 — kill deterministically from inside the window (`kill -TERM $$` injected right after
+        the mutation), trap vs no-trap. BOTH reported RESTORED — which is impossible for the no-trap
+        arm and is what exposed attempt 1: same scratchpad path, same silent abort.
+
+    ATTEMPT 3 — run the variants from INSIDE the repo:
+        notrap:  killed with builder.py mutated  ->  LEFT DIRTY (309550 B, +22)
+        trap:    killed with builder.py mutated  ->  RESTORED
+
+        Now the trap is shown to be load-bearing, because the arm without it demonstrably damages the
+        file. Two of the three attempts produced a green from a script that never ran.
+
+    ⚠️ THE TELL I HAD AND IGNORED: in attempt 2 the no-trap arm passed. A control that behaves
+    exactly like the treatment is not a reassuring result, it is a broken harness. I read it as noise
+    for one step before checking.
+
+A THIRD GREEN THAT MEANT NOTHING — the suite could not see this test at all
+    _selftest_all.sh discovers with `for t in _*.py` and invokes `python $t --self-test`. A `.sh`
+    tool matches neither. _selftest_freeze_guard.sh passed 6/6 by hand and was INVISIBLE to the
+    suite — so `./_selftest_all.sh --fast` would have gone on reporting a clean 38 forever while the
+    newest instrument was never run.
+
+    That is the exact shape this suite's own header describes ("a list that was correct when written
+    and went stale silently"), reproduced by the fix for it. A second glob loop now covers shell
+    instruments, with the same discovery-not-a-list principle and the self-recursion skip the glob
+    requires (`_selftest_*.sh` matches _selftest_all.sh).
+
+        before   ran 38 · skipped 6 · failed 0
+        after    ran 39 · skipped 6 · failed 0     _selftest_freeze_guard.sh  freeze guard: 6/6
+
+    ⚠️ Pre-registration said "--fast 34/0". It is 39/0 because the count has grown with the
+    instruments added today; it is not a different measurement of the same thing. The count is only
+    meaningful as "did it drop".
+
+TWO REAL DEFECTS FIXED IN THE TEST ITSELF
+    `local f="$1" bak="…$f…"` reads f before it is assigned on bash 3.2 under `set -u`. The trap
+    registered NOTHING while the test still printed 6/6 — the error went to stderr between passing
+    lines. Split into two statements.
+
+    My first integrity check used `git status --porcelain`, which showed ` M _parity_ab.sh` — my own
+    uncommitted widening, not damage. git status cannot answer "did the test damage this file" while
+    there is uncommitted work in flight. Content hashes can, and that is what the check uses now.
+
+WHAT THIS DOES NOT COVER, stated because the guard's value is exactly its scope
+    The MODEL and the server process are not hashed — `_server_pid.sh` covers the process, and the
+    weights are immutable in the HF cache. The .venv is not hashed. Nothing outside the four files
+    above is checked, so a change to a Python dependency mid-run would still pass.
+
+    And the guard cannot stop a draw already in flight from finishing under the old code; it refuses
+    the NEXT draw. That is the correct behaviour — the alternative is killing a 77-minute arm — but
+    it means the guard bounds the damage rather than preventing it.
+
+INTEGRITY AFTER ALL THIS
+    src/builder.py, the spec and the examples file are byte-identical to their pre-experiment copies,
+    builder.py is identical to git, and no variant script was left behind.
