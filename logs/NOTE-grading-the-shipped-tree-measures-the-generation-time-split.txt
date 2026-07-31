@@ -1,0 +1,30 @@
+NOTE — grading the shipped tree measures the DRAW, not the fix loop: 21 of 21 agree
+===================================================================================
+31 July. A condition the parity A/B's verdict depends on, checked while control-1 was still drawing.
+
+THE WORRY
+`_parity_ab.sh` grades the FINISHED tree: does store.go declare MemStore, does memory.go. But the
+split is decided during GENERATION, and between generation and the finished tree sit the fix loop,
+the redeclaration stripper's later passes, and — as of today — `_fill_empty_planned_files` on BOTH
+exits, which exists precisely to MOVE declarations between those two files. If any of that can flip
+the verdict, the grader is measuring the harness's cleanup rather than the model's choice.
+
+THE CHECK
+For every tree carrying a .pre-fix.json (the as-drawn snapshot) and a store package, grade both the
+snapshot and the shipped tree, and compare. Parity trees excluded — one is being written right now.
+
+    21 trees · as-drawn verdict == shipped verdict: 21 · CHANGED: 0
+
+    Not one tree in the corpus has its store-package split altered between the draw and the ship.
+
+WHAT IT LICENSES, AND WHAT IT DOES NOT
+    LICENSES: the parity A/B's endpoint is a statement about what the MODEL wrote. Reading the
+    finished tree is equivalent to reading the draw, on every case where both exist.
+
+    DOES NOT: this is 21 trees, all drawn BEFORE the repair was wired into the failing exit today.
+    A red tree that now gets its planned file filled on the way out is exactly the case that could
+    break the equivalence in future — and none of the 21 was drawn under that code. The parity draws
+    are, so if a later pair disagrees between snapshot and ship, this NOTE is where to look first.
+
+    ⚠️ Stated because the check passing is not the same as the check being future-proof, and the
+    change most likely to break it was made today by me.
