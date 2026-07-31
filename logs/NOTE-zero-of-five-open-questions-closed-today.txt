@@ -1,0 +1,36 @@
+NOTE — 70 files, 141 commits, and none of the five open questions closed
+========================================================================
+31 July 17:09. An end-of-day check against the save point's own open list, because a day that
+produces a lot of writing can feel like a day that answered something.
+
+    question                                          state   what today did to it
+    how to make the model SPLIT a package correctly   OPEN    tested one candidate lever (the parity
+                                                              clause) and REFUTED it; shipped three
+                                                              downstream repairs instead
+    why the stub rate varies by spec (35/67/80)       OPEN    added a second weak estimate; the two
+                                                              disagree by 40 points on taskapipro
+    workapi's sentinel regression: does it repeat?    OPEN    untouched
+    mechanism of the NULLs in the spec-edit series    OPEN    untouched
+    what varies ACROSS server processes (18 July)     OPEN    process identity was confirmed as the
+                                                              variable on 30 July; mechanism unknown
+
+    CLOSED TODAY: 0 of 5.
+
+WHAT WAS ACTUALLY PRODUCED, stated without inflation
+    Two pre-registered fixes applied, scored against their endpoints, and verified three ways.
+    One repair gate rewritten twice and measured at 57 of 57 addressable.
+    One prompt hypothesis tested and refuted in the reverse direction, keeping a switch OFF that I
+    would otherwise have shipped ON.
+    One harness defect (timestamped output in three consumers) found, sized, and validated on real
+    data — queued, not applied.
+    One retraction covering eight findings, and four measurements discarded before publication.
+
+    That is a day of REPAIR AND HYGIENE, not a day of answers. The distinction matters because the
+    save point's open list is the campaign's actual agenda, and none of it moved.
+
+⚠️ THE ONE THING THAT DID NARROW THE FIRST QUESTION
+    "The model cannot split a package" is dead — it splits correctly, reproducibly, given the
+    implementer entry first. So the question sharpened from "why can't it" to "what makes the
+    interface-first order produce a complete package instead of a declaration file". That is
+    progress on the QUESTION, not on the ANSWER, and it came from four draws rather than from any of
+    the fixes.
