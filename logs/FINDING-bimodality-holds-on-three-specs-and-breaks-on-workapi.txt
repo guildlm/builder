@@ -1,0 +1,38 @@
+FINDING — the all-or-nothing shape holds on three specs and BREAKS on workapi
+=============================================================================
+31 July. 140 trees, four spec families, parity trees excluded (one is live). Generalises — and
+partly refutes — the bimodality noted on ledger an hour ago.
+
+    spec          trees   store.go WITH MemStore        store.go WITHOUT
+    ledger          22     8   (9–11 declarations)      14  (exactly 1)        clean split
+    taskapi         19     7   (11–13)                  12  (1–6)              gap 6 -> 11
+    taskapipro      44    12   (11–13)                  32  (0–3)              gap 3 -> 11
+    workapi         55    42   (7–10)                   13  (1–9)              ⚠️ OVERLAP
+
+    ledger is perfectly bimodal: a consolidated store.go declares nine to eleven symbols, a clean one
+    declares exactly one. taskapi and taskapipro have a wide gap. workapi does NOT — its clean
+    store.go files run up to NINE declarations while its consolidated ones start at SEVEN.
+
+WHY workapi DIFFERS, and it is not mysterious
+    workapi's store.go purpose legitimately assigns it more than an interface: "Exported sentinels
+    var ErrNotFound and var ErrExists" plus a context-aware Store interface. So a correct workapi
+    store.go declares several symbols, and declaration COUNT stops separating the two shapes there.
+
+    The MemStore test still separates them cleanly on all four specs. It is the count-based
+    "bimodality" that is spec-specific, not the underlying phenomenon.
+
+    ⚠️ SO THE HOUR-OLD NOTE OVERSTATED ITS REACH. It said the failure mode "is a switch between two
+    whole shapes" on the evidence of 11 ledger trees. On 140 trees the switch is still visible, but
+    the metric I used to see it only works where the spec gives store.go a single job.
+
+THE CONSOLIDATION RATE BY SPEC, since the counting was already done
+    workapi 42/55 (76%) · taskapi 7/19 (37%) · ledger 8/22 (36%) · taskapipro 12/44 (27%)
+
+    ⚠️ THIS IS A MIXTURE, NOT A PER-DRAW PROBABILITY. These trees span months, several harness
+    versions, both entry orders, and deliberate experimental arms — including arms drawn SPECIFICALLY
+    to produce or suppress the defect. Reading 76% as "workapi consolidates three times in four"
+    would be exactly the error this campaign logged on 17:05 of 20 July: describing a mixture over
+    conditions as a probability per draw.
+
+    What it does support is the coarse ordering the campaign already had from stub rates (35/67/80 by
+    spec): the defect is spec-dependent, and workapi is the worst affected.
