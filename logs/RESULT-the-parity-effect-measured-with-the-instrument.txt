@@ -41,3 +41,27 @@ THE VERDICT IS UNCHANGED AND NOW RESTS ON THE RIGHT MEASUREMENT
     controls SPLIT 3/3 (store.go 377B, interface only) · arms CONSOLIDATED 2/2 (store.go 2263B with
     MemStore, memory.go a 14-byte stub). Effective n is still ONE per condition, because the draws
     within a condition are identical — which is now measured rather than assumed.
+
+arm-3 CLOSES THE SET — all six draws now compared as-drawn with the instrument
+    arm-1 vs arm-3   19 common files · IDENTICAL 19 · byte-identical as drawn
+    arm-2 vs arm-3   19 common files · IDENTICAL 19 · byte-identical as drawn
+
+    Waited for arm-3's .pre-fix.json rather than reading its complete-but-unsnapshotted tree, which
+    would have given the right answer by luck and is the inference behind today's retraction.
+
+THE COMPLETE PARITY TABLE, every pair measured as-drawn by `_asdrawn_diff.py`
+    controls  ctl-1 = ctl-2 = ctl-3   identical 19/19   store.go 377B, interface only   SPLIT 3/3
+    arms      arm-1 = arm-2 = arm-3   identical 19/19   store.go 2263B, +MemStore       CONSOLIDATED 3/3
+
+    Six draws, two conditions, zero within-condition variation, and a clean between-condition
+    difference that lands on the manipulated file.
+
+    ✓ THE PRE-REGISTERED PRIMARY IS NOW 3 of 3 IN BOTH DIRECTIONS. The original prediction was that
+      the ARM would SPLIT on at least 2 of 3; it CONSOLIDATED 3 of 3. The hypothesis was backwards
+      and is refuted at full strength rather than on partial data.
+
+    ⚠️ AND THE EFFECTIVE n IS STILL ONE PER CONDITION. Three byte-identical draws are one draw
+      confirmed reproducible three times. What this run establishes is that a 543-character prompt
+      difference flips the outcome with everything else held identical — not how often it would flip
+      across processes, specs or temperatures. That is what the corrected design
+      (logs/PREREG-the-parity-effect-across-processes-not-across-draws.txt) is for.
