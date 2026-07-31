@@ -99,3 +99,34 @@ WHAT THE INTERVALS ACTUALLY CONTAINED
     across two ~100-minute gaps and failed across a third. That is the whole of it. Anything about
     thresholds, warm-up, cache growth or load is unsupported by these four points, and the campaign
     already has one unanswered mechanism question of exactly this shape.
+
+⚠️ NOR IS IT THE PROMPT CACHE — the second obvious hypothesis, and the correlation runs BACKWARD
+    mlx_lm.server logs "Prompt Cache: N sequences, X GB" on every request. State at each draw start:
+
+        ctl-1  11:50   10 sequences  6.22 GB      \
+        arm-1  12:20   10 sequences  6.15 GB       |  ctl-1 and ctl-2 have DIFFERENT cache sizes
+        ctl-2  13:37   10 sequences  5.70 GB      /   and are BYTE-IDENTICAL
+        arm-2  13:57   10 sequences  6.16 GB
+        ctl-3  15:19   10 sequences  5.70 GB          ctl-2 and ctl-3 have the SAME cache size
+                                                      and DIFFER
+
+    The cache reached its cap of 10 sequences at 10:22:41 — an hour and a half BEFORE the first
+    parity draw. So every draw in this experiment started from a saturated cache, and "saturation
+    begins, behaviour changes" cannot separate them.
+
+    Worse for the hypothesis: the pair with DIFFERENT logged cache sizes (6.22 vs 5.70) reproduced
+    exactly, and the pair with IDENTICAL logged sizes (5.70 vs 5.70) diverged. Whatever the observable
+    tracks, it is not what changed.
+
+    ⚠️ NOT FULLY DEAD, AND I WILL NOT PRETEND IT IS. "10 sequences, 5.70 GB" is a coarse summary; two
+    caches of the same size can hold different content. The claim this supports is narrow: the LOGGED
+    cache state does not explain the drift, and no finer observable is available without instrumenting
+    the server.
+
+TWO HYPOTHESES OFFERED, TWO KILLED, IN ABOUT SIX MINUTES EACH
+    elapsed time — refuted by 107 min identical vs 101 min differing
+    prompt cache — refuted by the correlation running backward
+
+    Both were the first thing I reached for, both were cheap to check, and neither survived. The
+    mechanism is unknown and the honest position is that it stays unknown until something measures
+    the server's internal state rather than its log summary.
