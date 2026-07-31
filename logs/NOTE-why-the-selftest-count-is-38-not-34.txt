@@ -1,0 +1,33 @@
+NOTE — the pre-registration says "--fast 34/0" and the suite now says 38/6/0. Nothing was lost.
+================================================================================================
+31 July. A condition attached to every FIX 2 citation, because the acceptance criterion written at
+03:45 names a number the suite no longer prints.
+
+    logs/PREREG-fix-the-two-repair-holes.txt:  "confirm 34 ran / 0 failed"
+    today:                                     ran 38 · skipped 6 · failed 0
+
+MEASURED RATHER THAN ASSUMED — the question is whether tests were LOST
+    self-tested tools at 8f2abd2 (the pre-registration's own commit):  41
+    self-tested tools at HEAD:                                         44
+        ADDED   3   _repair_take_audit.py, _repair_survival.py, _score_nonregressing.py
+        REMOVED 0
+
+    And every one of the 44 is touched by the suite — the run accounts for all of them, 38 executed
+    and 6 skipped as slow. Nothing has fallen out of the glob.
+
+SO THE 34 WAS NEVER THE TOTAL
+    It was the RAN count under --fast at that moment: 41 tools minus the 7 that shelled out to Go.
+    The number moved for two reasons, both of them additions rather than losses:
+        +3  the three instruments built today, all with self-tests
+        -1  from the ran column to the skipped column: _repair_survival.py, once it was marked
+            slow, because --fast had been running its 3.7 seconds of real Go beside a live draw
+
+    ⚠️ 38 IS NOT A FULLER GREEN THAN 34. The suite says so itself on every run: "6 tool(s) were NOT
+    run. This is not a full green — say so when citing it." Citing 38/0 as though it were complete
+    would be the same error the banner exists to prevent.
+
+WHY THIS IS WRITTEN DOWN
+    A standing instruction that names a fixed number goes stale the moment the tree grows, and the
+    honest options are to update the number or to explain it. Explaining is better here: the number
+    is a property of how many instruments exist, which changes every time a measurement needs a new
+    one — three times today alone.
