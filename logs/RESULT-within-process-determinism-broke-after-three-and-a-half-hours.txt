@@ -204,3 +204,33 @@ WHERE THE MODEL NOW STANDS
     Still not proven, and the same caveat as before applies: separating this from repeated drift
     needs pinned predecessors. But it has now survived a test that could have refuted it, on a
     package chosen because it sits downstream of the divergence.
+
+⚠️⚠️ THE PROPAGATION MODEL IS REFUTED — store.go's PROMPT IS IDENTICAL AND ITS OUTPUT IS NOT
+    Rendering store.go's generation prompt from each tree's own predecessors:
+
+        ctl-1  26816 chars     ctl-3  26816 chars     diff lines: 0     IDENTICAL
+
+    And its outputs differ: 413 bytes using money.Money vs 377 bytes using models.Money.
+
+    So store.go is a SECOND independent divergence, not an inheritance of the first. models_test.go's
+    two-line import difference does not reach store.go's prompt at all — the context includes the
+    file, but not in a form that carries that line.
+
+    "One root event followed by deterministic propagation" is therefore WRONG. There are at least
+    TWO events, each from an identical prompt, and file 11's recovery is not evidence of propagation
+    — it is just a third draw that happened to land in the same place.
+
+    ⚠️ I proposed that model 20 minutes ago, tested it on the api package where it survived, and it
+    dies on the first case where the prompt could actually be compared. The api test could not
+    refute it: those files' prompts DID differ, so identical output there was compatible with both
+    models. This one distinguishes them, and it took rendering one prompt.
+
+CAVEAT ON THE PROMPT COMPARISON, stated because it is the load-bearing measurement
+    The rendered prompts pass no retrieved examples; the real draws used --examples
+    verified_contracts.jsonl --shots 2. `_generate_file` asks the retriever for
+    top_k(f"{path} {purpose}", 2), which is a similarity ranking over a FIXED file with a FIXED
+    query, so the two draws should receive identical shots. But I did not reproduce them, and if the
+    retriever were order-unstable the real prompts could differ where my render does not.
+
+    That is the one way this result could be wrong, and it is checkable by rendering with a retriever
+    — not done here, and named so it is not forgotten.
