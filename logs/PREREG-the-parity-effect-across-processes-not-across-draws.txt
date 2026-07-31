@@ -149,3 +149,26 @@ THE FREEZE GUARD, SPECIFIED BY MEASUREMENT RATHER THAN BY NAME
     is actually being asked.
 
     Cost: one shasum per draw, against draws that take 19 to 82 minutes.
+
+RESTART MECHANISM PRE-FLIGHTED against the live server
+    readiness probe   curl -s -m 3 http://localhost:8080/v1/models   ->  responds in 0.157s
+    _server_pid.sh    7598        pgrep -f mlx_lm.server   7598      ->  agree
+
+    So the runner's between-pair sequence is: read the pid with `./_server_pid.sh` (NOT lsof — colima
+    binds 8080 too), kill it, relaunch with the same --model, then poll /v1/models until it answers.
+    Observed cold-start-to-first-inference this morning: 39 seconds.
+
+    ⚠️ THE PROBE ANSWERS BEFORE THE MODEL IS LOADED. /v1/models is served by the HTTP layer and, as
+    established today, LISTS THE HF CACHE rather than the loaded model — it returned
+    Qwen2.5-3B-Instruct while the 7B coder was serving. So "responds" means the socket is up, not that
+    inference is ready.
+
+    The honest readiness signal is the first completion, not the first 200. The runner should either
+    wait for the startup log's model-fetch line, or simply issue a tiny completion and wait for it —
+    the second is self-validating and costs one short generation.
+
+    ⚠️ Recorded because "poll the health endpoint until it answers" is the obvious implementation and
+    it would start a draw against a server that is still loading weights, producing a first draw that
+    differs from the rest of its pair for reasons that have nothing to do with the manipulation. That
+    is the same class as every confound corrected today, and it is cheapest to avoid before writing
+    the runner.
