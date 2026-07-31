@@ -1,0 +1,28 @@
+NOTE — three of the four queued items need no GPU, and only one needs a draw to be worth anything
+==================================================================================================
+31 July 17:21, with arm-3 in its final round. Bounding the queue so the next session knows what can
+start immediately and what has to wait for hardware.
+
+    item                                        cost      what it needs
+    1  freeze guard in _parity_ab.sh            no GPU    edit + self-test; blocked only because the
+                                                          run is still reading that file
+    2  timestamp normalisation, three consumers no GPU    edit + pytest + a corpus re-run (CPU)
+    3  stripper removed-name logging (5204)     no GPU    edit + pytest — but its VALUE needs a draw
+    4  corrected parity, 1 pair x 3 processes   GPU 5.3h  the server and six draws
+
+THE ORDERING IS FIXED BY TWO DEPENDENCIES, NOT BY PREFERENCE
+    · item 1 before item 4, because item 4 is a multi-hour run and the guard is what stops a harness
+      edit landing mid-experiment — the exact hazard I walked up to today and stopped at by luck.
+    · item 2 before item 4, because it makes each failing arm ~20 minutes cheaper (5 of 8 surfaces
+      collapse, measured on arm-1's real output), which is ~60 minutes off a 5.3-hour run.
+
+    Item 3 is independent of both and can land whenever; it is queued last because it is the only one
+    whose payoff is deferred — it makes the NEXT occurrence of the stripper question answerable and
+    does nothing for the ones already gone.
+
+⚠️ WHAT "NO GPU" DOES NOT MEAN. Items 1-3 are cheap to APPLY and none of them is verified until it
+runs against something real. Item 2's three normalisations are validated on captured output and on
+fixtures; what has not been checked is the call sites behaving once the hashes start colliding, which
+needs a build. That check is the first thing after the edit, and it is written into the finding rather
+than left as an intention — the first goroutine fix passed four tests and a control check this morning
+and then flipped zero of the four cases it was written for.
