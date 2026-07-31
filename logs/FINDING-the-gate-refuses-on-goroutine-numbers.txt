@@ -1,0 +1,44 @@
+FINDING — four of five refusals are the gate reading goroutine IDs as new errors
+================================================================================
+31 July, found by reading the refusal MESSAGES while the run was still going, rather than by
+counting the refusals. Defect is in this morning's fifth edit — my own non-regressing gate.
+
+WHAT THE REFUSALS SAY
+    left internal/store/memory.go empty: moving MemStore into it breaks
+        : created by testing.(*T).Run in goroutine 20; : goroutine 22 [running]:
+    left internal/store/memory.go empty: moving MemStore into it breaks
+        : created by testing.(*T).Run in goroutine 34; : goroutine 36 [running]:
+    ... two more of the same shape ...
+    left internal/store/memory.go empty: moving MemStore into it breaks
+        internal/store/memory.go: package models is not in std      <- the only genuine one
+
+    4 FALSE · 1 REAL, of the refusals logged so far.
+
+THE MECHANISM
+    `_error_keys` keys any line it cannot parse as `file:line: message` under ("", line). A panicking
+    or timing-out test prints a GOROUTINE DUMP, and those lines carry goroutine NUMBERS that differ
+    between runs of identical code. So the before-set and the after-set never match, every dump line
+    reads as a NEW error, and the gate refuses a move that changed nothing.
+
+    It is the same class of problem `_canonical_toolchain_output` already exists to solve — it strips
+    per-package durations, per-test durations and `(cached)`, precisely because they vary run to run
+    and carry no information. Goroutine IDs belong on that list and are not on it.
+
+WHY IT MATTERS MORE THAN THE COUNT
+    The pre-registered PRIMARY counts red-tree cases the new gate ACCEPTS. Every false refusal is a
+    case wrongly excluded, so the measured number is a FLOOR, and the reject condition "no accepted
+    move leaves a new (file, message)" is untouched — false refusals are conservative, never unsafe.
+
+    ⚠️ BUT THE RESULT AS IT STANDS UNDERSTATES THE GATE, and I would have reported it as the gate's
+    verdict. The refusal count is not a property of the moves; it is partly a property of whether the
+    tree's tests happen to panic.
+
+THE FIX, and it is not a widening of the comparison
+    Drop goroutine-dump lines in `_error_keys` — the `goroutine N [state]:`, `created by ... in
+    goroutine N` and `file.go:NN +0x...` frames — the same way durations are already dropped. NOT by
+    loosening the key: a genuinely new panic still shows up as its own error line above the dump, and
+    the "package models is not in std" refusal above must keep refusing.
+
+⚠️ FIFTH INSTRUMENT DEFECT TODAY, and the second in the gate I shipped this morning (the first being
+the TSV that omitted green_after). All five were found by USING the instrument on the next question.
+Not one was found by re-reading it, and I have re-read these files repeatedly.
