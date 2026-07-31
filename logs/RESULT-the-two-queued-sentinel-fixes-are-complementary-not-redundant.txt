@@ -1,0 +1,66 @@
+RESULT — the two queued fixes address DIFFERENT cases: 16 vs 3, not the same 16
+=================================================================================
+31 July, while the parity run holds src/builder.py. Archived snapshots and specs only, no GPU.
+Decision-relevant: two changes are queued behind the same experiment and shipping both when one
+suffices is a cost worth avoiding.
+
+THE TWO CANDIDATES
+    SPEC FIX   backtick the sentinels in the purpose of the entry that DECLARES them, so
+               _required_decls demands them. +52% recall at 93% precision, zero code.
+    API FIX    parse grouped var/const blocks in exported_api(), so a consumer SEES the sentinels
+               its neighbours actually declare, grouped under the right package.
+
+MEASURED across the 21 broken-as-drawn cases
+        spec fix   api fix   cases   meaning
+          True      False      16    ONLY the spec fix
+          False      True       3    ONLY the API fix — right name, WRONG PACKAGE
+          False     False       2    neither
+
+    THEY ARE COMPLEMENTARY, NOT REDUNDANT. Together they address 19 of 21 (90%); the spec fix alone
+    reaches 16 (76%), the API fix alone 3 (14%). There is NO case both address.
+
+WHY THE SPLIT FALLS THAT WAY
+    THE 16 ARE A WRONG DECLARATION. models.go writes `ErrInsufficient` where the spec says
+    `ErrInsufficientFunds`. Exposing grouped blocks cannot help — the name the consumer wants does
+    not exist anywhere in the tree, so there is nothing to show it. Only forcing the declarer to
+    conform fixes these.
+
+    THE 3 ARE A WRONG QUALIFIER. internal/api writes `service.ErrExists`; the symbol IS declared,
+    correctly named, in internal/store. internal/service declares no exported sentinel at all and
+    its spec never promised one. Here the API block is exactly the right instrument: it groups
+    symbols BY PACKAGE, so a consumer shown `ErrExists` under `package store` can qualify it right.
+    The spec fix cannot help — nothing in the spec is wrong.
+
+    THE 2 REMAINING reference a symbol that exists nowhere in the tree under any package. Neither
+    mechanism has anything to offer, and they are recorded rather than explained.
+
+⚠️⚠️ MY FIRST MEASUREMENT OF THIS SAID "REDUNDANT" AND WAS WRONG
+        first run    16 both · 5 neither     ->  "shipping both buys nothing"
+        corrected    16 spec · 3 api · 2 neither  ->  "complementary, 90% together"
+
+    The bug: I tested whether the DECLARING PACKAGE NAMED IN THE REFERENCE had a grouped block —
+    `hid[tgt]` where tgt is internal/service — instead of whether the wanted symbol exists in a
+    grouped block ANYWHERE. For the wrong-qualifier cases the named package is precisely the wrong
+    place to look, so the test asked its question at the one address guaranteed to answer no.
+
+    The conclusion inverted completely: from "these are the same fix" to "these are disjoint fixes".
+    Caught because the 5 "neither" cases were worth opening, and opening them showed ErrExists sitting
+    in internal/store all along.
+
+    ⚠️ THAT IS THE FOURTH TIME TODAY A NUMBER WAS WRONG UNTIL I READ THE UNDERLYING CASE. The others:
+    the green detector's 0, the merged-log 15, the failing-build tail. Every one was an aggregate
+    that looked plausible and a case file that did not match it.
+
+WHAT THIS SETTLES, AND WHAT IT DOES NOT
+    SETTLED: ship both, and expect different things from them. The spec fix is the larger win and
+    costs no code; the API fix is smaller, costs code, and is the only thing that addresses
+    qualifier confusion.
+
+    NOT SETTLED: whether either works. Both numbers are counterfactual — "the mechanism applies to
+    this case" is not "the model would then get it right". The spec fix's gate REJECTS AND RESAMPLES,
+    which changes what gets written, and the API fix changes a prompt. Both need a draw, both are
+    pre-registered, and both are blocked on the running experiment.
+
+    AND 21 CASES IS 21 CASES. These are the broken-as-drawn trees among 50 snapshots — a small,
+    recent, ledger-heavy population. The 3 qualifier cases are all taskapipro and workapi, so that
+    class may simply be what those two specs do.
