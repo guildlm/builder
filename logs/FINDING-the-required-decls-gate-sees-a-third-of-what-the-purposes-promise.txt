@@ -1,0 +1,75 @@
+FINDING — _required_decls extracts nothing from the purpose that names five sentinels
+=======================================================================================
+31 July, found by following the cross-package sentinel defect back one more step. Specs and archived
+snapshots only, no GPU. builder.py FROZEN under the parity run; measured, not applied.
+
+WHERE IT CAME FROM — the sentinel defect has a layer underneath it
+    The previous finding concluded that response.go and models.go "guess independently because the
+    channel that would tell them was empty". THAT IS NOT THE WHOLE STORY. ledger's spec NAMES the
+    sentinels, in models.go's own purpose:
+
+        "Sentinel errors, all matchable with errors.Is:
+         ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced, ErrInsufficientFunds."
+
+    So models.go was TOLD the exact name and wrote `ErrInsufficient` anyway — a violation of its own
+    purpose. response.go, which receives every file's purpose, used the long name and was RIGHT.
+
+    ⚠️ THIS CORRECTS THE PREVIOUS FINDING'S FRAMING. "Two files guessing" is wrong: one file was
+    told and complied, the other was told and did not. The API-block fix is still worth having —
+    it would let a consumer see what was ACTUALLY declared — but the primary defect is upstream.
+
+AND THE GATE THAT EXISTS TO CATCH EXACTLY THIS EXTRACTS NOTHING
+        _required_decls(models.go purpose)  ->  set()
+
+    Empty. The gate rejects a candidate "missing promised X" for every X it extracts, and from a
+    purpose listing five sentinel errors and three struct types it extracts none.
+
+WHY — the three extractors, read rather than assumed
+        _REQUIRED_TYPE_RE      ([A-Z]\w*)\s+(?i:struct|interface)     "Foo struct" only
+        _REQUIRED_BACKTICK_RE  `([A-Z]\w*)`                           a whole backtick = one name
+        _REQUIRED_VARCONST_RE  \b(?:var|const)\s+([A-Z]\w*)           "var Foo" only
+
+    ledger's purpose writes `Account{ID string, Name string}` — backticked, but the backtick holds a
+    struct literal, so `([A-Z]\w*)` cannot match. And the sentinels are a bare comma-separated prose
+    list with no keyword and no backticks. Every form this spec actually uses is invisible.
+
+HOW BIG, measured against as-drawn evidence rather than a regex guess
+    For each (tree, file) with a spec purpose: identifiers the file ACTUALLY declares, that the
+    purpose names VERBATIM, that _required_decls did not extract.
+
+        (tree, file) pairs with a purpose                              472
+        ...missing at least one such declaration                       397   (84%)
+        ...restricted to EXPORTED declarations only                    318   (67%)
+
+        most-missed exported:  NewRouter 46 · ErrNotFound 45 · Chain 42 · Middleware 42 ·
+                               ErrExists 39 · NewAccountHandler 24 · ErrInvalid 24
+
+    ⚠️ 84% IS THE LOOSE NUMBER AND 67% IS THE ONE TO QUOTE. The first includes unexported names
+    (statusRecorder, writeError, writeJSON) and `main`, which a gate about cross-file contracts has
+    no obvious business demanding. Restricting to exported names is the conservative read and it is
+    still two thirds.
+
+    ⚠️ AND "NAMED VERBATIM" IS NOT THE SAME AS "SHOULD BE REQUIRED". A purpose may name a symbol a
+    SIBLING owns — that is precisely why the gate subtracts sibling_decls at the call site. This
+    measures what the extractor CANNOT SEE, not what it ought to demand.
+
+WHY THIS IS NOT A ONE-LINE WIDENING, and why I am not proposing one
+    logs/FINDING-the-generation-gate-demands-the-over-reach.txt already records the opposite failure:
+    the gate demanding names the file should NOT declare, because "nothing in the extracted names
+    says which entry OWNS Store and which merely names it". Widening the extractor makes that
+    problem strictly worse in proportion.
+
+    So the two findings bound the design from both sides:
+        too narrow   the gate is blind to two thirds of the exported names the purposes promise
+        too wide     it demands names a sibling owns, and rejects correct candidates
+
+    A useful widening therefore needs OWNERSHIP, not just extraction — and FIX 2 today already
+    carries the machinery for that (_disclaimed_decls, _foreign_owned_decls). That is a design
+    question, not a regex, and it is recorded here rather than attempted at 20:40 with a six-draw
+    experiment holding the file.
+
+⚠️ WHAT I CHECKED BEFORE CLAIMING THIS, having failed to three times today
+    `grep -rln _required_decls logs/*.txt` — eight files. The closest, "the generation gate demands
+    the over-reach", describes the gate's over-reach and its subtraction rule; none of the eight
+    records that the extractor returns EMPTY for the purposes this campaign's own specs are written
+    in. The boundary is narrow and it is stated rather than assumed.

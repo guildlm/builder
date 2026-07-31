@@ -182,3 +182,11 @@ THEN I COUNTED, AND THREE OF THE FOUR DO NOT OCCUR
 AND THE FOOTPRINT IS BIGGER THAN THE EARLIER NUMBER SUGGESTED: 40 of 50 trees contain a grouped var
 block, not the 46-of-475 files quoted before. The file count understates it because one models.go
 per tree carries every sentinel the whole project shares.
+
+⚠️ FRAMING CORRECTED — see logs/FINDING-the-required-decls-gate-sees-a-third-of-what-the-purposes-
+promise.txt. "Two files guessing independently because the channel was empty" is wrong. ledger's
+spec NAMES the sentinels in models.go's own purpose ("ErrInvalid, ErrNotFound, ErrExists,
+ErrUnbalanced, ErrInsufficientFunds"), and response.go — which receives every file's purpose — used
+the long name CORRECTLY. models.go was told and did not comply. The API-block fix still stands (a
+consumer should see what was actually declared) but the primary defect is upstream, in a file that
+ignored its own purpose while _required_decls extracted nothing to enforce it.
