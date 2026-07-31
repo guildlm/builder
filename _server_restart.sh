@@ -22,13 +22,19 @@ cd "$(dirname "$0")"
 
 MODEL="${MODEL:-mlx-community/Qwen2.5-Coder-7B-Instruct-4bit}"
 PORT="${PORT:-8080}"
+MLX_PY="${MLX_PY:-../.mlx-venv/bin/python}"
+[[ -x "$MLX_PY" ]] || { echo "REFUSING: no mlx python at $MLX_PY"; exit 3; }
 CHECK=0
 [[ "${1:-}" == "--check" ]] && CHECK=1
 
+# ⚠️ THE MODEL ID MUST BE THE REAL ONE. Sending {"model":"x"} makes mlx_lm.server try to FETCH
+# model "x" from HuggingFace and return 404 — so the probe reported NOT READY against a perfectly
+# healthy server, idle, in 0.2s. Two separate bugs stacked: this one made the probe useless
+# always, and request serialisation made it time out when busy. The first hid behind the second.
 ready () {   # a real 1-token completion; the only self-validating readiness signal
   curl -s -m 20 "http://localhost:$PORT/v1/chat/completions" \
     -H 'Content-Type: application/json' \
-    -d '{"model":"x","messages":[{"role":"user","content":"hi"}],"max_tokens":1,"temperature":0}' \
+    -d "{\"model\":\"$MODEL\",\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}],\"max_tokens\":1,\"temperature\":0}" \
     2>/dev/null | grep -q '"choices"'
 }
 
@@ -70,7 +76,11 @@ done
 pgrep -f "mlx_lm.server" >/dev/null && { echo "  ** old server did not exit **"; exit 8; }
 
 log="logs/mlx-server-restart-$(date +%H%M%S).out"
-nohup .venv/bin/python -m mlx_lm.server --model "$MODEL" --port "$PORT" > "$log" 2>&1 &
+# ⚠️ THE MODEL SERVER DOES NOT RUN FROM builder/.venv. It runs from a SEPARATE venv one level
+# up: guildlm/.mlx-venv. Assumed otherwise on 31 July, killed a healthy server, and relaunched
+# with a python that has no mlx_lm — "ModuleNotFoundError: No module named 'mlx_lm'". The
+# evidence was in logs/mlx-server-0731.out's very first line the whole time.
+nohup "$MLX_PY" -m mlx_lm.server --model "$MODEL" --port "$PORT" > "$log" 2>&1 &
 echo "  relaunched, log $log"
 
 start=$(python3 -c 'import time;print(time.time())')

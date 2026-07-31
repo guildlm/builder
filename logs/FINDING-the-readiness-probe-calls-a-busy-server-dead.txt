@@ -65,3 +65,56 @@ STATUS OF THE RESTART SCRIPT
     Written, syntax-checked, and its REFUSAL path is verified live. The RESTART path is NOT verified:
     it cannot be, while a draw holds the GPU. What is untested is the kill-wait-relaunch-poll
     sequence and the 39s cold start it assumes. First thing to exercise once arm-4 lands.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️⚠️ CORRECTED, 19:36 — THE PROBE HAD A SECOND BUG THAT MADE IT USELESS EVEN ON AN IDLE SERVER
+════════════════════════════════════════════════════════════════════════════════════════════
+Exercising the restart path once arm-4 released the GPU exposed two more defects, and one of them
+undermines the attribution above.
+
+1. THE PROBE SENT {"model":"x"}. mlx_lm.server takes that literally and tries to FETCH a model
+   named "x" from HuggingFace:
+
+       GET https://huggingface.co/api/models/x/revision/main  ->  404
+       POST /v1/chat/completions  ->  404
+
+   So the probe returned NOT READY against a healthy, IDLE server in 0.2s. It never worked at all.
+   Fixed to send "$MODEL". Now: READY in 2.5s idle, 0.3s warm.
+
+   ⚠️ WHAT THIS DOES TO THE FINDING ABOVE. I recorded "20.1s timeout against a busy server" and
+   attributed it to request serialisation. That attribution is now WEAKER than I stated: the probe
+   was also malformed, so what timed out was a request that would have failed anyway. The
+   0.2s-idle vs 20.1s-busy gap is still a hundredfold difference and still shows the HTTP layer is
+   blocked during generation — but I have NOT measured a CORRECT probe against a busy server, and
+   the finding as written implied I had.
+
+   THE PRACTICAL CONCLUSION SURVIVES UNCHANGED: --check refuses to probe while a draw is in flight.
+   That is right whether or not serialisation is the mechanism, because putting a request on a
+   server running an experiment is bad practice on its own.
+
+2. THE RELAUNCH USED THE WRONG PYTHON. `.venv/bin/python -m mlx_lm.server` ->
+   "ModuleNotFoundError: No module named 'mlx_lm'". The model server runs from a SEPARATE venv one
+   level up, guildlm/.mlx-venv — and the very first line of logs/mlx-server-0731.out says so:
+
+       /Users/.../guildlm/.mlx-venv/lib/python3.11/site-packages/mlx_lm/server.py:1723: UserWarning
+
+   I killed a healthy server and could not bring it back, on an assumption contradicted by a file
+   in this directory. Same class as the /v1/models mistake: reading the log I already had would
+   have cost one command.
+
+RESTART PATH NOW VERIFIED END TO END, which it never was before:
+
+       current server pid   42796
+       killing 42796
+       relaunched, log logs/mlx-server-restart-193626.out
+       READY after 11s · new pid 45930 (was 42796)
+       _server_pid.sh independently confirms 45930
+
+   11 seconds, not the 39 estimated from this morning's cold start — the weights are in the OS
+   page cache after a day of use. The estimate was an upper bound, so the design's cost argument
+   is unaffected.
+
+   ⚠️ THREE SERVER PROCESSES DIED TODAY TO LEARN THIS, all after the experiment they served had
+   finished. Had I exercised the restart path when it was WRITTEN — against a server nothing
+   needed — instead of when it was first NEEDED, the cost would have been the same and the risk
+   zero. "Verify the destructive path early, while its failure is cheap" is the transferable rule.
