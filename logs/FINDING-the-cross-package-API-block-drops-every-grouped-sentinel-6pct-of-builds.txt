@@ -1,0 +1,99 @@
+FINDING — the cross-package API block silently drops every sentinel declared in a var block
+=============================================================================================
+31 July, found by chasing why the first cross-process control failed where three earlier controls
+went green. Logs and archived snapshots only, no GPU. builder.py is FROZEN under the running parity
+experiment, so this is measured and queued, not applied.
+
+HOW IT WAS FOUND — the green-to-red flip had a cause after all
+    ledger-xproc-ctl-1 exhausted 6 rounds on ONE error, unchanged from round 2 to round 6:
+
+        internal/api/response.go:30:29: undefined: models.ErrInsufficientFunds
+
+    The as-drawn diff between that draw and the green one is a SINGLE IDENTIFIER:
+
+        parity ctl-1   ErrInsufficientFunds = errors.New("insufficient funds")
+        xproc  ctl-1   ErrInsufficient      = errors.New("insufficient funds")
+
+    Same string, different name. response.go — a DIFFERENT package, generated later — wrote
+    `models.ErrInsufficientFunds` in both draws. In the first it happened to guess the name models.go
+    had chosen. In the second it did not, and the project never compiled.
+
+    ⚠️ AND THE STRIPPER WAS RULED OUT BY ITEM 3, SHIPPED THIS AFTERNOON. Zero "stripped redeclared
+    symbols" lines in the whole log, so FIX 2's widened decl set did not remove it — the model simply
+    chose a different name. That is a generation difference across processes, NOT a regression from
+    any of today's seven builder.py commits. The logging paid for itself within four hours.
+
+THE MECHANISM — response.go was never told the name
+    Rendering response.go's own context with internal/models/ already written:
+
+        OTHER-PACKAGE APIs — import these; only exported names are visible:
+        --- package models  (import "guildlm.dev/ledger/internal/models") ---
+        type Account struct {...}
+        func (a Account) Validate() error
+        type Posting struct {...}
+        type Transaction struct {...}
+
+        contains "ErrInsufficient"        False
+        contains "ErrInsufficientFunds"   False
+
+    NO SENTINEL APPEARS AT ALL. A consumer that needs one is guessing.
+
+THE BUG IS ONE REGEX, AND THE CODE BELIEVES IT DOES THE OPPOSITE
+    exported_api() has a branch for var/const whose comment reads:
+
+        else:  # var / const — keep exported singles (e.g. sentinel errors)
+            vm = re.match(r"(?:var|const)\s+(\w+)", s)
+
+    That matches `var ErrSolo = ...` and nothing else. A GROUPED declaration —
+
+        var (
+            ErrInvalid      = errors.New("invalid")
+            ErrInsufficient = errors.New("insufficient funds")
+        )
+
+    — presents the line `var (`, where `\w+` cannot match `(`. The block's members are then visited
+    individually, and none of them begins with var/const/func/type, so every one is skipped.
+
+    MEASURED, both forms:
+        single-line   var ErrSolo = ...        ->  'package models', 'var ErrSolo'      exposed
+        grouped       var ( ErrA…; ErrB… )     ->  'package models'                     NOTHING
+
+    The grouped form is idiomatic Go and is what every ledger and taskapi spec produces. So the
+    branch written specifically to carry sentinel errors across a package boundary carries none of
+    the ones this project actually declares.
+
+HOW BIG — quantified across the archive
+        completed builds                                       854
+        ...whose log shows "undefined: pkg.Something"           99   (12%)
+        ...specifically a cross-package SENTINEL (pkg.ErrX)     53   (6%)
+
+        most-missed:  models.ErrInsufficientFunds 68 · service.ErrNotFound 66 · service.ErrExists 47
+
+    Six percent of every build this campaign has run failed with an undefined cross-package sentinel,
+    and the API block that exists to prevent exactly that has never carried one from a var block.
+
+THE FIX, PROTOTYPED OUTSIDE THE FROZEN FILE AND VALIDATED
+    Parse grouped var/const blocks and emit their exported members. On the real models.go:
+
+        current    sentinels exposed: NONE
+        prototype  sentinels exposed: ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced,
+                                      ErrInsufficient
+
+        single-line case unchanged, no duplicates        ['package models', 'var ErrSolo']
+        const block, unexported member dropped           ['package x', 'const MaxN']
+
+        archived as-drawn .go files whose API block would GAIN symbols:  46 of 475
+
+    ⚠️ 46 OF 475 IS THE FILES THAT WOULD EXPORT MORE, NOT THE BUILDS THAT WOULD BE FIXED. A file only
+    matters here if some OTHER package references one of its sentinels, and this does not measure
+    that. It is an upper bound on reach, not a claim about repair.
+
+⚠️ NOT APPLIED, AND WHY
+    src/builder.py is hashed and locked by the freeze guard for the cross-process parity run in
+    flight. An edit now would put some draws on one harness and the rest on another — the exact
+    hazard the guard was built for this morning, and this finding is not urgent enough to justify
+    breaking the experiment it came out of.
+
+    ⚠️ AND IT IS A PROMPT CHANGE, so it alters what the model READS. Like the timestamp fix's third
+    consumer, it must be verified by a BUILD and not only by a self-test, and its first check should
+    be whether the sentinel actually gets used rather than merely offered.
