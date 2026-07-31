@@ -10,9 +10,16 @@ Pre-registration: logs/PREREG-does-the-repair-survive-the-green-check.txt.
 carrying an empty planned .go file: record whether the tree is green BEFORE, run the pass exactly
 as builder.py calls it, and record the outcome.
 
-    FILLED      moved, and toolchain.check passed afterwards
-    REVERTED    moved, check failed, the pass put it back (it is strictly non-regressing)
-    NO-DONOR    take was empty — nothing to try
+    FILLED         moved, and the gate accepted it
+    REFUSED        moved, checked, put back — the GATE's decision
+    NOT-ATTEMPTED  a donor and a symbol existed, but movedecls exited non-zero or empty and the
+                   pass `continue`d with NO LOG. Would come back unfilled under ANY gate.
+    NO-DONOR       take was empty — nothing to try
+
+⚠️ THE MIDDLE TWO USED TO SHARE THE LABEL "REVERTED", because this tool classified by OUTCOME — is
+the file still empty — which cannot tell a refusal from a non-attempt. It cost a wrong denominator:
+the first run reported 59 reverted red-tree cases when only 57 were the gate's decision. The labels
+now come from the pass's own log lines, captured, rather than from the end state.
 
 ⚠️ generated/ IS NEVER TOUCHED. Every tree is copied to a scratch directory first and the pass runs
 against the copy. This is not caution for its own sake: a destructive command run beside a live
@@ -32,7 +39,9 @@ have), and the first run is the baseline the second is scored against.
 from __future__ import annotations
 
 import argparse
+import contextlib
 import importlib.util
+import io
 import pathlib
 import shutil
 import sys
@@ -65,8 +74,14 @@ def run_tree(root: pathlib.Path, scratch: pathlib.Path, toolchain) -> list[dict]
     shutil.copytree(root, work)
     green_before, _ = toolchain.check(work)
 
-    # the pass mutates `written` and the tree in place; both are copies
-    builder._fill_empty_planned_files(spec, written, work, toolchain)
+    # the pass mutates `written` and the tree in place; both are copies. Its log lines are
+    # captured because they carry the one distinction the end state does not: whether the
+    # gate REFUSED the move or the move was never attempted at all.
+    buf = io.StringIO()
+    with contextlib.redirect_stderr(buf):
+        builder._fill_empty_planned_files(spec, written, work, toolchain)
+    passlog = buf.getvalue()
+    sys.stderr.write(passlog)
     empty_after = set(builder.empty_go_files(written))
     green_after, _ = toolchain.check(work)
 
@@ -78,8 +93,10 @@ def run_tree(root: pathlib.Path, scratch: pathlib.Path, toolchain) -> list[dict]
             outcome = "NO-DONOR"
         elif path not in empty_after:
             outcome = "FILLED"
+        elif f"left {path} empty" in passlog:
+            outcome = "REFUSED"
         else:
-            outcome = "REVERTED"
+            outcome = "NOT-ATTEMPTED"
         records.append({
             "tree": root.name, "path": path, "outcome": outcome,
             "green_before": green_before, "green_after": green_after,
@@ -117,9 +134,10 @@ def report(args) -> int:
             continue
         label = "GREEN-BEFORE" if green else "RED-BEFORE  "
         counts = {o: sum(1 for r in rows if r["outcome"] == o) for o in
-                  ("FILLED", "REVERTED", "NO-DONOR")}
+                  ("FILLED", "REFUSED", "NOT-ATTEMPTED", "NO-DONOR")}
         print(f"{label}  {len(rows)} cases · FILLED {counts['FILLED']} · "
-              f"REVERTED {counts['REVERTED']} · NO-DONOR {counts['NO-DONOR']}")
+              f"REFUSED {counts['REFUSED']} · NOT-ATTEMPTED {counts['NOT-ATTEMPTED']} · "
+              f"NO-DONOR {counts['NO-DONOR']}")
     print(f"\n{len(records)} cases over {done} trees. No combined rate is printed on purpose: "
           f"the two populations are not the same experiment.")
     if args.out:
@@ -164,6 +182,9 @@ def self_test() -> int:
     failures = 0
     for name, extra, want in (
         ("clean", None, "FILLED"),
+        # movedecls cannot be made to fail from here, so NOT-ATTEMPTED has no fixture. What IS
+        # pinned is that the labels come from the pass's log rather than the end state: a
+        # refusal must say REFUSED, and the run_tree path must not fall back to it silently.
         # unrelated breakage in ANOTHER package: the move is still clean, so the
         # non-regressing gate accepts it where the green-requiring gate refused
         ("broken-elsewhere", ("bad/bad.go", "package bad\n\nfunc F() { undefinedCall() }\n"),
@@ -182,7 +203,7 @@ def self_test() -> int:
         written = rta.read_tree(tree, False)
         builder._fill_empty_planned_files(spec, written, tree, toolchain)
         got = "FILLED" if "store/memory.go" not in builder.empty_go_files(written) \
-            else "REVERTED"
+            else "not-filled"
         if got != want:
             failures += 1
             print(f"FAIL {name}: got {got}, want {want}")
