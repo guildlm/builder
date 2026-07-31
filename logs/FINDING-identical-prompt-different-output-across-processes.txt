@@ -43,8 +43,32 @@ WHAT IS LEFT, ONCE THE PROMPT AND THE STRIP SET ARE ACCOUNTED FOR
     observations of the same experiment as today's controls.
 
     ⚠️ This is not a new claim for this repo — `_canonical_toolchain_output`'s docstring already ends
-    with "generation is deterministic (measured: three 1200-token completions at temp=0.1,
-    byte-identical) and yet same-arm runs generate DIFFERENT files. Something upstream of the fix loop
-    varies per process. Look there, not here." That was written on 18 July and the question is still
-    open. Today's contribution is only that the prompt has now been ELIMINATED as the variable, by
-    rendering both versions and diffing them.
+    with "generation is deterministic ... and yet same-arm runs generate DIFFERENT files. Something
+    upstream of the fix loop varies per process. Look there, not here." Written 18 July.
+
+⚠️⚠️ CORRECTED — I WROTE "THE QUESTION IS STILL OPEN" WITHOUT READING THE ANSWER IN THIS DIRECTORY.
+    logs/RESULT-process-identity-is-the-variable-and-the-boot-is-not.txt, 30 July, settles it with a
+    three-way comparison I did not consult:
+
+        chain6  <-> xserver   CODE 4  funcs 3   different boot
+        chain6  <-> proc3     CODE 3  funcs 4   different boot
+        xserver <-> proc3     CODE 6  funcs 7   SAME boot, same day, same machine
+
+        "The two processes that share a boot are the FURTHEST APART of the three pairs."
+        PROCESS IDENTITY IS THE VARIABLE. THE BOOT IS NOT.
+
+    So "identical prompt, different output across processes" was established a day before I
+    rediscovered it, with a stronger design than mine — it ELIMINATED the reboot and the day, which I
+    never controlled for at all.
+
+    WHAT IS ACTUALLY OPEN is the MECHANISM: what about a fresh process produces different output from
+    identical input. That is what the 18 July docstring asks and the 30 July result does not answer.
+
+    AND MY CONTRIBUTION IS NARROWER THAN I CLAIMED. Rendering the pre-today and post-today prompts
+    byte-identical eliminates TODAY'S HARNESS EDITS as the explanation for archived-vs-fresh
+    differences. It says nothing new about process variance; it just confirms the 30 July result
+    covers my case. Filing that as a contribution to the open question was the error.
+
+    ⚠️ THE CHECK I SKIPPED COSTS ONE COMMAND: `ls logs/ | grep -i process`. Seventh correction today,
+    and the first caused by not reading the record before claiming novelty rather than by
+    over-generalising from evidence.
