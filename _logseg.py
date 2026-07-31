@@ -32,20 +32,50 @@ import pathlib
 import re
 import sys
 
-BUILD_END = re.compile(r"^Generated \S+ into |exhausted \d+ fix rounds")
+# ⚠️ re.M IS LOAD-BEARING. Without it `^Generated` anchors to the start of the whole STRING, so
+# it matches when scanning line by line and fails when scanning a multi-line SEGMENT — every green
+# segment then reads as unterminated and the merge below collapses the entire log into one build.
+# Caught by the self-test the moment tail-merging was added.
+BUILD_END = re.compile(r"^Generated \S+ into |exhausted \d+ fix rounds", re.M)
 BUILD_OK = re.compile(r"^Generated \S+ into ", re.M)
 BUILD_FAIL = re.compile(r"exhausted \d+ fix rounds")
 
 
+# ⚠️ THE TERMINATOR IS NOT ALWAYS THE BUILD'S LAST LINE. Found 31 July, an hour after this module
+# was written, by a contradiction: ledger-parity-arm-1 is a FAILING build that prints
+# "WARNING: ... came out EMPTY", yet a sweep filtering on "segment has an outcome marker" counted
+# ZERO failing builds mentioning an empty file. The two outcomes differ:
+#
+#   GREEN    ... WARNING: x shipped EMPTY ...            <- warning comes BEFORE the terminator
+#            Generated taskapi into ./generated/x
+#            === INDEPENDENT verify in ... ===           <- NOT this build's tail
+#
+#   FAILING  exhausted 8 fix rounds (5 budgeted), still failing
+#            [guildlm-build]   left internal/store/memory.go empty: ...     <- tail
+#            [guildlm-build]   WARNING: ... came out EMPTY ...              <- tail
+#
+# The repair pass and FIX 1's warning run AFTER "exhausted N fix rounds". So a failing build's most
+# interesting lines sat outside its own segment and every outcome-filtering consumer dropped them.
+#
+# THE RULE, from the shapes above: after a terminator, keep attaching INDENTED builder lines; stop
+# at the first line that is not one. A new build's output and the verify blocks are never indented
+# builder lines, and the tail always is.
+_TAIL_LINE = re.compile(r"^\[guildlm-build\]\s\s+\S")
+
+
 def builds_of(text: str) -> list[str]:
-    """Per-build segments. A trailing segment with no terminator is kept — it may be a build
-    still in flight, and dropping it would silently lose the only in-progress case."""
-    segs, cur = [], []
+    """Per-build segments, each including the tail that follows its outcome line."""
+    segs, cur, in_tail = [], [], False
     for line in text.splitlines(keepends=True):
+        if in_tail:
+            if _TAIL_LINE.match(line):
+                cur.append(line)
+                continue
+            segs.append("".join(cur))
+            cur, in_tail = [], False
         cur.append(line)
         if BUILD_END.search(line):
-            segs.append("".join(cur))
-            cur = []
+            in_tail = True
     if cur and "".join(cur).strip():
         segs.append("".join(cur))
     return segs or [text]
@@ -111,8 +141,19 @@ def self_test() -> int:
     chk("mixed outcomes split", len(builds_of(red + green)), 2)
     # ⚠️ THE CASE A START-BASED SEGMENTER MISSES: no "(1/N)" line anywhere above.
     chk("split with no (1/N) line", len(builds_of(green * 4)), 4)
-    chk("in-flight trailing segment kept",
-        len(builds_of(green + "[guildlm-build] compile/test FAILED, fix round 1\n")), 2)
+    # ── a build's TAIL belongs to that build ──
+    tail = ("[guildlm-build]   left internal/store/memory.go empty: moving MemStore into it breaks\n"
+            "[guildlm-build]   WARNING: internal/store/memory.go came out EMPTY (build never went green)\n")
+    chk("tail merges into its build", len(builds_of(red + tail)), 1)
+    chk("...and the warning is IN that build", "came out EMPTY" in builds_of(red + tail)[0], True)
+    chk("tail does not leak into the NEXT build", len(builds_of(red + tail + green)), 2)
+    chk("...the warning stays with the failing one",
+        "came out EMPTY" in builds_of(red + tail + green)[0], True)
+    chk("...and not with the green one",
+        "came out EMPTY" in builds_of(red + tail + green)[1], False)
+    # an in-flight build ANNOUNCES itself, so it is not a tail
+    inflight = "[guildlm-build] generate a.go (1/2)\n[guildlm-build] compile/test FAILED, fix round 1\n"
+    chk("in-flight build kept separate", len(builds_of(green + inflight)), 2)
 
     chk("count is outcomes, not segments", build_count(green + "trailing junk\n"), 1)
     chk("count sums both outcomes", build_count(red + green), 2)

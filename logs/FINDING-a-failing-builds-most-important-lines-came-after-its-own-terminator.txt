@@ -1,0 +1,79 @@
+FINDING — a failing build's repair and warning print AFTER its terminator, and my segmenter cut them off
+=========================================================================================================
+31 July, one hour after shipping _logseg.py. Logs only, no GPU. Caught by a contradiction, which is
+the second time today that has been the detector rather than suspicion.
+
+THE CONTRADICTION
+    ledger-parity-arm-1 is a FAILING build and its log plainly contains
+    "WARNING: internal/store/memory.go came out EMPTY (build never went green)".
+
+    A sweep over the archive, filtering segments on "has an outcome marker", reported:
+
+        failing builds mentioning an empty planned file        0
+
+    A build I had read that afternoon was not in its own count.
+
+WHY — THE TWO OUTCOMES DIFFER IN SHAPE, and I had only checked one
+    GREEN      [guildlm-build]   WARNING: x shipped EMPTY — a sibling did its job
+               Generated taskapi into ./generated/taskapi-v4        <- terminator LAST
+               === INDEPENDENT verify in ... ===                    <- not this build's tail
+
+    FAILING    [guildlm-build] exhausted 8 fix rounds (5 budgeted), still failing   <- terminator
+               [guildlm-build]   left internal/store/memory.go empty: moving MemStore ...
+               [guildlm-build]   WARNING: internal/store/memory.go came out EMPTY ...
+
+    On a green build the warning precedes the terminator and is safely inside the segment. On a
+    FAILING build the repair pass and FIX 1's warning run AFTER it — so a failing build's most
+    interesting lines fell into the next segment, which has no outcome marker, and every consumer
+    that filters on "is this a completed build" discarded them.
+
+    ⚠️ THE BUG WAS IN THE FIX FOR THE PREVIOUS BUG. _logseg.py exists because start-based
+    segmentation missed 160 builds. Terminator-based segmentation sees all 853 and then truncates
+    each failing one. Both segmenters were checked against green builds and neither against the
+    failing path — the path FIX 1 was built to open this morning.
+
+TWO MORE DEFECTS ON THE WAY TO FIXING IT
+    1. `BUILD_END` compiled `^Generated \\S+ into ` WITHOUT re.M. That anchors to the start of the
+       whole STRING, so it matched fine scanning line by line and FAILED scanning a multi-line
+       segment — every green segment read as unterminated, and the merge collapsed entire logs into
+       one build. The self-test caught it on the first run.
+
+    2. My first repair merged whole segments, which glued a failing build's tail onto the FRONT of
+       the NEXT build. The self-test's "tail does not leak into the next build" case caught that
+       too. Both cases existed only because I wrote them before believing the code.
+
+THE RULE THAT WORKS, taken from the line shapes rather than guessed
+    After a terminator, keep attaching INDENTED builder lines (`[guildlm-build]` + 2 spaces); stop
+    at the first line that is not one. A new build's output and the `=== INDEPENDENT verify` blocks
+    are never indented builder lines; the tail always is.
+
+VERIFIED — segment count agrees with the independent outcome count on every real log tested
+        ledger-parity-arm-1      segments  1 · with outcome  1 · build_count  1   AGREE
+        ledger-stampfix-arm-4    segments  1 · with outcome  1 · build_count  1   AGREE
+        FULL-SUITE               segments 23 · with outcome 22 · build_count 22   AGREE
+        iso-shortener-07170020   segments  5 · with outcome  4 · build_count  4   AGREE
+        sweep-v5-07290011        segments 24 · with outcome 23 · build_count 23   AGREE
+
+    (The extra segment in each multi-build log is the trailing verify/summary block, correctly
+    holding no outcome marker.)
+
+RE-MEASURED — the EMPTY-planned-file defect per build
+        completed builds                              853    (green 596 · failing 257)
+        mentions an EMPTY planned file                 22    (2.6%)
+            in GREEN builds                            19    (3.2% of green)
+            in FAILING builds                           3    (was 0)
+
+    AND THE THREE ARE EXACTLY THE POST-FIX-1 BUILDS: ledger-parity-arm-1, arm-2 and arm-3, all drawn
+    today after the warning was moved out of _finish_green(). The other 254 failing builds were
+    structurally unable to report, which is the claim FIX 1 rests on — now confirmed by which builds
+    do report rather than only by which do not.
+
+⚠️ "1.2% OF FAILING BUILDS" IS NOT A RATE AND MUST NOT BE QUOTED AS ONE
+    The denominator 257 spans the whole archive; the numerator can only come from the four failing
+    builds drawn since FIX 1. Among those four, THREE had an empty planned file and the fourth
+    (arm-4) did not — because its repair succeeded. Same spec, same switch, one server process: that
+    is n=1 as a condition, not a sample of failing builds.
+
+    What it does suggest, and only suggest, is that the blind spot FIX 1 opened is NOT small. The
+    honest statement is that the failing-build rate is UNMEASURED, and that the first four
+    observations of it are not reassuring.
