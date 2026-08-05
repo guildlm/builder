@@ -1,0 +1,81 @@
+RESULT — a draw killed at file 6 of 19 still answered the declarer question, and in doing so
+showed that BOTH queued experiments are uninformative on the process they were about to run on
+=============================================================================================
+5 August. `ledger-grouped-sentinel-1` was killed during generation of file 6/19. Five files
+reached disk. This is what they say and why it changes the plan.
+
+⚠️ READING THIS TREE FROM DISK IS LEGITIMATE, AND ONLY BECAUSE OF A CHECK
+On-disk normally means POST-REPAIR, and mistaking one for a draw is the error behind every
+retraction on 29 July and two more since. Here the fix loop NEVER STARTED — verified, not
+assumed:
+        lines matching compile/test FAILED | fix round | deterministic fix | converged   = 0
+        .pre-fix.json                                                                    absent
+No repair ran, so on-disk IS as-drawn. The snapshot is absent for the same reason it is
+unnecessary. Stating the check because the conclusion is only as good as it.
+
+WHAT models.go DECLARED — all five, including the long name
+    var (
+        ErrInvalid           = errors.New("invalid")
+        ErrNotFound          = errors.New("not found")
+        ErrExists            = errors.New("already exists")
+        ErrUnbalanced        = errors.New("unbalanced")
+        ErrInsufficientFunds = errors.New("insufficient funds")
+    )
+
+⚠️ AND THIS OBSERVATION IS UNCONTAMINATED BY TODAY'S CHANGE, which had to be checked rather
+than hoped. models.go is generated 4th; the only earlier file from another package is money.go,
+and money.go contains NO grouped var/const block — its `exported_api` output is byte-identical
+before and after the change. So models.go's prompt is exactly what it would have been yesterday.
+
+THE FOURTH PROCESS, AND A THIRD OUTCOME CONFIRMED
+    pid  7598   ledger-parity-ctl-1        ErrInsufficientFunds     (7 draws, 7/7)
+    pid 49288   ledger-xproc-ctl-1         ErrInsufficient          (2 draws, 2/2)
+    pid 86026   ledger-xproc-ctl-2         none at all              (2 draws, 2/2)
+    pid 77977   ledger-grouped-sentinel-1  ErrInsufficientFunds     (1 draw)   <- NEW
+Four processes, three distinct outcomes, each process so far internally consistent. This is the
+shape PREREG-is-a-single-identifiers-name-a-property-of-the-process predicted, now with a fourth
+point. ⚠️ n=1 for this process; one draw cannot establish its consistency, only its first value.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+📌 THE CONSEQUENCE, AND IT IS THE REASON THIS IS A RESULT AND NOT A NOTE
+BOTH queued experiments are UNINFORMATIVE on a process whose declarer already writes the
+correct name — and pid 77977 is such a process.
+
+  THE SPEC FIX (`var ErrX`). Its mechanism is that `_required_decls` goes 0 -> 5, so the
+  generation gate REJECTS a models.go candidate missing any of the five. On this process the
+  model writes all five unaided. Nothing is missing, so nothing is rejected, so THE GATE CANNOT
+  FIRE. The pre-registered PRIMARY endpoint is not merely unlikely here — it is unreachable by
+  construction. My prereg put it at 80%; on this process the correct number is ~0%, and the
+  prereg's own NULL clause already describes the outcome ("a clean tree is only evidence here
+  when the log shows the gate did work").
+
+  THE API-BLOCK FIX (shipped today). Its endpoint is "does internal/api reference a name that
+  models declares". The consumer's choice of `ErrInsufficientFunds` is the single most stable
+  thing in this corpus — 25 of 25 across a month and three processes. When the declarer ALSO
+  writes that name, the endpoint passes whether or not the consumer can see the block. Pass
+  without discrimination is not evidence.
+
+  SO: the informative processes are the ones that ABBREVIATE or OMIT. Running either experiment
+  on a process that already succeeds spends an hour of GPU to observe a foregone conclusion.
+
+⏭️ THE DESIGN THAT FOLLOWS, and the killed draw is what makes it cheap
+models.go is file 4 of 19 and took ~8 minutes. A PROBE DRAW that generates only as far as
+models.go classifies a fresh server process for a fraction of a full draw's cost:
+
+    restart server -> generate to models.go -> read the sentinel
+        writes the long name   -> uninformative process, restart and re-probe
+        abbreviates or omits   -> run the paired experiment ON THIS PROCESS
+
+⚠️⚠️ THIS IS SELECTION, AND IT MUST BE DECLARED IN ADVANCE OR IT IS CHERRY-PICKING. Choosing a
+process by its baseline makes the result CONDITIONAL: "among processes whose declarer gets the
+name wrong, does the fix help?" That is the honest claim and it is also the population the fix
+exists for — a fix for a defect can only be tested where the defect occurs. What it is NOT is
+an estimate of how often the defect happens; the archive already answers that (36/36/28 over 25
+ledger trees) and the probe must never be used to re-estimate it, because probes that come back
+"long" would be discarded.
+    The count of DISCARDED probes must therefore be logged, every one, or the selection becomes
+    invisible and the conditional claim silently reads as an unconditional one.
+
+WHAT IS STILL UNANSWERED
+The API-block prereg's PRIMARY endpoint needs internal/api/response.go, generated 11th. This
+draw died at 6. It remains unscored, and on this process it would not have discriminated anyway.

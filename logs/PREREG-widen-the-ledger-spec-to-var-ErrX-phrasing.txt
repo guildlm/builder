@@ -26,6 +26,15 @@ measured is the effect on EXTRACTION. Any effect on the model is the thing being
 ════════════════════════════════════════════════════════════════════════════════════════════
 PRE-REGISTERED ENDPOINTS
 
+⚠️⚠️ REVISED BEFORE ANY SPEC-FIX DRAW, 5 August — THE PRIMARY PREDICTION IS WRONG FOR pid 77977.
+    The baseline draw (killed at file 6/19, but models.go reached disk with NO repair) shows this
+    process writes ALL FIVE sentinels including ErrInsufficientFunds, unaided, on the OLD spec.
+    Nothing would be missing, so nothing would be rejected: THE GATE CANNOT FIRE HERE. 80% below
+    is the right number for a process that abbreviates; for THIS process it is ~0%, and the NULL
+    clause already describes the outcome. The experiment must be run on a process whose declarer
+    FAILS, selected by a probe draw and with every discarded probe logged.
+    → logs/RESULT-the-killed-draw-answered-a-question-and-invalidated-both-queued-experiments-designs.txt
+
 PRIMARY — DOES THE GATE FIRE? Log-visible, and deliberately not "is the tree right".
     In the draw's log, the generation gate rejects at least one models.go candidate for a
     missing required declaration.
