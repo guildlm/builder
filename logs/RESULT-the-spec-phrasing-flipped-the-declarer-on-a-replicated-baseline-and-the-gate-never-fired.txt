@@ -1,0 +1,99 @@
+RESULT — the spec rephrasing flipped the declarer ABSENT -> ErrInsufficientFunds, against a
+BYTE-IDENTICAL replicated baseline on the same server process. The gate never fired.
+============================================================================================
+5 August, ~21:55. The campaign's first positive intervention result on the sentinel defect.
+Three draws, one server process (pid 1459), never restarted between them.
+
+    probe-p1            OLD spec    models.go -> ABSENT
+    probe-p1-control2   OLD spec    models.go -> ABSENT     <- BYTE-IDENTICAL to probe-p1
+    probe-p1-treated    NEW spec    models.go -> ErrInsufficientFunds
+
+THE CHANGE, one line of specs/ledger-origorder.yaml, zero code:
+    from  Sentinel errors, all matchable with errors.Is:
+          ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced, ErrInsufficientFunds.
+    to    Exported sentinels, all matchable with errors.Is: `var ErrInvalid`, `var ErrNotFound`,
+          `var ErrExists`, `var ErrUnbalanced`, `var ErrInsufficientFunds` (each errors.New).
+
+THE DIFF IN models.go IS EXACTLY THE INTERVENTION'S TARGET AND NOTHING ELSE
+    +	ErrInsufficientFunds = errors.New("insufficient funds")
+plus gofmt re-aligning the four existing entries. 1276B -> 1361B. No other line of that file
+moved.
+
+WHY THE BASELINE IS NOT ONE OBSERVATION — THIS IS WHAT MAKES IT ATTRIBUTABLE
+Two independent OLD-spec draws on the same process produced a BYTE-IDENTICAL models.go, and
+go.mod, money.go and money_test.go were byte-identical across them too. Generation on this
+process is deterministic, measured here rather than assumed from pid 7598's parity draws. So
+the treated draw's difference is not sampling variation; the only thing that changed is the
+spec text.
+
+Every tree is as-drawn: all three logs show ZERO lines matching
+`compile/test FAILED|fix round|deterministic fix|converged to green`, and no .pre-fix.json
+exists because the fix loop never started. Checked in each case, not assumed.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+SCORING THE PRE-REGISTRATION HONESTLY
+
+PRIMARY — "does the generation gate fire?"  PREDICTED 80%.   ✗ MISSED. IT DID NOT FIRE.
+    Both logs read `best-of-N gen: kept candidate 1 of 2` for models.go, identically. Candidate
+    1 was kept, so nothing was rejected: under the new phrasing the model wrote the name on the
+    FIRST sample.
+    📌 THE MECHANISM IS NOT THE ONE I PRE-REGISTERED. I built the endpoint around gate rejection
+    because `_required_decls` going 0 -> 5 is what I could verify offline, and I reasoned the
+    gate would then reject and resample. The gate is irrelevant here — the PROMPT TEXT changed
+    what the model wrote directly, with no rejection needed. The prereg did leave room for this
+    ("What is measured is the effect on EXTRACTION. Any effect on the model is the thing being
+    tested"), but 80% on gate-firing was a bet on the wrong pathway and it lost.
+
+SECONDARY — three-way.  PREDICTED 55% long / 25% abbreviated / 20% absent.   ✓ HIT: LONG.
+    Against an archive base rate of 36/36/28. Making this three-way was the 31 July lesson and
+    it was the right call: the baseline outcome on this process was ABSENT, the third branch,
+    which a binary long-vs-short question could not even have expressed.
+
+REJECT — "gate never fires AND models.go still declares an abbreviation or nothing."
+    NOT triggered. The gate never fired, but models.go declares the spec's name.
+
+⚠️⚠️ THE PREREG'S "NULL, NOT SUCCESS" CLAUSE, AND WHY I AM NOT INVOKING IT — read this
+sceptically, because this is the shape of talking yourself into a result.
+    It says: "if models.go declares all five and the gate never fired, the draw says nothing
+    about this change: it is what a compliant draw looks like with or without it. The archive
+    says that happens 36% of the time unaided."
+    Its RATIONALE is a base-rate concern: with a single draw and no baseline, a LONG outcome
+    could be the 36%. That rationale is exactly what a within-process baseline controls for, and
+    here the baseline is not merely present but REPLICATED BYTE-IDENTICALLY and says ABSENT. The
+    NULL clause was written for a weaker design — one draw scored against archive base rates —
+    and the paired design answers the precise worry it encodes.
+    THE TIMELINE MATTERS AND IS ON RECORD: the paired same-process design was forced by the
+    killed draw, written up and COMMITTED (RESULT-the-killed-draw-answered-a-question... and
+    _probe_process_sentinel.sh) BEFORE the treated draw ran. It was not invented after seeing
+    this result.
+    ⚠️ ONE PIECE WAS NOT: probe-p1-control2, the second OLD-spec draw, was run AFTER the treated
+    result was known. As a control it can only refute — a differing models.go would have voided
+    the attribution — so running it late costs nothing. But it was late, and that is recorded.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+COLLATERAL, AND THE CONTROL TURNS IT INTO EVIDENCE
+`internal/money/money_test.go` (file 3, generated BEFORE models.go) differs between baseline and
+treated — but is byte-identical between the two baselines. So the spec edit perturbed a file
+generated earlier than the one it names, and that is not drift: it is the known channel
+(`_file_list` puts every purpose in every prompt, builder.py:1265), now with a control proving
+it. `money.go` and `go.mod` did not move.
+
+WHAT THIS DOES AND DOES NOT ESTABLISH
+  ✓ On a process whose declarer omits the sentinel, rephrasing the spec makes it write it.
+    Deterministic baseline, single-line intervention, exact target hit.
+  ✗ n=1 PROCESS. One process, one treated draw. 31 July established that processes differ in
+    exactly this declaration, and this is one of them.
+  ✗ CONDITIONAL BY CONSTRUCTION. pid 1459 was SELECTED by a probe for failing the baseline; a
+    LONG process (pid 77977) was discarded first and is logged in logs/PROBE-LEDGER.txt. The
+    claim is "among processes that omit the name, the rephrasing fixes it", never "the defect
+    occurs at rate X" — the probe throws away the evidence needed for a rate.
+  ✗ ONE SPEC. ledger only. The other specs still carry bare-list phrasing.
+  ✗ NO BUILD WAS SAVED HERE. These draws stop at file 4 of 19 by design. That the declarer now
+    writes the name is the mechanism behind the 8 failed builds whose terminal error was
+    `undefined: models.ErrInsufficientFunds` — but this experiment did not run one to green.
+
+⏭️ NEXT, in the order that would strengthen it most:
+    1. A second treated draw on pid 1459 — does LONG replicate as byte-identically as ABSENT did?
+    2. A full draw (all 19 files) on this process, treated, to see whether it reaches green.
+    3. Another informative process, probed and paired the same way. Two processes is not many;
+       one is fewer.

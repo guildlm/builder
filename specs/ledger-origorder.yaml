@@ -121,8 +121,9 @@ files:
       `Posting{AccountID string, Amount money.Money}` — a POSITIVE amount adds
       to that account, a NEGATIVE amount subtracts from it.
       `Transaction{ID string, Memo string, Postings []Posting}`.
-      Sentinel errors, all matchable with errors.Is:
-      ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced, ErrInsufficientFunds.
+      Exported sentinels, all matchable with errors.Is: `var ErrInvalid`,
+      `var ErrNotFound`, `var ErrExists`, `var ErrUnbalanced`,
+      `var ErrInsufficientFunds` (each errors.New).
       `func (a Account) Validate() error` returns an error wrapping ErrInvalid
       (fmt.Errorf with %w) when strings.TrimSpace(a.ID) is empty or
       strings.TrimSpace(a.Name) is empty. Use strings.TrimSpace, NOT `a.ID == ""`

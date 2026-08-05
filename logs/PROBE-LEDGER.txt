@@ -19,3 +19,5 @@ VERDICTS: LONG = declares ErrInsufficientFunds (uninformative, discard)
     generated/ledger-grouped-sentinel-1-partial-killed; the fix loop never ran, so it is
     as-drawn — checked, not assumed.)
 2026-08-05T21:19:51  pid=1459    label=p1               VERDICT=ABSENT
+2026-08-05T21:52:00  pid=1459    label=p1-control2      VERDICT=ABSENT (replication of p1, byte-identical models.go)
+2026-08-05T21:40:00  pid=1459    label=p1-treated       VERDICT=LONG (TREATMENT: new spec phrasing)
