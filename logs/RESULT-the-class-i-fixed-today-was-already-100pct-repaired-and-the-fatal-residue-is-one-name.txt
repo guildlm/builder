@@ -80,3 +80,26 @@ exactly how it was written, and this result is the reason that was the right cal
 ⚠️ SCOPE. 9 of 9 fatal trees are ledger-family and 9 of 9 are one identifier. This is not a
 statement about naming in general, and it is the third time this campaign has had to narrow a
 "cross-package sentinel" claim back down to `ErrInsufficientFunds`.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+ADDENDUM, same session — WHAT THE 9 FATAL TREES ACTUALLY COST, and it is not an inference
+The 9 were identified by a dangling reference on disk. A dangling reference guarantees a compile
+failure, but "present in a failed build" is not "the reason it failed", so the logs were opened.
+Eight of the nine have a findable log (ledger-ctl-proc3 does not):
+
+    ledger-name1 · name2 · name3 · pairB-p7 · prose2 · tagfix · xproc-arm-1 · xproc-ctl-1
+
+    converged to green                                        0 of 8
+    `undefined: models.ErrInsufficientFunds` in the log        8 of 8   (8 occurrences each)
+    ...and it is the LAST undefined error in the log          8 of 8
+
+So it is not merely present: it is the error each of these builds was still failing on when it
+ran out of rounds. One identifier is the terminal cause of eight failed builds in this corpus.
+
+⚠️ 'TERMINAL CAUSE' IS NOT 'ONLY CAUSE'. These builds hit other errors earlier and repaired them;
+what this shows is that the sentinel is what remained. Removing it does not guarantee eight
+greens — it removes the thing that was still standing at the end.
+
+📌 This is the concrete cost that promotes the spec fix, and it is a stronger basis than the
+"+52% recall" extraction number the queue was ordering on. It also re-confirms, for the third
+time this campaign, that the whole cross-package sentinel story reduces to ONE name.
