@@ -92,8 +92,30 @@ WHAT THIS DOES AND DOES NOT ESTABLISH
     writes the name is the mechanism behind the 8 failed builds whose terminal error was
     `undefined: models.ErrInsufficientFunds` — but this experiment did not run one to green.
 
+════════════════════════════════════════════════════════════════════════════════════════════
+✅ ADDENDUM — THE TREATED CONDITION REPLICATES BYTE-IDENTICALLY TOO. 2x2 COMPLETE.
+Item 1 below was run immediately. Four draws, one process (pid 1459), never restarted, every
+tree as-drawn (0 repair lines in all four logs):
+
+    OLD spec   probe-p1           ABSENT  \
+    OLD spec   probe-p1-control2  ABSENT  /  models.go BYTE-IDENTICAL
+    NEW spec   probe-p1-treated   LONG    \
+    NEW spec   probe-p1-treated2  LONG    /  models.go BYTE-IDENTICAL
+
+    within-condition variation: ZERO.   between-condition: complete separation.
+
+This is the same shape the parity experiment produced in July — two hashes, no within-condition
+variation — and it is the strongest form this design can take at n=2 per cell. The gate did not
+fire in treated2 either (3x `kept candidate 1 of 2`, no rejection lines), so the pathway is the
+prompt text in both treated draws, not resampling.
+
+⚠️ IT DOES NOT MAKE THE PROCESS COUNT LARGER. Four draws, ONE process. Byte-identical repeats
+within a deterministic process are cheap evidence about that process and NO evidence about any
+other; 31 July established that a second process can differ on this exact declaration. n=1
+process stands.
+
 ⏭️ NEXT, in the order that would strengthen it most:
-    1. A second treated draw on pid 1459 — does LONG replicate as byte-identically as ABSENT did?
+    1. ✅ DONE — a second treated draw replicated byte-identically.
     2. A full draw (all 19 files) on this process, treated, to see whether it reaches green.
     3. Another informative process, probed and paired the same way. Two processes is not many;
        one is fewer.
