@@ -1,0 +1,38 @@
+NOTE — the `type ( ... )` gap left open by the grouped-sentinel fix is EMPTY. Do not widen.
+===========================================================================================
+5 August, while the grouped-sentinel draw is in flight. Closes an open question by measuring it
+rather than by taste.
+
+THE QUESTION. `exported_api()` was fixed to emit grouped `var (...)` / `const (...)` members.
+The identical mechanism drops grouped `type (...)` blocks, and I deliberately did not widen the
+extractor to cover them, citing c218b24's lesson (widen the SPEC, not the extractor). Scope
+discipline is a reason to defer a change, not a reason to believe it is unnecessary.
+
+THE MEASUREMENT — every snapshotted tree, every .go file, as drawn:
+
+    snapshotted trees                        53
+    .go files                               813
+    files with a GROUPED type block           0    (trees affected  0)
+    files with a GROUPED var/const block     51    (trees affected 43)
+
+⚠️ A ZERO IS A CLAIM ABOUT THE DETECTOR UNTIL THE DETECTOR IS PROBED. `^type\s*\(` under re.M
+was run against known positives and negatives before the zero was recorded:
+
+    grouped type          detected        grouped var        detected
+    grouped type, 2 spaces detected       grouped const      detected
+    single-line type      not detected    single-line var    not detected
+
+It sees what it claims to see. The null is real at the resolution of "a top-level `type (`",
+which is the only resolution that matters here — gofmt never indents a top-level declaration.
+
+WHAT THIS SETTLES
+  ✗ DO NOT widen exported_api to grouped types. Zero cases in 813 files. Code with no measured
+    case is how an extractor accumulates surface that no one can later attribute a result to.
+  ✓ It also strengthens the change that WAS made: 43 of 53 trees (81%) contain at least one
+    grouped var/const block, and every one of them was being dropped whole from what a
+    cross-package consumer saw.
+
+⚠️ IT IS A STATEMENT ABOUT THIS MODEL ON THESE SPECS, not about Go. Grouped type blocks are
+ordinary Go; this corpus's generator simply does not write them. If the model, the specs or the
+prompt change, the count is void — it is a fact about the corpus, and the corpus is a dependent
+variable in this campaign.
