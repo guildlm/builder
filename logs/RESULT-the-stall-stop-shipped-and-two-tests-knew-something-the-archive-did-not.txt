@@ -1,0 +1,91 @@
+RESULT — the stall stop is in, and the population the measurement could not see was found by
+two tests rather than by the 133-segment table
+=============================================================================================
+5 August. Implements the item queued on 31 July as "measured, not applied" — the harness was
+frozen for the parity run, which has since been killed.
+
+THE RULE
+`_fix_loop` stops when the error surface has been IDENTICAL for `_STALL_RUN` (=3) rounds in a
+row. It falls through to the final deterministic pass, so this shortens the LLM fix loop rather
+than abandoning the build.
+
+THE NUMBER, NOW FROM AN INSTRUMENT WITH A SELF-TEST
+133 archived build segments with 2+ reconstructable rounds (`_repeat_cost.py`):
+
+    K=2   83 builds fired   155 rounds saved   1 GREEN KILLED
+    K=3   61 builds fired    85 rounds saved   0
+    K=4   54 builds fired    31 rounds saved   0
+    K=5   20 builds fired    11 rounds saved   0
+
+⚠️ THE 31 JULY TABLE WAS AN AD-HOC SNIPPET (59/83/0 at K=3). It reproduces at 61/85/0 with the
+corpus four logs larger, so it was substantially right — but it was exactly the shape this
+campaign has been burned by twice, a decision resting on a column no committed tool produced.
+The sweep now lives in `_repeat_cost.py` with the alternating case as its discriminator.
+
+WHY K=3 IS FREE, WHICH IS A SEPARATION AND NOT A LUCKY THRESHOLD
+    GREEN segments (33):        32 have a longest run of 1 · 1 has a run of 2 · NONE reach 3
+    NEVER-GREEN segments (100): 18 run 1 · 21 run 2 · 7 run 3 · 34 run 4 · 12 run 5 · 8 run 6-7
+The one green K=2 would have destroyed is `bitset-witness-07271826` — two rounds, one surface,
+converged anyway. Greens essentially do not repeat surfaces; stalls essentially always do.
+
+AND IT IS NOT A FIT TO ONE PERIOD. Split at 25 July, calibrate/test:
+    TRAIN (before 25 Jul)   78 builds   20 green   K=3 fires on 29 never-green, 0 green
+    TEST  (25 Jul onward)   55 builds   13 green   K=3 fires on 32 never-green, 0 green
+Longest run among GREEN builds: 1 in the train half, 2 in the test half. Neither reaches 3.
+
+RUN, NOT REPEAT — the predicate matters and the old guard has the other one
+The pre-existing guard fires only PAST the flat budget and only on set membership. `A B A B`
+repeats at round 3, and stopping there kills a build whose fixer is still moving it, just in a
+circle it might yet escape. Only an unbroken run says it has stopped. Both the tool and the
+harness test pin the alternating case, because it is the one an eyeballed table gets wrong.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️⚠️ THE PART THE MEASUREMENT COULD NOT HAVE TOLD ME, AND WHAT FOUND IT
+The first implementation was a bare run-of-3. Full suite: 448 passed, 2 FAILED —
+`test_a_widened_file_escalates_too_or_impl_bugs_are_unreachable` and
+`test_escalating_a_widened_impl_converges_the_build`.
+
+Not a test artefact. `_FLEET_ESCALATE_AFTER` is 2, and a WIDENED file only enters the fix
+targets on round 2, so it escalates on round 3 — and a run-of-3 stops the loop at the START of
+round 3, pre-empting it by exactly one round. That path is load-bearing:
+logs/FINDING-escalation-granularity.txt took shortener from 3/3 GREEN to 2/3 RED when widened
+files were denied escalation.
+
+THE ARCHIVE IS SILENT HERE, AND I CHECKED ONLY BECAUSE THE TESTS FAILED:
+
+    logs containing an escalation at all      1  of 785
+    escalations followed by a green           0
+
+So "K=3 kills no green" was measured over a population where the fleet was effectively OFF. The
+table is not wrong; it has nothing to say about this. A null is a claim about what the
+instrument could resolve, and this instrument could not resolve the escalation path at all.
+
+📌 THE ORDER IS THE LESSON. 133 segments, an out-of-sample split and a clean separation still
+did not surface a defect that two existing tests found in 127 seconds. The measurement told me
+the threshold was safe for the builds in the archive; only the tests told me the archive was
+not the population.
+
+THE FIX, AND WHY IT IS THE RIGHT SEMANTICS RATHER THAN A PATCH
+The counter means "same surface, SAME FIXER". An escalation changes the fixer, so it resets the
+run exactly as a changed surface does — the new member has not had one round judged yet.
+
+    ✓ Escalations are finite (the fleet runs out) and `max_fix_rounds + _EXTENSION_ROUNDS`
+      still caps everything, so the reset cannot disable the guard. Pinned by a test.
+    ✓ The reset only ever makes the guard fire LESS than the simulation did, so the measured
+      damage remains an upper bound: greens killed <= 0. The saving is the number that drops,
+      and only on fleet-enabled builds — 1 in 785 of the archive.
+
+CONTROLS, because a guard that never fires and a guard that always fires both look green
+    guard deleted        → 4 of 10 stall tests FAIL (exactly the four that assert it fires;
+                           the four asserting silence pass either way, which is correct —
+                           they cover the false-positive direction)
+    reset deleted        → the new escalation test AND both existing escalation tests FAIL
+    threshold parametrised over K=2,3,4 → catches a guard hardcoded to 3, which every other
+                           test in the file would have passed
+
+STATE: 450 pytest (was 440) · 51 instrument self-tests · 0 failed. Committed and pushed.
+
+⏭️ NOT DONE, AND HONESTLY UNMEASURABLE FROM THE ARCHIVE: what the stall stop does to a
+fleet-enabled build. 1 log in 785 is not a baseline. If the fleet becomes standard, the K sweep
+must be re-taken on that population before this threshold is trusted there — the reset makes it
+safe by construction, not by measurement.
