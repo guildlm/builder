@@ -2060,10 +2060,45 @@ def exported_api(code: str) -> str:
             tm = re.match(r"type\s+(\w+)", s)
             if tm and tm.group(1)[:1].isupper():
                 out.extend(lines[i : j + 1])  # full type (fields/methods matter)
-        else:  # var / const — keep exported singles (e.g. sentinel errors)
-            vm = re.match(r"(?:var|const)\s+(\w+)", s)
-            if vm and vm.group(1)[:1].isupper():
-                out.append(lines[i].split("=")[0].rstrip())
+        else:  # var / const — keep exported members, single-line OR grouped
+            # ⚠️ THE GROUPED FORM WAS SILENTLY DROPPED IN FULL, and sentinel errors are
+            # almost always written that way. `(?:var|const)\s+(\w+)` cannot match `var (`,
+            # and the brace counter above tracks {} not (), so j stayed at i and the members
+            # were then skipped one by one for not starting with a keyword. A consumer in
+            # another package therefore saw NO sentinels at all.
+            #
+            # Measured before the fix, on archived snapshots (PREREG-expose-grouped-
+            # sentinels-in-the-cross-package-api-block.txt): of 50 trees with a snapshot, 29
+            # make a cross-package sentinel reference and in 20 of those (69%) the referenced
+            # sentinel does not exist. The fix loop repairs 12; 8 stay broken. By log, over
+            # 854 completed builds, 53 (6%) show an "undefined: pkg.X" naming a sentinel.
+            # ⚠️ The 69% and the 6% have different denominators and are not a trend — see
+            # the prereg. The honest summary: common at generation, mostly repaired, the
+            # remainder fatal.
+            if re.match(r"(?:var|const)\s*\(", s):
+                members: list[str] = []
+                k = i + 1
+                while k < n:
+                    ms = lines[k].strip()
+                    if ms.startswith(")"):
+                        break
+                    if ms and not ms.startswith("//"):
+                        # `A, B = ...` declares two names; keep the line if ANY is exported,
+                        # since dropping a shared line would hide the exported one too.
+                        lhs = ms.split("=")[0]
+                        names = [x.strip().split()[0] for x in lhs.split(",") if x.strip()]
+                        if any(x[:1].isupper() for x in names):
+                            members.append("\t" + lhs.rstrip())
+                    k += 1
+                if members:
+                    out.append(f"{kw} (")
+                    out.extend(members)
+                    out.append(")")
+                j = k
+            else:
+                vm = re.match(r"(?:var|const)\s+(\w+)", s)
+                if vm and vm.group(1)[:1].isupper():
+                    out.append(lines[i].split("=")[0].rstrip())
         i = j + 1
     return f"package {pkg_name_of(code)}\n" + "\n".join(out) + "\n"
 
