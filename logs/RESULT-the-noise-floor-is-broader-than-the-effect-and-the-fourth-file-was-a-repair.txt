@@ -1,0 +1,130 @@
+RESULT — the manipulation moves 3 files; the SERVER PROCESS moves 6-7. And the 4th file in the
+31 July propagation note was never drawn — it was repaired.
+==============================================================================================
+5 August, resuming a campaign whose last draw was killed mid-file on 31 July at 21:57. Zero GPU:
+every number below comes from .pre-fix.json snapshots already on disk. No draw was run.
+
+WHAT WAS SITTING UNSCORED
+`_parity_xproc.sh` completed pairs 1 and 2 and was killed during ctl-3 (2 of 19 files, no
+snapshot). Pair 1 was published on 31 July. PAIR 2 WAS NEVER GRADED.
+
+    ledger-xproc-ctl-2   SPLIT         store  380B   memory 2282B    pid 86026
+    ledger-xproc-arm-2   CONSOLIDATED  store 2233B   memory   14B    pid 86026
+
+THE PRE-REGISTERED ENDPOINT HELD IN A SECOND PROCESS: 2 pairs of 2. With the three in-process
+parity pairs that is 5 of 5, across two independent server processes and a locked harness
+(a1a2de7b, verified per-draw by the freeze guard).
+
+════════════════════════════════════════════════════════════════════════════════════════════
+THE 2x2 THAT WAS AVAILABLE ALL ALONG AND HAD NOT BEEN ASSEMBLED
+Four draws, two conditions, two processes. Every cell as-drawn, `_asdrawn_diff.py`:
+
+  MANIPULATION, within one process (ctl vs arm) — 5 pairs, both processes, IDENTICAL SHAPE:
+      CODE 3 · IDENTICAL 16 · PROSE 0
+      internal/store/store.go        <- the target        377..382B  ->  2233..2263B
+      internal/store/memory.go       <- same package      2275..2282B ->    14B
+      internal/store/memory_test.go  <- same package
+
+  PROCESS, with NO manipulation (ctl-1 vs ctl-2, both cold, both rules=''):
+      CODE 4 · PROSE 3 · IDENTICAL 12   -> 7 of 19 files differ
+      spans internal/models, internal/store, internal/api, cmd/server — FOUR packages
+
+  PROCESS, same but under the arm (arm-1 vs arm-2, both second-draw):
+      CODE 4 · PROSE 2 · IDENTICAL 13   -> 6 of 19 files differ
+
+    THE NOISE IS BROADER THAN THE EFFECT. The thing being manipulated changes 3 files in one
+    package. Merely restarting the server changes 6-7 files across four. Anyone reading a
+    single ctl-vs-arm diff would call the manipulation "wide-reaching"; it is the narrowest
+    perturbation in this campaign, and the background it sits on is wider than it is.
+
+    ⚠️ AND YET THE ENDPOINT NEVER MOVED UNDER NOISE. On the endpoint's own file:
+        process noise, control arm:  store.go 382 vs 380 chars, classified PROSE
+                                     — comments/strings only, no code
+        process noise, treated arm:  store.go 2233 vs 2233 chars, ONE struct field reordered
+                                     (`mu sync.RWMutex` moved to the end; gofmt re-padded the
+                                     block, which is why the length is unchanged)
+        the manipulation:            store.go +1851 chars and SEVEN methods
+    Six draws of process noise never once crossed the binary (does store.go declare MemStore).
+    Broad and shallow is not the same as strong: the noise touches more FILES and moves none of
+    them across the line the experiment is about.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️⚠️ A CORRECTION TO A PUBLISHED LOG — logs/NOTE-how-far-the-543-character-difference-propagates.txt
+That note (31 July) reports the manipulation reaching FOUR of 18 .go files and builds its
+headline on the fourth:
+
+    "internal/api/middleware.go   <- a DIFFERENT package"
+    "That is the whole causal path from one withheld sentence to a file in another directory,
+     and it is visible in the hashes rather than inferred."
+
+IT IS NOT VISIBLE IN THE HASHES. As drawn, on the very pair the note names:
+
+    ledger-parity-ctl-1   middleware.go   AS-DRAWN 53991ff9 1625B   ON-DISK 53991ff9 1625B
+    ledger-parity-arm-1   middleware.go   AS-DRAWN 53991ff9 1625B   ON-DISK bb83ea00 1658B
+                                                   ^^^^^^^^ SAME BYTES
+    repaired?  ctl: no   arm: YES
+
+The two draws wrote the SAME middleware.go. It differs on disk because arm-1 exited rc=1 and its
+fix loop rewrote that file. The note hashed the trees on disk, so it measured the repair and
+attributed it to the model. Across all five ctl-vs-arm pairs, in two processes, the manipulation
+reaches THREE files and never leaves internal/store. There is no cross-package chain to explain.
+
+The note's own caveat is resolved by this, in the direction that helps it:
+    "arm-1 exited rc=1 ... the failure could originate in any of them, including middleware.go in
+     another package."
+middleware.go cannot be the origin — it was drawn identically in the control that went green. The
+failure narrows to the three store-package files. The caveat was right to refuse attribution; the
+file it worried about was never a candidate.
+
+📌 THIS IS THE THIRD INSTANCE OF ONE ERROR CLASS, and the instrument caught it exactly as built to:
+    29 July   the retracted "generation drift" — repaired tree compared against unrepaired
+    31 July   `_parity_grade.py` read from disk; would have called a CONSOLIDATED draw SPLIT
+    today     a published propagation claim, on disk, counting a repair as a draw
+`_asdrawn_diff.py` refuses to fall back to disk. That refusal is the only reason this surfaced —
+the on-disk comparison runs clean and produces a more interesting, wrong answer.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+A CONFOUND I RAISED AGAINST THE XPROC DESIGN, AND WHY IT DOES NOT BITE
+In `_parity_xproc.sh` every pair restarts the server, then draws ctl FIRST and arm SECOND. So
+within every pair, control = cold process, arm = warmed — perfectly confounded, and warmth is a
+variable this campaign already took seriously (PREREG-warmth-versus-process-identity, 30 July).
+
+The in-process run breaks it. `parity-ab-run.log` shows one process (pid 7598) alternating:
+    ctl-1 (draw 1) · arm-1 (2) · ctl-2 (3) · arm-2 (4) · ctl-3 (5) · arm-3 (6)
+ctl-3 is the FIFTH draw in that process — warmer than arm-1, the second — and it is SPLIT. Warmth
+is fully crossed with condition there and the verdict tracks CONDITION, 3/3 against 3/3. The xproc
+pairs cannot separate the two on their own; they do not need to.
+
+⚠️ The noise-floor numbers above ARE warmth-matched by construction: ctl-1/ctl-2 are both
+first-after-restart, arm-1/arm-2 both second. That was luck, not design — the runner's fixed order
+happens to make the two cross-process comparisons clean while making the within-pair one dirty.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+WHAT IS NOT NEW HERE, stated because I have claimed novelty twice this campaign without checking
+    ✗ the narrow blast radius and its causal chain — NOTE-how-far-the-543... already had the
+      mechanism right (same-package siblings verbatim, other packages as an API summary)
+    ✗ that the process selects among stable alternatives — PREREG-is-a-single-identifiers-name...,
+      confirmed 31 July
+    ✗ that spec edits perturb broadly — the nine-arm series, RESULT-nothing-is-safe...
+NEW: the noise floor QUANTIFIED against the effect on the same files (6-7 vs 3); the endpoint
+never crossing under noise; the fourth file being a repair; 5 of 5 on the endpoint.
+
+⚠️ AND ONE DISTINCTION THE NINE-ARM SERIES DOES NOT COVER. Those arms edited the SPEC, which
+`_file_list` puts in all 19 prompts by construction. `interface_only_scope` is gated at
+builder.py:1005 on the TARGET FILE'S OWN purpose, so it alters exactly one prompt of 19. "Every
+spec edit rerolls the program" and "this manipulation reaches 3 files" are not in tension; they
+are different injection sites. This is the campaign's only single-prompt perturbation, and it is
+the only one with a blast radius that reproduces file-for-file across processes.
+
+    models.go is byte-identical between ctl and arm in BOTH processes (cb873e76 / 3a78b0d8).
+    That is NOT evidence of anything: it is generated 4th, the target is 6th, and its prompt is
+    unchanged by the switch. Determinism within a process is already established. Recording it
+    so the identity is not later mistaken for a result.
+
+WHAT THE PROCESS ACTUALLY CHANGED, both files, arm-1 vs arm-2, same prompt, locked harness:
+    internal/store/store.go     the position of one struct field
+    internal/models/models.go   whether a fifth sentinel exists at all
+                                49288: ErrInsufficient = errors.New("insufficient funds")
+                                86026: absent entirely
+The second is the 60-char delta the diff reports, and it is the sentinel defect — reproduced here
+as a pure process effect with the prompt held byte-identical.

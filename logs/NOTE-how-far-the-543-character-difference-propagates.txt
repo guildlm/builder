@@ -1,3 +1,11 @@
+⚠️⚠️ SUPERSEDED IN PART, 5 August — IT IS 3 OF 18, NOT 4, AND THE CHAIN DOES NOT LEAVE THE PACKAGE.
+   The trees below were hashed ON DISK. `internal/api/middleware.go` — the fourth file, and the
+   whole basis for "the chain reaches another directory" — is BYTE-IDENTICAL AS DRAWN (53991ff9 on
+   both sides). It differs on disk only because arm-1 exited rc=1 and its fix loop rewrote it. The
+   manipulation reaches 3 files, all in internal/store, in 5 of 5 pairs across two processes.
+   The mechanism described below is right; the cross-package instance of it is not real.
+   → logs/RESULT-the-noise-floor-is-broader-than-the-effect-and-the-fourth-file-was-a-repair.txt
+
 NOTE — one sentence in one prompt changes 4 of 18 files, and the chain is legible
 =================================================================================
 31 July. Control-1 vs arm-1, every .go file hashed. A NOTE because it bounds what the A/B's
