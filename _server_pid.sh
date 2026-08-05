@@ -28,11 +28,18 @@
 #     the tunnel binds *. That alone separates them today.
 #   - AND the command must be mlx_lm.server, so a future loopback listener cannot impersonate it.
 # Either check alone would pass something the other rejects. Both, or refuse.
+#
+# ⚠️ THE PORT IS A PARAMETER, THE NARROWNESS IS NOT. Added 5 August, when 127.0.0.1:8080 was
+# taken by an unrelated daemon (`tildrad`) and mlx_lm.server could not bind at all. Overriding
+# PORT moves BOTH halves of the check together — loopback AND the mlx_lm.server command — so a
+# different port buys a different address, never a weaker question. The default is unchanged,
+# so every existing caller keeps the exact behaviour it was written against.
 set -uo pipefail
+PORT="${PORT:-8080}"
 
-CANDIDATES=$(lsof -nP -iTCP@127.0.0.1:8080 -sTCP:LISTEN -t 2>/dev/null || true)
+CANDIDATES=$(lsof -nP -iTCP@127.0.0.1:"$PORT" -sTCP:LISTEN -t 2>/dev/null || true)
 if [[ -z "$CANDIDATES" ]]; then
-  echo "REFUSING: nothing is listening on 127.0.0.1:8080." >&2
+  echo "REFUSING: nothing is listening on 127.0.0.1:$PORT." >&2
   exit 4
 fi
 
@@ -44,14 +51,14 @@ for p in $CANDIDATES; do
 done
 
 if [[ ${#MATCHES[@]} -eq 0 ]]; then
-  echo "REFUSING: something holds 127.0.0.1:8080 but it is not mlx_lm.server:" >&2
+  echo "REFUSING: something holds 127.0.0.1:$PORT but it is not mlx_lm.server:" >&2
   for p in $CANDIDATES; do ps -o pid,command= -p "$p" 2>/dev/null | tail -1 >&2; done
   exit 5
 fi
 if [[ ${#MATCHES[@]} -gt 1 ]]; then
   # Two model servers on one port is not a condition any experiment can be controlled against,
   # and picking one would be exactly the arbitrary choice this script exists to remove.
-  echo "REFUSING: ${#MATCHES[@]} mlx_lm.server processes hold 127.0.0.1:8080: ${MATCHES[*]}" >&2
+  echo "REFUSING: ${#MATCHES[@]} mlx_lm.server processes hold 127.0.0.1:$PORT: ${MATCHES[*]}" >&2
   exit 6
 fi
 

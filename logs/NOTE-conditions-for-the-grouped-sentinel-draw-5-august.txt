@@ -1,0 +1,58 @@
+NOTE — what has changed between the grouped-sentinel prereg (31 July) and the draw (5 August)
+=============================================================================================
+Written BEFORE the draw starts, because the prereg is five days old and the harness is not the
+one it was written against. Anything below found afterwards would be a rationalisation.
+
+THE ENDPOINT IS UNCHANGED AND STILL THE ONE THAT COUNTS
+    PRIMARY (as-drawn): in .pre-fix.json, every `models.ErrX` referenced by internal/api/ must
+    be a name internal/models/ actually declares.  PREDICTED yes, 70%.
+    REJECT: an as-drawn tree still referencing a nonexistent sentinel means the fix did not do
+    its job, regardless of whether the build goes green.
+
+WHAT CHANGED IN THE HARNESS SINCE THE PREREG WAS WRITTEN
+  1. `exported_api()` now emits grouped var/const members — THE INTERVENTION ITSELF. Intended.
+  2. `_STALL_RUN = 3`: the fix loop stops after 3 consecutive identical error surfaces, with a
+     reset on fleet escalation.
+  3. `_repeat_cost.py` gained a self-tested K sweep. Instrument only, no build behaviour.
+
+⚠️ (2) DOES NOT TOUCH THE PRIMARY ENDPOINT, AND THAT IS WORTH STATING RATHER THAN ASSUMING.
+The endpoint reads `.pre-fix.json`, which is snapshotted BEFORE the first check — so no fix-loop
+change can reach it. The stall stop can only affect the FINAL tree and the round count. This is
+the same as-drawn/on-disk distinction that has already changed three verdicts in this campaign,
+and here it works in the experiment's favour: the intervention is at generation, the endpoint is
+at generation, and the loop is downstream of both.
+
+⚠️ CONVERGENCE IS NOT AN ENDPOINT HERE AND MUST NOT BECOME ONE. With the stall stop in, a red
+build may now be red in FEWER rounds than the 31 July archive would predict. Comparing this
+draw's round count to an archived one measures the stall stop, not the sentinels.
+
+DIFFERENT SERVER, DIFFERENT PORT, AND NEITHER IS CONTROLLED
+    31 July draws:  pids 7598 / 49288 / 86026, port 8080
+    this draw:      pid 77977, PORT 8137
+
+⚠️⚠️ THE PORT MOVED FOR AN UNRELATED REASON AND IT IS NOT A VARIABLE — but the PROCESS is, and
+this campaign proved on 31 July that the process is not inert. `_server_pid.sh` refused to
+identify a server at 8080 because an unrelated daemon (`tildrad`) holds 127.0.0.1:8080 and
+mlx_lm.server could not bind; 8081 is a TalkBuddy dev server. 8137 was free. The guard was
+parameterised on PORT, moving the loopback check and the mlx_lm.server command check TOGETHER,
+so a different port is a different address and not a weaker question.
+
+📌 THE GUARD FIRED IN THE WILD FOR THE FIRST TIME, which is worth recording on its own. It was
+built on 30 July for exactly this ambiguity — "two processes bind 8080 and lsof returns both in
+unstable order" — and until today had only ever been exercised by its own self-test. A gate that
+has never refused anything is not known to be a gate. This one refused, exit 5, and NAMED the
+intruder:
+    REFUSING: something holds 127.0.0.1:8080 but it is not mlx_lm.server:
+    47226 ./tildrad
+Had the old `lsof -ti:8080 | head -1` still been in place, it would have returned tildrad's pid
+or the ssh tunnel's, and a draw would have been "pinned" to a process that never served it.
+
+WHAT THIS DRAW CANNOT SETTLE, stated in advance
+  * n = 1. One draw, one process. 31 July measured cross-process variation at 6-7 of 19 files
+    with no manipulation at all, so a single tree cannot separate "the fix worked" from "this
+    process happened to write the long name". A pass is consistent with the fix; it is not proof.
+  * The DECLARER is not the target. Five targeted regenerations on 31 July produced the
+    byte-identical models.go each time with the error in front of the model. This change alters
+    what the CONSUMER sees. If the consumer now matches whatever models.go declares — including
+    an abbreviation — that IS the endpoint being met, and it will look less dramatic than a tree
+    that simply spells ErrInsufficientFunds everywhere.
