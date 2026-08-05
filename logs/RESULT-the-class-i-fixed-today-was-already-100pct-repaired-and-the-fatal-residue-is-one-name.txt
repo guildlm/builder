@@ -1,0 +1,82 @@
+RESULT — the wrong-qualifier class is already 100% repaired by a gate that has existed all
+along. Every fatal cross-package sentinel defect in the corpus is ONE identifier, in 9 trees.
+==========================================================================================
+5 August, while ledger-grouped-sentinel-1 is generating file 4 of 19. Zero GPU.
+
+⚠️ THIS DOWNGRADES WHAT I SHIPPED TODAY, and that is the point of writing it.
+
+HOW IT WAS FOUND
+I was about to propose a deterministic gate that rewrites `service.ErrNotFound` to
+`store.ErrNotFound` when the named package declares no such symbol and exactly one other does.
+Before writing it I grepped, as the standing rule requires. It exists — `_requalify_undefined`,
+src/builder.py:2275 — and its DOCSTRING USES MY EXACT CASE AS ITS WORKED EXAMPLE:
+
+    "MISQUALIFIED — `undefined: wrongpkg.Sym` where Sym is exported by a DIFFERENT project
+     package (handler wrote `service.ErrExists`, but ErrExists lives in `store`)"
+
+THE VERIFICATION, on the five wrong-qualifier trees, as-drawn against on-disk:
+
+    workapi-pairA-w1    internal/api/tasks.go      AS-DRAWN service.[ErrExists, ErrNotFound]
+                                                   ON-DISK  service.[]
+    workapi-pairB-w1    same
+    taskapipro-pairA-t1 projects.go AND tasks.go   same
+    taskapipro-pairB-t1 same
+    taskapipro-preedit  same
+
+    WRONG-QUALIFIER: 5 as-drawn, 5 repaired, 0 FATAL.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+THE FULL PICTURE, as-drawn vs after the loop, 53 snapshotted trees
+
+    broken as-drawn                    23
+      DECLARER-GAP     18   ->   9 repaired,  9 STILL FATAL
+      WRONG-QUALIFIER   5   ->   5 repaired,  0 fatal
+
+    every one of the 9 fatal trees:  models.ErrInsufficientFunds
+        ledger-ctl-proc3   ledger-name1   ledger-name2   ledger-name3   ledger-pairB-p7
+        ledger-prose2      ledger-tagfix  ledger-xproc-arm-1   ledger-xproc-ctl-1
+
+(31 July, over 50 trees, had "20 broken, 12 repaired, 8 fatal". This is 23 / 14 / 9 over 53 —
+the same shape, corpus grown, now from a self-tested instrument.)
+
+════════════════════════════════════════════════════════════════════════════════════════════
+📌 WHAT THIS DOES TO TODAY'S SHIPPED CHANGE
+The grouped-sentinel fix to `exported_api()` is mechanically reachable in exactly 3 trees — the
+taskapipro ones, where `store`'s sentinels were grouped and therefore invisible. All 3 of those
+trees ALREADY REACH GREEN with the correct qualifier, because the deterministic gate repairs
+them. So the change I shipped today:
+
+    ✓ removes a real information gap at generation — the consumer genuinely could not see which
+      package owned the sentinel, and guessed
+    ✓ should cost fewer fix rounds, since the guess no longer has to be caught and repaired
+    ✗ CANNOT convert a failing build into a passing one anywhere in this corpus, because the
+      class it reaches has zero fatal cases
+
+That is a smaller claim than the one the prereg was written to test, and it is the honest one.
+The prereg's endpoint ("does the consumer reference a name that exists, as drawn") is still the
+right endpoint and the running draw still scores it — but a PASS now means "fewer rounds", not
+"a build saved". I would rather find that before the draw lands than after.
+
+⚠️ AND IT CORRECTS A LINE I WROTE MYSELF TWO HOURS AGO. PREREG-widen-the-ledger-spec... says of
+the two inert workapi cases: "Neither queued change addresses those two." Misleading as written.
+Neither queued change addresses them AT GENERATION; a deterministic gate has been repairing them
+all along, and they are not an open defect in any shipped artifact. The correction matters
+because the sentence reads as "an unsolved problem" and the truth is "solved one stage later".
+
+════════════════════════════════════════════════════════════════════════════════════════════
+WHAT IT PROMOTES
+The queued SPEC fix (`var ErrX` phrasing, PREREG-widen-the-ledger-spec-to-var-ErrX-phrasing.txt)
+targets the DECLARER, which is where all 9 fatal trees live. It is now clearly the higher-value
+of the two queued changes, and its priority no longer rests on the "+52% recall" extraction
+number — it rests on being the only queued change aimed at a class with fatal cases.
+
+⚠️ AND ITS CEILING IS UNCHANGED AND LOW. Those 9 trees fail because the declarer writes a
+different name; on 31 July five TARGETED regenerations with `undefined: models.ErrInsufficientFunds`
+in front of the model produced byte-identical output. The spec fix gives the generation gate a
+criterion it lacks, and `_sample_clean` falls back when every candidate is rejected. So the
+pre-registered PRIMARY endpoint is "does the gate FIRE", not "is the tree right" — which is
+exactly how it was written, and this result is the reason that was the right call.
+
+⚠️ SCOPE. 9 of 9 fatal trees are ledger-family and 9 of 9 are one identifier. This is not a
+statement about naming in general, and it is the third time this campaign has had to narrow a
+"cross-package sentinel" claim back down to `ErrInsufficientFunds`.

@@ -82,4 +82,9 @@ WHAT IT CANNOT SETTLE
     * The 18 declarer-gap trees are ledger-family. This changes ONE spec. Nothing here transfers
       to the other specs without doing it to them too.
     * It does not touch the 5 wrong-qualifier trees at all, 2 of which are provably inert to the
-      API fix as well. Neither queued change addresses those two.
+      API fix as well. Neither queued change addresses those two AT GENERATION.
+      ⚠️ CORRECTED, same day: that sentence read as "an unsolved problem" and it is not.
+      `_requalify_undefined` (builder.py:2275) has been repairing the whole wrong-qualifier class
+      all along — 5 of 5 trees are clean on disk, 0 fatal. The defect is real at generation and
+      costs fix rounds; it is not an open defect in any shipped artifact. See
+      logs/RESULT-the-class-i-fixed-today-was-already-100pct-repaired-and-the-fatal-residue-is-one-name.txt
