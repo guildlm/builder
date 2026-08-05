@@ -1,0 +1,45 @@
+NOTE — the grouped-sentinel extractor fix is APPLIED. Its pre-registered endpoint is NOT scored.
+================================================================================================
+5 August. A NOTE and not a RESULT, deliberately: the code is in and tested, and the thing the
+pre-registration actually asks about has not been measured.
+
+WHAT IS DONE
+`exported_api()` now parses grouped `var (...)` / `const (...)` blocks and emits their exported
+members. Verified against the real archive, not only fixtures:
+
+    ledger-parity-ctl-1   ErrInvalid ErrNotFound ErrExists ErrUnbalanced ErrInsufficientFunds
+    ledger-xproc-arm-1    ErrInvalid ErrNotFound ErrExists ErrUnbalanced ErrInsufficient
+    ledger-xproc-ctl-2    ErrInvalid ErrNotFound ErrExists ErrUnbalanced
+
+Each row is what that tree ACTUALLY declares — including the abbreviation in arm-1 and the
+absence in ctl-2. That is the intended behaviour: the block reports the package, not the spec.
+
+10 tests, 5 of which fail with the change reverted. 460 pytest, 51 self-tests, 0 failed.
+
+WHAT IS NOT DONE, AND IT IS THE WHOLE QUESTION
+The prereg's PRIMARY endpoint is a DRAW:
+
+    "Draw ledger-origorder with the fix applied. In .pre-fix.json, every `models.ErrX`
+     referenced by internal/api/ must be a name internal/models/ actually declares.
+     PREDICTED: yes. Confidence 70%."
+
+No draw has been run. The server is down and nothing in this change has touched a model.
+
+⚠️ AN EXTRACTOR TEST PASSING IS NOT THE FIX WORKING. The names are now in the block; whether a
+model USES a name it is shown in preference to one it derives from the spec's prose ("insufficient
+funds") is exactly what 70% was hedging, and this campaign has already watched one prompt sentence
+lose to a model's default. The prereg's own REJECT condition stands unchanged: if the as-drawn
+tree still references a nonexistent sentinel, the fix does not do its job — regardless of whether
+the build goes green, because green can come from the fix loop repairing the reference, which is
+the 12-of-20 path and is not evidence for this change.
+
+⚠️ AND ONE PREDICTION FROM 31 JULY BOUNDS WHAT A GREEN WOULD MEAN. `models.go` was regenerated
+FIVE times under a targeted repair with `undefined: models.ErrInsufficientFunds` in front of the
+model, and produced the byte-identical 1336 bytes every time. If the name is a property of the
+server process rather than of the prompt, this change alters what the CONSUMER sees and cannot
+alter what the DECLARER writes. The endpoint is the consumer's reference, which is the right
+place to look; it is also why a single green draw would not settle it.
+
+SCOPE HELD DELIBERATELY: `type ( ... )` groups are dropped by the same mechanism and were NOT
+widened here. The prereg names var/const, and c218b24's lesson was to widen the SPEC rather than
+the extractor. Recording the gap as a known one rather than fixing it unmeasured.
