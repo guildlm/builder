@@ -81,8 +81,9 @@ it. `money.go` and `go.mod` did not move.
 WHAT THIS DOES AND DOES NOT ESTABLISH
   ✓ On a process whose declarer omits the sentinel, rephrasing the spec makes it write it.
     Deterministic baseline, single-line intervention, exact target hit.
-  ✗ n=1 PROCESS. One process, one treated draw. 31 July established that processes differ in
-    exactly this declaration, and this is one of them.
+  ✗ n=1 PROCESS. One process — two draws per condition (see the addendum), which is replication
+    WITHIN a deterministic process and says nothing about any other. 31 July established that
+    processes differ in exactly this declaration, and this is one of them.
   ✗ CONDITIONAL BY CONSTRUCTION. pid 1459 was SELECTED by a probe for failing the baseline; a
     LONG process (pid 77977) was discarded first and is logged in logs/PROBE-LEDGER.txt. The
     claim is "among processes that omit the name, the rephrasing fixes it", never "the defect
