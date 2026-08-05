@@ -1,0 +1,78 @@
+RESULT — the 16/3/2 partition reproduces from an independent, self-tested instrument, and the
+two inert cases now have a stated mechanism rather than a bucket name
+==============================================================================================
+5 August, while the grouped-sentinel draw is in flight. Zero GPU.
+
+⚠️ THIS IS MOSTLY A REPRODUCTION, NOT A DISCOVERY, and I am labelling it that way because I
+checked. logs/RESULT-the-two-queued-sentinel-fixes-are-complementary-not-redundant.txt (31 July)
+already reported the partition and already noted the qualifier cases are "all taskapipro and
+workapi". I re-derived it before finding that, which is the value: an independent implementation
+agreeing with a number whose FIRST version was wrong and inverted.
+
+THE COMPARISON
+    31 July, ad-hoc script:      16 spec · 3 api · 2 neither      (of 21, over 50 snapshots)
+    5 August, _sentinel_reference_audit.py:
+                                 18 declarer-gap · 3 api-reachable · 2 inert   (of 23, over 53)
+
+The 3 and the 2 match EXACTLY. The 16 -> 18 is corpus growth (50 -> 53 snapshotted trees). The
+31 July number had already inverted once — its first run said "16 both, 5 neither" and concluded
+the two queued fixes were redundant, which was wrong because it asked whether the NAMED package
+had a grouped block instead of whether the wanted symbol sits in a grouped block ANYWHERE. A
+second implementation, written from the endpoint definition rather than from that script,
+landing on the same corrected split is the strongest check available on a count like this.
+
+WHAT THE NEW INSTRUMENT ADDS
+  1. It is committed and self-tested (`--self-test`), and it REFUSES a tree with no
+     .pre-fix.json rather than scoring a post-repair tree. The 31 July version was a snippet.
+  2. The partition is mechanical and stated in the tool, not in prose:
+        DECLARER-GAP     the referenced package declares SOME Err*, just not this one
+        WRONG-QUALIFIER  the referenced package declares NO Err*, another package declares
+                         this exact name
+        UNRESOLVED       neither — nothing in the tree says who should own it
+  3. Validated against three archived trees with three KNOWN and DIFFERENT outcomes:
+        ledger-parity-ctl-1 (pid 7598)  CLEAN   declares ErrInsufficientFunds
+        ledger-xproc-ctl-1  (pid 49288) BROKEN  declares ErrInsufficient
+        ledger-xproc-ctl-2  (pid 86026) BROKEN  declares no such sentinel at all
+
+════════════════════════════════════════════════════════════════════════════════════════════
+WHAT IS ACTUALLY NEW — WHY THE TWO ARE INERT, MEASURED RATHER THAN BUCKETED
+"Neither" named a leftover. Rendering the cross-package block BEFORE and AFTER the change, for
+every wrong-qualifier tree, says what the model was actually looking at:
+
+    taskapipro-pairA-t1   service.ErrExists/ErrNotFound  owned by `store`  visible BEFORE: NO
+    taskapipro-pairB-t1   same                                             visible BEFORE: NO
+    taskapipro-preedit    same                                             visible BEFORE: NO
+    workapi-pairA-w1      same                                             visible BEFORE: YES
+    workapi-pairB-w1      same                                             visible BEFORE: YES
+
+In the three taskapipro trees `store` declares its sentinels in a GROUPED block, so the old
+extractor dropped them and the consumer saw no sentinel anywhere in the project. Guessing
+`service` — the layer it calls — is what a model does with no information. The fix makes
+`store`'s ErrExists and ErrNotFound visible, so those three are mechanically reachable.
+
+In the two workapi trees `store` declares them SINGLE-LINE. They were in the consumer's prompt
+all along, correctly attributed to `store`, and the model wrote `service.ErrNotFound` anyway.
+
+📌 THE FIX CANNOT REACH THOSE TWO, AND THIS IS THE SAME SHAPE AS 31 JULY'S SHARPEST RESULT:
+"the model sees the name three times, verbatim, and abbreviates it anyway". Here it sees the
+right package and writes the wrong one. Two independent defects — one at the declarer, one at
+the consumer — now each have a case where the information was present and lost anyway.
+
+⚠️ SO THE CEILING ON THE SHIPPED CHANGE IS NAMEABLE BEFORE ITS DRAW LANDS:
+        18 declarer-gap    the fix changes what the consumer SEES; whether the DECLARER then
+                           writes the long name is untouched by it, and five targeted
+                           regenerations on 31 July produced byte-identical output
+         3 qualifier       mechanically reachable — information newly present
+         2 qualifier       PROVABLY INERT — information was already present
+An upper bound of 3 of 23 trees is what the mechanism alone supports. Anything beyond that has
+to come from the consumer matching a declarer it can now see, which is the pre-registered
+endpoint and is not settled by any of this.
+
+⚠️ AND 23 CASES IS 23 CASES — a small, recent, ledger-heavy population, with the qualifier class
+confined to two specs. That caveat is inherited verbatim from 31 July and has not improved.
+
+📌 METHOD NOTE, because it nearly cost a paragraph. My first before/after table reported models'
+`ErrInvalid` as invisible in BOTH conditions, which would have been a hole in the shipped fix.
+It was my filter: `line.startswith("Err")` misses the single-line form, which the extractor emits
+as `var ErrInvalid`. The fix was fine; the probe was wrong. Sixth instance of the campaign's most
+common failure, caught this time by a value that disagreed with a file I could open.
