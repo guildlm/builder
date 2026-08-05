@@ -85,17 +85,16 @@ if grep -qE "compile/test FAILED|fix round|deterministic fix|converged to green"
   exit 6
 fi
 
-VERDICT=$(.venv/bin/python - "$OUT/$TARGET" <<'PY'
-import sys, pathlib
-sys.path.insert(0, "src")
-from builder import top_level_decls
-errs = {d for d in top_level_decls(pathlib.Path(sys.argv[1]).read_text()) if d.startswith("Err")}
-ins = sorted(e for e in errs if "Insuffic" in e)
-if not ins:                              print("ABSENT")
-elif ins == ["ErrInsufficientFunds"]:    print("LONG")
-else:                                    print("ABBREVIATED:" + ",".join(ins))
-PY
-)
+# ⚠️ CALLS the classifier rather than inlining it. The first version had these six lines here
+# and was "validated" against the four known trees by RE-TYPING them into a throwaway snippet —
+# so what passed was a copy, free to drift from the original the moment either changed. The
+# classifier now lives in _sentinel_verdict.py, has its own self-test, and is the same object
+# this script runs.
+VERDICT=$(.venv/bin/python ./_sentinel_verdict.py "$OUT/$TARGET") || {
+  echo "  REFUSING: classifier failed on $OUT/$TARGET"
+  printf '%s  pid=%-7s label=%-16s VERDICT=VOID-CLASSIFIER\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$PID" "$LABEL" >> "$LEDGER"
+  exit 7
+}
 
 printf '%s  pid=%-7s label=%-16s VERDICT=%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$PID" "$LABEL" "$VERDICT" >> "$LEDGER"
 echo "  VERDICT: $VERDICT   (server pid $PID)"

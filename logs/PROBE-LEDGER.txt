@@ -18,3 +18,4 @@ VERDICTS: LONG = declares ErrInsufficientFunds (uninformative, discard)
     a ledger that starts after the first discard is not a ledger. The tree is preserved at
     generated/ledger-grouped-sentinel-1-partial-killed; the fix loop never ran, so it is
     as-drawn — checked, not assumed.)
+2026-08-05T21:19:51  pid=1459    label=p1               VERDICT=ABSENT
