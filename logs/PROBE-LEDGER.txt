@@ -1,0 +1,20 @@
+PROBE LEDGER — every process classification, KEPT AND DISCARDED, in the order they happened.
+============================================================================================
+This file exists because selecting a server process by its baseline behaviour is SELECTION.
+It makes every downstream sentinel result CONDITIONAL — "among processes whose declarer gets
+the name wrong, does the fix help?" — and a conditional claim whose discards are invisible
+reads as an unconditional one. So: no probe is ever omitted, including the boring ones.
+
+⚠️ NEVER compute a rate from this file. It is biased by construction: LONG probes are thrown
+away and re-run. How often the defect occurs is answered by the archive (36% long / 36%
+abbreviated / 28% absent, over 25 ledger trees), not here.
+
+VERDICTS: LONG = declares ErrInsufficientFunds (uninformative, discard)
+          ABBREVIATED:<name> / ABSENT = informative, run the experiment on that pid
+          NO-FILE / VOID-REPAIRED = the probe itself failed; classifies nothing
+
+2026-08-05T20:38:00  pid=77977  label=grouped-sentinel-1  VERDICT=LONG   (retrospective:
+    read from the draw killed at file 6/19, BEFORE this script existed. Recorded here because
+    a ledger that starts after the first discard is not a ledger. The tree is preserved at
+    generated/ledger-grouped-sentinel-1-partial-killed; the fix loop never ran, so it is
+    as-drawn — checked, not assumed.)
