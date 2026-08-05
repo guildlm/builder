@@ -88,7 +88,55 @@ def analyse(text: str, sig) -> dict | None:
         # a repeat INSIDE the budget is the case the policy chose not to act on
         "in_budget": bool(first_repeat and first_repeat <= 5),
         "green": bool(_GREEN.search(text)),
+        "sigs": sigs,
     }
+
+
+# ⚠️ CONSECUTIVE IS NOT THE SAME PREDICATE AS `first_repeat` ABOVE, AND THE DIFFERENCE IS THE
+# WHOLE POINT OF THE PROPOSED POLICY. `first_repeat` is set-based: A B A B repeats at round 3.
+# The policy under consideration stops only on a RUN — A B A B never fires, because alternating
+# surfaces mean the fixer is still moving the build, just in a circle it might yet escape. A
+# set-based stop would kill those; a run-based stop leaves them alone. The self-test pins exactly
+# that case, because it is the one an eyeballed table would silently get wrong.
+def k_fire(sigs: list[str], k: int) -> int | None:
+    """1-based round at which the k-th CONSECUTIVE identical surface is observed, else None."""
+    if k < 2:
+        raise ValueError("k must be >= 2; k=1 would fire on the first failure of every build")
+    run = 1
+    for i in range(1, len(sigs)):
+        run = run + 1 if sigs[i] == sigs[i - 1] else 1
+        if run == k:
+            return i + 1
+    return None
+
+
+def ksweep(rows: list[dict], ks=(2, 3, 4, 5)) -> None:
+    """What a 'stop after K consecutive identical surfaces' rule would have done to the archive.
+
+    STOPPING CAN ONLY SHORTEN A BUILD, NEVER REDIRECT IT — the rounds it removes are rounds that
+    were actually run and observed, so no counterfactual generation is being imagined here. The
+    one thing it CAN destroy is a green that arrived after the rule would have fired, and that is
+    the column the decision rests on.
+
+    ⚠️ A GREEN IS COUNTED AS KILLED IF THE RULE FIRES AT ALL, including on the very last recorded
+    round. A green build with n error rounds converges on the fix APPLIED AFTER round n; firing at
+    round n means that fix is never applied. Counting only i < n would understate the damage, so
+    this takes the conservative side.
+    """
+    print("  IF THE HARNESS HAD STOPPED AFTER K CONSECUTIVE IDENTICAL SURFACES:")
+    print(f"    {'K':>3}  {'builds fired':>12}  {'rounds saved':>12}  {'greens killed':>13}")
+    for k in ks:
+        fired = saved = killed = 0
+        for r in rows:
+            at = k_fire(r["sigs"], k)
+            if at is None:
+                continue
+            fired += 1
+            saved += r["rounds"] - at
+            if r["green"]:
+                killed += 1
+        flag = "   <- FREE" if killed == 0 and saved else ""
+        print(f"    {k:>3}  {fired:>12}  {saved:>12}  {killed:>13}{flag}")
 
 
 def sweep(paths: list[pathlib.Path]) -> int:
@@ -133,6 +181,8 @@ def sweep(paths: list[pathlib.Path]) -> int:
         g = "went green" if r["green"] else "never green"
         print(f"    {r['name']:44s} {r['rounds']}r {r['distinct']}d  repeat@{r['first_repeat']}  "
               f"+{r['after_repeat']} after  {g}")
+    print()
+    ksweep(rows)
     print()
     print("  ⚠️ NOT COMPARABLE to the 27 counted on 29 July: that used the error-LINE-SET signature,")
     print("  this uses the whole-output fingerprint with the 31 July timestamp normalisation.")
@@ -181,6 +231,29 @@ def self_test() -> int:
 
     # the reconstruction must not merge two rounds when the marker is missing
     chk("rounds counted from the marker", len(rounds_of(log("a", "b"))), 2)
+
+    # ---- k_fire: CONSECUTIVE, which is the predicate the whole policy turns on ----
+    S = lambda *xs: list(xs)
+    chk("k=2 fires on the second of a pair", k_fire(S("a", "b", "b", "b"), 2), 3)
+    chk("k=3 needs a third",                 k_fire(S("a", "b", "b", "b"), 3), 4)
+    chk("k=4 never reached",                 k_fire(S("a", "b", "b", "b"), 4), None)
+    # THE DISCRIMINATOR. Set-based `first_repeat` says 3; a run-based rule must say never.
+    chk("alternating never fires",           k_fire(S("a", "b", "a", "b"), 2), None)
+    chk("...though it DOES repeat",          analyse(log("a", "b", "a", "b"), ident)["first_repeat"], 3)
+    # the real arm shape A B C C C C: run of 4 c's, k=3 fires on the 5th round of 6
+    chk("arm shape k=3 fires at 5",          k_fire(S("a", "b", "c", "c", "c", "c"), 3), 5)
+    chk("run must be unbroken",              k_fire(S("a", "a", "b", "a", "a"), 3), None)
+    chk("empty is not a fire",               k_fire([], 2), None)
+    try:
+        k_fire(S("a", "a"), 1)
+        chk("k=1 must be rejected", "no raise", "ValueError")
+    except ValueError:
+        pass
+
+    # ksweep must count a green as killed even when it fires on the LAST round
+    row = {"sigs": S("a", "b", "b"), "rounds": 3, "green": True}
+    chk("fires on last round -> 0 saved", 3 - k_fire(row["sigs"], 2), 0)
+    chk("...and still kills the green", bool(row["green"] and k_fire(row["sigs"], 2)), True)
 
     # ── a log file is not a build ──
     one = ("[guildlm-build] compile/test FAILED, fix round 1\n[guildlm-build]     ! boom\n"

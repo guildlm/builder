@@ -5429,6 +5429,14 @@ def _generate_file(
 # How many progress-gated rounds may follow the flat budget (see _fix_loop).
 _EXTENSION_ROUNDS = 3
 
+# Stop the LLM fix loop once the error surface has been IDENTICAL this many rounds in a
+# row. 3 is measured, not chosen for roundness: at 2 it destroys a real green in the
+# archive (bitset-witness-07271826, two rounds, one surface, converged anyway), at 3 it
+# destroys none and still fires on 61 of 100 never-green build segments. Raising it to 4
+# keeps the safety and gives back most of the saving (31 rounds instead of 85).
+# The derivation, with a self-test and an out-of-sample split, is `_repeat_cost.py`.
+_STALL_RUN = 3
+
 # Fleet routing: a file that keeps landing in the fix targets for this many rounds under
 # its current model is handed to the next fleet member (see FleetCoder). Base-first, so the
 # base gets this many attempts before a specialist is tried. No effect unless the coder is a
@@ -5542,6 +5550,12 @@ def _fix_loop(
     # seen before (normalized: addresses/goroutines/timings stripped) — real
     # convergence continues, oscillation stops immediately.
     seen_surfaces: set[str] = set()
+    # Stall stop: the surface has not moved for _STALL_RUN rounds in a row. Tracked
+    # separately from seen_surfaces because a RUN is a different predicate than a
+    # REPEAT — see _STALL_RUN and the guard below.
+    prev_sig: str | None = None
+    stall_run = 0
+    escalated_last_round = False
     rnd = 0
     while rnd < max_fix_rounds + _EXTENSION_ROUNDS:
         rnd += 1
@@ -5565,6 +5579,52 @@ def _fix_loop(
         # corpus was measured under.
         _repeat = "  (surface seen before)" if sig in seen_surfaces else ""
         _log(f"  error surface {abs(hash(sig)) & 0xffffffff:08x}{_repeat}")
+        # ---- STALL STOP, and it is NOT the guard below ----
+        # That guard fires only PAST the flat budget, and only on a set-membership
+        # repeat. This one fires anywhere, and only on an unbroken RUN. Measured over
+        # 133 archived build segments with two or more reconstructable rounds
+        # (_repeat_cost.py --self-test, then the K sweep):
+        #
+        #     K=2   83 builds   155 rounds saved   1 GREEN KILLED
+        #     K=3   61 builds    85 rounds saved   0
+        #     K=4   54 builds    31 rounds saved   0
+        #
+        # K=3 is the knee, and the reason it is free is a clean separation rather
+        # than a lucky threshold: of the 33 GREEN segments, 32 never repeat a surface
+        # consecutively even once and exactly one reaches a run of 2 — none reach 3.
+        # Of the 100 never-green segments, 61 do. Split at 25 July it holds in both
+        # halves independently (0 greens fired in either; 29 and 32 never-green).
+        #
+        # ⚠️ RUN, NOT REPEAT, and the difference decides real cases: A B A B repeats
+        # at round 3 but never fires here. Alternating surfaces mean the fixer is
+        # still moving the build; only an unbroken run says it has stopped.
+        # ⚠️ Breaking here still falls through to the final deterministic pass below,
+        # which can and does reach green on its own — this shortens the LLM fix loop,
+        # it does not abandon the build.
+        # ⚠️ AN ESCALATION RESETS THE RUN, AND WITHOUT THIS THE GUARD IS WRONG.
+        # The counter means "same surface, SAME FIXER". Fleet escalation hands a stuck file
+        # to a stronger model, so the fixer is no longer the same and the new member has not
+        # had a single round judged. Firing anyway pre-empts it by exactly one round —
+        # measured: _FLEET_ESCALATE_AFTER is 2, a WIDENED file only enters the targets on
+        # round 2, so it escalates on round 3 and a bare run-of-3 rule stops the loop first.
+        # That path is not decoration: logs/FINDING-escalation-granularity.txt took shortener
+        # from 3/3 GREEN to 2/3 RED when widened files were denied escalation, and a stalled
+        # surface is precisely when a second opinion is worth paying for.
+        #
+        # ⚠️ AND THE ARCHIVE COULD NOT HAVE TOLD ME. Escalation appears in 1 of 785 archived
+        # logs and never precedes a green, so the K sweep's "0 greens killed" was measured on
+        # a population where the fleet was effectively off. Two failing tests found this, not
+        # the 133-segment table. The table is not wrong; it is silent here.
+        # Because this reset only ever makes the guard fire LESS than the simulation did, the
+        # measured damage stays an upper bound: greens killed <= 0.
+        if escalated_last_round:
+            stall_run, escalated_last_round = 1, False
+        else:
+            stall_run = stall_run + 1 if sig == prev_sig else 1
+        prev_sig = sig
+        if stall_run >= _STALL_RUN:
+            _log(f"error surface unchanged for {stall_run} consecutive rounds — stopping")
+            break
         if rnd > max_fix_rounds and sig in seen_surfaces:
             _log("error surface repeats — stopping extension rounds")
             break
@@ -5660,6 +5720,8 @@ def _fix_loop(
                 if callable(escalate) and escalate(path):
                     _log(f"  escalating {path} to the next fleet member")
                     fleet_stuck[path] = 0
+                    # The fixer changed; the stall counter above is about to be reset.
+                    escalated_last_round = True
             # Say WHY this file is being fixed. The wideners announce themselves as a
             # group ("widening fix targets to package impl in ."), but the per-file line
             # did not, so reading a log later meant re-deriving which files the toolchain
