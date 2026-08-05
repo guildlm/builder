@@ -1,0 +1,85 @@
+PREREG — rephrase ledger's sentinel list as `var ErrX`, and what would count as it working
+==========================================================================================
+5 August, written while the grouped-sentinel draw is still generating (file 3 of 19) and BEFORE
+the spec is touched. No data for this change exists. The mechanism below was verified today; the
+outcome has not been observed.
+
+THE CHANGE — specs/ledger-origorder.yaml, the models.go purpose, one line
+    now:  Sentinel errors, all matchable with errors.Is:
+          ErrInvalid, ErrNotFound, ErrExists, ErrUnbalanced, ErrInsufficientFunds.
+    to:   Exported sentinels, all matchable with errors.Is: `var ErrInvalid`, `var ErrNotFound`,
+          `var ErrExists`, `var ErrUnbalanced`, `var ErrInsufficientFunds` (errors.New).
+
+Zero code. The phrasing is the repo's own proven form — taskapipro already writes it this way.
+
+THE MECHANISM, VERIFIED TODAY AND INDEPENDENTLY OF THE 31 JULY MEASUREMENT
+    _required_decls(current purpose)  ->  []            0 names
+    _required_decls(rephrased)        ->  5 names, GAINED all five, LOST none
+So the generation gate acquires a criterion it does not currently have: a models.go candidate
+missing any of the five is REJECTED and resampled.
+
+⚠️ THE PHRASING IS NOT CLAIMED TO CAUSE COMPLIANCE, and 31 July said so first: taskapipro's
+sentinels are 100% compliant AND phrased `var ErrX`, but its names are also SHORT, and short
+names are 100% compliant everywhere INCLUDING under ledger's bare-list phrasing. What is
+measured is the effect on EXTRACTION. Any effect on the model is the thing being tested.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+PRE-REGISTERED ENDPOINTS
+
+PRIMARY — DOES THE GATE FIRE? Log-visible, and deliberately not "is the tree right".
+    In the draw's log, the generation gate rejects at least one models.go candidate for a
+    missing required declaration.
+        PREDICTED: yes — 80%.
+    ⚠️ This is the endpoint BECAUSE of the 31 July ceiling: `_sample_clean` falls back to the
+    best candidate when every candidate is rejected, BY DESIGN. So a working gate can leave the
+    tree unchanged and be visible only in the log. That is still worth shipping — a gate that
+    fires and falls back converts a SILENT defect into a RECORDED one, which is exactly the
+    value FIX 1 delivered on 31 July.
+    The 20% is that the model writes all five first try, in which case nothing is rejected and
+    the endpoint is unreachable rather than failed — see NULL below.
+
+SECONDARY — WHAT DOES models.go ACTUALLY DECLARE? Three-way, and three-way ON PURPOSE.
+    ⚠️ On 31 July I asked this as a binary ("long or short?") and the data invalidated it in 90
+    seconds, because the THIRD outcome — neither name present — occurs in 7 of 25 archived
+    ledger trees (28%) and I had already measured that before writing the binary. Not repeating
+    it. As-drawn, models.go declares:
+        ErrInsufficientFunds (the spec's name)      PREDICTED 55%
+        an abbreviation (ErrInsufficient etc.)      PREDICTED 25%
+        no insufficient-funds sentinel at all       PREDICTED 20%
+    Archive base rate over 25 ledger trees: 36% / 36% / 28%. The shift toward the long name is
+    the whole bet, and it is a modest one for a reason: on 31 July the model was shown that name
+    three times verbatim and abbreviated it anyway, and five TARGETED regenerations with the
+    compile error in front of it produced byte-identical output. Adding a fourth occurrence, in
+    a more explicit form, is not obviously stronger than the three that already failed.
+
+REJECT — the change does not work if the gate never fires AND models.go still declares an
+    abbreviation or nothing. That combination means the extraction win (0 -> 5) did not reach
+    generation at all.
+
+NULL, NOT SUCCESS — if models.go declares all five and the gate never fired, the draw says
+    nothing about this change: it is what a compliant draw looks like with or without it. The
+    archive says that happens 36% of the time unaided. A clean tree is only evidence here when
+    the log shows the gate did work.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️⚠️ THE CONFOUND, NAMED BEFORE THE DRAW — TWO CHANGES ARE NOW IN THE HARNESS
+`exported_api()` was changed TODAY to expose grouped sentinels. Any spec-fix draw therefore runs
+on a harness carrying BOTH changes, and a clean result could belong to either.
+
+    THE BASELINE THAT SEPARATES THEM IS THE DRAW RUNNING RIGHT NOW: ledger-grouped-sentinel-1
+    has the API-block fix and the OLD spec. Scoring it first, then drawing again with the spec
+    change, isolates the increment. Running the spec change before that draw is graded would
+    forfeit the only clean baseline I have, which is why this is a PREREG and not a commit.
+
+    ⚠️ AND THE INCREMENT IS STILL n=1 AGAINST n=1. 31 July measured cross-process variation at
+    6-7 of 19 files with NO manipulation, and models.go was one of the files that varied — its
+    sentinel block is literally the -60 character difference between two processes. A one-draw
+    comparison cannot separate this change from the process. Both draws must be pinned to the
+    SAME server pid (77977) or the comparison is void; if that process dies first, this
+    experiment restarts rather than continuing.
+
+WHAT IT CANNOT SETTLE
+    * The 18 declarer-gap trees are ledger-family. This changes ONE spec. Nothing here transfers
+      to the other specs without doing it to them too.
+    * It does not touch the 5 wrong-qualifier trees at all, 2 of which are provably inert to the
+      API fix as well. Neither queued change addresses those two.
