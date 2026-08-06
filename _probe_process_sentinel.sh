@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # Classify a FRESH server process by what its models.go declares, for a fraction of a draw.
 #
-#     ./_probe_process_sentinel.sh [label]
+#     ./_probe_process_sentinel.sh [label]                                    # fresh process, baseline
+#     RESTART=0 ROLE=treated SPEC=<other> ./_probe_process_sentinel.sh [label]  # the paired arm
 #
 # WHY THIS EXISTS. Both queued sentinel experiments are UNINFORMATIVE on a process whose declarer
 # already writes ErrInsufficientFunds: the spec fix's gate cannot fire when nothing is missing,
@@ -33,10 +34,23 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
+# ⚠️ SPEC AND RESTART ARE PARAMETERS BECAUSE THE PAIRED DESIGN NEEDS BOTH, and on 5 August it
+# had neither: the four draws of the first pair were issued by hand because this script always
+# restarted and always used one spec. That worked, and it is exactly the shape this campaign has
+# a standing rule against — the protocol that ran was not the protocol that is committed.
+#
+#   SPEC=...     which spec to draw. There are now TWO and a verdict without one is meaningless.
+#                Both go in the ledger line for that reason.
+#   RESTART=0    reuse the RUNNING server. This is what makes a pair a pair: baseline and treated
+#                must be drawn by the SAME process, because 31 July established that the
+#                declaration under test varies BY PROCESS. Restarting between the arms would
+#                confound the treatment with the thing it is being compared against.
 LABEL="${1:-probe}"
 PORT="${PORT:-8137}"
 MODEL="mlx-community/Qwen2.5-Coder-7B-Instruct-4bit"
-SPEC="specs/ledger-origorder.yaml"
+SPEC="${SPEC:-specs/ledger-origorder.yaml}"
+RESTART="${RESTART:-1}"
+ROLE="${ROLE:-baseline}"
 EXAMPLES="examples/verified_contracts.jsonl"
 OUT="./generated/probe-${LABEL}"
 LOG="logs/probe-${LABEL}.log"
@@ -44,11 +58,26 @@ LEDGER="logs/PROBE-LEDGER.txt"
 TARGET="internal/models/models.go"
 TIMEOUT_S="${TIMEOUT_S:-1500}"
 
+# ⚠️ ONE RECORDER, CALLED ON EVERY EXIT PATH. There were four copies of this printf, and the spec
+# field would have had to be added to all four; a ledger that records the spec on the success path
+# and forgets it on the void paths is worse than one that never had the field, because the rows
+# that look complete are the ones you would trust.
+record () {   # record <verdict>
+  printf '%s  pid=%-7s label=%-18s spec=%-28s VERDICT=%s\n' \
+    "$(date +%Y-%m-%dT%H:%M:%S)" "$PID" "$LABEL" "$(basename "$SPEC")" "$1" >> "$LEDGER"
+}
+
 pgrep -f "\.venv/bin/guildlm-build" >/dev/null && { echo "REFUSING: a draw is in flight."; exit 8; }
 [[ -e "$OUT" ]] && { echo "REFUSING: $OUT exists."; exit 9; }
 
-echo "=== probe '$LABEL' · restarting the server to get a FRESH process ==="
-PORT="$PORT" ./_server_restart.sh || { echo "REFUSING: server did not come up"; exit 3; }
+[[ -s "$SPEC" ]] || { echo "REFUSING: no spec at $SPEC"; exit 10; }
+
+if [[ "$RESTART" == "1" ]]; then
+  echo "=== probe '$LABEL' · spec $SPEC · restarting the server to get a FRESH process ==="
+  PORT="$PORT" ./_server_restart.sh || { echo "REFUSING: server did not come up"; exit 3; }
+else
+  echo "=== probe '$LABEL' · spec $SPEC · REUSING the running process (paired arm) ==="
+fi
 PID=$(PORT="$PORT" ./_server_pid.sh) || { echo "REFUSING: cannot identify the server"; exit 4; }
 echo "  probing server pid $PID on port $PORT"
 
@@ -73,7 +102,7 @@ echo "  draw stopped after ${waited}s"
 
 if [[ ! -s "$OUT/$TARGET" ]]; then
   echo "  VERDICT: NO-FILE — models.go never landed in ${TIMEOUT_S}s"
-  printf '%s  pid=%-7s label=%-16s VERDICT=NO-FILE\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$PID" "$LABEL" >> "$LEDGER"
+  record NO-FILE
   exit 5
 fi
 
@@ -81,7 +110,7 @@ fi
 # A post-repair tree read as a draw is the error behind every retraction on 29 July and two since.
 if grep -qE "compile/test FAILED|fix round|deterministic fix|converged to green" "$LOG"; then
   echo "  REFUSING: repair activity in the log — this tree is NOT as-drawn"
-  printf '%s  pid=%-7s label=%-16s VERDICT=VOID-REPAIRED\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$PID" "$LABEL" >> "$LEDGER"
+  record VOID-REPAIRED
   exit 6
 fi
 
@@ -92,16 +121,28 @@ fi
 # this script runs.
 VERDICT=$(.venv/bin/python ./_sentinel_verdict.py "$OUT/$TARGET") || {
   echo "  REFUSING: classifier failed on $OUT/$TARGET"
-  printf '%s  pid=%-7s label=%-16s VERDICT=VOID-CLASSIFIER\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$PID" "$LABEL" >> "$LEDGER"
+  record VOID-CLASSIFIER
   exit 7
 }
 
-printf '%s  pid=%-7s label=%-16s VERDICT=%s\n' "$(date +%Y-%m-%dT%H:%M:%S)" "$PID" "$LABEL" "$VERDICT" >> "$LEDGER"
+record "$VERDICT"
 echo "  VERDICT: $VERDICT   (server pid $PID)"
-case "$VERDICT" in
-  LONG) echo "  -> UNINFORMATIVE for both sentinel experiments. Discard and re-probe."
-        echo "     (this probe IS in $LEDGER; discarded probes are the evidence the claim is conditional)"
-        exit 1 ;;
-  *)    echo "  -> INFORMATIVE. Run the paired experiment on pid $PID, and do not restart the server."
-        exit 0 ;;
+# ⚠️ THE EXIT CODE ENCODES THE VERDICT (1 = LONG), NOT WHETHER THE PROBE WENT WELL — because
+# "well" is opposite in the two arms. On the BASELINE arm LONG means the process has nothing
+# wrong with it and must be discarded; on the TREATED arm LONG is the effect being tested for.
+# The code stays the same in both so a caller can branch on it; only the advice differs, and
+# printing the baseline advice after a treated probe is how a success gets thrown away.
+case "$VERDICT:$ROLE" in
+  LONG:baseline)
+      echo "  -> UNINFORMATIVE for both sentinel experiments. Discard and re-probe."
+      echo "     (this probe IS in $LEDGER; discarded probes are the evidence the claim is conditional)"
+      exit 1 ;;
+  LONG:*)
+      echo "  -> the declarer wrote the spec's name on this arm."
+      exit 1 ;;
+  *:baseline)
+      echo "  -> INFORMATIVE. Run the treated arm on pid $PID with RESTART=0, and do NOT restart."
+      exit 0 ;;
+  *)  echo "  -> the declarer did NOT write the spec's name on this arm."
+      exit 0 ;;
 esac

@@ -1,0 +1,101 @@
+PREREG — does the spec rephrasing flip the declarer on a SECOND server process?
+================================================================================
+Written 6 August, BEFORE the treated arm of process #2 runs. The baseline arm (probe p2-base)
+was already in flight when this was written, and that is deliberate and harmless: a baseline
+probe is a SELECTION step, not a test. It classifies a process; it stakes no prediction. The
+prediction below is conditional ON that classification and is committed before the arm that
+could confirm it exists.
+
+⚠️ THE THING THIS FIXES IS NAMED IN THE RESULT IT EXTENDS.
+logs/RESULT-the-spec-phrasing-flipped-the-declarer-on-a-replicated-baseline-and-the-gate-never-fired.txt
+ends with its own next-steps list, and item 3 is:
+
+    "Another informative process, probed and paired the same way. Two processes is not many;
+     one is fewer."
+
+That result is 4 draws on ONE process (pid 1459). Byte-identical repeats inside a deterministic
+process are cheap evidence about that process and NO evidence about another one. 31 July
+established that this exact declaration varies BY PROCESS — pid 7598 wrote the long name 7/7,
+pid 49288 wrote an abbreviation 2/2, pid 86026 wrote nothing 2/2. So the single most likely way
+for yesterday's headline to be wrong is that it is a fact about pid 1459.
+
+THE PROTOCOL — three arms, in this order, on ONE process, no restart between them
+    1. p2-base     baseline spec   (SELECTION: LONG -> discard the process, restart, try again)
+    2. p2-base2    baseline spec   (CONTROL, run BEFORE the treatment — see below)
+    3. p2-treated  treated  spec   (the arm under test)
+
+⚠️ ARM 2 RUNS BEFORE ARM 3, AND THAT IS THE ONE PROCEDURAL CHANGE FROM YESTERDAY.
+Yesterday's control2 was run AFTER the treated result was known. That was defensible — a control
+can only refute, so a late one costs nothing but its lateness — and it was recorded as a
+weakness. It costs ~10 minutes to not have that weakness, so this time the replicated baseline
+is established first and the treatment is drawn into a baseline that is already fixed.
+
+    specs/ledger-origorder-baseline.yaml   the phrasing as it was before 8961ed3, restored
+                                           BYTE-EXACT from git (`git show 8961ed3^:...`), never
+                                           retyped — this campaign has a standing rule about
+                                           hand-copied artefacts producing table columns.
+    specs/ledger-origorder.yaml            the treated phrasing, live since 8961ed3.
+
+    _spec_pair_guard.py asserts the two differ at internal/models/models.go AND NOWHERE ELSE,
+    including file order, because _file_list renders every purpose into every prompt. It also
+    fails when the named purpose does NOT differ, which is the silent way to run an experiment
+    with no treatment in it. Both directions are self-tested.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+THE PREDICTION — three-way, and CONDITIONAL ON THE BASELINE CLASS
+
+Scored three-way (LONG / ABBREVIATED / ABSENT), because on 31 July a binary long-vs-short
+question could not express the outcome that actually occurred, and the third branch was already
+measured at 28% of the archive when the binary prediction was written.
+
+⚠️ The two informative baseline classes are NOT equally hard, and I am predicting them apart
+rather than averaging them into one number. pid 1459 was ABSENT — the model omitted the name.
+An ABBREVIATED process has actively CHOSEN a competing name, which is a stiffer disposition to
+move: on pid 49288 the fix loop regenerated models.go FIVE times with `undefined:
+models.ErrInsufficientFunds` in front of it and got a BYTE-IDENTICAL file every time.
+
+    IF the baseline arm is ABSENT       P(treated = LONG) = 70%    (25% abbreviated, 5% absent)
+    IF the baseline arm is ABBREVIATED  P(treated = LONG) = 50%    (45% abbreviated, 5% absent)
+
+WHY NOT HIGHER. The mechanism is clean and direct — the prompt text changed what the model wrote
+on the first sample, no gate rejection involved — and that generalises more readily than a
+resampling effect would. But process-level variation in this one declaration is the best
+established fact in this whole line of work, and it is precisely the thing a second process
+tests. Yesterday I put 80% on a pathway I could verify offline and lost; the campaign's own
+ledger says confident numbers are 0 of 6 and near-50 numbers are 3 of 4.
+
+REJECT — the honest failure, stated so it cannot be reinterpreted afterwards:
+    The treated arm comes back ABBREVIATED or ABSENT. Then the rephrasing does NOT generalise
+    across processes, yesterday's result is a fact about pid 1459, and the correct headline
+    becomes "one process flipped" rather than "the rephrasing fixes the declarer". I will say
+    that in those words.
+
+VOID — the probe answers nothing, rather than answering no:
+    - any arm returns NO-FILE (models.go never landed) or VOID-REPAIRED (the fix loop ran, so
+      the tree is not as-drawn) or VOID-CLASSIFIER;
+    - the server pid CHANGES between arms — the pairing is the design, and a restart between
+      arms confounds the treatment with the process it is being compared against. The pid is
+      recorded on every ledger row for exactly this check;
+    - the baseline arm is LONG. Then no treated arm runs at all: a fix cannot be tested where
+      the defect does not occur. The process is discarded, logged, and another is probed.
+    - p2-base and p2-base2 DIFFER from each other. Then generation on this process is not
+      deterministic and the whole paired design is inapplicable to it. This would itself be a
+      finding — every process measured so far has been deterministic within itself — but it
+      voids the treatment comparison rather than informing it.
+
+WHAT A CONFIRMATION WOULD AND WOULD NOT BUY
+    ✓ Two processes, not one. The claim stops being about pid 1459.
+    ✗ It is still CONDITIONAL BY CONSTRUCTION. Both processes were SELECTED for failing the
+      baseline; LONG processes are discarded and logged in logs/PROBE-LEDGER.txt. The claim can
+      only ever be "among processes whose declarer gets the name wrong, the rephrasing fixes
+      it". No rate may be computed from probes — the archive answers that (36/36/28) and the
+      probe throws away exactly the evidence a rate needs.
+    ✗ Still ONE SPEC (ledger) and still NO BUILD RUN TO GREEN. These draws stop at file 4 of 19
+      by design.
+    ✗ n=2 is not a sample. Two processes agreeing is two processes agreeing.
+
+⚠️ AND THE TREATMENT IS A BUNDLE, WHICH THIS DESIGN DOES NOT UNPICK AND DOES NOT CLAIM TO.
+The one-line edit changed four things at once: "Sentinel errors" -> "Exported sentinels", bare
+names -> backticked `var ErrX`, an added "(each errors.New)", and a re-wrap that moves where
+ErrInsufficientFunds sits in the list. Which of those does the work is a separate question and
+is NOT asked here.

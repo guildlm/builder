@@ -22,3 +22,4 @@ VERDICTS: LONG = declares ErrInsufficientFunds (uninformative, discard)
 2026-08-05T21:52:00  pid=1459    label=p1-control2      VERDICT=ABSENT (replication of p1, byte-identical models.go)
 2026-08-05T21:40:00  pid=1459    label=p1-treated       VERDICT=LONG (TREATMENT: new spec phrasing)
 2026-08-05T22:05:00  pid=1459    label=p1-treated2      VERDICT=LONG (TREATMENT replication, byte-identical to p1-treated)
+2026-08-06T09:36:44  pid=47310   label=p2-base            spec=ledger-origorder-baseline.yaml VERDICT=LONG
