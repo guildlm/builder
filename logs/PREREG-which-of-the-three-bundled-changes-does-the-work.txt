@@ -1,0 +1,81 @@
+PREREG — the treatment is three changes bundled. Which one does the work?
+==========================================================================
+Written 6 August ~10:10, before any arm of this experiment runs. Extends
+logs/RESULT-the-rephrasing-replicated-on-a-second-process-and-lands-on-the-file-a-healthy-process-writes-unaided.txt
+
+The rephrasing that flips the declarer is one line, and it changes three things at once. The
+RENDERED sentences (folded yaml, so this is exactly what reaches the model):
+
+  BASELINE  Sentinel errors, all matchable with errors.Is: ErrInvalid, ErrNotFound, ErrExists,
+            ErrUnbalanced, ErrInsufficientFunds.
+  TREATED   Exported sentinels, all matchable with errors.Is: `var ErrInvalid`, `var ErrNotFound`,
+            `var ErrExists`, `var ErrUnbalanced`, `var ErrInsufficientFunds` (each errors.New).
+
+    A.  "Sentinel errors,"  ->  "Exported sentinels,"        a framing word
+    B.  bare names          ->  backticked `var ErrX`        the DECLARATION FORM, shown
+    C.  (nothing)           ->  " (each errors.New)"         the initialiser, named
+
+⚠️ I ORIGINALLY WROTE FOUR, counting a re-wrap. That component does not exist: the purpose is a
+FOLDED yaml scalar so line breaks never reach the model, and the name is the last item of the
+list in both phrasings. Corrected at 4d9ba75, before this design — which is the only reason this
+experiment has three arms to consider instead of four.
+
+THE ARM UNDER TEST — B ALONE
+specs/ledger-origorder-varonly.yaml, built by editing the baseline programmatically (not
+retyped) and checked by _spec_pair_guard.py to differ from it at models.go and nowhere else:
+
+  VAR-ONLY  Sentinel errors, all matchable with errors.Is: `var ErrInvalid`, `var ErrNotFound`,
+            `var ErrExists`, `var ErrUnbalanced`, `var ErrInsufficientFunds`.
+
+B is the component with an actual mechanism. The defect is an OMITTED DECLARATION, and B is the
+only one of the three that shows the model what a declaration looks like and puts the name in a
+code context. A is a noun swap. C names an initialiser the model already writes correctly for
+the other four sentinels in every failing draw — it is telling the model something it is
+demonstrably not getting wrong.
+
+THE PROTOCOL — three arms, ONE process, no restart, in this order
+    1. base      baseline spec   SELECTION: must be ABSENT or ABBREVIATED, else discard the
+                                 process and probe again (logged either way)
+    2. varonly   B only          THE TEST
+    3. treated   full treatment  ⚠️ POSITIVE CONTROL, AND IT IS NOT OPTIONAL
+
+⚠️⚠️ WHY ARM 3 EXISTS. Without it a null on arm 2 is uninterpretable: "B alone is insufficient"
+and "this particular process does not respond to the rephrasing at all" predict the identical
+observation. Arm 3 separates them, and it must run on the SAME process whatever arm 2 says —
+including when arm 2 succeeds, where it costs 4 minutes and buys the guarantee that the arm-2
+result was not read against a process that would have flipped for anything.
+
+PREDICT — three-way (LONG / ABBREVIATED / ABSENT), scored on arm 2:
+
+    P(varonly = LONG) = 60%        (30% absent, 10% abbreviated)
+
+Sixty and not more because the whole reason to run this is that I cannot tell from the outside
+which ingredient matters, and because this campaign's ledger is blunt about confident numbers:
+0 of 6 confident predictions have hit, 3 of 4 near-50 ones have. Sixty is my honest lean toward
+the component that has a mechanism, not a claim to know.
+
+WHAT EACH OUTCOME MEANS
+    varonly LONG, treated LONG      B is SUFFICIENT. A and C are decoration for this defect, and
+                                    the shippable rule is narrow and portable to other specs:
+                                    show the declaration form, do not merely list the names.
+    varonly NOT LONG, treated LONG  B alone is INSUFFICIENT and the process does respond. The
+                                    work is in A, in C, or in a combination. Next arm: B+C.
+    varonly NOT LONG, treated NOT   VOID for this question. The process did not respond to the
+                                    known-good treatment, so it cannot test a component of it.
+                                    Discard, log, probe another process. ⚠️ This outcome would
+                                    also be a REFUTATION of the replication result above, and a
+                                    much bigger finding than the one this experiment is chasing.
+    varonly LONG, treated NOT       Incoherent — B is contained in the treatment. Would mean the
+                                    process is not deterministic across prompts in the way four
+                                    arms on two processes have measured. Report as anomalous,
+                                    do not explain it away.
+
+VOID — the arm answers nothing rather than answering no:
+    - NO-FILE, VOID-REPAIRED (fix loop ran, tree not as-drawn), or VOID-CLASSIFIER on any arm;
+    - the server pid changes between arms;
+    - the baseline arm is LONG (no defect to fix on this process; discard and re-probe).
+
+⚠️ BOUNDS, STATED NOW. One spec, one identifier, one process per run, draws stopped at file 4 of
+19, and the process is SELECTED for failing — every result here is conditional on that selection
+and no rate may be computed from probes. If B is sufficient, that is a claim about
+ErrInsufficientFunds in the ledger spec, not a law about prompts.

@@ -28,3 +28,6 @@ VERDICTS: LONG = declares ErrInsufficientFunds (uninformative, discard)
 2026-08-06T09:45:01  pid=64149   label=p3-treated         spec=ledger-origorder.yaml        VERDICT=LONG
 2026-08-06T09:47:12  pid=64149   label=p3-treated2        spec=ledger-origorder.yaml        VERDICT=LONG
 2026-08-06T09:50:56  pid=1080    label=p4-base            spec=ledger-origorder-baseline.yaml VERDICT=LONG
+2026-08-06T09:55:44  pid=7507    label=p5-base            spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-06T09:59:27  pid=38950   label=p6-base            spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-06T10:02:44  pid=63760   label=p7-base            spec=ledger-origorder-baseline.yaml VERDICT=LONG
