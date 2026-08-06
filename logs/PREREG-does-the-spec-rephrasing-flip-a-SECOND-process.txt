@@ -99,3 +99,36 @@ The one-line edit changed four things at once: "Sentinel errors" -> "Exported se
 names -> backticked `var ErrX`, an added "(each errors.New)", and a re-wrap that moves where
 ErrInsufficientFunds sits in the list. Which of those does the work is a separate question and
 is NOT asked here.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+ADDENDUM, committed 6 August BEFORE the treated arm runs — an observation that WEAKENS this test
+════════════════════════════════════════════════════════════════════════════════════════════
+The baseline arm on the new process (pid 64149) produced a models.go that is BYTE-IDENTICAL to
+the baseline arm on pid 1459 — hash 3a78b0d856c4, 1276B, the same file yesterday's experiment
+started from.
+
+    pid 1459   baseline   3a78b0d856c4  1276B   ABSENT
+    pid 64149  baseline   3a78b0d856c4  1276B   ABSENT   <- a DIFFERENT process, same bytes
+
+⚠️ THIS MAKES THE REPLICATION WEAKER THAN I DESIGNED IT TO BE, AND I AM SAYING SO BEFORE THE
+ANSWER EXISTS. The point of a second process was that 31 July established process-to-process
+variation in this declaration. A second process that starts from the IDENTICAL failing file is
+not the independent test I wanted: if two processes agree byte-for-byte on the baseline prompt,
+the most economical reading is that they are in the same numerical regime, and agreeing under
+the treated prompt too is much of what "same regime" already means. A flip here is a real second
+observation, but it is closer to a repeat than the design intended.
+
+Processes DO still differ — pid 47310 was LONG this morning and is logged as discarded, and
+31 July's three processes chose three different names. So the variation is real; these two
+particular processes happen to coincide.
+
+I am NOT moving the registered number. 70% stands as written. The honest update is not to the
+probability but to what a hit BUYS, and that is stated here rather than discovered afterwards:
+
+    a hit  -> two processes, same baseline file, same treated file. Weaker than "two processes"
+              sounds. The stronger version needs a process whose baseline is a DIFFERENT variant
+              (the archive has 3 distinct ABSENT files and 2 distinct ABBREVIATED ones), and
+              that is the next probe to run, not a substitute for this one.
+    a miss -> still decisive in the reject direction. Two processes with identical baselines
+              diverging under treatment would mean the treatment's effect is not even a function
+              of the process's baseline behaviour, which no current account predicts.
