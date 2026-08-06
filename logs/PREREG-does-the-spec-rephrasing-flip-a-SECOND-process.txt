@@ -95,10 +95,16 @@ WHAT A CONFIRMATION WOULD AND WOULD NOT BUY
     ✗ n=2 is not a sample. Two processes agreeing is two processes agreeing.
 
 ⚠️ AND THE TREATMENT IS A BUNDLE, WHICH THIS DESIGN DOES NOT UNPICK AND DOES NOT CLAIM TO.
-The one-line edit changed four things at once: "Sentinel errors" -> "Exported sentinels", bare
-names -> backticked `var ErrX`, an added "(each errors.New)", and a re-wrap that moves where
-ErrInsufficientFunds sits in the list. Which of those does the work is a separate question and
-is NOT asked here.
+The one-line edit changed THREE things at once: "Sentinel errors" -> "Exported sentinels", bare
+names -> backticked `var ErrX`, and an added "(each errors.New)". Which of those does the work is
+a separate question and is NOT asked here.
+
+⚠️ CORRECTED, same day, before the unbundling was designed: I first wrote FOUR things, counting
+"a re-wrap that moves where ErrInsufficientFunds sits in the list". Both halves of that are
+wrong. The purpose is a FOLDED yaml scalar (`>-`), so it renders to a single line with zero
+newlines — the re-wrap is invisible to the prompt. And the name is the fifth and LAST item of
+the list in BOTH phrasings, so nothing about its position changed either way. Recorded because
+the unbundling experiment would otherwise have spent an arm on a component that does not exist.
 
 ════════════════════════════════════════════════════════════════════════════════════════════
 ADDENDUM, committed 6 August BEFORE the treated arm runs — an observation that WEAKENS this test

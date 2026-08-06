@@ -78,9 +78,14 @@ WHAT STANDS AND WHAT DOES NOT
     archive answers that (36/36/28 over 25 trees) and the probe throws away what a rate needs.
   ✗ Both informative processes had the SAME baseline file. n=2 processes, n=1 failure mode.
   ✗ ONE SPEC (ledger). No build run to green — these draws stop at file 4 of 19 by design.
-  ✗ The treatment is still a BUNDLE: "Sentinel errors"->"Exported sentinels", bare names->
-    backticked `var ErrX`, an added "(each errors.New)", and a re-wrap that moves where
-    ErrInsufficientFunds sits in the list. Which part does the work is untested.
+  ✗ The treatment is still a BUNDLE of THREE changes: "Sentinel errors"->"Exported sentinels",
+    bare names->backticked `var ErrX`, and an added "(each errors.New)". Which part does the
+    work is untested.
+    📌 I first wrote FOUR, counting a re-wrap "that moves where ErrInsufficientFunds sits in the
+    list". Wrong twice over: the purpose is a FOLDED yaml scalar, so it renders to one line and
+    the wrap is invisible to the prompt; and the name is the last item of the list in BOTH
+    phrasings. Caught by rendering the two purposes and diffing them, before designing the
+    unbundling that would have wasted an arm on it.
 
 ════════════════════════════════════════════════════════════════════════════════════════════
 📌 A FINDING I WAS ABOUT TO PUBLISH, KILLED BY ITS OWN CONTROL (commit d76289e)
