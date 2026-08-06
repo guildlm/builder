@@ -1,0 +1,82 @@
+RESULT — one of the three bundled changes does all the work, and it produces the SAME BYTES as
+the full treatment. The other two are decoration.
+==============================================================================================
+6 August, ~10:20. Pre-registration: logs/PREREG-which-of-the-three-bundled-changes-does-the-work.txt,
+committed at 6714aba before any arm ran.
+
+    ✓ PREDICTED: P(varonly = LONG) = 60%.   HIT.
+
+THREE ARMS, ONE PROCESS — pid 64515, no restart, pid re-read at the end and unchanged
+    base      baseline spec   ABSENT  3a78b0d856c4  1276B
+    varonly   B only          LONG    ef8c15d6b5b7  1361B
+    treated   full treatment  LONG    ef8c15d6b5b7  1361B   <- POSITIVE CONTROL
+
+All three as-drawn: zero lines matching
+`compile/test FAILED|fix round|deterministic fix|converged to green` in each log.
+
+THE THREE COMPONENTS, and what the arms say about each
+    A.  "Sentinel errors," -> "Exported sentinels,"      NOT NEEDED
+    B.  bare names -> backticked `var ErrX`              SUFFICIENT ON ITS OWN
+    C.  + " (each errors.New)"                           NOT NEEDED
+
+B alone did not merely also work. It produced the file the full treatment produces, BYTE FOR
+BYTE — ef8c15d6b5b7, the same 1361B that pid 1459 and pid 64149 reached under the full bundle and
+that three healthy processes wrote unaided from the ORIGINAL phrasing. A and C do not contribute
+a byte.
+
+THE GATE DID NOT FIRE, on a THIRD process. `best-of-N gen: kept candidate 1 of 2` three times,
+zero rejection lines. Three processes now agree the pathway is prompt text on the first sample.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️⚠️ THE CLAIM IS "SHOWING THE FORM REPAIRS IT", NOT "BARE LISTS BREAK IT" — AND THE EVIDENCE
+AGAINST THE SECOND READING WAS ALREADY IN THE RECORD BEFORE TODAY
+
+The tempting headline is "a bare list of names causes omitted declarations". It is wrong, and
+31 July already measured why. In the SAME bare-list sentence of the SAME purpose:
+
+    ErrUnbalanced   25/25   100%        ErrNotFound   43/43   100%
+    ErrValidation   13/13   100%        ErrInvalid    30/30   100%
+    ErrExists       43/43   100%        ErrInsufficientFunds   9/25   36%   <- the only failure
+
+Four sentinels sit in that bare list and are declared perfectly, in the same files, by the same
+processes, across a month of harness versions. Bare-list phrasing is therefore NOT sufficient to
+cause the defect. What today's arms establish is narrower and it is a claim about the REPAIR:
+where the defect occurs, showing the declaration form removes it, and neither of the other two
+edits is needed to do so.
+
+⚠️ AND THAT MAKES THE MECHANISM STILL UNNAMED. Why one identifier among six fails under phrasing
+that four siblings survive is the question 31 July left open — length, two-concept compound,
+having a plausible-looking abbreviation, or the name itself — and n=1 identifier still cannot
+separate those. This result does not touch that question. It says what fixes the symptom, not
+what causes it.
+
+WHAT THIS IS GOOD FOR
+A narrow, portable, zero-code rule for writing specs:
+    SHOW THE DECLARATION FORM. `var ErrX` beats ErrX in a list of names.
+Not "use more words", not "explain the initialiser", not "say exported" — those were arms A and
+C and they bought nothing measurable.
+
+⚠️ BOUNDS, unchanged from the prereg and not softened by the hit
+  ✗ ONE spec (ledger), ONE identifier, ONE process for this experiment. The process was SELECTED
+    for failing the baseline; discards are in logs/PROBE-LEDGER.txt and no rate may be computed
+    from probes.
+  ✗ Draws stop at file 4 of 19. NO BUILD WAS RUN TO GREEN by any arm of this experiment. That
+    the declarer now writes the name is the mechanism behind builds whose terminal error was
+    `undefined: models.ErrInsufficientFunds`, but that link is inherited from earlier work, not
+    demonstrated here.
+  ✗ B was tested ALONE. A+C together was not tested and could in principle also suffice; the
+    experiment establishes that B is SUFFICIENT, not that it is NECESSARY.
+  ✗ A cross-spec scan shows taskapi/taskapipro/workapi already write `var ErrX` in models.go
+    while taskflow/tasks-api/usersapi/shortener/logstats use bare lists. That is suggestive and
+    it is NOT evidence: different projects, different identifiers, different lengths, and no
+    intervention. Recorded as an observation to test, never as a result.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+THE DAY'S PREDICTION LEDGER
+    70%  "the rephrasing flips a SECOND process (ABSENT branch)"      HIT
+    60%  "B alone is sufficient"                                      HIT
+    50%  "the rephrasing flips an ABBREVIATED process"                UNRUN — no ABBREVIATED
+         process appeared in six tries. NOT scored, and the ABSENT result is not substituted
+         for it.
+Both hits were near-50 numbers. The campaign's standing pattern — confident predictions 0 of 6,
+near-50 predictions now 5 of 6 — survives another day.
