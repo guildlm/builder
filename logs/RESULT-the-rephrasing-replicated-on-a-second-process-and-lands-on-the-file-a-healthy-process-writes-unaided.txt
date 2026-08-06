@@ -1,0 +1,127 @@
+RESULT — the spec rephrasing flipped the declarer on a SECOND server process, and the file it
+produces is BYTE-IDENTICAL to the one a healthy process writes from the OLD spec unaided
+==============================================================================================
+6 August, ~09:50. Pre-registration: logs/PREREG-does-the-spec-rephrasing-flip-a-SECOND-process.txt,
+committed at 380a7a2 before the treated arm ran, with an addendum at b3489e1 also committed
+before it ran.
+
+    ✓ PREDICTED (ABSENT branch): P(treated = LONG) = 70%.   HIT.
+
+THE COMPLETE 2x2 ON ONE PROCESS — pid 64149, never restarted across the four arms
+    OLD spec  probe-p3-base       ABSENT  3a78b0d856c4  1276B  \  BYTE-IDENTICAL
+    OLD spec  probe-p3-base2      ABSENT  3a78b0d856c4  1276B  /
+    NEW spec  probe-p3-treated    LONG    ef8c15d6b5b7  1361B  \  BYTE-IDENTICAL
+    NEW spec  probe-p3-treated2   LONG    ef8c15d6b5b7  1361B  /
+
+    within-condition variation: ZERO.   between-condition: complete separation.
+
+Every arm as-drawn: all four logs have ZERO lines matching
+`compile/test FAILED|fix round|deterministic fix|converged to green`. Checked per arm, not
+assumed. Server pid re-read from _server_pid.sh after the last arm: still 64149.
+
+THE DIFF IS EXACTLY THE INTERVENTION'S TARGET, AGAIN
+    +	ErrInsufficientFunds = errors.New("insufficient funds")
+plus gofmt re-aligning the four existing entries. Nothing else in the file moved.
+
+THE GATE DID NOT FIRE, AGAIN. Both treated logs read `best-of-N gen: kept candidate 1 of 2`,
+three times each, with no rejection lines. Candidate 1 was kept, so nothing was resampled: the
+prompt text changed what the model wrote on the FIRST sample. This is the same pathway as
+5 August and it is the pathway I got WRONG in that day's prereg, where I put 80% on the gate.
+Two processes now agree that the gate is irrelevant to this effect.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⭐ THE NEW THING — THE TREATED FILE IS NOT A TREATED-LOOKING FILE. IT IS **THE** FILE.
+
+pid 47310 was probed this morning, came back LONG, and was DISCARDED as uninformative — a
+process that writes the name correctly cannot test a fix for writing it incorrectly. Its
+models.go is on disk, and:
+
+    pid 47310   OLD spec   ef8c15d6b5b7  1361B   <- healthy process, unaided, ORIGINAL phrasing
+    pid  1459   NEW spec   ef8c15d6b5b7  1361B   <- 5 August treatment
+    pid 64149   NEW spec   ef8c15d6b5b7  1361B   <- today's treatment
+
+The rephrasing does not nudge the model toward some new output that happens to contain the
+name. It lands the failing process on the EXACT BYTES a healthy process produces from the
+phrasing that failed. Same for the failures: both informative processes produced the identical
+1276B file. Eight draws across two processes and two spec phrasings resolve to TWO files.
+
+📌 AND THE DISCARDED PROBE IS WHAT MADE THIS VISIBLE. pid 47310 was thrown away by the protocol
+as carrying no information about the fix. It carries none about the fix and it is the only
+measurement here of what "correct" looks like independent of the treatment. The ledger exists to
+keep the conditional claim honest; this is the second thing it turned out to be for.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+⚠️⚠️ THE WEAKNESS, WRITTEN DOWN BEFORE THE ANSWER EXISTED (commit b3489e1)
+
+pid 64149's BASELINE is byte-identical to pid 1459's baseline — the same 3a78b0d8, 1276B. The
+addendum said so before the treated arm ran, and said what it costs:
+
+    "A second process that starts from the IDENTICAL failing file is not the independent test I
+     wanted: if two processes agree byte-for-byte on the baseline prompt, the most economical
+     reading is that they are in the same numerical regime, and agreeing under the treated
+     prompt too is much of what 'same regime' already means."
+
+That still stands, and the hit does not retire it. What this buys is: TWO processes, in the same
+regime, both flip. What it does not buy is a process that fails DIFFERENTLY and still flips. The
+archive holds 3 distinct ABSENT variants and 2 distinct ABBREVIATED ones; the ABBREVIATED class
+is the registered 50% branch and the stiffer one (on pid 49288 the fix loop regenerated models.go
+FIVE times with `undefined: models.ErrInsufficientFunds` in front of it and got byte-identical
+output every time). That probe is the next thing to run and is NOT substituted for by this one.
+
+WHAT STANDS AND WHAT DOES NOT
+  ✓ Two processes, not one. Yesterday's headline is no longer a fact about pid 1459 alone.
+  ✓ The mechanism replicated: prompt text, first sample, no gate involvement.
+  ✓ Determinism measured per process rather than assumed: 2 arms per cell, both cells, zero
+    within-condition variation.
+  ✗ CONDITIONAL BY CONSTRUCTION. Both processes were SELECTED for failing the baseline. Discards
+    (77977, 47310) are in logs/PROBE-LEDGER.txt. NO RATE may be computed from probes — the
+    archive answers that (36/36/28 over 25 trees) and the probe throws away what a rate needs.
+  ✗ Both informative processes had the SAME baseline file. n=2 processes, n=1 failure mode.
+  ✗ ONE SPEC (ledger). No build run to green — these draws stop at file 4 of 19 by design.
+  ✗ The treatment is still a BUNDLE: "Sentinel errors"->"Exported sentinels", bare names->
+    backticked `var ErrX`, an added "(each errors.New)", and a re-wrap that moves where
+    ErrInsufficientFunds sits in the list. Which part does the work is untested.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+📌 A FINDING I WAS ABOUT TO PUBLISH, KILLED BY ITS OWN CONTROL (commit d76289e)
+
+While the arms ran I censused the archive and found that 27 as-drawn ledger models.go files
+collapse into SIX distinct byte sequences. That is the measured form of 31 July's registered
+hypothesis that the process "selects among a small set of stable alternatives", and I was ready
+to write it up as such. Then I censused the other 18 files — which is the only reason
+_asdrawn_census.py takes a path argument instead of hardcoding models.go:
+
+    store.go 11 · service.go 9 · memory_test.go 9 · service_test.go 8 · accounts.go 7 ·
+    transactions_test.go 7 · memory.go 7 · models.go 6 · money_test.go 6 · main.go 5 ·
+    transactions.go 5 · models_test.go 5 · router_test.go 4 · middleware_test.go 4 ·
+    response.go 2 · router.go 2 · go.mod 1 · middleware.go 1 · money.go 1
+
+models.go is MID-RANGE. Nine files vary more; three take exactly one value across the whole
+archive. Six-of-27 is what this generator does on this spec, not something models.go does. The
+"attractor set" reading was a real number attached to the wrong claim.
+
+What survives is narrower and is about the MAPPING rather than the count: of the six models.go
+variants, exactly ONE declares the spec's name — and that one is ef8c15d6, the file both
+treatments and the healthy process produced. "Correct" here is a single file; "wrong" has five
+forms.
+
+⚠️ The census counts TREES, not independent draws — six of the ledger trees are parity pairs
+drawn from one process by design, and the unlabelled ones cannot be grouped by process at all.
+The tool prints that warning under every table it produces.
+
+════════════════════════════════════════════════════════════════════════════════════════════
+INSTRUMENTS BUILT FOR THIS, AND THE RULE THEY FOLLOW
+
+The 5 August pair was issued BY HAND because _probe_process_sentinel.sh always restarted and
+always used one spec — the protocol that ran was not the protocol that was committed. Now:
+    SPEC / RESTART / ROLE are parameters; ROLE decides what LONG MEANS (discard on the baseline
+    arm, effect on the treated one), because printing the baseline advice after a treated probe
+    is how a success gets thrown away. One `record` function on every exit path, so the spec
+    field cannot be present on rows that succeed and missing on rows that void.
+    specs/ledger-origorder-baseline.yaml restored BYTE-EXACT via `git show 8961ed3^:...`.
+    _spec_pair_guard.py fails in BOTH directions — an unintended second difference, AND an
+    --only naming a purpose that did not change (an experiment with no treatment in it).
+    _asdrawn_census.py refuses to read from disk; a tree with the file present but no
+    .pre-fix.json is reported MISSING, self-tested in that direction specifically.
+
+460 pytest passed · 3 instrument self-tests OK.
