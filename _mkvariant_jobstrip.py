@@ -99,8 +99,26 @@ def apply_once(text: str, edits: list[tuple[str, str]], label: str) -> str:
     return text
 
 
+# --- the unbundling: each of the three removed mentions, ALONE -------------------------------
+# The jobstrip arm removed three ErrExists mentions at once and flipped models.go from 3a78b0d8
+# to ef8c15d6 (logs/RESULT-the-job-hypothesis-failed-its-own-prediction-...). Which one did it is
+# unknown, and a three-part treatment whose parts are never separated is a recipe, not a finding.
+# Same protocol as 6 August, where a three-part spec treatment reduced to ONE sufficient part.
+SUBARMS = {
+    "a": ([STRIP[0]], ["internal/store/memory.go"]),        # the parenthetical enumeration
+    "b": ([STRIP[1]], ["internal/store/memory.go"]),        # CreateAccount's return clause
+    "c": ([STRIP[2]], ["internal/store/memory_test.go"]),   # the test's assertion
+}
+
+
 def build() -> int:
     base = BASE.read_text()
+    for key, (edits, _) in SUBARMS.items():
+        out = apply_once(base, edits, f"jobstrip-{key}")
+        p = HERE / "specs" / f"ledger-jobstrip-{key}.yaml"
+        p.write_text(out)
+        print(f"  wrote {p.name:<32} {len(out):>6} bytes ({len(out) - len(base):+d} vs baseline)")
+
     for path, edits, label in ((JOBSTRIP, STRIP, "jobstrip"), (PLACEBO, PLACEBO_EDITS, "placebo")):
         out = apply_once(base, edits, label)
         path.write_text(out)
@@ -181,6 +199,19 @@ def self_test() -> int:
         mentions(yaml.safe_load(base))["ErrInsufficientFunds"].demanded)
     chk("placebo ErrExists keeps its use sites",
         mentions(yaml.safe_load(placebo))["ErrExists"].demanded, 3)
+
+    # --- the sub-arms: each removes exactly ONE mention, and together they equal the bundle ----
+    subs = {k: apply_once(base, edits, f"sub-{k}") for k, (edits, _) in SUBARMS.items()}
+    for k, text in subs.items():
+        chk(f"sub-arm {k} removes exactly one ErrExists mention", text.count("ErrExists"), 4)
+        chk(f"sub-arm {k} introduces no new Err name", tokens(text) - tokens(base), set())
+        chk(f"sub-arm {k} leaves models.go's purpose byte-identical",
+            purpose(text, "internal/models/models.go"),
+            purpose(base, "internal/models/models.go"))
+    chk("the three sub-arms are distinct", len({*subs.values()}), 3)
+    chk("applying all three in sequence reproduces the bundle exactly",
+        apply_once(apply_once(apply_once(base, [STRIP[0]], "x"), [STRIP[1]], "y"),
+                   [STRIP[2]], "z"), strip)
 
     print("SELF-TEST", "OK" if ok else "FAILED")
     return 0 if ok else 1

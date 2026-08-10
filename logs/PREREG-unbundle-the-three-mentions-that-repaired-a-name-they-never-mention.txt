@@ -1,0 +1,69 @@
+PREREG — which of the three removed mentions repaired ErrInsufficientFunds?
+===========================================================================
+10 August, committed BEFORE the sub-arms are drawn, on the SAME process the bundle ran on
+(pid 60986, never restarted). Follows e5773d0.
+
+WHAT HAPPENED, AND WHY IT NEEDS SPLITTING
+    Removing three mentions of ErrExists from two internal/store purposes flipped models.go from
+    3a78b0d8 (1276 B, ErrInsufficientFunds ABSENT) to ef8c15d6 (1361 B, all five declared) —
+    while a placebo editing the same two purposes by 79 characters against the treated arm's 81,
+    naming no sentinel, left the file BYTE-IDENTICAL to baseline.
+
+    Three mentions went at once. A three-part treatment whose parts are never separated is a
+    recipe, not a finding — and on 6 August exactly this split reduced a three-part treatment to
+    ONE sufficient component, with the other two contributing zero bytes.
+
+THE SUB-ARMS  (built and guarded before this file was written; each removes exactly ONE mention;
+               each leaves models.go's own purpose byte-identical; none introduces a new Err name)
+
+    a   memory.go's parenthetical enumeration                                    +0 chars
+        "one of the SENTINELS declared in the models package (models.ErrExists,
+         models.ErrNotFound), returned DIRECTLY"
+        ->  "... (models.ErrNotFound is one of the two), returned DIRECTLY"
+        ⚠️ LENGTH-NEUTRAL TO THE CHARACTER, which no other arm in this campaign has been.
+
+    b   memory.go's CreateAccount clause                                        +18 chars
+        "CreateAccount returns models.ErrExists on a duplicate ID"
+        ->  "CreateAccount returns the matching models sentinel on a duplicate ID"
+
+    c   memory_test.go's assertion                                              +63 chars
+        "TestCreateAccountDuplicate: create the same ID twice -> errors.Is ErrExists."
+        ->  "... -> the same sentinel CreateAccount returns in that case, checked with errors.Is."
+
+    base3   the baseline again, LAST, to close the session's stability chain.
+
+ENDPOINT, AS-DRAWN, GRADED BY _declared_vs_spec.py AND BY sha256
+    For each sub-arm: does models.go declare ErrInsufficientFunds — equivalently, is the file
+    ef8c15d6 (1361 B) rather than 3a78b0d8 (1276 B)? Both files are known byte sequences, so the
+    hash IS the endpoint and there is nothing to interpret.
+
+    P(a alone flips) = 0.55
+    P(b alone flips) = 0.25
+    P(c alone flips) = 0.15
+    P(none of the three alone flips, i.e. the effect needs at least two) = 0.25
+    (per-arm, not exclusive — two could both flip)
+
+    REASONING, so a later reader can see what moved me: (a) is the only place in the entire spec
+    outside models.go's own purpose that ENUMERATES what the models package declares, and it
+    enumerates TWO of the five. A partial list presented as authoritative is the most plausible
+    thing to suppress the names it omits. (b) and (c) merely use a name; they do not claim to say
+    what the set is. And (a) being length-neutral means a flip there cannot be explained by
+    prompt length at all.
+
+    ⚠️ A COMPETING ACCOUNT THAT ALL THREE SHARE, and which a single-winner result would NOT
+    distinguish: every paraphrase introduces the abstract word "sentinel" where a concrete name
+    used to be. If all three flip, that — not the enumeration — is the better explanation, and
+    the next arm would have to remove a mention WITHOUT adding the word.
+
+    P(all three flip) = 0.15
+
+WHAT WOULD MAKE THIS VOID
+    · Any repair activity in a sub-arm's log (VOID-REPAIRED).
+    · base3 differing from base/base2: the process moved mid-session and no arm is attributable.
+    · A restart. The whole design is within-process; pid 60986 must survive all four draws.
+
+NOT CLAIMED
+    · Still one process, still conditional on it having been SELECTED for the defect.
+    · Sufficiency, if found, is not necessity — 6 August made that mistake's mirror image
+      explicit and it applies here too.
+    · Nothing about green builds; every arm dies at file 4 of 19.
