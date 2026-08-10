@@ -1,0 +1,71 @@
+RESULT — the switch did not replicate, because the second process flips on ANYTHING.
+And that is a finding about the campaign's method, not about this process.
+=====================================================================================
+10 August. Prereg logs/PREREG-replicate-the-switch-on-a-second-process.txt, committed before
+pid 60986 was killed. Process B = pid 71409, probe 2 of a registered 6 (probe 1, pid 70783, was
+LONG and discarded — both in PROBE-LEDGER.txt). Every arm AS-DRAWN, 0 repair lines.
+
+                                       PROCESS A (60986)      PROCESS B (71409)
+    arm                 edit           sha256    verdict      sha256    verdict
+    -----------------------------------------------------------------------------
+    base                none           3a78b0d8  absent       3a78b0d8  absent
+    base-close          none           3a78b0d8  absent       3a78b0d8  absent
+    placebo    +79, NO sentinel named  3a78b0d8  absent       ef8c15d6  FLIPS  <--
+    a          +0,  one mention gone   3a78b0d8  absent       ef8c15d6  FLIPS  <--
+    bc         +81, two mentions gone  3a78b0d8  absent       ef8c15d6  FLIPS
+    jobstrip   +81, all three gone     ef8c15d6  FLIPS        ef8c15d6  FLIPS
+
+    REGISTERED: baseline again 3a78b0d8 (0.80) -> HIT, five for five across informative
+    processes. Bundle flips on process B (0.65) -> HIT. bc null given strip flips (0.75) ->
+    MISS. The whole shape reproduces (0.50) -> MISS.
+
+⚠️⚠️ THE CONTROL IS WHERE THE RESULT IS, FOR THE SECOND TIME TODAY
+    On process B the PLACEBO flips the file. That arm renames nothing, mentions no sentinel, and
+    only rewords two sentences about slices and sorting. So on B, every arm is a positive arm and
+    the experiment has NO DISCRIMINATING POWER — not a contradiction of process A, an absence of
+    signal. B cannot tell "removing the last ErrExists mention" from "touching those purposes at
+    all", because on B both do the same thing.
+
+    B is not noisy: its baseline is byte-identical at the start and the end of the session, and A
+    and B agree exactly on both baseline draws. Each process is deterministic given an input.
+    What differs is SENSITIVITY: A moves only when all three mentions go; B moves for anything.
+
+WHAT SURVIVES ON PROCESS A
+    Process A's twelve draws are unaffected — its placebo was null, three singles were null, three
+    pairs were null, and the bundle flipped twice. On A the content of the edit is what mattered,
+    and that measurement stands as made. What today's second process removes is the right to
+    state it as a property of the model rather than of that process.
+
+⚠️⚠️⚠️ AND IT INDICTS AN EARLIER DESIGN OF MINE — THE ONE THAT SHIPPED
+    6 August's result ("showing the declaration form is the whole treatment; the other two changes
+    are decoration", 386f2f8) rests on arms of exactly this shape:
+
+        base / base2   old spec        ABSENT, byte-identical
+        treated/×2     new spec        LONG,   byte-identical
+        varonly        component B     LONG
+
+    THERE IS NO PLACEBO ANYWHERE IN THAT SERIES. No arm edits the spec by a comparable amount
+    WITHOUT the sentinel change. On a process of type B, every one of those arms would have come
+    out exactly as it did — and the conclusion "showing the declaration form is what repairs it"
+    would have been indistinguishable from "editing models.go's purpose at all flips this
+    process". The unbundling has the same hole: on a type-B process, `varonly` flipping proves
+    nothing about component B, because ANY edit flips it.
+
+    That is not a retraction. It is an untested confound in a published result, found by a control
+    that a later experiment happened to include. Two of the three processes probed today for a
+    treated arm (71409 sensitive; 60986 insensitive) means the confound is not exotic.
+
+📌 THE METHOD CHANGE THIS BUYS — A PLACEBO SCREEN BEFORE ANY TREATMENT ARM
+    A process must EARN the right to host a treatment: probe it, then run a content-free edit of
+    comparable size in the SAME purpose the treatment will edit. If the placebo flips, the process
+    cannot discriminate and must be discarded like a LONG baseline is discarded — recorded in the
+    ledger, not quietly re-probed. Only a process that is informative AND placebo-null can carry a
+    treatment arm. Today's design got this right by accident, for the store purposes; every
+    sentinel experiment since 5 August got it wrong by omission.
+
+⏭️ NEXT, AND IT IS NOW THE HIGHEST-VALUE THING QUEUED
+    Build the placebo the 6 August experiment never had: models.go's OWN purpose edited by a
+    comparable number of characters, leaving the sentinel line untouched. Screen processes with
+    it. On a process that is informative and passes the screen, run the shipped treated spec. That
+    either confirms the shipped rule on a properly controlled process or shows it was a
+    perturbation artefact. Prereg follows.

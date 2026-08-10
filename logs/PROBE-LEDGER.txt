@@ -62,3 +62,10 @@ processes that wrote the right name under the treated spec, and nothing more.
 2026-08-10T13:45:53  pid=60986   label=js-ab              spec=ledger-jobstrip-ab.yaml      VERDICT=ABSENT
 2026-08-10T13:48:31  pid=60986   label=js-ac              spec=ledger-jobstrip-ac.yaml      VERDICT=ABSENT
 2026-08-10T13:51:25  pid=60986   label=js-bc              spec=ledger-jobstrip-bc.yaml      VERDICT=ABSENT
+2026-08-10T13:55:41  pid=70783   label=r-b1               spec=ledger-origorder-baseline.yaml VERDICT=LONG
+2026-08-10T13:58:07  pid=71409   label=r-b2               spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-10T14:01:19  pid=71409   label=r-bc               spec=ledger-jobstrip-bc.yaml      VERDICT=LONG
+2026-08-10T14:04:44  pid=71409   label=r-strip            spec=ledger-jobstrip.yaml         VERDICT=LONG
+2026-08-10T14:08:12  pid=71409   label=r-a                spec=ledger-jobstrip-a.yaml       VERDICT=LONG
+2026-08-10T14:12:20  pid=71409   label=r-placebo          spec=ledger-jobstrip-placebo.yaml VERDICT=LONG
+2026-08-10T14:16:21  pid=71409   label=r-baseclose        spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
