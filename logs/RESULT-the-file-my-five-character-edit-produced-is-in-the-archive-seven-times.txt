@@ -1,0 +1,68 @@
+RESULT — the ABBREVIATED file a +5-character edit produced today is byte-identical to one the
+archive already contains SEVEN times. And my guess about where the archive's middle state comes
+from was half wrong.
+=============================================================================================
+10 August, specs and archived snapshots only, NO GPU. Instrument: _verdict_by_tree.py (11
+self-tests), AS-DRAWN only, reading .pre-fix.json and never disk.
+
+    27 archived ledger trees with an as-drawn models.go, and the split is exactly even:
+        LONG 9 · ABBREVIATED 9 · ABSENT 9
+
+    six distinct byte sequences, plus one drawn for the first time today:
+
+        sha        size   verdict                       trees
+        27a5ff59   1159   ABSENT                        4
+        cccb8aad   1188   ABSENT                        2
+        80e6db6e   1219   ABBREVIATED:ErrInsufficient   2
+        3a78b0d8   1276   ABSENT                        3   <- today's baseline, on 2 processes
+        cb873e76   1336   ABBREVIATED:ErrInsufficient   7   <- TODAY'S L4 ARM, byte for byte
+        649bdef7   1353   LONG                          0   <- new today (the paraphrase arm)
+        ef8c15d6   1361   LONG                          9   <- today's treated arms, on 2 processes
+
+⭐ THE MANIPULATION LANDED ON A REAL ATTRACTOR, NOT AN ARTEFACT
+    L4 — two edited regions, +5 characters, the arm that produced the intermediate state — wrote
+    cb873e76. That exact file appears in SEVEN archived trees drawn over weeks: ledger-ctl-proc3,
+    name1, name2, name3, tagfix, xproc-arm-1 and xproc-ctl-1. A five-character spec edit did not
+    invent a new degraded output; it moved the declarer onto a file the corpus produces routinely.
+
+    That is the strongest available evidence that today's ladder is measuring the phenomenon the
+    archive is made of, and not a local curiosity of one screened process. THREE of today's four
+    outcome files (3a78b0d8, cb873e76, ef8c15d6) are archive attractors with 4, 7 and 9 trees
+    behind them.
+
+⚠️ AND IT CORRECTS THE GUESS I WROTE TWO HOURS AGO
+    The previous log speculated that the archive's ABBREVIATED trees "may instead be SPEC
+    variation", because ~16 process probes had never produced one. Measured, that is half right
+    and the half that is wrong matters:
+
+        NAMED VARIANT in the tree name   n=7    ABBREVIATED 5 · ABSENT 1 · LONG 1
+        no variant token                 n=20   ABBREVIATED 4 · ABSENT 8 · LONG 8
+
+    Spec variants do skew heavily to ABBREVIATED (5 of 7). But FOUR trees with no variant token
+    are ABBREVIATED too — and two of them are ledger-xproc-ctl-1 and ledger-xproc-arm-1, the
+    31 July cross-process pair drawn on pid 49288, whose control and arm BOTH landed there. The
+    save point already records that process as "49288 ABBREV (2/2)".
+
+    So ABBREVIATED is BOTH: a state some processes sit in, and a state a spec edit can produce.
+    The reason ~16 probes never found one is not that it isn't a process state — it is that no
+    probed process happened to be a 49288. The honest statement is that the two sources are not
+    distinguishable from tree names, and the tool prints that warning next to the buckets.
+
+⚠️ WHAT THE BUCKETS ARE NOT
+    · No archived tree records which spec drew it. "UNKNOWN" means the NAME carries no variant
+      token, NOT that the baseline drew it — several UNKNOWN trees are certainly variants.
+    · The 7 named-variant trees are not independent draws; name1/name2/name3 are one experiment.
+    · No rate. This is a census of what is on disk, not a sample of anything.
+
+📌 AND TWO OF THE SIX COUNTS ABOVE WERE WRONG WHEN FIRST WRITTEN — read off the row list by
+   eye, 27a5ff59 as 3 and 3a78b0d8 as 4. Corrected against a mechanical count, and the tool now
+   PRINTS the per-file table so the next write-up cannot retype it. The campaign's own rule, and
+   it took a deliberate verification pass to catch, not a suspicion.
+
+📌 A BUG THIS TOOL WAS WRITTEN WITH, CAUGHT BY ITS OWN SELF-TEST BEFORE IT PRINTED A TABLE
+    Variant tokens were matched as SUBSTRINGS, so the token "ac" (the A+C arm) fired inside
+    "placebo" — every placebo tree would have been labelled an A+C tree, in the exact column the
+    tool exists to make trustworthy. Now matched as whole hyphen-delimited segments, with the bug
+    pinned as a test. ⚠️ And the FIRST version of that test was wrong in the same way: it asked
+    whether "ac" appeared in the result STRING "placebo" rather than in the token LIST. Eighth
+    hand-built filter defect of the campaign; caught before publication, like the seventh.
