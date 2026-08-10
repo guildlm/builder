@@ -1,0 +1,29 @@
+PREREG — A+C with B withheld: the combination the unbundling never drew
+======================================================================
+10 August, committed BEFORE the arm, on pid 46375 (informative, screen-null, never restarted).
+
+WHY
+    6 August showed component B (backticked `var ErrX` forms) is SUFFICIENT — alone it reproduces
+    the full treatment byte for byte. It did not show B is NECESSARY, and said so: A+C together
+    was never drawn. So "showing the declaration form is what works" has always had an untested
+    alternative — that A or C would also do it, and B merely got tested first.
+
+THE ARM
+    specs/ledger-origorder-ac.yaml — heading becomes "Exported sentinels", "(each errors.New)" is
+    appended, and the names stay BARE (asserted from both directions in the builder's self-test:
+    no backticked var form anywhere, and the bare list survives verbatim). +21 folded characters.
+
+    ⚠️ SIZE ORDERING IS AGAIN FAVOURABLE: the placebo that did nothing on this process is +54,
+    larger than every treatment arm (+51 full, +30 B-only, +21 A+C). No flip here can be size.
+
+REGISTERED
+    P(A+C flips) = 0.20
+    Flips     -> B is NOT necessary; the effective ingredient is something A or C also carries,
+                 and 6 August's summary ("show the declaration form") is the wrong description of
+                 a treatment that works for another reason. The shippable rule would need
+                 rewriting even though the treatment still works.
+    Does not  -> B's necessity is supported for the first time, on a screened process, and the
+                 shipped rule keeps both halves: B sufficient AND necessary within this bundle.
+
+VOID: repair activity · a restart · the closing baseline differing from those already drawn.
+NOT CLAIMED: one process. Necessity WITHIN this three-part bundle, not in general.

@@ -86,3 +86,4 @@ treatments: models.go's own purpose edited by +54 folded characters (against the
 naming no sentinel. A process that returns LONG on that spec flips for a content-free edit and is
 INELIGIBLE for any treated arm. Screened: 71409 FAIL · 14514 FAIL · 43635 FAIL · 46375 PASS.
 Only 46375 carried a treated arm. This gate is why the discard count is high today.
+2026-08-10T15:13:34  pid=46375   label=s-varonly          spec=ledger-origorder-varonly.yaml VERDICT=LONG
