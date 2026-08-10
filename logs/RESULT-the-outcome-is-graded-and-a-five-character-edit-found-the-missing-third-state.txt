@@ -1,0 +1,85 @@
+RESULT — the endpoint was never binary. A +5-character edit produced the ABBREVIATED state that
+ten process probes never found, and the "switch" is a dose-response.
+==============================================================================================
+10 August. pid 46375, seventeen draws, no restart, every arm AS-DRAWN. Preregs committed before
+each arm. Endpoint graded by _sentinel_verdict.py (three-valued) and _declared_vs_spec.py.
+
+THE LADDER ON THE DECLARATION LINE, IN FULL
+
+    arm                                regions  Δchars   sha256    size   what models.go declares
+    ---------------------------------------------------------------------------------------------
+    L1  "with" -> "via"                   1        −1    3a78b0d8  1276   4 names        ABSENT
+    L3  noun phrase only                  1        +6    3a78b0d8  1276   4 names        ABSENT
+    L2  "all" -> "all of them"            1        +8    3a78b0d8  1276   4 names        ABSENT
+    L4  L1 AND L3 TOGETHER                2        +5    cb873e76  1336   5, FIFTH TRUNCATED
+    paraphrase, no information added      2       +20    649bdef7  1353   5 names        LONG
+    A+C, B withheld                       2       +21    ef8c15d6  1361   5 names        LONG
+    B only, names backticked              5       +30    ef8c15d6  1361   5 names        LONG
+    full shipped treatment                3+      +51    ef8c15d6  1361   5 names        LONG
+
+    L4's block, in full:
+        ErrInvalid      = errors.New("invalid")
+        ErrNotFound     = errors.New("not found")
+        ErrExists       = errors.New("already exists")
+        ErrUnbalanced   = errors.New("unbalanced")
+        ErrInsufficient = errors.New("insufficient funds")     <- the name TRUNCATED, the
+                                                                  message correct
+
+⭐ THE MISSING THIRD STATE, FOUND — AND NOT WHERE ANYONE WAS LOOKING FOR IT
+    ABBREVIATED is a third of the ledger archive (9 of 25 trees). It has been a registered,
+    UNRUN branch since 6 August, hunted by PROCESS PROBES: six on 6 August and about ten today,
+    every one of them ABSENT or LONG, never once ABBREVIATED. The save point says in bold that
+    ABSENT must not be substituted for it.
+
+    It was never a property of a process to be found by probing. A FIVE-CHARACTER SPEC EDIT
+    produced it on demand.
+
+⚠️⚠️ AND IT MEANS MY OWN ANALYSIS WAS SCORING A THREE-VALUED OUTCOME AS TWO-VALUED
+    Every arm in this ladder was reasoned about as FLIP or NULL — I compared sha256 against two
+    known files and called anything else unthinkable. The rule I had just preregistered (a COUNT
+    of edited regions: one null, two or more flip) was built on that binary, and L4 does not fit
+    it: two regions, but the outcome is neither.
+
+    What actually fits all eight arms is a DOSE-RESPONSE ON AN ORDERED OUTCOME:
+
+        ABSENT  <  ABBREVIATED  <  LONG
+
+    one region at any size tested -> ABSENT · two regions at +5 -> ABBREVIATED · two regions at
+    +20 and above -> LONG. Both the count and the size move it, and they move it ALONG A SCALE
+    rather than throwing a switch. "A switch, not a slope" was a description of a ladder whose
+    rungs were all at the top.
+
+    📌 The only reason this was visible at all is that the CLASSIFIER is three-valued, and it is
+    three-valued because 31 July made "ask the three-way question" a standing rule after a binary
+    endpoint could not express its own baseline. The tool preserved the distinction that my
+    reasoning had already discarded — and _declared_vs_spec.py, self-tested for exactly the
+    rename case, reported MISSING ErrInsufficientFunds / EXTRA ErrInsufficient rather than
+    quietly scoring "5 declarations, fine".
+
+WHAT SURVIVES FROM THE EARLIER ARMS
+    · The localisation is untouched and is now the strongest thing here: +54 characters on the
+      sentence ABOVE and +21 on the sentence BELOW move NOTHING, while +5 on the line itself
+      moves the declaration to an intermediate state. Two nulls, both larger than the smallest
+      effective treatment.
+    · The shipped rule's demotion stands: A+C flips without B, and a pure paraphrase flips, so
+      "show the declaration form" still does not name the mechanism.
+    · Process A's store result stands as measured — its intermediate arms were BYTE-IDENTICAL to
+      baseline, not intermediate — but "a switch, not a slope" must now be read as a claim about
+      that manipulation at those doses, not about the phenomenon.
+
+⚠️ NOT CLAIMED
+    · One process, selected twice. No rate from probes.
+    · L4 was suggested by the data, and its prereg said a flip would need a fresh arm on a fresh
+      process before being stated as confirmation. It did not flip; it did something the prereg
+      did not contemplate at all, which is weaker still. The dose-response is a DESCRIPTION of
+      eight arms, not a tested hypothesis.
+    · No mechanism. Six causal accounts have died today; this one is a shape, not a cause.
+
+⏭️ WHAT THIS OPENS
+    (1) The archive's 9 ABBREVIATED ledger trees were assumed to be process variation. They may
+        instead be SPEC variation — several were drawn from name/order/prose variants. That is a
+        zero-GPU question for _asdrawn_census.py plus the variant list, and it would explain why
+        ten probes on the unmodified spec never produced one.
+    (2) Bisect between +5 and +20 at two regions to find where ABBREVIATED becomes LONG.
+    (3) Re-run the store ladder on this process scoring for THREE states, since its "switch" was
+        scored the same binary way.
