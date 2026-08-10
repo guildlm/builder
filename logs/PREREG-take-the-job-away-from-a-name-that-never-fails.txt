@@ -1,0 +1,94 @@
+PREREG — strip ErrExists of its use sites and see whether a 27/27 name starts to fail
+=====================================================================================
+10 August, written and committed BEFORE any arm is drawn. Follows
+logs/RESULT-the-failing-name-is-the-only-one-the-spec-never-gives-a-job-and-scarcity-is-refuted.txt
+
+THE QUESTION
+    Since 31 July the whole corpus defect has been localised to ONE identifier and no cause has
+    been namable, because every candidate property — longest, only two-concept compound, only one
+    with a plausible shorter form, only one whose domain has its own package — is a property OF
+    THE NAME, and with n=1 they are the same observation four times.
+
+    Today's census added a fifth candidate that is a property of the SPEC, not the name: it is
+    the only sentinel in the corpus with no described use site. That one can be moved without
+    substituting an identifier — and, better, it can be tested ON A DIFFERENT NAME, which is what
+    escapes the n=1 trap. If jobless-ness is what breaks a name, then taking the job away from a
+    name that never fails should break it.
+
+THE ARMS  (specs built by _mkvariant_jobstrip.py, 26 self-tests; both verified by
+           _spec_pair_guard.py to differ from the baseline ONLY at the two store purposes)
+
+    base      specs/ledger-origorder-baseline.yaml
+    jobstrip  ErrExists (9 chars, declared 27/27 across the archive) stripped to the failing
+              name's EXACT profile: listed in models.go's purpose, mapped to 409 in response.go's
+              purpose, DEMANDED NOWHERE. The behaviour is unchanged — the store still rejects a
+              duplicate ID, the test still checks it; only the NAME's job is gone.  (+81 chars)
+    placebo   the same two purposes edited by a comparable amount, naming no sentinel at all.
+              (+79 chars — 2 characters from the treated arm, printed by the builder, not judged)
+    base2     the baseline again, LAST, on the same process.
+
+    ⚠️ models.go's own purpose is BYTE-IDENTICAL in all four arms (asserted in the builder's
+    self-test). The manipulation reaches the target only through the rendered file list.
+
+⚠️⚠️ THE ARM IS ONLY INFORMATIVE ON A PROCESS THAT ALREADY EXHIBITS THE DEFECT, AND THAT MAKES
+     THIS A CONDITIONAL CLAIM AGAIN
+    Draws are deterministic within a process; the 33% is variation ACROSS processes. On a healthy
+    process (one that writes ErrInsufficientFunds correctly) the job hypothesis predicts NO
+    degradation of a jobless ErrExists either — the arm cannot discriminate there. So the protocol
+    is: probe fresh processes with the baseline spec until one is informative, then run every arm
+    on THAT process with RESTART=0.
+
+    · INFORMATIVE = baseline verdict ABSENT or ABBREVIATED (both are "the jobless name failed").
+    · Every probe, kept and discarded, goes in logs/PROBE-LEDGER.txt. The claim that comes out of
+      this is "among processes that drop the jobless name, does removing a job break a healthy
+      name" — never an unconditional rate. The discarded probes ARE the evidence of that.
+    · STOPPING RULE: at most 6 baseline probes. If none is informative, the experiment does not
+      run today and that is recorded rather than worked around.
+
+ENDPOINTS, AS-DRAWN, GRADED BY _declared_vs_spec.py (6 self-tests, written before the draw)
+
+    PRIMARY   In the jobstrip arm, does models.go still declare `ErrExists` exactly?
+              DEGRADED = the name is MISSING, or RENAMED (missing + an extra Err* name). The
+              grader distinguishes those two; the prereg counts both as degradation.
+
+              P(degraded | informative process) = 0.25
+
+              Reasoning, so a later reader can see what moved: I lean toward the name-property
+              account, because the dominant failure mode of the failing name is ABBREVIATION
+              (9 of its 16 failures) and abbreviation is a fact about a name's shape, not about
+              its job — ErrExists has no plausible shorter form, so under the job hypothesis the
+              only failure mode available to it is OMISSION, which is the smaller half (7 of 25).
+              Decomposed: P(job hypothesis) ~ 0.4, P(degrade | job true) ~ 0.55,
+              P(degrade | job false) ~ 0.05  ->  ~0.25.
+
+    ⚠️ BOTH OUTCOMES NARROW THE FIELD, WHICH IS WHY IT IS WORTH DRAWING
+              DEGRADED: jobless-ness breaks names that are short, unambiguous and 27/27 — the
+                  four name-properties stop being necessary, and the defect gets a cause that
+                  was never about ErrInsufficientFunds at all.
+              NOT DEGRADED: removing the job is NOT sufficient to break a short name. The job
+                  account survives only as "necessary but not sufficient", and weight moves back
+                  to the name's own shape. That is a real result, not a null.
+
+    SECONDARY (within-draw control) In the jobstrip arm, ErrInsufficientFunds' verdict is
+              UNCHANGED from the base arm — its profile was not touched.   P = 0.85
+              If it moves, the arm perturbed an unrelated name and attribution weakens.
+
+    TERTIARY  (placebo) All five names in the placebo arm are declared exactly as in base.
+              P = 0.75
+
+    FOURTH    (process stability) base2's models.go is BYTE-IDENTICAL to base's.   P = 0.85
+              Registered because every arm is compared against base, and a process that drifted
+              mid-session would make the comparisons meaningless in a way no single arm reveals.
+
+WHAT WOULD MAKE THIS VOID RATHER THAN NEGATIVE
+    · Any repair activity in an arm's build log — the probe script greps for it and records
+      VOID-REPAIRED. On-disk-as-as-drawn is the error class behind three retractions.
+    · models.go never landing inside the timeout (NO-FILE).
+    · base and base2 differing: the process moved, and no arm can be attributed.
+
+NOT CLAIMED
+    · Nothing about build outcomes. No arm runs to green; every arm is killed at file 4 of 19.
+    · Nothing about how OFTEN this happens. One process, one draw per arm.
+    · Not a claim that a use site is what REPAIRS the failing name — 6 August already shipped a
+      repair (show the declaration form) and this is about the CAUSE, which that result explicitly
+      did not settle.
