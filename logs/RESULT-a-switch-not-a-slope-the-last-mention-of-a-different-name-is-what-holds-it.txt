@@ -1,0 +1,82 @@
+RESULT — a switch, not a slope. Six removals do nothing; the seventh does everything.
+=====================================================================================
+10 August. Twelve draws, ONE process (pid 60986, never restarted), every arm AS-DRAWN (0 repair
+lines in all twelve logs, checked per arm). Preregs: singles 4ac710d, pairs committed before the
+pair arms. Endpoint is a sha256 of models.go against two known byte sequences — no judgement.
+
+    ErrExists mentions left           models.go
+    in the two store purposes   arm   sha256    size
+    ------------------------------------------------------
+              3  (baseline)    base   3a78b0d8  1276 B
+              3               base2   3a78b0d8  1276 B
+              3          base-final   3a78b0d8  1276 B
+              3             placebo   3a78b0d8  1276 B      +79 chars, no sentinel named
+              2                   a   3a78b0d8  1276 B      +0 chars (length-neutral)
+              2                   b   3a78b0d8  1276 B
+              2                   c   3a78b0d8  1276 B
+              1                  ab   3a78b0d8  1276 B
+              1                  ac   3a78b0d8  1276 B
+              1                  bc   3a78b0d8  1276 B      +81 chars — the BUNDLE's length
+              0            jobstrip   ef8c15d6  1361 B   <- FLIPS
+              0     jobstrip repeat   ef8c15d6  1361 B   <- FLIPS AGAIN
+
+    Ten draws on one file, two on the other. The two that differ are the two that removed the
+    LAST concrete mention. Registered at 0.50 that no pair would flip — the branch that hit.
+
+WHAT IS ELIMINATED, BY ARMS RATHER THAN BY ARGUMENT
+    · PROMPT LENGTH — twice, independently. The placebo adds 79 characters to the same two
+      purposes and changes nothing; `bc` adds 81, exactly the bundle's own length, and changes
+      nothing. And `a` is length-neutral to the character.
+    · WHICH PURPOSE WAS EDITED — every arm edits the same one or two purposes.
+    · MODELS.GO'S OWN PROMPT — its purpose is byte-identical in all twelve arms (asserted in
+      the builder's self-test, not inspected by eye).
+    · PROCESS DRIFT — the baseline was drawn first, in the middle, and last, byte-identical
+      each time; and the bundle flips at draw 8 and again at draw 12.
+    · A DOSE-RESPONSE. Six arms removed one or two mentions. Not one moved a single byte. This
+      is a switch that closes only at zero, not a slope.
+
+⭐ AND IT IS NOT "THE STORE PURPOSES STOPPED NAMING SENTINELS" — MEASURED, NOT ASSUMED
+
+        spec                       ErrExists   ErrNotFound   (in the two store purposes)
+        baseline                       3            4
+        a / b / c                      2            4
+        ab / ac / bc                   1            4
+        jobstrip  (flips)              0            4
+
+    The flipping arm still names models.ErrNotFound FOUR TIMES in the very purposes that were
+    edited. So the declarer's behaviour is not governed by whether other files name sentinels
+    concretely — four such mentions are sitting there in the arm that flips.
+
+WHAT THE RESULT ACTUALLY SAYS
+    Whether models.go declares ErrInsufficientFunds — a name these edits never touch, in a purpose
+    these edits never touch — is controlled by whether ANY concrete mention of ErrExists, a
+    DIFFERENT name, survives anywhere in two other files' purposes. One surviving mention is worth
+    as much as three. Zero is worth 85 bytes and a fifth declaration.
+
+⚠️⚠️ I CANNOT NAME THE MECHANISM AND I AM NOT GOING TO GUESS
+    The story I preregistered — a parenthetical partial enumeration reading as authoritative —
+    predicted arm `a` would carry the effect. Arm `a` did nothing. The account that all three
+    paraphrases introduce the abstract word "sentinel" predicted the singles would each do
+    something. They did nothing. Both of the accounts I wrote down before drawing are dead, and
+    the campaign's rule from 31 July applies unchanged: state the localisation, not the cause.
+
+⚠️ WHAT THIS IS NOT
+    · ONE PROCESS. Twelve draws make the arms clean against EACH OTHER, because draws are
+      deterministic within a process; they say nothing about how many processes behave this way.
+      Replication on a second process is the next job and the finding should not be quoted
+      before it exists.
+    · CONDITIONAL BY CONSTRUCTION: pid 60986 was selected for exhibiting the defect (baseline
+      probe 2 of a registered 6; probe 1 was LONG and discarded — both in PROBE-LEDGER.txt).
+    · NOT a repair to ship. The shipped repair is still 6 August's: show the declaration form in
+      the spec. This is about the CAUSE, and it makes the cause stranger, not clearer.
+    · Nothing about green builds. Every arm dies at file 4 of 19.
+
+⏭️ THE TWO TESTS THIS DESIGNS
+    (1) REPLICATE on a second informative process: base + bundle, and one pair. If the switch is
+        a property of this process, it is a curiosity; if it crosses processes, it is a finding.
+    (2) THE OTHER-NAME ANALOGUE: remove every concrete ErrNotFound mention from the same two
+        purposes, leaving ErrExists' three intact. If that flips too, the switch is about the
+        LAST mention of whichever name, and ErrExists is not special. ⚠️ Costed and not run yet
+        because one of ErrNotFound's four mentions is inside a SHOWN Go code block, so removing
+        it edits code the spec tells the model to copy verbatim — a materially bigger
+        manipulation than the three prose edits, and not a clean analogue without more thought.
