@@ -1,0 +1,52 @@
+RESULT — the store-purpose switch replicates on the screened process. Two injection points,
+two size-matched placebos, both null, both treatments flip.
+============================================================================================
+10 August. pid 46375 — the one process of four that passed the placebo screen. ELEVEN draws, no
+restart, every arm AS-DRAWN (0 repair lines each). Four baselines bracket the session. Prereg
+committed before the arms; registered 0.50 for exactly this shape.
+
+    what was edited                                     Δ chars   sha256    size   decls
+    ---------------------------------------------------------------------------------------
+    nothing (base · base-close · base-final · base-end)     —     3a78b0d8  1276    4/5
+
+    A. MODELS.GO'S OWN PURPOSE
+      sentences directly above the sentinel line, no
+        sentinel named                    (screen)        +54     3a78b0d8  1276    4/5   NULL
+      the sentinel line: full shipped treatment           +51     ef8c15d6  1361    5/5   FLIP
+      the sentinel line: `var ErrX` only                  +30     ef8c15d6  1361    5/5   FLIP
+      the sentinel line: A+C, B withheld                  +21     ef8c15d6  1361    5/5   FLIP
+      the sentinel line: paraphrase, nothing added        +20     649bdef7  1353    5/5   FLIP
+
+    B. TWO OTHER FILES' PURPOSES (internal/store)
+      reworded, no sentinel named          (control)      +79     3a78b0d8  1276    4/5   NULL
+      all three ErrExists mentions removed                +81     ef8c15d6  1361    5/5   FLIP
+
+    In each block the NULL arm is LARGER than the treatment it controls (+54 vs +51/+30/+21/+20;
+    +79 vs +81 is within two characters). Size is eliminated in both blocks, by arms, twice.
+
+WHAT THIS SETTLES
+    · Process A's store-purpose result (66fc9ab) was drawn before the screen existed. It now
+      REPLICATES on a screened process, with its own content-free control null here too.
+    · The same endpoint moves from TWO different injection points — the target file's own sentinel
+      line, and two other files' purposes three files away — on the SAME process, with a null
+      control for each. The declarer's fifth declaration is under the control of prompt content in
+      both places, and it is not perturbation in either.
+    · The screen is not merely a filter on sensitive processes: this process is insensitive to
+      content-free edits in BOTH purposes tested, which is what makes both blocks readable.
+
+⚠️ WHAT IT DOES NOT SETTLE
+    · The MECHANISM, still. Five of my causal accounts have now died in one day (jobless-ness,
+      the parenthetical enumeration, the abstract-word paraphrase, the declaration form, and raw
+      mention scarcity), three of them to preregistrations I wrote myself.
+    · Whether the store-purpose effect on THIS process is also a switch at zero. Only the bundle
+      and the placebo were run here; the six intermediate arms that established "a switch, not a
+      slope" were drawn on process A and are not replicated.
+    · One process, selected twice (informative, then screen-null). Eight processes were probed
+      today and five discarded; no rate may be computed from any of it.
+    · Nothing about green builds. Every arm dies at file 4 of 19.
+
+📌 STATE OF THE CLAIM, IN ONE SENTENCE
+    On a process that provably ignores content-free edits of equal or greater size, six different
+    content edits — four on the declaring line, two removing another name's mentions from other
+    files — all make the declarer write the name it otherwise omits, and nobody can yet say what
+    the six have in common.
