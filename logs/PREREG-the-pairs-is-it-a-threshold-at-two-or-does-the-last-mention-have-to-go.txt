@@ -1,0 +1,47 @@
+PREREG — the pairs. Is it a threshold at two, or does the LAST concrete mention have to go?
+===========================================================================================
+10 August, committed BEFORE the pair arms, on the same never-restarted process (pid 60986).
+Follows the singles, which all came back null.
+
+WHERE THIS STANDS AFTER NINE DRAWS ON ONE PROCESS
+    3a78b0d8 (1276 B): base · base2 · placebo · a · b · c · base-final
+    ef8c15d6 (1361 B): jobstrip · jobstrip repeated
+
+    No single removed mention moves the file by one byte. All three together move it, twice,
+    reproducibly, and the closing baseline is byte-identical to the opening one. So the treatment
+    is real and NON-ADDITIVE: it is not the sum of three small pushes, because each push alone is
+    exactly zero.
+
+THE QUESTION THE PAIRS SETTLE
+    Two accounts survive the singles and they differ in what a pair does:
+
+    THRESHOLD  what matters is HOW MANY concrete `ErrExists` mentions the store purposes carry.
+               Baseline 3, singles 2, pairs 1, bundle 0. If the threshold sits at two removals,
+               some pair flips.
+    LAST-ONE   what matters is whether ANY concrete store-side mention SURVIVES. One is as good
+               as three at holding the declarer in its pruning behaviour, and only the complete
+               absence changes anything. Then NO pair flips.
+
+    P(no pair flips — the last mention has to go) = 0.50
+    P(ab flips) = 0.30    P(ac flips) = 0.25    P(bc flips) = 0.25
+    P(all three pairs flip) = 0.15
+
+    I lean to LAST-ONE precisely because the singles were not merely small — they were ZERO. A
+    dose that does nothing at one third and nothing at two thirds is more likely a switch than a
+    slope.
+
+⭐ AND ONE ARM IS A LENGTH CONTROL FOR FREE
+    `bc` is +81 characters — the SAME length as the full bundle, because `a` is length-neutral to
+    the character. If the bundle flips and bc does not, prompt length is eliminated by two
+    independent arms (the placebo at +79 and bc at +81), not one.
+
+ENDPOINT
+    sha256 of models.go, as-drawn. ef8c15d6 (1361 B) = flipped, 3a78b0d8 (1276 B) = not. Both are
+    known byte sequences; there is nothing to interpret and no grader judgement involved.
+
+VOID CONDITIONS
+    Repair activity in any arm's log · a restart of pid 60986 · the closing baseline differing
+    from the seven draws already on 3a78b0d8.
+
+NOT CLAIMED
+    One process, selected for the defect. Sufficiency is not necessity. No build runs to green.

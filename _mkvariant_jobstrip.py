@@ -108,6 +108,13 @@ SUBARMS = {
     "a": ([STRIP[0]], ["internal/store/memory.go"]),        # the parenthetical enumeration
     "b": ([STRIP[1]], ["internal/store/memory.go"]),        # CreateAccount's return clause
     "c": ([STRIP[2]], ["internal/store/memory_test.go"]),   # the test's assertion
+    # ⚠️ THE PAIRS ARE NOT AN AFTERTHOUGHT, THEY ARE WHERE THE ANSWER MUST BE. On pid 60986 all
+    # three singles left models.go byte-identical to baseline while the bundle flipped it twice.
+    # So the effect is not carried by any one mention, and "three mentions" is not an answer —
+    # a threshold at two and a genuine three-way conjunction are different claims.
+    "ab": ([STRIP[0], STRIP[1]], ["internal/store/memory.go"]),
+    "ac": ([STRIP[0], STRIP[2]], ["internal/store/memory.go", "internal/store/memory_test.go"]),
+    "bc": ([STRIP[1], STRIP[2]], ["internal/store/memory.go", "internal/store/memory_test.go"]),
 }
 
 
@@ -203,12 +210,14 @@ def self_test() -> int:
     # --- the sub-arms: each removes exactly ONE mention, and together they equal the bundle ----
     subs = {k: apply_once(base, edits, f"sub-{k}") for k, (edits, _) in SUBARMS.items()}
     for k, text in subs.items():
-        chk(f"sub-arm {k} removes exactly one ErrExists mention", text.count("ErrExists"), 4)
+        chk(f"sub-arm {k} removes exactly {len(k)} ErrExists mention(s)",
+            text.count("ErrExists"), 5 - len(k))
         chk(f"sub-arm {k} introduces no new Err name", tokens(text) - tokens(base), set())
         chk(f"sub-arm {k} leaves models.go's purpose byte-identical",
             purpose(text, "internal/models/models.go"),
             purpose(base, "internal/models/models.go"))
-    chk("the three sub-arms are distinct", len({*subs.values()}), 3)
+    chk("every sub-arm is distinct", len({*subs.values()}), len(SUBARMS))
+    chk("a pair is not the bundle", subs["ab"] == strip, False)
     chk("applying all three in sequence reproduces the bundle exactly",
         apply_once(apply_once(apply_once(base, [STRIP[0]], "x"), [STRIP[1]], "y"),
                    [STRIP[2]], "z"), strip)
