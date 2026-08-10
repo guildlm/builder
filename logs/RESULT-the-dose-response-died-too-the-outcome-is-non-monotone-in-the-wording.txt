@@ -1,0 +1,72 @@
+RESULT — the dose-response died as well. +5 characters gives more than +14, reproducibly.
+The declarer's behaviour is a non-monotone function of one line's exact wording.
+=========================================================================================
+10 August. pid 46375, 26 draws, no restart, every arm AS-DRAWN. Table assembled by tool, not by
+eye. Prereg for L6 registered the outcome that breaks the description at 0.05, and it happened.
+
+    arm                  regions  Δchars   sha        size   outcome
+    ------------------------------------------------------------------------------------
+    base                       0      +0   3a78b0d8   1276   ABSENT
+    L1  "with" -> "via"        1      −1   3a78b0d8   1276   ABSENT
+    L3  noun phrase            1      +6   3a78b0d8   1276   ABSENT
+    L2  quantifier             1      +8   3a78b0d8   1276   ABSENT
+    L4  = L1 + L3              2      +5   cb873e76   1336   ABBREVIATED   <-- reproduced
+    L4  redraw                 2      +5   cb873e76   1336   ABBREVIATED   <-- byte-identical
+    L5  = L1 + L2 + L3         3     +13   ef8c15d6   1361   LONG
+    L6  noun + "readily"       2     +14   3a78b0d8   1276   ABSENT        <-- reproduced
+    L6  redraw                 2     +14   3a78b0d8   1276   ABSENT        <-- byte-identical
+    paraphrase                 2     +20   649bdef7   1353   LONG
+    A+C                        2     +21   ef8c15d6   1361   LONG
+    B only                     5     +30   ef8c15d6   1361   LONG
+    full shipped treatment     3     +51   ef8c15d6   1361   LONG
+
+⚠️⚠️ NON-MONOTONE, AND BOTH ENDS OF THE VIOLATION WERE REDRAWN BEFORE IT WAS WRITTEN DOWN
+    At TWO edited regions the outcome goes ABBREVIATED (+5) → ABSENT (+14) → LONG (+20). A
+    smaller edit does MORE than a larger one, on the same line, on the same process, and both
+    arms reproduce byte-for-byte on a second draw. The redraws were not an afterthought: L6's
+    prereg registered ABSENT at 0.05 as the outcome that would "break the description I am
+    currently working from" and said both arms must be redrawn before anything is said.
+
+    So the dose-response I published two hours ago is dead, on its own terms. So is the
+    count-of-regions rule that preceded it: two regions give all three outcomes.
+
+WHAT HAS NOW DIED TODAY, IN ORDER
+    1. jobless-ness causes the drop                    (its own prereg, 0.25 -> the other branch)
+    2. raw mention scarcity                            (refuted by the archive, free)
+    3. the parenthetical partial enumeration           (arm `a`, null)
+    4. the abstract-word paraphrase                    (the singles, null)
+    5. "showing the declaration form" is the ingredient (A+C flips without it, 0.20 -> miss)
+    6. the noun phrase is the locus                    (L3, null, 0.60 -> miss)
+    7. the count of edited regions                     (L4 is neither null nor flip)
+    8. the dose-response on an ordered outcome         (L6, 0.05 -> hit)
+    Six of the eight were killed by preregistrations I wrote myself, which is what they are for.
+
+WHAT SURVIVES — AND IT IS NOT NOTHING, IT IS THE MOST USEFUL THING HERE
+    · LOCALISATION, unbroken by any arm: +54 characters on the sentence ABOVE and +21 on the
+      sentence BELOW change NOTHING, while ±5 characters ON the declaration line reach all three
+      outcomes. Rewriting the neighbours is inert; rewriting the line is decisive.
+    · DETERMINISM: every arm reproduces byte-for-byte within the process, four baselines are
+      byte-identical across 26 draws, and the two violating arms were redrawn to confirm it.
+    · PLACEBO CONTROL: the process ignores content-free edits of greater size in two different
+      purposes, so none of this is perturbation sensitivity.
+    · THE OUTCOMES ARE THE ARCHIVE'S. Three of the four files reached today are archive
+      attractors (3, 7 and 9 trees behind them). This is the corpus's own behaviour, reproduced
+      on demand.
+
+📌 THE PRACTICAL CONCLUSION, WHICH IS STRONGER THAN THE MECHANISM I FAILED TO FIND
+    A spec rule inferred from a single A/B on this line is UNRELIABLE, because neighbouring
+    wordings of the same content land on different outcomes: "Sentinel error values, all matchable
+    via errors.Is" gives a truncated name, and "Sentinel error values, all readily matchable with
+    errors.Is" gives no name at all. That is exactly how 6 August's rule came to be published —
+    one A/B, no placebo, no neighbouring wordings — and it is why it described the wrong
+    ingredient. The generalisable lesson is not about sentinels: BEFORE SHIPPING ANY PROMPT OR
+    SPEC RULE, DRAW ITS NEIGHBOURS. If two paraphrases of the intended rule disagree, what was
+    measured is the wording, not the rule.
+
+⚠️ NOT CLAIMED
+    · One process, selected twice (informative, then screen-null). No rate; eight processes probed
+      today, five discarded, all in PROBE-LEDGER.txt.
+    · No mechanism. Eight accounts have died; I am not proposing a ninth from the same data.
+    · The ladder's arms after L2 were suggested by the data. Each was preregistered before it
+      drew, and the two that broke the working description were redrawn — but this is exploration
+      with discipline, not a confirmatory design, and a fresh process is what it needs next.
