@@ -1,0 +1,56 @@
+PREREG — does 6 August's shipped repair survive on a process that passes a placebo screen?
+==========================================================================================
+10 August, committed BEFORE any arm. Follows 54afc12, which found that the whole 5–6 August
+sentinel series lacks a content-free control, and that one of two processes probed that day would
+have produced its exact results for any edit at all.
+
+THE CLAIM UNDER TEST (mine, shipped)
+    "Show the declaration form in specs — `var ErrX` beats a bare name list." Its evidence is
+    base/base2 ABSENT vs treated/treated2 LONG on two processes, plus a varonly arm isolating one
+    of three components. Every one of those arms edits models.go's purpose. None of them edits it
+    WITHOUT the sentinel change, so none can separate the treatment from the perturbation.
+
+THE INSTRUMENT
+    specs/ledger-ownplacebo.yaml — models.go's own purpose, +54 folded characters against the
+    treatment's +51 (a 3-character mismatch, printed by the builder), in the same style (backticks
+    around identifiers, a short parenthetical), naming NO sentinel, with the sentinel line
+    surviving verbatim — all asserted in the builder's self-test and by _spec_pair_guard.py.
+
+PROTOCOL — THE SCREEN IS A GATE, NOT AN ARM
+    1. Probe a fresh process with the baseline spec. Discard unless INFORMATIVE (ABSENT or
+       ABBREVIATED). Max 6 probes, every one recorded.
+    2. SCREEN it with ledger-ownplacebo.yaml, RESTART=0.
+         · flips to ef8c15d6  -> the process cannot discriminate. DISCARD IT, record the screen
+           verdict in PROBE-LEDGER.txt, and go back to step 1. It is not eligible for a treated
+           arm and no treated arm may be run on it "just to see".
+         · stays 3a78b0d8    -> eligible.
+    3. On an eligible process only: run specs/ledger-origorder.yaml (the SHIPPED treated spec),
+       then the baseline again to close.
+
+REGISTERED
+    P(an informative process passes the screen)                       = 0.40
+        Process A passed a placebo in OTHER files' purposes; process B failed it. This screen
+        edits the target's OWN purpose, which is the more proximal injection point, so I expect
+        fewer processes to survive it than survived the store-purpose placebo.
+    P(the treated spec flips the file | the process passed the screen) = 0.55
+        Decomposed: P(the shipped rule is real) ~ 0.6, P(flip | real) ~ 0.85,
+        P(flip | artefact) ~ 0.15.
+    P(at least one eligible process is found within 6 probes)          = 0.75
+
+WHAT EACH OUTCOME MEANS, WRITTEN DOWN NOW
+    TREATED FLIPS ON AN ELIGIBLE PROCESS — the shipped rule survives its first real control, and
+        6 August's conclusion is upgraded from "confounded" to "supported on n=1 controlled
+        process". It does NOT become a general claim.
+    TREATED DOES NOT FLIP ON AN ELIGIBLE PROCESS — the shipped rule is in serious trouble: on the
+        only process where the question is answerable, the treatment does nothing. The 6 August
+        log must then be marked SUPERSEDED and the "zero-code shippable rule" withdrawn from the
+        save point until it is re-earned.
+    NO ELIGIBLE PROCESS IN 6 PROBES — the 6 August design is not merely uncontrolled, it may be
+        UNCONTROLLABLE by this method, and that is itself the result. Recorded, not worked around.
+
+VOID CONDITIONS
+    Repair activity in any arm's log · a restart between the screen and the treated arm · the
+    closing baseline differing from the opening one.
+
+NOT CLAIMED
+    Nothing about green builds. Nothing about rates — probe selection forbids it. One process.
