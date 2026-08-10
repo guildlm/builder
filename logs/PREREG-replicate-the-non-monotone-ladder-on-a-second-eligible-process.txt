@@ -57,3 +57,22 @@ ABSENT-at-baseline. The standing definition (ABSENT or ABBREVIATED) is unchanged
 discarded process is in the ledger with its verdict, so the narrowing cannot silently disappear.
 It also makes this replication conditional on a narrower class than the original — which is the
 honest reading anyway, since pid 46375 was ABSENT-at-baseline too.
+
+--- SECOND AMENDMENT, written after L4/L6/L5 and BEFORE the added arm ------------------------
+On pid 71833 the three ladder arms came out: L4 (+5) LONG · L5 (+13) ABSENT · L6 (+14) ABSENT.
+The VIOLATION REPRODUCES (L4 strictly above L6, as on pid 46375), but the LEVELS do not: L4 was
+ABBREVIATED on 46375 and is LONG here; L5 was LONG there and is ABSENT here.
+
+That raises a question the original arm list does not answer and which matters more than
+anything else queued: IS THE SHIPPED TREATMENT ITSELF PORTABLE? It flipped on 46375 and on the
+unscreened 5–6 August processes. If it is null on 71833 — a process that is informative,
+screen-null, and demonstrably movable (L4 moved it all the way to LONG) — then the shipped rule
+is process-specific, and no amount of placebo control on one process would ever have shown that.
+
+ADDED ARM: specs/ledger-origorder.yaml (the shipped treatment, +51), then base-close.
+    P(the shipped treatment flips 71833) = 0.55
+    NULL here -> the rule is not portable. It works on some processes and not others, and the
+        save point's "shippable zero-code rule" must be withdrawn outright rather than merely
+        re-described, because a rule that does nothing on a movable process is not a rule.
+    FLIPS here -> the treatment is portable even though the small arms are not, which would be a
+        real distinction: big edits generalise, small ones are process-specific.

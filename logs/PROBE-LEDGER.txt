@@ -109,3 +109,8 @@ BASELINE (~17 probes over 6 and 10 August; every earlier one was ABSENT or LONG)
 as informative under the standing definition but DISCARDED for the ladder replication, which
 measures movement from the ABSENT baseline and cannot be read on a process that starts halfway
 up the scale. The narrowing is written into that experiment's prereg as an amendment.
+2026-08-10T22:25:17  pid=71833   label=r2-b2              spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-10T22:28:22  pid=71833   label=r2-screen1         spec=ledger-ownplacebo.yaml       VERDICT=ABSENT
+2026-08-10T22:31:10  pid=71833   label=r2-L4              spec=ledger-linedose-4.yaml       VERDICT=LONG
+2026-08-10T22:34:02  pid=71833   label=r2-L6              spec=ledger-linedose-6.yaml       VERDICT=ABSENT
+2026-08-10T22:37:09  pid=71833   label=r2-L5              spec=ledger-linedose-5.yaml       VERDICT=ABSENT
