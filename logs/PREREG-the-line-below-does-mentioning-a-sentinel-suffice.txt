@@ -1,0 +1,34 @@
+PREREG — the line BELOW: is it the declaration line, or any line that names a sentinel?
+=======================================================================================
+10 August, committed BEFORE the arm, on pid 46375 (screened, never restarted, four byte-identical
+baselines drawn).
+
+THE TWO RULES, NEVER SEPARATED
+    (i)  editing the line that DECLARES the sentinel list flips the file
+    (ii) editing ANY line that MENTIONS a sentinel flips the file
+    Every null so far touched sentences naming NO sentinel — including the sentence directly
+    ABOVE the list. Every flip touched the list itself. (i) and (ii) predict the same thing for
+    all eleven draws on this process.
+
+THE ARM
+    specs/ledger-belowline-placebo.yaml — the sentence directly BELOW the list, the Account
+    Validate clause, paraphrased with content preserved: "returns an error wrapping ErrInvalid
+    (fmt.Errorf with %w) when ... is empty" becomes "returns an error that wraps ErrInvalid (via
+    fmt.Errorf with %w) whenever ... is the empty string". ErrInvalid stays, the declaration list
+    is byte-identical, the Transaction clause is untouched. +21 folded chars — exactly A+C's size
+    and one above the line-paraphrase that flipped.
+
+REGISTERED
+    P(it flips) = 0.45
+    FLIPS -> rule (ii). The effect is about lines that NAME a sentinel, and the declaration line
+        is not special. That would also mean the shipped rule is even further from the mechanism
+        than this morning's correction said.
+    NULL  -> rule (i). The declaration line is special; naming a sentinel is not enough. The
+        radius becomes DIRECTIONAL AND SYMMETRIC: null one sentence above, null one sentence
+        below, flip on the line — with the below-arm being the stronger of the two nulls because
+        it names a sentinel and the above-arm does not.
+
+⚠️ Its size (+21) sits between the two smallest flipping arms (+20, +21), so a null here cannot
+   be dismissed as too small an edit.
+
+VOID: repair activity · a restart · a closing baseline differing from the four already drawn.
