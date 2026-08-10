@@ -1,0 +1,36 @@
+PREREG — L5: does the ordered outcome climb with the COUNT of edits or with their SIZE?
+=======================================================================================
+10 August, committed BEFORE the arm, on pid 46375 (screened, never restarted, eighteen draws).
+
+WHAT L4 CHANGED
+    The endpoint is not binary. ABSENT < ABBREVIATED < LONG, and the ladder so far reads:
+
+        1 region,  −1 / +6 / +8   -> ABSENT
+        2 regions, +5             -> ABBREVIATED   (cb873e76, a file the archive holds 7 times)
+        2 regions, +20 / +21      -> LONG
+        5 regions, +30            -> LONG
+        3+ regions, +51           -> LONG
+
+    Count and size are still perfectly confounded: every larger edit is also a wordier one.
+
+THE ARM
+    specs/ledger-linedose-5.yaml = L1 AND L2 AND L3 together — three tiny edits, +13 characters:
+    "Sentinel error values, all of them matchable via errors.Is:". Three regions at a size BELOW
+    the smallest LONG arm and ABOVE the ABBREVIATED one. Asserted in the builder's self-test as
+    carrying all three single edits, with the name list byte-identical.
+
+REGISTERED
+    P(LONG)        = 0.45   -> count buys distance that size alone has not: three small regions
+                              reach the top at +13 where two regions needed +20.
+    P(ABBREVIATED) = 0.40   -> the climb is mostly SIZE; a third region adds nothing much, and
+                              +13 sits where the middle state sits.
+    P(ABSENT)      = 0.15   -> non-monotone, and the ordered-outcome description is in trouble:
+                              three regions doing LESS than two would mean the ladder is not a
+                              ladder. That outcome would demand a redraw of L4 before anything
+                              is said about either.
+
+⚠️ Suggested by the data like L3 and L4. Registered before drawing, three-way (31 July's rule),
+   and explicitly including the outcome that breaks the description I am currently working from.
+
+VOID: repair activity · a restart · a closing baseline differing from the four already drawn.
+NOT CLAIMED: one process. The dose-response is a description of arms, not a tested mechanism.

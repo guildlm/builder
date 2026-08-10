@@ -62,6 +62,15 @@ LADDER = {
     # injection points would then show the same non-additive threshold in the number of edits.
     "4": ("      Sentinel errors, all matchable with errors.Is:\n",
           "      Sentinel error values, all matchable via errors.Is:\n"),
+    # L5 = L1 AND L2 AND L3, all three tiny edits at once. L4 turned the outcome out to be
+    # ORDERED (ABSENT < ABBREVIATED < LONG) rather than binary, so the ladder now has a real
+    # question: does the outcome climb with the NUMBER of edited regions or with the SIZE?
+    #     2 regions, +5   -> ABBREVIATED
+    #     2 regions, +20  -> LONG
+    #     3 regions, +13  -> ?     LONG means COUNT buys distance that size alone has not;
+    #                              ABBREVIATED means the climb is mostly size.
+    "5": ("      Sentinel errors, all matchable with errors.Is:\n",
+          "      Sentinel error values, all of them matchable via errors.Is:\n"),
 }
 
 
@@ -156,6 +165,12 @@ def self_test() -> int:
     # claim that actually does the work is against the two nulls that ADD text.
     chk(f"L4 delta {d['4']:+d} adds less text than BOTH positive nulls "
         f"(L2 {d['2']:+d}, L3 {d['3']:+d})", d['4'] < min(d['2'], d['3']), True)
+    f5 = folded(texts['5'])
+    chk("L5 carries all three single edits",
+        ("Sentinel error values" in f5, "all of them" in f5, "matchable via" in f5),
+        (True, True, True))
+    chk(f"L5 delta {d['5']:+d} sits strictly between the ABBREVIATED arm ({d['4']:+d}) "
+        f"and the smallest LONG arm (+20)", d['4'] < d['5'] < 20, True)
 
     print("SELF-TEST", "OK" if ok else "FAILED")
     return 0 if ok else 1
