@@ -1,0 +1,31 @@
+PREREG — how SMALL an edit to the declaration line still flips it?
+==================================================================
+10 August, committed BEFORE the arms, on pid 46375 (screened, never restarted, four
+byte-identical baselines already drawn, thirteen draws so far).
+
+THE GAP IN THE EVIDENCE
+    Four edits to models.go's sentinel line all flip the file: +51, +30, +21, +20. Two edits to
+    its immediate neighbours do not: +54 above, +21 below. So "any rewrite of the line works" is
+    a claim about a range whose BOTTOM was never probed — every flipping arm is at least +20.
+
+THE LADDER (both built and guarded; the list of names is BYTE-IDENTICAL in both)
+    L1   one word, a synonym, meaning identical: "matchable with errors.Is" -> "matchable via
+         errors.Is".   −1 character.
+    L2   a light rephrase, nothing added: "all matchable" -> "all of them matchable".   +8.
+
+REGISTERED
+    P(L1 flips) = 0.45
+    P(L2 flips) = 0.55
+    P(L1 flips AND L2 does not) = 0.05   (registered only to make the incoherent outcome
+                                          explicit; if it happens the ladder is measuring noise
+                                          and both arms must be redrawn before anything is said)
+
+    L1 FLIPS -> the line is hypersensitive. One synonym, one character shorter, and the missing
+        declaration appears — while its neighbour ignores +54. "Rewrite the line" would then be
+        the whole of it, at any size, and no content account survives at all.
+    L1 NULL, L2 FLIPS -> a threshold between −1 and +8 characters.
+    BOTH NULL -> a threshold between +8 and +20, and the four flipping arms share something the
+        two small ones lack — which would put content back on the table after today buried it.
+
+VOID: repair activity · a restart · a closing baseline differing from the four already drawn.
+NOT CLAIMED: one process, selected twice. No rate. No build runs to green.
