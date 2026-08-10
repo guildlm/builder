@@ -67,7 +67,20 @@ restart, every arm AS-DRAWN (0 repair lines each). Preregs committed before each
     · The mechanism remains UNNAMED, and today killed four candidate accounts of my own: jobless
       -ness, the parenthetical enumeration, the abstract-word paraphrase, and the declaration form.
     · Nothing about green builds. Every arm dies at file 4 of 19.
-    · ⚠️ NOT tested: whether an edit to a DIFFERENT line inside models.go's purpose that is
-      equally close to the sentinel list also works. The screen placebo edited three sentences
-      spread through the purpose; a same-paragraph, one-sentence-away placebo is the obvious next
-      control and would sharpen "localised to the line" into a measured radius.
+📌 CORRECTION TO THIS LOG, SAME DAY — THE RADIUS IS TIGHTER THAN I WROTE, AND IT WAS ALREADY
+   MEASURED
+    This log first said a same-paragraph, one-sentence-away placebo was "the obvious next control"
+    and NOT tested. That was wrong: it is what the screen placebo already is. Its three edits are
+    the `Account`, `Posting` and `Transaction` sentences — and the `Transaction` sentence is the
+    one IMMEDIATELY BEFORE the sentinel line, inside the same folded paragraph (spec lines 120-123
+    against the sentinel line at 124-125).
+
+    So the measured radius is one sentence:
+
+        the sentence DIRECTLY ABOVE the sentinel line, +54 chars across three sentences  -> NULL
+        the sentinel line itself, +20 chars, adding no information                        -> FLIPS
+
+    I underclaimed by not checking where my own placebo's edits landed before writing the caveat.
+    ⚠️ Still untested, and now the actual next control: a content-free edit to the sentence
+    directly BELOW the sentinel line (the Validate clause), which would say whether the asymmetry
+    is about adjacency or about direction.
