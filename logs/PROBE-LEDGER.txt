@@ -93,3 +93,4 @@ Only 46375 carried a treated arm. This gate is why the discard count is high tod
 2026-08-10T15:35:10  pid=46375   label=s-storeplacebo     spec=ledger-jobstrip-placebo.yaml VERDICT=ABSENT
 2026-08-10T15:37:34  pid=46375   label=s-jobstrip         spec=ledger-jobstrip.yaml         VERDICT=LONG
 2026-08-10T15:40:58  pid=46375   label=s-baseend          spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-10T15:44:59  pid=46375   label=s-belowline        spec=ledger-belowline-placebo.yaml VERDICT=ABSENT

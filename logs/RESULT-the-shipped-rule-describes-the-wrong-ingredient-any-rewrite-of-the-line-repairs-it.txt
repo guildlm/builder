@@ -81,6 +81,25 @@ restart, every arm AS-DRAWN (0 repair lines each). Preregs committed before each
         the sentinel line itself, +20 chars, adding no information                        -> FLIPS
 
     I underclaimed by not checking where my own placebo's edits landed before writing the caveat.
-    ⚠️ Still untested, and now the actual next control: a content-free edit to the sentence
-    directly BELOW the sentinel line (the Validate clause), which would say whether the asymmetry
-    is about adjacency or about direction.
+
+⭐ AND THE SENTENCE BELOW WAS THEN DRAWN — NULL, WHICH MAKES THE RADIUS SYMMETRIC AND THE
+   DECLARATION LINE SPECIFICALLY SPECIAL  (registered 0.45 to flip; the 0.55 branch)
+    The Account `Validate` clause, directly below the list, paraphrased with content preserved
+    (+21 chars — exactly A+C's size, one more than the paraphrase that flipped). It NAMES a
+    sentinel (ErrInvalid) and declares none. Result: 3a78b0d8, unchanged.
+
+        one sentence ABOVE, names no sentinel, +54 chars   -> NULL
+        THE DECLARATION LINE, adds no information, +20     -> FLIPS
+        one sentence BELOW, NAMES a sentinel,      +21     -> NULL
+
+    That separates two rules which every previous draw had confounded, because until now every
+    null had touched sentences naming no sentinel and every flip had touched the list:
+        (i)  editing the line that DECLARES the sentinels flips it        -> SURVIVES
+        (ii) editing any line that MENTIONS a sentinel flips it           -> DEAD
+    The below-arm is the stronger of the two nulls: it names a sentinel AND is size-matched to
+    the flipping arms, so neither "it mentioned nothing relevant" nor "it was too small" applies.
+
+    ⚠️ A self-test caught a real defect in this arm's builder before it drew: the phrase "returns
+    an error wrapping ErrInvalid" occurs TWICE in that purpose (Account and Transaction), so the
+    check that the clause had changed failed against a correct edit. The assertion is now scoped
+    to the clause the arm actually edits, and a third asserts the other one is untouched.
