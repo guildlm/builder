@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A dose ladder on the declaration line: how SMALL an edit still flips the file?
 
-    ./_mkvariant_line_dose.py            # writes specs/ledger-linedose-{1,2}.yaml
+    ./_mkvariant_line_dose.py            # writes specs/ledger-linedose-{1,2,3}.yaml
     ./_mkvariant_line_dose.py --self-test
 
 WHERE THIS COMES FROM. On pid 46375 four different edits to models.go's sentinel line all make
@@ -15,14 +15,14 @@ Every flipping arm so far is at least +20 characters. Nothing smaller has ever b
     L1   ONE WORD, a synonym, meaning identical:  "matchable with errors.Is" -> "matchable via
          errors.Is".  −1 character. The smallest edit that is still an edit.
     L2   a light rephrase of the same clause, no information added:  "Sentinel errors, all
-         matchable" -> "Sentinel errors, all of them matchable".  +9 characters.
+         matchable" -> "Sentinel errors, all of them matchable".  +8 characters.
 
     L1 FLIPS  -> the line is hypersensitive: being DIFFERENT is the whole treatment, at any size,
                  while its neighbours ignore fifty times as much text. The shipped rule would be
                  even further from the mechanism than 10 August's correction already says.
     L1 NULL   -> there is a THRESHOLD between −1 and +20, and L2 bisects it.
 
-⚠️ THE LIST OF NAMES IS BYTE-IDENTICAL IN BOTH ARMS. Only the clause introducing it changes, so
+⚠️ THE LIST OF NAMES IS BYTE-IDENTICAL IN EVERY ARM. Only the clause introducing it changes, so
 no arm can be explained by having touched a name, an order or a form.
 """
 
@@ -39,6 +39,16 @@ LADDER = {
           "      Sentinel errors, all matchable via errors.Is:\n"),
     "2": ("      Sentinel errors, all matchable with errors.Is:\n",
           "      Sentinel errors, all of them matchable with errors.Is:\n"),
+    # L3 is not a smaller dose — it is a DIFFERENT PLACE, chosen after L1 and L2 came back null.
+    # Laid side by side, the six arms drawn on this line split perfectly by WHAT they touch:
+    #     FLIP  paraphrase "Sentinel errors"->"Sentinel error values" · A+C ->"Exported
+    #           sentinels" · B only, noun phrase untouched but the NAMES backticked · full, both
+    #     NULL  L1 "with"->"via" · L2 "all"->"all of them"   (connective words only)
+    # So: touch the NOUN PHRASE naming the concept, or the NAMES, and it flips; touch the words
+    # in between and it does not. L3 changes ONLY the noun phrase, by +6 — SMALLER than L2's +8
+    # null, so a flip here eliminates size outright rather than arguing about it.
+    "3": ("      Sentinel errors, all matchable with errors.Is:\n",
+          "      Sentinel error values, all matchable with errors.Is:\n"),
 }
 
 
@@ -112,12 +122,17 @@ def self_test() -> int:
         po = {f["path"]: f["purpose"] for f in yaml.safe_load(out)["files"]}
         chk(f"L{key}: exactly one purpose differs", [p for p in pb if pb[p] != po[p]], [TARGET])
 
-    d1 = len(folded(texts["1"])) - len(fb)
-    d2 = len(folded(texts["2"])) - len(fb)
-    chk(f"L1 delta {d1:+d} is smaller in magnitude than every flipping arm so far (min 20)",
-        abs(d1) < 20, True)
-    chk(f"L2 delta {d2:+d} lies strictly between L1 and the +20 paraphrase", d1 < d2 < 20, True)
-    chk("the two arms differ from each other", texts["1"] == texts["2"], False)
+    d = {k: len(folded(v)) - len(fb) for k, v in texts.items()}
+    chk(f"L1 delta {d['1']:+d} is smaller in magnitude than every flipping arm so far (min 20)",
+        abs(d['1']) < 20, True)
+    chk(f"L2 delta {d['2']:+d} lies strictly between L1 and the +20 paraphrase",
+        d['1'] < d['2'] < 20, True)
+    # ⚠️ L3 MUST BE SMALLER THAN THE L2 NULL, or it cannot eliminate size
+    chk(f"L3 delta {d['3']:+d} is SMALLER than the L2 null ({d['2']:+d})", d['3'] < d['2'], True)
+    chk("L3 changes the noun phrase", "Sentinel error values" in folded(texts['3']), True)
+    chk("L3 leaves the connective words alone",
+        "all matchable with errors.Is" in folded(texts['3']), True)
+    chk("all three arms differ from each other", len(set(texts.values())), 3)
 
     print("SELF-TEST", "OK" if ok else "FAILED")
     return 0 if ok else 1

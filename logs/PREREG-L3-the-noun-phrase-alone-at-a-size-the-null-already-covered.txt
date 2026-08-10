@@ -1,0 +1,40 @@
+PREREG — L3: the noun phrase alone, at a size the null already covers
+=====================================================================
+10 August, committed BEFORE the arm, on pid 46375 (screened, never restarted, fifteen draws).
+
+WHAT L1 AND L2 CHANGED
+    Both came back NULL, so the line is not hypersensitive and there is a threshold. But laying
+    the six line arms side by side, they do not split by SIZE — they split by WHAT THEY TOUCH:
+
+        FLIP  paraphrase  "Sentinel errors" -> "Sentinel error values"        +20
+        FLIP  A+C         "Sentinel errors" -> "Exported sentinels"           +21
+        FLIP  B only      noun phrase untouched, but the NAMES backticked     +30
+        FLIP  full        both                                               +51
+        NULL  L1          "with" -> "via"          (a connective word)         −1
+        NULL  L2          "all"  -> "all of them"  (a quantifier)              +8
+
+    Every flip touched the NOUN PHRASE naming the concept, or the NAMES. Every null touched only
+    the words in between.
+
+THE ARM
+    specs/ledger-linedose-3.yaml — "Sentinel errors" -> "Sentinel error values", and NOTHING
+    else: "all matchable with errors.Is:" survives verbatim, the name list is byte-identical.
+    +6 folded characters.
+
+    ⭐ +6 IS SMALLER THAN THE +8 THAT DID NOTHING. That is the whole design: a flip here cannot
+    be argued to be a bigger edit, because a bigger edit in the same line was already null.
+
+REGISTERED
+    P(L3 flips) = 0.60
+    FLIPS -> size is eliminated outright and the locus is the phrase that NAMES THE CONCEPT (or
+        the names themselves). Six arms would then be explained by one rule, and the shipped
+        rule's "declaration form" would be one instance of it rather than the thing itself.
+    NULL  -> the split is not about the noun phrase either; the four flips share something none
+        of L1, L2, L3 has, and the honest statement returns to a threshold with no named cause.
+
+⚠️ L3 was chosen AFTER seeing L1 and L2, so it is exploratory in the sense that matters: it was
+   suggested by the data. Its prediction is registered before it draws, and it is falsifiable at
+   a size the data already covers — but it is not an independent confirmation of the rule it
+   tests, and a flip needs a fresh arm on a fresh process before it is stated as one.
+
+VOID: repair activity · a restart · a closing baseline differing from the four already drawn.
