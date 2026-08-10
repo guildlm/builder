@@ -1,0 +1,36 @@
+PREREG — re-run 6 August's unbundling on the one process that passed the screen
+===============================================================================
+10 August, committed BEFORE the arm, on pid 46375 (informative, screen-null, never restarted).
+Follows 43b350c, which explicitly excluded the unbundling from what today's result covers.
+
+WHY
+    Today's controlled result tests the FULL bundle. 6 August's stronger claim — "showing the
+    declaration form is the whole treatment; `Exported sentinels` and `(each errors.New)` are
+    decoration" — rests on a `varonly` arm drawn on pid 64515, which was never screened and is
+    now gone. On a screen-failing process that arm flips for any edit, so it cannot support a
+    decomposition. An eligible process is rare (1 of 4 today) and this one is alive.
+
+THE ARM
+    specs/ledger-origorder-varonly.yaml — component B alone: the bare name list becomes
+    backticked `var ErrX` forms, WITHOUT "Exported sentinels" and WITHOUT "(each errors.New)".
+    +30 folded characters, against the full treatment's +51 and the screen placebo's +54.
+
+    ⚠️ NOTE THE SIZE ORDERING, WHICH IS FAVOURABLE: the placebo that did NOTHING on this process
+    is LARGER (+54) than either treatment arm. So a flip here cannot be attributed to edit size —
+    the null already sits above both.
+
+ENDPOINT
+    sha256 of models.go as-drawn. ef8c15d6 (1361 B) = flipped, 3a78b0d8 (1276 B) = not.
+
+REGISTERED
+    P(varonly flips on this eligible process) = 0.70
+        The full bundle flipped here, and 6 August found B sufficient — but that finding is
+        exactly what is uncontrolled, so it earns less than it looks like it should.
+    If it flips: the decomposition survives a screened process, and 6 August's shippable rule
+        keeps its strong form.
+    If it does not: the full bundle works on a controlled process but component B alone does not,
+        and 6 August's "the other two changes are decoration" must be marked SUPERSEDED — the
+        rule would survive only in its bundled form.
+
+VOID: repair activity · a restart · the closing baseline differing from the two already drawn.
+NOT CLAIMED: one process; sufficiency is not necessity (an A+C arm has still never been run).
