@@ -69,3 +69,20 @@ processes that wrote the right name under the treated spec, and nothing more.
 2026-08-10T14:08:12  pid=71409   label=r-a                spec=ledger-jobstrip-a.yaml       VERDICT=LONG
 2026-08-10T14:12:20  pid=71409   label=r-placebo          spec=ledger-jobstrip-placebo.yaml VERDICT=LONG
 2026-08-10T14:16:21  pid=71409   label=r-baseclose        spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-10T14:22:01  pid=71409   label=r-ownplacebo       spec=ledger-ownplacebo.yaml       VERDICT=LONG
+2026-08-10T14:26:00  pid=99031   label=s-b1               spec=ledger-origorder-baseline.yaml VERDICT=LONG
+2026-08-10T14:29:50  pid=253     label=s-b2               spec=ledger-origorder-baseline.yaml VERDICT=LONG
+2026-08-10T14:33:32  pid=14514   label=s-b3               spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-10T14:39:03  pid=14514   label=s-screen1          spec=ledger-ownplacebo.yaml       VERDICT=LONG
+2026-08-10T14:43:42  pid=43635   label=s-b4               spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-10T14:48:43  pid=43635   label=s-screen2          spec=ledger-ownplacebo.yaml       VERDICT=LONG
+2026-08-10T14:52:38  pid=46375   label=s-b5               spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-10T14:56:57  pid=46375   label=s-screen3          spec=ledger-ownplacebo.yaml       VERDICT=ABSENT
+2026-08-10T15:01:03  pid=46375   label=s-treated          spec=ledger-origorder.yaml        VERDICT=LONG
+2026-08-10T15:06:59  pid=46375   label=s-baseclose        spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+
+⚠️ 2026-08-10 — SCREEN ROWS. Rows with spec=ledger-ownplacebo.yaml are PLACEBO SCREENS, not
+treatments: models.go's own purpose edited by +54 folded characters (against the treatment's +51)
+naming no sentinel. A process that returns LONG on that spec flips for a content-free edit and is
+INELIGIBLE for any treated arm. Screened: 71409 FAIL · 14514 FAIL · 43635 FAIL · 46375 PASS.
+Only 46375 carried a treated arm. This gate is why the discard count is high today.

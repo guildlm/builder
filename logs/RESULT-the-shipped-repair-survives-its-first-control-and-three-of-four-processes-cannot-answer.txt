@@ -1,0 +1,70 @@
+RESULT — the shipped repair survives its first placebo-controlled test. Three of four
+informative processes could not have answered the question at all.
+=====================================================================================
+10 August. Prereg logs/PREREG-does-the-shipped-repair-survive-a-placebo-controlled-process.txt,
+committed before any arm. Every arm AS-DRAWN, 0 repair lines, no restart within a process.
+
+THE ELIGIBLE PROCESS — pid 46375 (informative at probe 5 of a registered 6, screen-null)
+
+    arm            spec                        folded delta   sha256    size
+    -------------------------------------------------------------------------
+    base           baseline                          —        3a78b0d8  1276 B
+    screen         ownplacebo, NO sentinel named   +54 chars   3a78b0d8  1276 B  <- NULL
+    treated        the SHIPPED spec                +51 chars   ef8c15d6  1361 B  <- FLIPS
+    base-close     baseline                          —        3a78b0d8  1276 B
+
+    Two edits to the SAME purpose, three characters apart in size, in the same style — backticks
+    around identifiers, a short parenthetical. One rewords sentences about structs and does
+    nothing. The other rephrases the sentinel line and adds the fifth declaration.
+
+    ⭐ 6 AUGUST'S RULE SURVIVES ITS FIRST REAL CONTROL. "Show the declaration form in specs —
+    `var ErrX` beats a bare name list" is no longer confounded with "editing that purpose at all
+    flips this process", because on this process editing that purpose at all does NOTHING.
+    Registered at 0.55; it hit.
+
+⚠️⚠️ AND THE SCREEN DISQUALIFIED THREE OF FOUR INFORMATIVE PROCESSES
+
+    process   baseline   own-purpose placebo   eligible?
+    ---------------------------------------------------
+    71409     ABSENT     FLIPS                 no  (also flipped for the store-purpose placebo)
+    14514     ABSENT     FLIPS                 no
+    43635     ABSENT     FLIPS                 no
+    46375     ABSENT     null                  YES
+                                               1 of 4 · registered 0.40, measured 0.25
+
+    THREE QUARTERS OF THE PROCESSES THAT EXHIBIT THE DEFECT CANNOT BE USED TO STUDY IT. On them
+    a content-free edit produces exactly the result a treatment produces, so any treated arm run
+    there — including every treated arm run on 5 and 6 August — measures perturbation and
+    treatment together with no way to separate them.
+
+    ⚠️ THE ORIGINAL PROCESSES WERE NEVER SCREENED AND CANNOT BE NOW. pids 1459, 64149 and 64515
+    are gone. Their arms are not retracted and not confirmed: individually they remain
+    uninterpretable, and what supports the rule today is THIS process, not those.
+    ⚠️ The 6 August UNBUNDLING (component B alone is sufficient, A and C are decoration) was run
+    on pid 64515, unscreened. It is NOT covered by today's result. Today tests the full bundle,
+    not the decomposition, and the decomposition needs re-running on an eligible process before
+    "showing the declaration form is the whole treatment" can be stated again.
+
+WHAT THE DAY ADDS UP TO, ON THE SAME QUESTION FROM TWO DIRECTIONS
+    · Process A (60986): removing the last concrete mention of a DIFFERENT sentinel from two
+      OTHER files' purposes flips the file; six smaller versions of that edit and a content-free
+      placebo do not.  (66fc9ab)
+    · Process 46375: rephrasing the sentinel line in the target's OWN purpose flips the file; a
+      size-matched content-free edit to that same purpose does not.
+    Two processes, two injection points, two placebos held. The declarer's fifth declaration is
+    controlled by prompt CONTENT on both, and the effect is not a perturbation artefact on either.
+
+⚠️ WHAT IS STILL NOT CLAIMED
+    · No rate, ever, from probes: eight processes were drawn today and five discarded. The
+      ledger holds them all precisely so this stays conditional.
+    · One eligible process. n=1 controlled, which is exactly one more than the campaign had this
+      morning.
+    · Nothing about green builds; every arm dies at file 4 of 19.
+    · The mechanism remains unnamed. Today killed three of my own accounts (jobless-ness, the
+      parenthetical enumeration, the abstract-word paraphrase) and named no replacement.
+
+📌 THE METHOD CHANGE IS THE DURABLE PART
+    A process must now EARN a treated arm: informative AND null on a size-matched, content-free
+    edit to the SAME purpose the treatment will edit. The screen costs one draw (~3 minutes) and
+    it disqualified 75% of candidates on its first use. Every sentinel result before today was
+    produced without it.
