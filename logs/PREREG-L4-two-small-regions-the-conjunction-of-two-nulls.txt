@@ -1,0 +1,35 @@
+PREREG — L4: the conjunction of two arms that were individually null
+====================================================================
+10 August, committed BEFORE the arm, on pid 46375 (screened, never restarted, sixteen draws).
+
+WHAT THE LADDER LEFT
+    L3 came back null, killing the noun-phrase rule and with it the last CONTENT account I had.
+    What fits all seven line arms with no exceptions is a COUNT, not a size and not a meaning:
+
+        regions edited   arms                                          result
+        1                L1 (−1) · L3 (+6) · L2 (+8)                   NULL, all three
+        2 or more        paraphrase (+20) · A+C (+21) · B (+30) · full (+51)   FLIP, all four
+
+THE ARM
+    specs/ledger-linedose-4.yaml = L1 AND L3 TOGETHER, nothing else:
+        "Sentinel errors, all matchable with errors.Is:"
+     -> "Sentinel error values, all matchable via errors.Is:"
+    TWO regions, +5 folded characters — LESS ADDED TEXT than both positive nulls (L2 +8, L3 +6),
+    and the name list byte-identical. Asserted in the builder's self-test as the exact
+    conjunction of the two null arms.
+
+REGISTERED
+    P(L4 flips) = 0.55
+    FLIPS -> the rule is the NUMBER OF EDITED REGIONS. Size is finished: an edit adding less text
+        than two nulls flips because it is two edits rather than one. And it would be the SAME
+        SHAPE as process A's store result — three single removals null, the triple flips — at a
+        second, independent injection point. A non-additive threshold in the count of edits, twice.
+    NULL  -> two regions is not enough either; the threshold is higher, or the count rule is
+        wrong and the four flips share something all four small arms lack. Either way the next
+        arm is L1+L2+L3 (three regions, still tiny).
+
+⚠️ SUGGESTED BY THE DATA, like L3. Registered before drawing and falsifiable at a size the nulls
+   already cover, but a flip is not independent confirmation — it needs a fresh arm on a fresh
+   process, and the ladder's own record shows why: L3's rule looked just as clean before it drew.
+
+VOID: repair activity · a restart · a closing baseline differing from the four already drawn.

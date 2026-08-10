@@ -96,3 +96,4 @@ Only 46375 carried a treated arm. This gate is why the discard count is high tod
 2026-08-10T15:44:59  pid=46375   label=s-belowline        spec=ledger-belowline-placebo.yaml VERDICT=ABSENT
 2026-08-10T21:50:54  pid=46375   label=s-dose1            spec=ledger-linedose-1.yaml       VERDICT=ABSENT
 2026-08-10T21:53:13  pid=46375   label=s-dose2            spec=ledger-linedose-2.yaml       VERDICT=ABSENT
+2026-08-10T21:56:44  pid=46375   label=s-dose3            spec=ledger-linedose-3.yaml       VERDICT=ABSENT

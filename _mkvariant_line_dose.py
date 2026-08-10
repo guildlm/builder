@@ -49,6 +49,19 @@ LADDER = {
     # null, so a flip here eliminates size outright rather than arguing about it.
     "3": ("      Sentinel errors, all matchable with errors.Is:\n",
           "      Sentinel error values, all matchable with errors.Is:\n"),
+    # L4 = L1 AND L3 TOGETHER, and it is the arm the whole ladder was building toward. L3 came
+    # back null, killing the noun-phrase rule, and with it the last CONTENT account. What is left
+    # fits all seven arms with no exceptions: they split by HOW MANY REGIONS of the line the edit
+    # touches — 1 region null (−1, +6, +8), 2 or more regions flip (+20, +21, +30, +51).
+    #
+    # L4 touches TWO regions and costs +5 characters, LESS than every null in the ladder. If it
+    # flips, size is finished as an explanation and the rule is a COUNT.
+    #
+    # ⚠️ And it is the same shape as process A's store result — three single removals null, the
+    # triple flips — which is why it is worth drawing rather than admiring: two independent
+    # injection points would then show the same non-additive threshold in the number of edits.
+    "4": ("      Sentinel errors, all matchable with errors.Is:\n",
+          "      Sentinel error values, all matchable via errors.Is:\n"),
 }
 
 
@@ -132,7 +145,17 @@ def self_test() -> int:
     chk("L3 changes the noun phrase", "Sentinel error values" in folded(texts['3']), True)
     chk("L3 leaves the connective words alone",
         "all matchable with errors.Is" in folded(texts['3']), True)
-    chk("all three arms differ from each other", len(set(texts.values())), 3)
+    chk("all arms differ from each other", len(set(texts.values())), len(LADDER))
+    # ⚠️ L4 must be the EXACT conjunction of two arms that were individually null, and cheaper
+    # than either — otherwise it is a new arm rather than a test of the count rule.
+    f4 = folded(texts['4'])
+    chk("L4 carries L3's change", "Sentinel error values" in f4, True)
+    chk("L4 carries L1's change", "matchable via errors.Is" in f4, True)
+    # ⚠️ CORRECTED CLAIM. The first version asserted L4 was smaller than EVERY null and failed:
+    # L1 is −1, a SHRINK, so a signed minimum makes "smaller" meaningless across the sign. The
+    # claim that actually does the work is against the two nulls that ADD text.
+    chk(f"L4 delta {d['4']:+d} adds less text than BOTH positive nulls "
+        f"(L2 {d['2']:+d}, L3 {d['3']:+d})", d['4'] < min(d['2'], d['3']), True)
 
     print("SELF-TEST", "OK" if ok else "FAILED")
     return 0 if ok else 1
