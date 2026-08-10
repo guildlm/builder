@@ -41,3 +41,19 @@ REGISTERED
         is process-specific, which is a third, worse outcome for every rule in this campaign.
 
 VOID: repair activity in any arm · a restart between arms · base-close differing from base.
+
+--- AMENDMENT, written after probe 1 and BEFORE probe 2 -------------------------------------
+Probe 1 (pid 71269) came back ABBREVIATED at BASELINE — the first time in this campaign that a
+process probe has done so, in roughly seventeen probes across 6 and 10 August. That is a real
+observation and it is recorded in PROBE-LEDGER.txt.
+
+It is NOT usable for this replication, and the reason is stated before the next probe rather than
+after: the ladder measures movement FROM the ABSENT baseline (3a78b0d8). A process that already
+sits at ABBREVIATED starts halfway up the scale, so "L4 above L6" cannot mean the same thing on
+it, and a null there would be uninterpretable.
+
+⚠️ THIS ADDS A SELECTION CRITERION MID-PROTOCOL: for THIS experiment, informative is narrowed to
+ABSENT-at-baseline. The standing definition (ABSENT or ABBREVIATED) is unchanged elsewhere. The
+discarded process is in the ledger with its verdict, so the narrowing cannot silently disappear.
+It also makes this replication conditional on a narrower class than the original — which is the
+honest reading anyway, since pid 46375 was ABSENT-at-baseline too.

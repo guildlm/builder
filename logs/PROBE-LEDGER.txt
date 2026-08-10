@@ -102,3 +102,10 @@ Only 46375 carried a treated arm. This gate is why the discard count is high tod
 2026-08-10T22:13:02  pid=46375   label=s-dose6            spec=ledger-linedose-6.yaml       VERDICT=ABSENT
 2026-08-10T22:15:44  pid=46375   label=s-dose4-redraw     spec=ledger-linedose-4.yaml       VERDICT=ABBREVIATED:ErrInsufficient
 2026-08-10T22:17:23  pid=46375   label=s-dose6-redraw     spec=ledger-linedose-6.yaml       VERDICT=ABSENT
+2026-08-10T22:22:19  pid=71269   label=r2-b1              spec=ledger-origorder-baseline.yaml VERDICT=ABBREVIATED:ErrInsufficient
+
+⚠️ 2026-08-10 — pid 71269 is the FIRST process probe in this campaign to return ABBREVIATED at
+BASELINE (~17 probes over 6 and 10 August; every earlier one was ABSENT or LONG). It is recorded
+as informative under the standing definition but DISCARDED for the ladder replication, which
+measures movement from the ABSENT baseline and cannot be read on a process that starts halfway
+up the scale. The narrowing is written into that experiment's prereg as an amendment.
