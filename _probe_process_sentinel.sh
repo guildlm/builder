@@ -48,7 +48,7 @@ cd "$(dirname "$0")"
 LABEL="${1:-probe}"
 PORT="${PORT:-8137}"
 MODEL="mlx-community/Qwen2.5-Coder-7B-Instruct-4bit"
-SPEC="${SPEC:-specs/ledger-origorder.yaml}"
+SPEC="${SPEC:-}"
 RESTART="${RESTART:-1}"
 ROLE="${ROLE:-baseline}"
 EXAMPLES="examples/verified_contracts.jsonl"
@@ -70,6 +70,13 @@ record () {   # record <verdict>
 pgrep -f "\.venv/bin/guildlm-build" >/dev/null && { echo "REFUSING: a draw is in flight."; exit 8; }
 [[ -e "$OUT" ]] && { echo "REFUSING: $OUT exists."; exit 9; }
 
+# ⚠️⚠️ SPEC HAS NO DEFAULT, AND THAT IS A FIX. It used to default to specs/ledger-origorder.yaml
+# — the TREATED spec, the one carrying the shipped `var ErrX` phrasing. On 10 August three
+# baseline probes were run without SPEC set and all three came back LONG, which is precisely what
+# the treated spec is supposed to do: they classified nothing about the processes and cost three
+# restarts. A default that silently answers a DIFFERENT question than the caller asked is worse
+# than no default, because the verdicts look valid. The ledger's spec column caught it.
+[[ -n "$SPEC" ]] || { echo "REFUSING: set SPEC explicitly — there is no safe default. Baseline is specs/ledger-origorder-baseline.yaml"; exit 10; }
 [[ -s "$SPEC" ]] || { echo "REFUSING: no spec at $SPEC"; exit 10; }
 
 if [[ "$RESTART" == "1" ]]; then

@@ -35,3 +35,17 @@ VERDICTS: LONG = declares ErrInsufficientFunds (uninformative, discard)
 2026-08-06T10:11:07  pid=64515   label=u9-base            spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
 2026-08-06T10:15:06  pid=64515   label=u9-varonly         spec=ledger-origorder-varonly.yaml VERDICT=LONG
 2026-08-06T10:20:20  pid=64515   label=u9-treated         spec=ledger-origorder.yaml        VERDICT=LONG
+2026-08-10T13:08:02  pid=58247   label=js-base1           spec=ledger-origorder.yaml        VERDICT=LONG
+2026-08-10T13:10:03  pid=58808   label=js-base2           spec=ledger-origorder.yaml        VERDICT=LONG
+2026-08-10T13:12:43  pid=59410   label=js-base3           spec=ledger-origorder.yaml        VERDICT=LONG
+
+⚠️ 2026-08-10 — THE THREE js-base* ROWS ABOVE (58247, 58808, 59410) ARE NOT BASELINE PROBES.
+They were meant to be, and were run without SPEC set, so they used the script's old default —
+specs/ledger-origorder.yaml, the TREATED spec. LONG is what that spec is supposed to produce, so
+those three rows classify NOTHING about those processes and they must never be counted toward the
+baseline stopping rule (which stood at 0 of 6 after them). The spec column, added on 6 August
+because "a verdict without a spec is meaningless", is what caught it; the script now REFUSES to
+run without SPEC.
+⚠️ Nor are they evidence the fix works: a treated arm with no baseline on the same process cannot
+distinguish "the treatment fixed it" from "this process never had the defect". They are three
+processes that wrote the right name under the treated spec, and nothing more.
