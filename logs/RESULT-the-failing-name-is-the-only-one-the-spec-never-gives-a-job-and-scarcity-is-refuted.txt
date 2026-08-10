@@ -1,0 +1,112 @@
+RESULT — of 17 sentinels the specs ask for, exactly ONE has no described use site. It is the
+one that fails. And the simpler version of that idea died on the way here.
+==============================================================================================
+10 August, morning. Specs and archived snapshots only, NO GPU, no draw. Instrument:
+_sentinel_mention_census.py (21 self-tests). Reproduces 31 July's per-name table independently.
+
+WHAT 31 JULY LEFT OPEN
+    The whole corpus defect is ONE identifier — ErrInsufficientFunds, 9/27 (33%), against five
+    siblings at 100% over 13 to 27 trees each. Four properties are unique to it: longest (20
+    chars), only two-concept compound, only one with a plausible shorter form, only one whose
+    domain has its own package. With n=1 those are four labels on one observation, so the log
+    recorded the localisation and refused to name a cause. That has stood since.
+
+    Every one of those four is a property OF THE NAME. That is why none of them can be tested:
+    you cannot vary "is the longest" without writing a different identifier, and then the arm
+    confounds the property with the substitution.
+
+THE FIFTH PROPERTY, WHICH NOBODY HAD COUNTED — AND IT IS A PROPERTY OF THE SPEC
+    How many times does the spec say the name, and in what capacity? Three capacities exist and
+    pooling them is what hid this:
+
+        DEMANDED   a described use site: some function is said to return / wrap / assert it
+        LISTED     a declaration list, or a status-code mapping, and nowhere else
+        FORBIDDEN  named in order to BAN it
+
+        every (project, name) the specs ASK FOR, by described use sites:
+
+            demands mentions  name                   project    declared
+                  0        2  ErrInsufficientFunds   ledger       9/27    33%   <-- the defect
+                  1        2  ErrNotFound            taskflow    13/13   100%
+                  1        3  ErrExists              taskflow    13/13   100%
+                  1        5  ErrExists              workapi      2/2    100%
+                  1        7  ErrExists              taskapipro   3/3    100%
+                  1       12  ErrNotFound            taskapi      3/3    100%
+                  1       12  ErrNotFound            workapi      2/2    100%
+                  2        6  ErrInvalid             taskapi      3/3    100%
+                  ...  (nine more rows, every one of them 100%)
+                  7       10  ErrNotFound            ledger      27/27   100%
+
+    SIXTEEN OF SEVENTEEN HAVE AT LEAST ONE DESCRIBED USE SITE AND ARE DECLARED EVERY TIME. The
+    seventeenth has none, and is declared a third of the time.
+
+⚠️ THE SIMPLER VERSION IS REFUTED, FOR FREE, BEFORE ANY DRAW
+    "The spec barely mentions it" is NOT the discriminator. taskflow's ErrNotFound is mentioned
+    exactly TWICE, in exactly TWO files — the same scarcity as ErrInsufficientFunds — and it is
+    declared 13 of 13. The two differ only in the KIND of the second mention: taskflow says
+    "Get/Delete return ErrNotFound" (a job), ledger says "ErrInsufficientFunds -> 422" (a table
+    row). Raw mention count is dead; capacity survives.
+
+    That is the whole reason this measurement was worth building rather than eyeballing: the
+    refutation and the surviving hypothesis differ by one column, and I would not have separated
+    them by reading the specs.
+
+⭐ AND IN LEDGER THE USE SITE IS NOT MERELY ABSENT — IT IS EXPLICITLY FORBIDDEN
+    specs/ledger-origorder-baseline.yaml, service.go's purpose, lines 296-299:
+
+        "(note: there is NO balance/overdraft check — a balanced transaction always posts as
+         long as its accounts exist; do not reject a posting for driving a balance negative,
+         because in double-entry one side of every balanced transaction is negative)"
+
+    The one rule that could ever raise an insufficient-funds error is prohibited, at length, in
+    the same spec that asks for the error to be declared. The model is told to declare a sentinel
+    for a behaviour it is told not to implement. Of the six names, this is the only one in that
+    position, and it is the only one that fails.
+
+⚠️⚠️ A CORRECTION I MADE TO MY OWN INSTRUMENT, BEFORE PUBLISHING, NOT AFTER
+    The first version of this tool printed:
+
+        mentions 1  ErrNotImplemented  taskapipro  0/3  0%  <-- SCARCE AND DEFECTIVE
+        mentions 1  ErrNotImplemented  workapi     0/2  0%  <-- SCARCE AND DEFECTIVE
+
+    and I was one step from writing "the defect is not one identifier after all, there is a
+    second". Reading the spec line killed it: both specs say "IMPLEMENT ALL FOUR METHODS FULLY
+    (no stub, no ErrNotImplemented, no panic, no TODO)". The name is FORBIDDEN. Zero declarations
+    is PERFECT COMPLIANCE — the sign was inverted, and 0% was the best possible score.
+    The tool now classifies FORBIDDEN and excludes those rows, with the reason in the source.
+    SEVENTH time in this campaign a hand-built filter produced a confident wrong number, and the
+    second time it was caught by reading the underlying case before the number reached a log.
+
+⚠️ WHAT THIS IS NOT
+    · NOT a demonstration that the missing use site CAUSES the drop. It is one more property
+      unique to one name, and on the archive alone it is exactly as untestable as the other four.
+    · The archive cannot separate it from length either: no long name in the corpus HAS a use
+      site, and no short name LACKS one. The natural control (taskflow ErrNotFound, 2 mentions)
+      is 11 characters, not 20.
+    · The rates pool over each project's spec variants — a tree does not record which variant
+      drew it. The tool prints DISAGREE and declines to join where variants differ.
+    · Pools are small outside ledger and taskflow (2 and 3 trees). The 100%s there are weak
+      individually; the row that matters is ledger's 27 and taskflow's 13.
+
+⭐ WHY IT IS WORTH MORE THAN THE OTHER FOUR ANYWAY: IT IS THE ONLY ONE THAT CAN BE MANIPULATED
+  WITHOUT TOUCHING THE IDENTIFIER
+    Length, compoundness, plausible-abbreviation and domain-package are all fixed by the choice
+    of name. A use site is not. Two directed experiments exist and neither substitutes a name:
+
+        ADD one to ErrInsufficientFunds  — same 20 characters, same spelling, one clause added.
+        REMOVE the use sites of a name that HAS them — and see whether a short, unambiguous,
+        100%-of-27 name starts to fail. This one escapes the n=1 trap completely, because the
+        prediction is made about a DIFFERENT identifier.
+
+    The second is the stronger test and it is the one queued: strip ErrExists (9 chars, 27/27)
+    down to ErrInsufficientFunds' exact profile — listed in models.go, mapped in response.go,
+    demanded nowhere — WITHOUT editing models.go's own purpose by a single byte, and read what
+    models.go declares. Prereg follows.
+
+IT ALSO MECHANISES THE CONSUMER/DECLARER ASYMMETRY RATHER THAN RESTATING IT
+    31 July: response.go references models.ErrInsufficientFunds 25/25 while models.go declares it
+    9/25, and the log corrected itself to say the asymmetry is carried by one name, not by roles.
+    This says why the one name can do that. The SAME two mentions are a code instruction for the
+    consumer ("map this error to 422" — emit the token) and a list item for the declarer. The
+    consumer has a job that requires the exact string; the declarer has a list. The file that is
+    supposed to OWN the name is the only one never given a reason to write it.
