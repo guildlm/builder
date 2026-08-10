@@ -88,3 +88,5 @@ INELIGIBLE for any treated arm. Screened: 71409 FAIL · 14514 FAIL · 43635 FAIL
 Only 46375 carried a treated arm. This gate is why the discard count is high today.
 2026-08-10T15:13:34  pid=46375   label=s-varonly          spec=ledger-origorder-varonly.yaml VERDICT=LONG
 2026-08-10T15:17:46  pid=46375   label=s-ac               spec=ledger-origorder-ac.yaml     VERDICT=LONG
+2026-08-10T15:21:49  pid=46375   label=s-lineplacebo      spec=ledger-sentinelline-placebo.yaml VERDICT=LONG
+2026-08-10T15:25:35  pid=46375   label=s-basefinal        spec=ledger-origorder-baseline.yaml VERDICT=ABSENT

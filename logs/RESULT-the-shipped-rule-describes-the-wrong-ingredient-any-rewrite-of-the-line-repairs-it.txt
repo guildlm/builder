@@ -1,0 +1,73 @@
+RESULT — the repair is real, and my one-line summary of it was wrong. ANY rewrite of the
+sentinel line fixes the name, including one that adds no information at all.
+========================================================================================
+10 August. pid 46375 — the one process of four that passed the placebo screen. Eight draws, no
+restart, every arm AS-DRAWN (0 repair lines each). Preregs committed before each arm.
+
+    arm             what it changes in models.go's purpose      Δ folded   sha256    size   decls
+    ---------------------------------------------------------------------------------------------
+    base            nothing                                        —       3a78b0d8  1276    4/5
+    base-close      nothing                                        —       3a78b0d8  1276    4/5
+    base-final      nothing                                        —       3a78b0d8  1276    4/5
+    screen placebo  OTHER sentences, no sentinel named            +54       3a78b0d8  1276    4/5
+    treated (ship)  heading + `var ErrX` forms + (each errors.New) +51      ef8c15d6  1361    5/5
+    B only          `var ErrX` forms                              +30       ef8c15d6  1361    5/5
+    A+C             heading + (each errors.New), names left BARE  +21       ef8c15d6  1361    5/5
+    LINE PLACEBO    the line PARAPHRASED, nothing added           +20       649bdef7  1353    5/5
+
+    The line placebo says "Sentinel error values, every one of them matchable with errors.Is:"
+    where the baseline says "Sentinel errors, all matchable with errors.Is:". No "exported", no
+    declaration form, no errors.New, and the five names byte-identical — asserted one by one in
+    the builder's self-test, because this arm's entire value is that it carries NONE of the three
+    treatments. Its file differs from the treated file by ONE ERROR STRING ("exists" vs "already
+    exists") and declares all five names.
+
+⚠️⚠️ WHAT THIS DOES TO THE RULE I SHIPPED ON 6 AUGUST
+    "Show the declaration form in specs — `var ErrX` beats a bare name list" is a WRONG
+    DESCRIPTION OF A REAL EFFECT. Three registered arms dismantled it in one session:
+
+        · A+C flips (registered 0.20, MISS) -> B is NOT NECESSARY. 6 August had only shown B
+          sufficient and said so; the untested alternative it named has now come true.
+        · The line placebo flips (registered 0.60, HIT) -> no INFORMATION is needed at all. A
+          paraphrase that changes nothing about what the model is told repairs the declaration.
+        · The screen placebo, +54 characters — LARGER than every treatment arm — does nothing,
+          three times over counting the baselines.
+
+    So the effect is real, it is local to that LINE, and it is not carried by any content the
+    campaign has been able to name. "Show the declaration form" works, but not for the reason it
+    claims, and anyone applying it as a general spec rule would be following a story rather than
+    the mechanism.
+
+    📌 6 August's RESULT log and the save point's "shippable zero-code rule" must be marked
+    SUPERSEDED — the finding is not withdrawn, its DESCRIPTION is replaced:
+        OLD: show the declaration form; `var ErrX` beats a bare list.
+        NEW (measured, on one screened process): rewriting the sentinel line in any way tested so
+             far — four different ways, one of them information-free — makes the declarer write
+             the name it otherwise omits. Editing other sentences in the same purpose does not.
+
+⭐ WHAT SURVIVES, AND IT IS NOT NOTHING
+    · The repair is REAL and now CONTROLLED. On a process where a bigger content-free edit
+      elsewhere in the same purpose does nothing, four edits to the sentinel line all repair it.
+      That is the first placebo-controlled evidence in this campaign that any of this works.
+    · The effect is LOCALISED TO ONE LINE. +54 characters one sentence away: nothing. +20
+      characters on the line: the missing declaration appears.
+    · The three baselines bracket the session — first, middle and last, byte-identical — so no
+      arm here is drift.
+
+⚠️ AND A THIRD FILE APPEARED, WHICH MATTERS FOR EVERY EARLIER "BYTE-IDENTICAL" CLAIM
+    649bdef7 (1353 B) is not one of the two sequences this spec family has produced all week. The
+    campaign has been reading byte-identity as the sign of a stable attractor; here a fourth
+    manipulation reaches the same OUTCOME (all five declared) by a slightly different file. The
+    endpoint that matters is the DECLARATION, and byte-identity is a stronger fact that is not
+    always available — a result must not be stated in terms of it by default.
+
+⚠️ WHAT IS STILL NOT CLAIMED
+    · ONE process. Rare (1 of 4 informative processes passed the screen) and selected twice over.
+      No rate may be computed from any of it; eight processes were probed today, five discarded.
+    · The mechanism remains UNNAMED, and today killed four candidate accounts of my own: jobless
+      -ness, the parenthetical enumeration, the abstract-word paraphrase, and the declaration form.
+    · Nothing about green builds. Every arm dies at file 4 of 19.
+    · ⚠️ NOT tested: whether an edit to a DIFFERENT line inside models.go's purpose that is
+      equally close to the sentinel list also works. The screen placebo edited three sentences
+      spread through the purpose; a same-paragraph, one-sentence-away placebo is the obvious next
+      control and would sharpen "localised to the line" into a measured radius.
