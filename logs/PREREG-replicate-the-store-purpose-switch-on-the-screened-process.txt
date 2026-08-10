@@ -1,0 +1,36 @@
+PREREG — does process A's store-purpose result hold on a SCREENED process?
+==========================================================================
+10 August, committed BEFORE the arms, on pid 46375 (informative, own-purpose screen NULL, never
+restarted, three byte-identical baselines already drawn).
+
+WHY
+    Process A (60986) produced the day's other result: removing the last concrete mention of
+    ErrExists from two internal/store purposes flips models.go, while six smaller versions and a
+    +79 content-free store edit do not (66fc9ab). But process A was never screened with the
+    own-purpose placebo — the screen did not exist when it was drawn. Its store-purpose placebo
+    was null, which is evidence of the same kind, but not the gate as now defined.
+
+    pid 46375 IS screened, and it is rare (1 of 4). Running process A's two key arms here tests
+    whether that finding survives on a process that has passed the gate.
+
+THE ARMS (both specs already built and guarded; no new spec files)
+    store placebo   ledger-jobstrip-placebo.yaml   +79 chars, no sentinel named   -> control
+    jobstrip        ledger-jobstrip.yaml           +81 chars, all three ErrExists mentions gone
+
+    ⚠️ Both edit OTHER files' purposes (internal/store), not models.go's own — so this also asks
+    whether this process's insensitivity extends beyond the purpose the screen tested.
+
+REGISTERED
+    P(store placebo is null here)                      = 0.75
+    P(jobstrip flips here)                             = 0.60
+    P(the clean shape: placebo null AND jobstrip flips) = 0.50
+
+    Placebo NULL + jobstrip FLIPS -> process A's result replicates on a screened process, and the
+        campaign has the same effect from two injection points on two processes with controls.
+    Placebo FLIPS -> this process is sensitive to store-purpose edits even though it is insensitive
+        to its own-purpose ones. That would be a finding in itself: the screen is PURPOSE-SPECIFIC
+        and must be run in the purpose the treatment edits, which is what the prereg for it already
+        says but has never been tested from this direction.
+    Both null -> process A's switch does not generalise; state it as a property of that process.
+
+VOID: repair activity · a restart · a closing baseline differing from the three already drawn.
