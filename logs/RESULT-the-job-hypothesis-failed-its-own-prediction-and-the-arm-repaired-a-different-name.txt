@@ -1,0 +1,95 @@
+RESULT — stripping ErrExists of its job did NOT break ErrExists. It repaired ErrInsufficientFunds.
+==================================================================================================
+10 August. Prereg logs/PREREG-take-the-job-away-from-a-name-that-never-fails.txt, committed at
+4ac710d BEFORE any arm. One process, four arms, no restart between them, every arm AS-DRAWN
+(0 repair lines in all four build logs, checked per arm, not assumed).
+
+    pid 60986 · port 8137 · spec family ledger-origorder · models.go killed at file 4 of 19
+
+    arm       spec                          verdict   sha256    size
+    base      baseline                      ABSENT    3a78b0d8  1276 B   \  BYTE-IDENTICAL
+    base2     baseline, run LAST            ABSENT    3a78b0d8  1276 B   /
+    placebo   +79 chars, no sentinel named  ABSENT    3a78b0d8  1276 B   <- IDENTICAL TO BASE
+    jobstrip  +81 chars, ErrExists' job cut LONG      ef8c15d6  1361 B   <- FLIPPED
+
+    The entire difference between the two files is ONE LINE (and gofmt's realignment of the
+    block it joins):
+
+        + ErrInsufficientFunds = errors.New("insufficient funds")
+
+THE REGISTERED ENDPOINTS, SCORED
+    PRIMARY   "does ErrExists degrade when its use sites are removed"   registered 0.25 DEGRADED
+              -> NOT DEGRADED. ErrExists is declared, exactly, spelled right, no rename.
+              The 0.75 branch. Taking a name's job away is NOT sufficient to break it, and the
+              job hypothesis — mine, from this morning — fails the one prediction that made it
+              testable on a DIFFERENT identifier.
+
+    SECONDARY "ErrInsufficientFunds unchanged in the jobstrip arm"      registered 0.85 UNCHANGED
+              -> ⚠️ MISS, and it is the most important line in this file. It did not stay put:
+              it went from ABSENT at baseline to correctly declared. The control I wrote to catch
+              a contaminated arm is where the result is.
+
+    TERTIARY  "placebo declares the same five as base"                  registered 0.75
+              -> HIT, and stronger than registered: BYTE-IDENTICAL, not merely the same names.
+
+    FOURTH    "base2 byte-identical to base"                            registered 0.85
+              -> HIT. The process did not drift across four draws and ~12 minutes.
+
+⭐ WHAT THE PLACEBO BUYS, WHICH IS THE WHOLE RESULT
+    Both arms edit the SAME TWO PURPOSES by the SAME AMOUNT — +81 characters against +79, a
+    two-character difference, printed by the builder rather than judged by me. Neither touches
+    models.go's own purpose by a single byte (asserted in _mkvariant_jobstrip.py's self-test).
+    One of them moves models.go; the other moves it by ZERO BYTES.
+
+    So the effect is NOT "editing store purposes perturbs the declarer", NOT prompt length, NOT
+    the position of anything in the file list. It is the CONTENT of the three removed mentions.
+
+⭐⭐ AND IT LANDS ON BYTES THIS CAMPAIGN HAS SEEN BEFORE — TWICE, FROM TWO OTHER DIRECTIONS
+    3a78b0d8 / 1276 B is the file 6 August's baseline arms produced on pids 64149, 7507, 38950.
+    ef8c15d6 / 1361 B is the file 6 August's TREATED arms produced (pids 1459, 64149, 64515) AND
+    the file healthy processes write unaided (pids 47310, 1080, 63760).
+
+    Three unrelated manipulations now land on the same two byte sequences:
+        · rephrasing models.go's own list to show the declaration form (`var ErrX`)  -> ef8c15d6
+        · a process that simply doesn't have the defect, given no help at all        -> ef8c15d6
+        · removing a DIFFERENT name's use sites from two OTHER files' purposes       -> ef8c15d6
+
+    Within this spec family and these processes the target file behaves like it has two states,
+    and quite different prompt perturbations flip between them. ⚠️ NOT a claim that models.go is
+    bistable in general: 6 August's census counted SIX distinct as-drawn sequences for this file
+    across 27 archived trees. Two is what this spec and these processes show.
+
+WHAT THIS DOES TO THIS MORNING'S FINDING
+    The census stands as a description: of 17 sentinels the specs ask for, sixteen have a use
+    site and are declared everywhere; the seventeenth has none and is declared 9/27. What died is
+    the causal reading I gave it. Having no use site does not make a name droppable — ErrExists
+    had none in this arm and was declared perfectly. Whatever the missing use site does, it is
+    not "a name with no job gets dropped".
+
+    ⚠️ AND THE MORNING'S REFUTATION STILL HOLDS INDEPENDENTLY: raw mention count was already dead
+    (taskflow's ErrNotFound, 2 mentions, 13/13). Both of my spec-side accounts have now failed a
+    test. That is the honest state: the census found a real and unique property of the failing
+    name, and neither of the mechanisms I proposed for it survives.
+
+⚠️ WHAT IS NOT CLAIMED
+    · n = ONE PROCESS, one draw per arm. Draws are deterministic within a process, so the arms
+      are clean against each other; the effect is not shown to hold across processes.
+    · CONDITIONAL, by construction: pid 60986 was SELECTED for exhibiting the defect (probe 2 of
+      a registered 6). Probe 1 (pid 60388) was LONG and discarded. Both are in PROBE-LEDGER.txt,
+      and no rate may be computed from them.
+    · Three mentions were removed at once. WHICH of them does the work is unknown, and the arm
+      cannot say. Unbundling prereg follows — the same protocol that on 6 August reduced a
+      three-part treatment to one sufficient component.
+    · Nothing about green builds. Every arm was killed at file 4 of 19.
+    · ⚠️ The mechanism is unnamed. A tempting story — "the parenthetical `(models.ErrExists,
+      models.ErrNotFound)` reads as an authoritative partial list of what the models package
+      declares, and suppresses the names it omits" — fits, and predicts that the parenthetical
+      alone carries the effect. It is a hypothesis awaiting the unbundling, not a finding.
+
+📌 THREE PROBES WERE WASTED BEFORE THIS ONE, AND THE LEDGER CAUGHT IT
+    js-base1/2/3 were run without SPEC set and took the script's old default — the TREATED spec.
+    All three returned LONG, which is what that spec is supposed to do; they classified nothing.
+    The spec column in PROBE-LEDGER.txt, one field added on 6 August, is what made it visible.
+    SPEC now has no default and the script refuses without it. Annotated in place, excluded from
+    the stopping rule, and excluded from any claim about the fix — a treated arm with no baseline
+    on the same process cannot tell "the treatment worked" from "this process was never broken".

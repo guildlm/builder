@@ -49,3 +49,8 @@ run without SPEC.
 ⚠️ Nor are they evidence the fix works: a treated arm with no baseline on the same process cannot
 distinguish "the treatment fixed it" from "this process never had the defect". They are three
 processes that wrote the right name under the treated spec, and nothing more.
+2026-08-10T13:15:49  pid=60388   label=js-b1              spec=ledger-origorder-baseline.yaml VERDICT=LONG
+2026-08-10T13:18:25  pid=60986   label=js-b2              spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-10T13:21:30  pid=60986   label=js-strip           spec=ledger-jobstrip.yaml         VERDICT=LONG
+2026-08-10T13:24:17  pid=60986   label=js-placebo         spec=ledger-jobstrip-placebo.yaml VERDICT=ABSENT
+2026-08-10T13:27:26  pid=60986   label=js-base2rep        spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
