@@ -1,0 +1,46 @@
+PREREG — does the switch cross the process boundary?
+====================================================
+10 August, committed BEFORE pid 60986 is killed and before any arm on the new process.
+Follows 66fc9ab, whose entire result is n = ONE process.
+
+WHY THIS IS THE NEXT JOB AND NOT THE OTHER-NAME ARM
+    Twelve draws made the arms clean against each other, because draws are deterministic within
+    a process. They say nothing about how many processes behave this way, and 31 July established
+    that the declaration under test varies BY PROCESS. A within-process switch that does not cross
+    the boundary is a curiosity about pid 60986; one that crosses is a finding about the model.
+    Everything else queued is downstream of that answer.
+
+PROTOCOL
+    · Probe fresh processes with specs/ledger-origorder-baseline.yaml until one is INFORMATIVE
+      (verdict ABSENT or ABBREVIATED). STOPPING RULE: at most 6 probes; if none is informative the
+      replication does not happen today and that is recorded, not worked around.
+    · Every probe, kept and discarded, goes in PROBE-LEDGER.txt. The claim stays conditional:
+      "among processes that drop the name, ...". No rate may be computed from probes.
+    · On the informative process, with RESTART=0 throughout:
+          base   baseline
+          bc     the pair that is the bundle's own length (+81) and was null on process A
+          strip  the full bundle
+          base-close  baseline again, last
+    · `bc` is included rather than a single because it is the strongest null from process A: same
+      length as the treatment, one mention short of it. If the switch replicates, bc null + strip
+      flip reproduces the whole shape in three draws.
+
+ENDPOINT
+    sha256 of models.go, as-drawn. The two known sequences are 3a78b0d8 (1276 B, name absent) and
+    ef8c15d6 (1361 B, name declared).
+
+REGISTERED
+    P(the informative baseline is again byte-identical 3a78b0d8)          = 0.80
+        Four informative processes are known — 64149, 7507, 38950 (6 August) and 60986 (today) —
+        and all four wrote that exact file. This asks whether the fifth does too.
+    P(strip flips the file on the second process)                        = 0.65
+    P(bc is null on the second process, given strip flips)               = 0.75
+    P(the whole shape reproduces: base and bc on 3a78b0d8, strip on ef8c15d6) = 0.50
+
+    ⚠️ A FAILURE TO REPLICATE DOES NOT RETRACT PROCESS A. Twelve internally-consistent draws
+    happened. It would bound the claim to "some processes", which is where 6 August's rephrasing
+    result also sits, and that bound must then be written into the earlier log rather than left
+    for a reader to infer.
+
+VOID CONDITIONS
+    Repair activity in any arm's log · a restart between arms · base-close differing from base.
