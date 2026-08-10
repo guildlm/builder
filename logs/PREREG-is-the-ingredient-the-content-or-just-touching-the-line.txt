@@ -1,0 +1,35 @@
+PREREG — is the ingredient the content, or just that the line was touched?
+==========================================================================
+10 August, committed BEFORE the arm, on pid 46375 (informative, screen-null, never restarted).
+
+WHERE THIS COMES FROM
+    On this process THREE edits to models.go's sentinel line all flip the file:
+        full bundle +51 · B only +30 · A+C +21
+    and a content-free edit of +54 to OTHER sentences in the same purpose does nothing. A+C
+    flipping was registered at 0.20 and missed: it means B is NOT necessary, and that the three
+    treatments have almost nothing in common except WHERE they are.
+
+THE ARM
+    specs/ledger-sentinelline-placebo.yaml — the sentinel line paraphrased and NOTHING added:
+    "Sentinel errors, all matchable with errors.Is:" becomes "Sentinel error values, every one of
+    them matchable with errors.Is:". No "exported", no `var ErrX`, no errors.New; the name list
+    byte-identical. +20 folded characters, against A+C's +21 — the tightest size match in the
+    campaign.
+
+REGISTERED
+    P(it flips) = 0.60
+    FLIPS      -> the ingredient is that the LINE WAS REWRITTEN, not what it says. 6 August's
+                  shippable rule ("show the declaration form — `var ErrX` beats a bare list") is
+                  then a wrong description of a real effect, and must be restated as something
+                  much less satisfying and much more honest. The rule as written would still
+                  "work", for a reason it does not name.
+    NULL       -> the three treatments share content this paraphrase lacks, the effect is
+                  informational after all, and the shipped rule survives with A+C showing the
+                  information can be carried in more than one form.
+
+⚠️ RESOLUTION, EXPLICITLY: the earlier screen placebo edited the same PURPOSE and was null. This
+one edits the same LINE. A null at the coarse resolution cannot answer a question posed at the
+fine one — the 29 July rule, applied before the fact this time rather than after.
+
+VOID: repair activity · a restart · the closing baseline differing.
+NOT CLAIMED: one process.
