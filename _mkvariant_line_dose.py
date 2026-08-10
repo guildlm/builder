@@ -71,6 +71,13 @@ LADDER = {
     #                              ABBREVIATED means the climb is mostly size.
     "5": ("      Sentinel errors, all matchable with errors.Is:\n",
           "      Sentinel error values, all of them matchable via errors.Is:\n"),
+    # L6 SEPARATES COUNT FROM SIZE, which every arm so far confounds. L5 reached LONG with THREE
+    # regions at +13; L4 reached only ABBREVIATED with TWO at +5. L6 is TWO regions at +14 — the
+    # same size as L5, one region fewer:
+    #     LONG        -> size explains the climb; the third region in L5 was not doing the work.
+    #     ABBREVIATED -> the COUNT of edited regions matters on its own, at equal size.
+    "6": ("      Sentinel errors, all matchable with errors.Is:\n",
+          "      Sentinel error values, all readily matchable with errors.Is:\n"),
 }
 
 
@@ -171,6 +178,12 @@ def self_test() -> int:
         (True, True, True))
     chk(f"L5 delta {d['5']:+d} sits strictly between the ABBREVIATED arm ({d['4']:+d}) "
         f"and the smallest LONG arm (+20)", d['4'] < d['5'] < 20, True)
+    f6 = folded(texts['6'])
+    chk("L6 edits exactly two regions: the noun phrase and the quantifier",
+        ("Sentinel error values" in f6, "all readily matchable" in f6, "matchable via" in f6),
+        (True, True, False))
+    chk(f"L6 delta {d['6']:+d} is within 2 characters of L5's {d['5']:+d} — the point of the arm",
+        abs(d['6'] - d['5']) <= 2, True)
 
     print("SELF-TEST", "OK" if ok else "FAILED")
     return 0 if ok else 1

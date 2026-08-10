@@ -1,0 +1,27 @@
+PREREG — L6: two regions at the size where three regions reached LONG
+=====================================================================
+10 August, committed BEFORE the arm, on pid 46375 (screened, never restarted, nineteen draws).
+
+THE CONFOUND EVERY ARM SO FAR CARRIES
+    1 region  −1 / +6 / +8  -> ABSENT
+    2 regions +5            -> ABBREVIATED
+    3 regions +13           -> LONG
+    2 regions +20 / +21     -> LONG
+    Bigger edits are always wordier edits. Nothing separates the count from the size.
+
+THE ARM
+    specs/ledger-linedose-6.yaml — TWO regions at +14, within two characters of L5's +13:
+    "Sentinel error values, all readily matchable with errors.Is:" (the noun phrase and the
+    quantifier; the connective is left alone, unlike L5).
+
+REGISTERED
+    P(LONG)        = 0.55  -> SIZE explains the climb. L5's third region was not doing the work,
+                             and the ladder collapses to one variable: how much of the line was
+                             rewritten. The cleanest outcome.
+    P(ABBREVIATED) = 0.40  -> the COUNT matters on its own: at equal size, three regions reach
+                             LONG and two reach only the middle state. Two variables, and the
+                             next question is which regions.
+    P(ABSENT)      = 0.05  -> non-monotone; L4 and L6 would both need redrawing.
+
+VOID: repair activity · a restart · a closing baseline differing from the four already drawn.
+NOT CLAIMED: one process. This is curve-fitting on eleven arms, not a mechanism.
