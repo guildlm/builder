@@ -1,0 +1,69 @@
+RESULT — the shipped treatment is PORTABLE across screened processes. The small edits are not,
+and the non-monotonicity replicated.
+==============================================================================================
+10 August. Two independently screened processes, no restart within either, every arm AS-DRAWN.
+Prereg committed before pid 46375 was killed; two amendments, each written before the arm it
+covers. Table assembled by tool.
+
+    arm                 pid 46375 (p1)          pid 71833 (p2)
+    ---------------------------------------------------------------------
+    base                ABSENT      3a78b0d8    ABSENT      3a78b0d8
+    screen +54 (null)   ABSENT      3a78b0d8    ABSENT      3a78b0d8
+    L4   +5  (2 regions) ABBREVIATED cb873e76   LONG        ef8c15d6
+    L5   +13 (3 regions) LONG        ef8c15d6   ABSENT      3a78b0d8
+    L6   +14 (2 regions) ABSENT      3a78b0d8   ABSENT      3a78b0d8
+    shipped +51          LONG        ef8c15d6   LONG        ef8c15d6
+    base-close           ABSENT      3a78b0d8   ABSENT      3a78b0d8
+
+REGISTERED, SCORED
+    eligible process within 8 probes   0.65  HIT (found at probe 2)
+    base ABSENT and 3a78b0d8           0.80  HIT — now 6 of 6 informative processes, byte-identical
+    L6 ABSENT                          0.55  HIT
+    THE VIOLATION REPRODUCES           0.45  HIT
+    L4 ABBREVIATED                     0.45  MISS (LONG here)
+    L5 LONG                            0.70  MISS (ABSENT here)
+    shipped treatment flips            0.55  HIT
+
+⭐ 1. THE NON-MONOTONICITY IS NOT ONE PROCESS'S QUIRK
+    On p1: L4 (+5) ABBREVIATED > L6 (+14) ABSENT.
+    On p2: L4 (+5) LONG > L5 (+13) ABSENT = L6 (+14) ABSENT — the violation is WIDER here, with
+    the smallest edit doing the most and both larger edits doing nothing.
+    A smaller edit reaching further than a larger one on the same line now holds on two
+    independently screened processes.
+
+⭐⭐ 2. THE SHIPPED TREATMENT IS PORTABLE — AND THAT DISTINGUISHES IT FROM EVERY SMALL ARM
+    +51 flips BOTH screened processes, and flipped the unscreened 5–6 August ones. Meanwhile L4
+    and L5 disagree between p1 and p2 in both directions. So the honest split is:
+
+        BIG edits to the declaration line   -> so far portable (2 of 2 screened processes)
+        SMALL edits to the same line        -> process-specific, in both level and direction
+
+    That is a real distinction and it rescues the shipped rule as a RULE while leaving today's
+    demotion of its DESCRIPTION intact: A+C without B and a pure paraphrase both flip p1, so
+    "show the declaration form" still names the wrong ingredient. It works; it is not what it
+    says it is.
+
+⚠️ 3. NO WORDING-LEVEL RULE GENERALISES, AND THIS IS THE STRONGEST PRACTICAL FINDING OF THE DAY
+    The same +5 edit is ABBREVIATED on one process and LONG on another. The same +13 edit is LONG
+    on one and ABSENT on the other. Both processes are deterministic, both pass the placebo
+    screen, both share a byte-identical baseline. There is no noise here to blame — the map from
+    WORDING to OUTCOME is itself process-dependent.
+
+    So a spec rule validated on one process, even a screened one, even with a placebo, is not
+    portable evidence. Portability has to be MEASURED on a second screened process, and the only
+    thing that survived that test today is the big edit.
+
+📌 4. THE FIRST ABBREVIATED BASELINE EVER PROBED — AND IT WROTE THE SAME FILE THE +5 EDIT DOES
+    Probe 1 of this replication (pid 71269) returned ABBREVIATED at baseline, the first in ~17
+    process probes across two days. It wrote cb873e76 — byte-identical to what L4 produces on p1
+    by a five-character spec edit, and to seven archived trees. The process state and the induced
+    state are the same object. It was discarded for this experiment (it starts halfway up the
+    scale) and the narrowing was written into the prereg BEFORE the next probe, with its ledger row.
+
+⚠️ NOT CLAIMED
+    · Two processes. "Portable" means 2 of 2 screened, plus unscreened history — not general.
+    · No rate: ten processes probed today, six discarded, all in PROBE-LEDGER.txt.
+    · No mechanism. Eight accounts died today and nothing replaced them; what is described here
+      is behaviour, not cause.
+    · The ladder's arms were suggested by the data on p1. On p2 they are confirmatory for the
+      ORDERING only — the levels were registered and both level predictions missed.

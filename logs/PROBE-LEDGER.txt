@@ -114,3 +114,5 @@ up the scale. The narrowing is written into that experiment's prereg as an amend
 2026-08-10T22:31:10  pid=71833   label=r2-L4              spec=ledger-linedose-4.yaml       VERDICT=LONG
 2026-08-10T22:34:02  pid=71833   label=r2-L6              spec=ledger-linedose-6.yaml       VERDICT=ABSENT
 2026-08-10T22:37:09  pid=71833   label=r2-L5              spec=ledger-linedose-5.yaml       VERDICT=ABSENT
+2026-08-10T22:40:20  pid=71833   label=r2-treated         spec=ledger-origorder.yaml        VERDICT=LONG
+2026-08-10T22:43:37  pid=71833   label=r2-baseclose       spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
