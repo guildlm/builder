@@ -111,3 +111,38 @@ VOID
 ⚠️ NOT A PREDICTION, A CONSTRAINT: probes are ~3 minutes and finding an eligible process cost
 2 to 12 draws on 10 August. If the budget runs out before the ladder arms, the portability arms
 are the ones that will have run, by design.
+
+--------------------------------------------------------------------------------------------
+AMENDMENT 1 — written after the eight registered arms, BEFORE either arm below is drawn
+11 August, pid 4691 still alive and still eligible.
+
+WHY. The registered series landed on the SIZE/LOCATION branch: the pure paraphrase (+20, adds
+no information) flipped this process exactly as the shipped +51 did, and wrote the same third
+byte sequence it writes on p1. But paraphrase and shipped differ in size as well as content, so
+"size/location beats content" is so far supported by arms that are not size-matched.
+
+Two arms I already have make a SIZE-MATCHED pair that differs ONLY in location:
+
+    A+C  +21   ON the declaration line, bare names, no `var`  (LONG on p1)
+    below +21  ONE SENTENCE BELOW the line, mentions ErrInvalid (ABSENT on p1)
+
+Running both on pid 4691 completes the location x size 2x2 at MATCHED SIZE on a second
+independent screened process, with the null half included rather than assumed.
+
+ORDER: A+C first, then below-line, then a second base-close. RESTART=0 throughout.
+
+REGISTERED
+    P(A+C +21 on the line is LONG)                 = 0.75
+    P(below-line +21 is ABSENT)                    = 0.80
+    P(BOTH — the 2x2 completes as on p1)           = 0.62
+    P(base-close-2 is ABSENT and 3a78b0d8)         = 0.90
+
+BRANCHES
+    both as predicted -> at matched size, an edit ON the line flips and an edit one sentence
+        BELOW it does nothing, on two independent screened processes. LOCATION is doing the work
+        that content is not, and the practical rule is "rewrite the declaration line
+        substantially", with the shipped wording only one member of the family.
+    A+C null -> size alone does not carry it: paraphrase and shipped share something A+C lacks,
+        and the content account comes back at that size. Report as a MISS of the size account.
+    below-line flips -> the location claim fails on this process; the screen's meaning narrows to
+        "the same paragraph is not enough" and today's headline must be re-labelled p1-only.
