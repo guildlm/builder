@@ -146,3 +146,30 @@ BRANCHES
         and the content account comes back at that size. Report as a MISS of the size account.
     below-line flips -> the location claim fails on this process; the screen's meaning narrows to
         "the same paragraph is not enough" and today's headline must be re-labelled p1-only.
+
+--------------------------------------------------------------------------------------------
+AMENDMENT 2 — written BEFORE the redraw, after base-close-2
+11 August, pid 4691, three baselines now byte-identical (base, base-close, base-close-2).
+
+WHAT HAPPENED. The size-matched pair split the wrong way for the location account:
+
+    A+C   +21  ON the line          LONG        ef8c15d6   (registered 0.75, HIT)
+    below +21  ONE SENTENCE BELOW   ABBREVIATED cb873e76   (registered 0.80 ABSENT, MISS)
+
+On p1 that below-line arm was ABSENT — it is the arm that KILLED "any line mentioning a
+sentinel" on 10 August. Here it moves this process one step up the three-valued scale. So the
+off-line null is itself process-dependent, and "editing other sentences does nothing" is false
+at three-valued resolution on this process. That is a bigger correction than a level flip on a
+small on-line edit, because the off-line nulls are what the location claim RESTS on.
+
+REDRAW, because a surprising arm that is not redrawn is a story. RESTART=0, same process.
+    P(below-line +21 redraws ABBREVIATED, byte-identical cb873e76)   = 0.80
+    P(it comes back ABSENT — i.e. the first arm was not reproducible) = 0.15
+
+    reproduces   -> the off-line partial effect is real on this process and the location claim
+        must be restated at three-valued resolution: only ON-LINE large edits reach LONG, while
+        off-line edits are NOT inert and can move a process halfway.
+    does not     -> this process is not deterministic within a session, which would VOID every
+        arm drawn on it today and is the most consequential outcome available here. It would
+        also retro-question p1 and p2, whose determinism was inferred from redrawn arms and
+        byte-identical baselines rather than from a redraw of every arm.
