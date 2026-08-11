@@ -1,0 +1,113 @@
+PREREG — a THIRD screened process, and it forks portability into SIZE vs CONTENT
+================================================================================
+11 August, committed BEFORE the first probe of the day. The machine rebooted overnight, so
+pid 71833 (p2) and every other process from 10 August are gone; nothing can be added to them.
+
+WHAT IS ACTUALLY OPEN
+    After 10 August exactly ONE claim survived a second screened process:
+
+        BIG edit to the declaration line (+51, shipped)  -> LONG on 2 of 2 screened processes
+        SMALL edits to the same line (+5, +13, +14)      -> disagree between p1 and p2, in
+                                                            BOTH level and direction
+
+    That split is the campaign's only portable result, and it rests on n = 2 processes and on
+    ONE big edit. Two different things could be producing it:
+
+        SIZE     — a large enough rewrite of the line flips any screened process, whatever it says.
+        CONTENT  — this particular rewrite (`var ErrX`, "Exported sentinels", "(each errors.New)")
+                   carries something the small ones do not.
+
+    These are separable with an arm I already have: the PURE PARAPHRASE, +20, which adds no
+    information whatsoever (byte-identical name list, no `var`, no "exported", no errors.New).
+    It flipped p1. It has NEVER been run on a second process. If it is portable, the surviving
+    distinction is about size/location and the shipped wording is one member of a family; if it
+    is not, then something in the big edit's CONTENT is doing work that +20 of paraphrase cannot
+    do — which would be the first evidence for content in a week that killed eight content
+    accounts.
+
+PROTOCOL (both gates unchanged, in this order, no exceptions)
+    1. Probe fresh processes with specs/ledger-origorder-baseline.yaml until one returns ABSENT.
+       Max 10 probes. LONG is uninformative; ABBREVIATED-at-baseline is informative under the
+       standing definition but DISCARDED here for the same reason as 10 August — the ladder
+       measures movement from an ABSENT baseline and cannot be read from halfway up the scale.
+       Every probe, kept and discarded, goes in logs/PROBE-LEDGER.txt.
+    2. SCREEN the ABSENT process with specs/ledger-ownplacebo.yaml (+54 rendered, content-free,
+       same purpose, LARGER than every treated arm below). A process that flips is DISCARDED
+       and recorded. Only ABSENT-at-baseline AND screen-null may host arms.
+    3. On the eligible process, RESTART=0 throughout, IN THIS ORDER:
+
+           base (= the probe from step 1) · screen +54 · shipped +51 · paraphrase +20
+           · L4 +5 · L5 +13 · L6 +14 · base-close
+
+       The two PORTABILITY arms run FIRST, before the ladder, because they are the primary
+       question and a session can end early. Order is believed inert (p1 carried 26 draws with
+       three byte-identical baselines at start/middle/end); base-close is what checks it here.
+
+    Rendered purpose deltas, verified by tool before this file was written, and every arm passes
+    _spec_pair_guard.py against the baseline at internal/models/models.go only:
+        ownplacebo +54 · origorder (shipped) +51 · sentinelline-placebo (paraphrase) +20
+        linedose-4 +5 · linedose-5 +13 · linedose-6 +14
+
+ENDPOINT — three-valued per arm: ABSENT / ABBREVIATED / LONG, plus the sha256 of models.go.
+    Scored AS-DRAWN. The endpoint is the DECLARATION, not byte-identity: a THIRD byte sequence
+    (649bdef7) appeared on 10 August, so byte-identity is not always available.
+
+REGISTERED
+    P(an eligible process within 10 baseline probes)          = 0.60
+    Given one is found:
+    P(base ABSENT is byte-identical 3a78b0d8)                 = 0.85   (6 of 6 so far)
+
+    PRIMARY — portability
+    P(shipped +51 is LONG)                                    = 0.75   (2 of 2 screened)
+    P(paraphrase +20 is LONG)                                 = 0.50   (1 of 1, never re-run)
+
+    SECONDARY — the ladder
+    P(L4 +5 is LONG)                                          = 0.40
+    P(L4 +5 is ABBREVIATED)                                   = 0.35
+    P(L4 +5 is ABSENT)                                        = 0.25
+    P(L5 +13 is LONG)                                         = 0.40
+    P(L6 +14 is ABSENT)                                       = 0.70   (2 of 2)
+    P(the non-monotone violation holds again: L4 >= L5 and L4 >= L6 on the ordered scale,
+      at least one strict)                                    = 0.55
+    P(the wording->level map matches p1 exactly)              = 0.10
+    P(it matches p2 exactly)                                  = 0.20
+    P(it matches NEITHER)                                     = 0.70
+
+BRANCHES — written now so the result cannot be read into whatever I hoped for
+    shipped LONG        -> portability is 3 of 3 screened processes. The shipped rule stays a
+                           rule; its DESCRIPTION stays wrong (A+C without B and a pure paraphrase
+                           both flip p1), and that is unchanged by this experiment.
+    shipped NOT LONG    -> the campaign's ONLY portable claim dies. The 6 August rule becomes
+                           process-conditional like everything else, and the SUPERSEDED note on
+                           its log gets a second amendment saying so. I would rather find this
+                           now than ship it further.
+
+    paraphrase LONG AND shipped LONG
+                        -> portability is about SIZE/LOCATION, not about what the treatment says.
+                           The shipped wording is one member of a family, and the practical rule
+                           becomes "rewrite the declaration line substantially", not "show `var`".
+    paraphrase NOT LONG AND shipped LONG
+                        -> the first evidence in this campaign that CONTENT matters for
+                           portability. It does NOT resurrect "show the declaration form" (A+C
+                           already flips p1 without B) but it does mean size alone is not the
+                           axis, and the next experiment is which part of the big edit transports.
+    paraphrase LONG AND shipped NOT LONG
+                        -> report exactly as observed; no account currently predicts it.
+
+    map matches NEITHER p1 NOR p2
+                        -> three processes, three wording->outcome maps. "No wording-level rule
+                           generalises" goes from n=2 to n=3 and the practical lesson hardens.
+    map matches p1 or p2 EXACTLY
+                        -> the map is drawn from a small set of process types rather than being
+                           free — a NEW hypothesis, to be written down as such and not smuggled
+                           in as if it had been predicted.
+
+VOID
+    · repair activity in any arm's log (the probe already refuses on it)
+    · a server restart between arms
+    · base-close differing from base
+    · no eligible process within 10 probes -> that IS the result, recorded, and no arm is run.
+
+⚠️ NOT A PREDICTION, A CONSTRAINT: probes are ~3 minutes and finding an eligible process cost
+2 to 12 draws on 10 August. If the budget runs out before the ladder arms, the portability arms
+are the ones that will have run, by design.
