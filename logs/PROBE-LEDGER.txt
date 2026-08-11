@@ -116,3 +116,15 @@ up the scale. The narrowing is written into that experiment's prereg as an amend
 2026-08-10T22:37:09  pid=71833   label=r2-L5              spec=ledger-linedose-5.yaml       VERDICT=ABSENT
 2026-08-10T22:40:20  pid=71833   label=r2-treated         spec=ledger-origorder.yaml        VERDICT=LONG
 2026-08-10T22:43:37  pid=71833   label=r2-baseclose       spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-11T06:40:37  pid=4691    label=p3-b1              spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-11T06:46:06  pid=4691    label=p3-screen1         spec=ledger-ownplacebo.yaml       VERDICT=ABSENT
+2026-08-11T06:52:10  pid=4691    label=p3-shipped         spec=ledger-origorder.yaml        VERDICT=LONG
+2026-08-11T06:59:40  pid=4691    label=p3-paraphrase      spec=ledger-sentinelline-placebo.yaml VERDICT=LONG
+2026-08-11T07:06:13  pid=4691    label=p3-L4              spec=ledger-linedose-4.yaml       VERDICT=ABBREVIATED:ErrInsufficient
+2026-08-11T07:10:06  pid=4691    label=p3-L5              spec=ledger-linedose-5.yaml       VERDICT=ABSENT
+2026-08-11T07:13:55  pid=4691    label=p3-L6              spec=ledger-linedose-6.yaml       VERDICT=ABSENT
+2026-08-11T07:17:58  pid=4691    label=p3-baseclose       spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-11T07:22:18  pid=4691    label=p3-ac              spec=ledger-origorder-ac.yaml     VERDICT=LONG
+2026-08-11T07:26:30  pid=4691    label=p3-belowline       spec=ledger-belowline-placebo.yaml VERDICT=ABBREVIATED:ErrInsufficient
+2026-08-11T07:30:42  pid=4691    label=p3-baseclose2      spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-11T07:32:33  pid=4691    label=p3-belowline-redraw spec=ledger-belowline-placebo.yaml VERDICT=ABBREVIATED:ErrInsufficient

@@ -9,6 +9,11 @@ What is true: rewriting the sentinel line in any of four tested ways repairs the
 editing other sentences in the same purpose does not. What is false: that the declaration form is
 the ingredient. Also note this log's arms were drawn on pid 64515, which was never screened.
 See logs/RESULT-the-shipped-rule-describes-the-wrong-ingredient-any-rewrite-of-the-line-repairs-it.txt
+⚠️ AMENDED 11 AUGUST — the second half of that sentence is process-dependent. On pid 4691,
+another screened process, the +21 edit ONE SENTENCE BELOW the line moved the outcome from
+ABSENT to ABBREVIATED, twice, byte-identical. Off-line edits are NOT inert; what survives is
+that only ON-LINE edits ever reach LONG (10 of 22 on-line arms, 0 of 6 off-line).
+See logs/RESULT-portability-is-not-the-content-and-the-off-line-null-is-itself-process-dependent.txt
 
 RESULT — one of the three bundled changes does all the work, and it produces the SAME BYTES as
 the full treatment. The other two are decoration.

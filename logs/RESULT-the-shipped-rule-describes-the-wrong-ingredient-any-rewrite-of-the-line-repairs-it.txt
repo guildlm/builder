@@ -44,6 +44,9 @@ restart, every arm AS-DRAWN (0 repair lines each). Preregs committed before each
         NEW (measured, on one screened process): rewriting the sentinel line in any way tested so
              far — four different ways, one of them information-free — makes the declarer write
              the name it otherwise omits. Editing other sentences in the same purpose does not.
+             ⚠️ AMENDED 11 AUGUST: that last clause holds on p1 only. On pid 4691 the +21
+             below-line arm returned ABBREVIATED twice, byte-identical — off-line edits are
+             not inert, they just never reach LONG. See RESULT-portability-is-not-the-content-...
 
 ⭐ WHAT SURVIVES, AND IT IS NOT NOTHING
     · The repair is REAL and now CONTROLLED. On a process where a bigger content-free edit

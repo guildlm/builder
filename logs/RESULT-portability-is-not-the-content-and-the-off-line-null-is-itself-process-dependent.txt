@@ -1,0 +1,146 @@
+RESULT — three different rewrites of the declaration line are portable, so portability is not
+about what the treatment SAYS. And the off-line null, which the whole localisation claim rests
+on, is itself process-dependent.
+================================================================================================
+11 August. One screened process (pid 4691), 12 draws, no restart, every arm AS-DRAWN, THREE
+byte-identical baselines bracketing the series (start, middle, end). Prereg 9cabf79 committed
+before the first probe; two amendments, each committed before the arm it covers. Every table
+below is emitted by `_arm_table.py`, not typed.
+
+THE SERIES — pid 4691, in draw order
+    arm                  spec                              delta  verdict                     sha
+    p3-b1                ledger-origorder-baseline.yaml       +0  ABSENT                      3a78b0d8
+    p3-screen1           ledger-ownplacebo.yaml              +54  ABSENT                      3a78b0d8
+    p3-shipped           ledger-origorder.yaml               +51  LONG                        ef8c15d6
+    p3-paraphrase        ledger-sentinelline-placebo.yaml    +20  LONG                        649bdef7
+    p3-L4                ledger-linedose-4.yaml               +5  ABBREVIATED:ErrInsufficient cb873e76
+    p3-L5                ledger-linedose-5.yaml              +13  ABSENT                      3a78b0d8
+    p3-L6                ledger-linedose-6.yaml              +14  ABSENT                      3a78b0d8
+    p3-baseclose         ledger-origorder-baseline.yaml       +0  ABSENT                      3a78b0d8
+    p3-ac                ledger-origorder-ac.yaml            +21  LONG                        ef8c15d6
+    p3-belowline         ledger-belowline-placebo.yaml       +21  ABBREVIATED:ErrInsufficient cb873e76
+    p3-baseclose2        ledger-origorder-baseline.yaml       +0  ABSENT                      3a78b0d8
+    p3-belowline-redraw  ledger-belowline-placebo.yaml       +21  ABBREVIATED:ErrInsufficient cb873e76
+
+ACROSS THE THREE SCREENED PROCESSES (— = not run on that process)
+    arm                        p1 pid 46375        p2 pid 71833     p3 pid 4691
+    ------------------------------------------------------------------------------------
+    base / base-close          ABSENT   3a78b0d8   ABSENT 3a78b0d8  ABSENT 3a78b0d8
+    screen +54  OFF the line   ABSENT   3a78b0d8   ABSENT 3a78b0d8  ABSENT 3a78b0d8
+    shipped +51 ON  the line   LONG     ef8c15d6   LONG   ef8c15d6  LONG   ef8c15d6
+    A+C     +21 ON  the line   LONG     ef8c15d6   —                LONG   ef8c15d6
+    paraphrase +20 ON the line LONG     649bdef7   —                LONG   649bdef7
+    B only  +30 ON  the line   LONG     ef8c15d6   —                —
+    L4      +5  ON  the line   ABBREV   cb873e76   LONG   ef8c15d6  ABBREV cb873e76
+    L5      +13 ON  the line   LONG     ef8c15d6   ABSENT 3a78b0d8  ABSENT 3a78b0d8
+    L6      +14 ON  the line   ABSENT   3a78b0d8   ABSENT 3a78b0d8  ABSENT 3a78b0d8
+    below   +21 OFF the line   ABSENT   3a78b0d8   —                ABBREV cb873e76  (x2)
+
+REGISTERED, SCORED
+    prereg 9cabf79
+    eligible process within 10 probes            0.60  HIT  (probe 1 of 1)
+    base ABSENT and byte-identical 3a78b0d8      0.85  HIT  (7 of 7 informative processes)
+    shipped +51 is LONG                          0.75  HIT
+    paraphrase +20 is LONG                       0.50  HIT   <- the fork
+    L4 is LONG / ABBREVIATED / ABSENT      0.40/0.35/0.25  ABBREVIATED (the 0.35 branch)
+    L5 +13 is LONG                               0.40  MISS (ABSENT)
+    L6 +14 is ABSENT                             0.70  HIT
+    non-monotone conjunction L4 >= L5, L4 >= L6  0.55  HIT
+    map matches p1 exactly                       0.10  MISS
+    map matches p2 exactly                       0.20  MISS
+    map matches NEITHER                          0.70  HIT
+    amendment 91a13ab
+    A+C +21 on the line is LONG                  0.75  HIT
+    below-line +21 is ABSENT                     0.80  MISS  <- see finding 2
+    BOTH, i.e. the 2x2 completes as on p1        0.62  MISS
+    base-close-2 ABSENT and 3a78b0d8             0.90  HIT
+    amendment (redraw)
+    below-line redraws ABBREVIATED, byte-same    0.80  HIT
+    below-line was not reproducible              0.15  miss (it reproduced exactly)
+
+⭐⭐ 1. PORTABILITY IS NOT ABOUT WHAT THE EDIT SAYS
+    Three rewrites of the declaration line that share NO content story all flip this process,
+    and each writes the same bytes it wrote on p1:
+
+        shipped    +51  "Exported sentinels" + `var ErrX` + "(each errors.New)"   -> ef8c15d6
+        A+C        +21  title + parenthetical, names left BARE, no `var` at all   -> ef8c15d6
+        paraphrase +20  adds NO information; name list byte-identical             -> 649bdef7
+
+    A pure paraphrase and a `var`-showing rewrite cannot both be carrying the ingredient. The
+    6 August rule ("show the declaration form") was demoted to a wrong DESCRIPTION on 10 August
+    on p1 alone; this is that demotion, replicated on an independently screened process, with
+    the shipped arm as its own positive control in the same series.
+
+    What is portable is a FAMILY: substantially rewrite the declaration line, in any of the three
+    tested ways, and the process declares the name. What that family shares is where it is,
+    not what it says.
+
+⚠️⚠️ 2. THE OFF-LINE NULL IS ITSELF PROCESS-DEPENDENT — TODAY'S REAL CORRECTION
+    The below-line arm (+21, one sentence BELOW the declaration line, mentions ErrInvalid) is
+    the arm that killed "any line mentioning a sentinel" on 10 August by coming back ABSENT.
+    On pid 4691 it comes back ABBREVIATED — twice, byte-identical, with a byte-identical
+    baseline drawn immediately after it.
+
+    So "editing other sentences in the same purpose does nothing", which is how the surviving
+    localisation claim was WRITTEN, is false at three-valued resolution on this process. What
+    survives is strictly weaker and must be said in those words:
+
+        ONLY ON-LINE edits reached LONG.   10 of 22 on-line arms across the three processes
+                                           reached LONG; 0 of 6 off-line arms ever has.
+        OFF-LINE edits are NOT inert.      One moved a process from ABSENT to ABBREVIATED, and
+                                           it is the smaller of the two off-line arms.
+
+    (Those counts are computed from the three tables, not counted by eye — I typed "7" for the
+    first one while writing this log and the tool said 10.)
+
+    ⚠️ AND THE TWO OFF-LINE ARMS DIFFER IN A WAY I HAD TREATED AS SETTLED: the one that moved
+    p3 MENTIONS a sentinel; the one that is null on all three processes (+54, larger) names
+    none. On p1 both were null, so that contrast could not be seen. This does NOT resurrect
+    "any line mentioning a sentinel" — that hypothesis predicts LONG and we observe ABBREVIATED,
+    on one process of two where it was tested — but it is no longer cleanly dead either, and
+    saying so is the honest position. It goes back on the queue as a partially-supported account,
+    not as a killed one.
+
+⭐ 3. THE SMALL-EDIT MAP IS PROCESS-SPECIFIC AT n = 3, AND p3 IS A RECOMBINATION
+    p3 takes p1's answer on L4 (+5 -> ABBREVIATED, byte-identical cb873e76) and p2's answer on
+    L5 (+13 -> ABSENT). Three screened processes, three different wording->outcome maps.
+    "No wording-level rule generalises" moves from n=2 to n=3 with a registered 0.70 HIT.
+    ⚠️ NOT a finding: that p3 is a MOSAIC of p1 and p2 rather than a fourth map. With three arms
+    on a three-valued scale the space is small; this is a hypothesis for a prereg, not a result.
+
+⭐ 4. NON-MONOTONICITY, THIRD PROCESS — AND THE PRECISE FORM MATTERS
+    L4 (+5) strictly above L6 (+14): p1 ABBREV>ABSENT, p2 LONG>ABSENT, p3 ABBREV>ABSENT = 3 of 3.
+    Today's stronger conjunction (L4 >= L5 as well) holds on p2 and p3 but NOT on p1, whose L5
+    is LONG. The durable claim is the one registered on 10 August, and the two must not be
+    blurred: a smaller edit reaching further than a larger one on the same line, three processes,
+    every arm reproducible.
+
+🔧 5. THE TABLE IS A TOOL NOW, AND IT CAUGHT A COLLISION ON ITS FIRST RUN
+    `_arm_table.py` (self-tested) builds a series table by cross-checking FOUR records of each
+    draw: the ledger row, the tree re-classified NOW by the same classifier the probe called, the
+    probe log re-scanned for repair activity, and a spec delta COMPUTED from the two yaml files
+    at the named purpose. Any disagreement refuses.
+
+    First run: `--prefix p3-` refused, because 6 August also used `p3-` — for pid 64149. Four
+    foreign rows, including a LONG "treated"-shaped arm, would have slotted into today's table
+    and looked entirely plausible. A label prefix is not a series identifier; process identity
+    is, and `--pid` is now the narrowing.
+    It also retro-verified all 27 arms of p1 and p2: every tree on disk still classifies as its
+    ledger row says, and no probe log shows repair. And it marks the two store arms whose +0
+    delta at models.go would otherwise read as "no edit" when the edit is three files away.
+
+📌 6. COST, AND WHY IT IS NOT A RATE
+    Eligible on the FIRST probe — base ABSENT, screen null — against 2 to 12 probes on 10 August.
+    That is luck, not a rate: this is a selected sample and PROBE-LEDGER.txt holds every probe,
+    kept and discarded, precisely so nobody computes an incidence from it.
+
+⚠️ NOT CLAIMED
+    · One model, one machine, one spec family. "Three processes" is three server processes.
+    · No mechanism. Today does not name a cause; it removes one more account of what the
+      treatment's CONTENT does, and demotes the location claim to its three-valued form.
+    · A SIZE FLOOR between +14 and +20 is suggested by the data — every on-line arm >= +20 has
+      flipped (8 of 8 across three processes) while only 2 of 14 arms <= +14 did — and was never
+      registered. It is also confounded: the larger edits touch more wording regions, and the two
+      exceptions below the floor (p1's +13, p2's +5) are exactly the process-specific ones. It is
+      the obvious next prereg, not a result of this one.
+    · The below-line arm has now been run on two processes and disagrees between them. n = 2.
