@@ -1,0 +1,143 @@
+PREREG — bisect the SIZE FLOOR between +14 and +20, region count held FIXED at two
+====================================================================================
+13 August, committed BEFORE the first probe of the day. pid 4691 (p3) died with the machine on
+11 August, so nothing can be added to it; this needs a fourth screened process.
+
+WHAT IS ACTUALLY OPEN
+    Computed today by _size_floor_tally.py over the three screened processes (39 ledger rows,
+    every row re-verified by _arm_table.py against tree, log and spec):
+
+        location    size              n    reached LONG    above ABSENT
+        on-line     >= +20            8      8 of 8          8 of 8
+        on-line     <= +14           14      2 of 14         5 of 14
+        on-line     +15..+19          0        —               —
+        off-line    >= +20            6      0 of 6          2 of 6
+
+    Two things in that table matter and only one of them has been said before:
+
+    1. The gap +15..+19 has NEVER BEEN DRAWN. Not once, on any process, in the whole campaign.
+       "On-line edits of +20 or more flip" is a statement about a range whose lower boundary was
+       never probed — the boundary was inherited from which arms happened to exist.
+    2. The tally is POOLED across processes whose wording->outcome maps demonstrably differ (the
+       same +5 arm is ABBREVIATED on p1, LONG on p2, ABBREVIATED on p3). So it can motivate an
+       experiment and cannot locate a floor. The floor must be bracketed against ONE process's
+       OWN anchors, drawn in the same session.
+
+    And the size account has a second confound that has never been removed: the big arms also
+    touch MORE OF THE LINE. Every arm at +20 or above rewrites two or more regions; the small
+    ones mostly touch one. Region count and size have moved together in every arm ever drawn
+    except one pair — L6 (+14) and the paraphrase (+20), which are both TWO-region.
+
+THE LADDER (specs/ledger-linefloor-{1,2,3,4}.yaml, built and self-tested before this file)
+    Region ONE is held BYTE-IDENTICAL to L6's and the paraphrase's ("Sentinel errors" ->
+    "Sentinel error values", +6). Region TWO is the quantifier, and only its LENGTH varies:
+
+        L6          +14   "all" -> "all readily"          ABSENT on p1, p2 and p3   <- low anchor
+        F1          +15   "all" -> "all reliably"
+        F2          +17   "all" -> "all so readily"
+        F3          +19   "all" -> "all very readily"
+        F4          +20   "all" -> "all quite readily"    SIZE-MATCHED to the paraphrase
+        paraphrase  +20   "all" -> "every one of them"    LONG on p1 and p3         <- high anchor
+
+    F4 is the arm that can kill the size account outright rather than refine it: identical size,
+    identical region count, identical region identity, same construction as the rungs below it.
+
+    ⚠️ WHAT CANNOT BE HELD CONSTANT, stated as a limit and not buried: size cannot be varied
+    without changing characters, so the ADVERB differs between rungs. Construction, region count,
+    region identity and the byte-identical name list are held; the adverb is not, and cannot be.
+
+PROTOCOL (both gates unchanged, in this order, no exceptions)
+    1. Probe fresh processes with specs/ledger-origorder-baseline.yaml until one returns ABSENT.
+       Max 10 probes. LONG is uninformative. ABBREVIATED-at-baseline is informative under the
+       standing definition but DISCARDED here for the same reason as 10 and 11 August: this
+       ladder measures movement FROM an ABSENT baseline and cannot be read from halfway up.
+       Every probe, kept and discarded, goes in logs/PROBE-LEDGER.txt.
+    2. SCREEN the ABSENT process with specs/ledger-ownplacebo.yaml (+54 rendered, content-free,
+       same purpose, LARGER than every arm below). A process that flips is DISCARDED and
+       recorded. Only ABSENT-at-baseline AND screen-null may host arms.
+    3. On the eligible process, RESTART=0 throughout, IN THIS ORDER:
+
+           base (= the probe from step 1) · screen +54
+           · L6 +14 (low anchor) · paraphrase +20 (high anchor)
+           · F4 +20 · F2 +17 · F1 +15 · F3 +19
+           · base-close
+
+       THE ANCHORS RUN FIRST because without them on THIS process the rungs are uninterpretable —
+       that is the whole lesson of 10 August, and a session that ends early must end with the
+       anchors drawn rather than with four rungs and nothing to bracket them against. F4 is the
+       first rung because it is the sharpest single arm. The bisection order after it is
+       midpoint-first (+17), then the ends (+15, +19).
+
+ENDPOINT — three-valued per arm: ABSENT / ABBREVIATED / LONG, plus the sha256 of models.go.
+    Scored AS-DRAWN. The endpoint is the DECLARATION, not byte-identity.
+    "Above ABSENT" and "LONG" are reported as SEPARATE tallies for every claim below, because the
+    binary reading is what hid the ABBREVIATED state until 10 August.
+
+REGISTERED
+    P(an eligible process within 10 baseline probes)              = 0.60
+    Given one is found:
+    P(base ABSENT is byte-identical 3a78b0d8)                     = 0.85   (7 of 7 so far)
+
+    ANCHORS — these are predictions about REPLICATION, not about the ladder
+    P(L6 +14 is ABSENT)                                           = 0.75   (3 of 3)
+    P(paraphrase +20 is LONG)                                     = 0.70   (2 of 2 drawn)
+    P(BOTH anchors reproduce, i.e. the gap exists on this process) = 0.55
+
+    PRIMARY — the size-matched arm
+    P(F4 +20 is LONG)                                             = 0.55
+    P(F4 +20 is LONG | paraphrase +20 is LONG)                    = 0.65
+    P(F4 is above ABSENT)                                         = 0.70
+
+    THE RUNGS
+    P(F1 +15 is LONG)                                             = 0.30
+    P(F2 +17 is LONG)                                             = 0.40
+    P(F3 +19 is LONG)                                             = 0.45
+    P(at least one rung above ABSENT AND at least one rung ABSENT
+      — i.e. a boundary lies strictly inside the gap)              = 0.55
+    P(all four rungs ABSENT — the floor sits exactly at +20)       = 0.20
+    P(all four rungs LONG — the floor is at or below +15)          = 0.20
+    P(the four rungs are MONOTONE in size on the ordered scale)    = 0.35
+    P(some rung comes back ABBREVIATED)                            = 0.40
+
+    ⚠️ The monotonicity number is deliberately LOW and that is a prediction against my own
+    framing: non-monotonicity has held on 3 of 3 processes in the small ladder. If I believed the
+    floor were a clean step I would have registered 0.7 here, and I do not.
+
+BRANCHES — written now so no result can be read into whatever I hoped for
+    F4 LONG and paraphrase LONG
+        -> at IDENTICAL size, IDENTICAL region count and IDENTICAL region identity, two different
+           wordings both reach LONG. That is the strongest form the size/location account has ever
+           had, and the practical rule sharpens to "rewrite the declaration line by about twenty
+           characters", independent of what the rewrite says.
+    F4 NOT LONG and paraphrase LONG
+        -> SIZE IS NOT SUFFICIENT at fixed region count. Two arms of the same size in the same two
+           regions land differently, so the words are doing work at a resolution below anything
+           this campaign has resolved. This is the outcome that most damages the account I am
+           working from, and it is the one I would report first.
+    F4 LONG and paraphrase NOT LONG
+        -> the high anchor failed to replicate on a fourth process; the ladder is then bracketed
+           by F4 itself and the whole series is reported as anchor-conditional.
+    a boundary inside the gap, monotone
+        -> the first floor this campaign has ever located, and it gets ONE rung redrawn either
+           side of the boundary before it is written down as a number.
+    a boundary inside the gap, NON-monotone
+        -> the fourth non-monotonicity. "Floor" becomes the wrong word for it and the result is
+           reported as a fourth demonstration that no wording-level size rule generalises.
+    all four ABSENT with both anchors reproducing
+        -> the floor is between +19 and +20 on this process, which is a suspiciously sharp place
+           for it to be, and the honest reading is that the paraphrase's +20 does something the
+           adverb family does not — i.e. the same conclusion as the F4-null branch, reached the
+           long way. Redraw the paraphrase before publishing.
+    anchors do NOT reproduce (L6 not ABSENT, or paraphrase not LONG)
+        -> report the rungs against THIS process's anchors only, and record the pooled tally as
+           confirmed process-mixing. Do NOT relabel any arm against p1's or p3's anchors.
+
+VOID
+    · repair activity in any arm's log (the probe already refuses on it)
+    · a server restart between arms
+    · base-close differing from base
+    · no eligible process within 10 probes -> that IS the result, recorded, and no arm is run
+
+⚠️ NOT A PREDICTION, A CONSTRAINT: probes are ~3.5 minutes and finding an eligible process cost
+1 to 12 draws across the last three sessions. If the budget runs out before the rungs, the
+ANCHORS are the ones that will have run, by design.
