@@ -44,7 +44,8 @@ BASELINE = "specs/ledger-origorder-baseline.yaml"
 # The three processes that passed BOTH gates (ABSENT at baseline, null on the content-free
 # screen). Nothing else is poolable: 10 August's placebo screen disqualified 3 of 4 informative
 # processes, and the unscreened series cannot separate treatment from process.
-SERIES = [("p1", "46375", "s-"), ("p2", "71833", "r2-"), ("p3", "4691", "p3-")]
+SERIES = [("p1", "46375", "s-"), ("p2", "71833", "r2-"), ("p3", "4691", "p3-"),
+          ("p4", "4970", "f-")]
 
 # ⚠️ DECLARED, NOT INFERRED. Every spec that can appear in these series is named here with where
 # its edit lands relative to the declaration line in models.go's purpose.
@@ -123,6 +124,16 @@ def main() -> int:
         if a.verbose:
             for arm in c["arms"]:
                 print(f"        {arm}")
+
+    # ⚠️ TOTALS ARE PRINTED BECAUSE I ADDED THEM UP BY HAND ONCE AND GOT 12 WHERE THE BUCKETS SAY
+    # 14. The per-bucket rows are the finding; the per-LOCATION totals are what a summary sentence
+    # quotes, and a summary sentence is exactly where a hand-added number goes unchallenged.
+    print()
+    for loc in sorted({k[0] for k in t}):
+        n = sum(c["n"] for k, c in t.items() if k[0] == loc)
+        lo = sum(c["long"] for k, c in t.items() if k[0] == loc)
+        nn = sum(c["nonnull"] for k, c in t.items() if k[0] == loc)
+        print(f"    {loc:<14} {'ALL SIZES':<20} {n:>3}  {lo:>6} of {n:<4}  {nn:>6} of {n:<4}")
     return 0
 
 

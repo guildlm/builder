@@ -137,3 +137,6 @@ up the scale. The narrowing is written into that experiment's prereg as an amend
 2026-08-13T22:28:20  pid=4970    label=f-F1               spec=ledger-linefloor-1.yaml      VERDICT=LONG
 2026-08-13T22:32:50  pid=4970    label=f-F3               spec=ledger-linefloor-3.yaml      VERDICT=ABSENT
 2026-08-13T22:37:25  pid=4970    label=f-baseclose        spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-13T22:42:24  pid=4970    label=f-F1-redraw        spec=ledger-linefloor-1.yaml      VERDICT=LONG
+2026-08-13T22:47:05  pid=4970    label=f-F3-redraw        spec=ledger-linefloor-3.yaml      VERDICT=ABSENT
+2026-08-13T22:51:51  pid=4970    label=f-baseclose2       spec=ledger-origorder-baseline.yaml VERDICT=ABSENT

@@ -1,0 +1,148 @@
+RESULT — THERE IS NO SIZE FLOOR. ONE CHARACTER IN THE SAME SLOT DECIDES IT.
+=============================================================================
+13 August · pid 4970, the FOURTH screened process · 12 draws, all as-drawn, 0 repair lines
+Prereg logs/PREREG-bisect-the-size-floor-with-the-region-count-held-fixed.txt committed BEFORE
+the first probe (e9c9b8e); Amendment 1 committed BEFORE either redraw (b0a851b).
+Table assembled by _arm_table.py --prefix f- --pid 4970; tallies by _size_floor_tally.py.
+
+WHAT WAS BEING TESTED
+    Pooled over the three screened processes, on-line arms of +20 or more reached LONG 8 times
+    out of 8, and arms of +14 or less only 2 times out of 14. That looked like a floor. It had
+    never been pre-registered, it pooled processes whose wording->outcome maps differ, and — the
+    thing the tally made visible for the first time — THE RANGE +15..+19 HAD NEVER BEEN DRAWN AT
+    ALL, on any process, in the whole campaign. The boundary was inherited from which arms
+    happened to exist.
+
+    So: four rungs inside the gap, holding fixed everything the earlier arms confounded. Region
+    one byte-identical to the two anchors' ("Sentinel errors" -> "Sentinel error values", +6).
+    Region two the same quantifier slot in the same construction, varying only in length.
+
+THE SERIES (three byte-identical baselines bracket it; both surprising arms redrawn)
+    arm           spec                   what region 2 became    delta  verdict  sha
+    f-b1          origorder-baseline     —                          +0  ABSENT   3a78b0d8
+    f-screen1     ownplacebo             (other sentences)         +54  ABSENT   3a78b0d8
+    f-L6          linedose-6             "all readily"             +14  ABSENT   3a78b0d8
+    f-paraphrase  sentinelline-placebo   "every one of them"       +20  LONG     649bdef7
+    f-F4          linefloor-4            "all quite readily"       +20  LONG     ef8c15d6
+    f-F2          linefloor-2            "all so readily"          +17  ABSENT   3a78b0d8
+    f-F1          linefloor-1            "all reliably"            +15  LONG     ef8c15d6
+    f-F3          linefloor-3            "all very readily"        +19  ABSENT   3a78b0d8
+    f-baseclose   origorder-baseline     —                          +0  ABSENT   3a78b0d8
+    f-F1-redraw   linefloor-1            "all reliably"            +15  LONG     ef8c15d6
+    f-F3-redraw   linefloor-3            "all very readily"        +19  ABSENT   3a78b0d8
+    f-baseclose2  origorder-baseline     —                          +0  ABSENT   3a78b0d8
+
+1. THE FLOOR DOES NOT EXIST, AND THE GAP IS WHERE IT DIES
+    +15 reaches LONG. +17 does not. +19 does not. +20 does, twice, in two different wordings.
+    No threshold in size can produce that ordering. Region count is held at two, region identity
+    is held, the construction is held, the name list is byte-identical in every arm, and the
+    ordering is still non-monotone. Registered P(monotone) = 0.35 — deliberately low, and still
+    too generous. This is the FOURTH non-monotonicity in the campaign and the first one drawn
+    inside a range chosen specifically to contain a boundary.
+
+2. ONE CHARACTER OF SIZE, IN THE SAME SLOT, DECIDES THE OUTCOME
+    L6   +14  "all readily"    ABSENT
+    F1   +15  "all reliably"   LONG
+    Same slot, same construction, same everything else in the file, one character apart in
+    rendered size — and they land on opposite ends of the three-valued scale. Both reproduced:
+    L6 is ABSENT on four screened processes now, F1 redrew LONG byte-identical.
+
+    Set that beside the two nulls this campaign already had: +54 characters of content-free
+    editing ONE SENTENCE ABOVE does nothing, and +19 IN THIS VERY SLOT does nothing. The
+    instrument is not insensitive and it is not size-driven. It is arbitrary at the token level.
+
+3. TWO ARMS AT IDENTICAL SIZE BOTH REACH LONG — AND WRITE DIFFERENT FILES
+    f-F4 (+20, "all quite readily") and f-paraphrase (+20, "every one of them") are the same
+    size, in the same two regions, and both LONG — but ef8c15d6 and 649bdef7 respectively. The
+    prereg's primary branch (F4 LONG AND paraphrase LONG, registered 0.65 conditional) HIT, and
+    it is the strongest version the size/location account has had. It also confirms 10 August's
+    correction from a new direction: REACHING LONG IS NOT WRITING THE SAME FILE. The endpoint is
+    the declaration; byte-identity is a bonus that is not always available.
+
+4. THE POOLED TALLY SURVIVES INTACT WHILE THE STRUCTURE IT SUGGESTED IS REFUTED
+    Recomputed over four screened processes, 51 ledger rows:
+
+        location    size              n     reached LONG    above ABSENT
+        on-line     >= +20           10      10 of 10        10 of 10
+        on-line     +15..+19          5       2 of 5          2 of 5
+        on-line     <= +14           15       2 of 15         5 of 15
+        off-line    >= +20            7       0 of 7          2 of 7
+
+    Every number in that table is consistent with "bigger edits flip more often" AND with "no
+    edit size is a threshold". Size predicts the RATE at which an arbitrary rewrite lands; it
+    does not predict any individual rewrite, and the 8-of-8 that motivated this experiment was
+    a rate misread as a boundary. A monotone-looking pooled tally and within-process
+    non-monotonicity are not in conflict, and this is the cleanest demonstration of that the
+    campaign has produced.
+
+    ⚠️ The off-line row is unchanged and still says what it said on 11 August at three-valued
+    resolution: 0 of 7 reach LONG, but 2 of 7 are above ABSENT. Off-line edits are not inert.
+
+WHAT SURVIVES, STATED AT THE RESOLUTION IT WAS MEASURED
+    · LOCALISATION, three-valued: only ON-LINE edits ever reach LONG (14 of 30 on-line, 17 of 30
+      above ABSENT; 0 of 7 off-line reach LONG, 2 of 7 above ABSENT), while off-line edits can
+      still move a process one step.
+      📌 I first typed "12 of 30" here from memory. The buckets say 14. The tally tool now prints
+      per-location totals for exactly this reason — a summary sentence is where a hand-added
+      number goes unchallenged, and that is the eighth hand-made counting error of the campaign,
+      the third caught before publication.
+    · SIZE AS A RATE, not a rule: rewrite the declaration line by ~+20 and 10 of 10 pooled arms
+      have landed; but +15 has landed and +19 has not, so no individual promise can be made.
+    · DETERMINISM WITHIN A PROCESS: 12 draws, three byte-identical baselines at start, middle and
+      end, both redraws byte-identical. Nothing here is noise.
+
+WHAT THIS COSTS THE SHIPPED RULE
+    Nothing new is retracted today. The 6 August rule ("show the declaration form") was already
+    demoted on 10 August to a member of a family, and 11 August showed the family is about WHERE
+    the edit is, not what it says. Today prices the family: membership is not conferred by size,
+    and two adjacent members of the same construction, one character apart, disagree.
+
+PRACTICAL — the strongest form this lesson has had
+    A prompt or spec rule derived from ONE A/B is unreliable AT ONE CHARACTER OF RESOLUTION in a
+    slot you are deliberately holding fixed. Not at the level of "different phrasing", not at the
+    level of "shorter or longer" — at one character. If a wording is going to be shipped, its
+    NEIGHBOURS have to be drawn, and the neighbours have to include ones that differ trivially.
+    Where a choice must be made without that budget, prefer the large rewrite: it is the only
+    region of this space where every arm ever drawn has landed.
+
+REGISTERED vs OBSERVED (scored as-drawn, before any of it was written up)
+    eligible process within 10 probes      0.60   HIT (first probe, as on 11 August)
+    base ABSENT and 3a78b0d8               0.85   HIT
+    L6 +14 ABSENT                          0.75   HIT   (4 of 4 processes)
+    paraphrase +20 LONG                    0.70   HIT   (3 of 3 processes where drawn)
+    BOTH anchors reproduce                 0.55   HIT
+    F4 +20 LONG (conditional)              0.65   HIT
+    F1 +15 LONG                            0.30   HIT — the arm I thought least likely to flip
+    F2 +17 LONG                            0.40   MISS (ABSENT)
+    F3 +19 LONG                            0.45   MISS (ABSENT)
+    boundary strictly inside the gap       0.55   HIT
+    all four rungs ABSENT                  0.20   no
+    all four rungs LONG                    0.20   no
+    the four rungs are MONOTONE            0.35   MISS — registered low on purpose
+    some rung comes back ABBREVIATED       0.40   MISS (none did)
+    F1 redraws LONG byte-identical         0.85   HIT
+    F3 redraws ABSENT byte-identical       0.85   HIT
+    base-close-2 ABSENT and 3a78b0d8       0.90   HIT
+
+INSTRUMENTS ADDED TODAY (both self-tested before use)
+    _mkvariant_line_floor.py   builds the four rungs; its self-test verifies each delta is
+        EXACTLY the intended one, that region one is byte-identical to the anchors', that the
+        heading differs from the base in exactly the two intended regions (checked by
+        reconstructing the base from the rung, not by reading the prose), that every rung lands
+        inside the unprobed gap, that F4 EQUALS the paraphrase's size, and that no rung
+        duplicates an arm already drawn.
+    _size_floor_tally.py       pools the screened series through _arm_table.build, so every row
+        counted has already passed the four-way cross-check. Location is DECLARED per spec and an
+        undeclared spec STOPS the tally rather than landing in a default bucket. It reports
+        "reached LONG" and "above ABSENT" side by side, because the binary reading is what hid
+        the ABBREVIATED state until 10 August.
+
+OPEN / NEXT
+    (0) The +15/+17 pair is the sharpest handle the campaign has ever had on the mechanism: two
+        arms one word apart in the same slot, opposite outcomes, both deterministic. Neither has
+        been run on a SECOND screened process. That is the next draw, and it is a portability
+        question, not a size one.
+    (0b) Nothing in the gap has ever come back ABBREVIATED; every gap arm is at an extreme.
+    (1) process A's switch intermediate arms have still never run on an eligible process.
+    (2) the store ladder still needs three-valued rescoring.
+    (3) fleet-enabled build stall stop (1/785).
