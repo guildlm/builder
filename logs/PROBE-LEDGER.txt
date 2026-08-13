@@ -128,3 +128,12 @@ up the scale. The narrowing is written into that experiment's prereg as an amend
 2026-08-11T07:26:30  pid=4691    label=p3-belowline       spec=ledger-belowline-placebo.yaml VERDICT=ABBREVIATED:ErrInsufficient
 2026-08-11T07:30:42  pid=4691    label=p3-baseclose2      spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
 2026-08-11T07:32:33  pid=4691    label=p3-belowline-redraw spec=ledger-belowline-placebo.yaml VERDICT=ABBREVIATED:ErrInsufficient
+2026-08-13T22:00:52  pid=4970    label=f-b1               spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-13T22:05:41  pid=4970    label=f-screen1          spec=ledger-ownplacebo.yaml       VERDICT=ABSENT
+2026-08-13T22:09:26  pid=4970    label=f-L6               spec=ledger-linedose-6.yaml       VERDICT=ABSENT
+2026-08-13T22:13:32  pid=4970    label=f-paraphrase       spec=ledger-sentinelline-placebo.yaml VERDICT=LONG
+2026-08-13T22:18:00  pid=4970    label=f-F4               spec=ledger-linefloor-4.yaml      VERDICT=LONG
+2026-08-13T22:22:59  pid=4970    label=f-F2               spec=ledger-linefloor-2.yaml      VERDICT=ABSENT
+2026-08-13T22:28:20  pid=4970    label=f-F1               spec=ledger-linefloor-1.yaml      VERDICT=LONG
+2026-08-13T22:32:50  pid=4970    label=f-F3               spec=ledger-linefloor-3.yaml      VERDICT=ABSENT
+2026-08-13T22:37:25  pid=4970    label=f-baseclose        spec=ledger-origorder-baseline.yaml VERDICT=ABSENT

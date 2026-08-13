@@ -141,3 +141,43 @@ VOID
 ⚠️ NOT A PREDICTION, A CONSTRAINT: probes are ~3.5 minutes and finding an eligible process cost
 1 to 12 draws across the last three sessions. If the budget runs out before the rungs, the
 ANCHORS are the ones that will have run, by design.
+
+--------------------------------------------------------------------------------------------
+AMENDMENT 1 — written after the eight registered arms, BEFORE either redraw below is drawn
+13 August, pid 4970 still alive and still eligible. Table assembled by _arm_table.py --pid 4970.
+
+WHAT HAPPENED. Both anchors reproduced (registered 0.55, HIT) so the gap is real on this process,
+and then the gap itself came back NON-MONOTONE:
+
+    L6          +14  "all readily"        ABSENT   3a78b0d8   <- low anchor, 4th process running
+    F1          +15  "all reliably"       LONG     ef8c15d6   <- registered 0.30
+    F2          +17  "all so readily"     ABSENT   3a78b0d8
+    F3          +19  "all very readily"   ABSENT   3a78b0d8   <- registered 0.45 LONG
+    F4          +20  "all quite readily"  LONG     ef8c15d6   <- registered 0.65 | anchor, HIT
+    paraphrase  +20  "every one of them"  LONG     649bdef7   <- high anchor, reproduced
+
+No size threshold can produce that ordering: +15 reaches LONG while +17 and +19 do not. The
+registered monotonicity probability was 0.35 and even that was too generous.
+
+TWO ARMS ARE SURPRISING ENOUGH THAT NOT REDRAWING THEM WOULD MAKE THIS A STORY:
+    F1 +15 LONG   — the smallest on-line arm ever to reach LONG on an ABSENT-baseline process by
+                    a rewrite of this kind, and the arm that breaks the floor from BELOW.
+    F3 +19 ABSENT — a null sitting ABOVE a LONG, and the arm that breaks it from above.
+
+REDRAW, RESTART=0, same process, in this order: F1 · F3 · base-close-2.
+
+REGISTERED
+    P(F1 redraws LONG, byte-identical ef8c15d6)      = 0.85   (every redraw so far reproduced)
+    P(F3 redraws ABSENT, byte-identical 3a78b0d8)    = 0.85
+    P(BOTH reproduce)                                = 0.75
+    P(base-close-2 is ABSENT and 3a78b0d8)           = 0.90
+
+BRANCHES
+    both reproduce -> the non-monotonicity is INSIDE the gap, on a family that holds region count,
+        region identity and construction fixed, and it is deterministic. "Size floor" is then the
+        wrong description of the 8-of-8 tally: what varies with size is the PROBABILITY that an
+        arbitrary rewrite lands, not a threshold any single rewrite crosses.
+    either fails -> this process is not deterministic within a session. That VOIDS every arm drawn
+        on it today and retro-questions p1, p2 and p3, whose determinism was inferred from redrawn
+        arms and byte-identical baselines rather than from a redraw of every arm. It is the most
+        consequential outcome available here and it is why the redraws are not optional.
