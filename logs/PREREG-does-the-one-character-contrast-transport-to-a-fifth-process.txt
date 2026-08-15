@@ -1,0 +1,153 @@
+PREREG — does the +15/+17 contrast TRANSPORT, or was it a property of pid 4970?
+================================================================================
+15 August, committed BEFORE the first probe of the day. pid 4970 (p4) died with the machine, so
+nothing can be added to it. This needs a FIFTH process, screened the same way.
+
+⚠️ THIS IS A PORTABILITY QUESTION, NOT A SIZE QUESTION. The size account was already refuted on
+13 August. Nothing here is an attempt to rescue it.
+
+WHAT 13 AUGUST LEFT ON THE TABLE
+    On pid 4970, region count / region identity / construction held FIXED, the gap came back
+    non-monotone and DETERMINISTIC (both surprising arms redrawn byte-identical):
+
+        L6          +14  "all readily"        ABSENT   3a78b0d8
+        F1          +15  "all reliably"       LONG     ef8c15d6   <- redrawn, byte-identical
+        F2          +17  "all so readily"     ABSENT   3a78b0d8
+        F3          +19  "all very readily"   ABSENT   3a78b0d8   <- redrawn, byte-identical
+        F4          +20  "all quite readily"  LONG     ef8c15d6
+        paraphrase  +20  "every one of them"  LONG     649bdef7
+
+    Two adjacent pairs in that table are the sharpest handles the campaign has ever had, and BOTH
+    of them run through F1:
+
+        L6 vs F1   ONE CHARACTER of rendered size in the same slot, opposite ends of the scale
+        F1 vs F2   ONE WORD in the same slot, opposite ends of the scale
+
+    Everything about them is deterministic WITHIN pid 4970. Nothing is known about whether either
+    contrast exists on any other process. Neither arm has ever been drawn anywhere else.
+
+THE TWO ACCOUNTS THIS DRAW SEPARATES (stated first so the result cannot be fitted afterwards)
+
+    (A) WORDING-DETERMINISTIC. A given wording has a fixed outcome; the map is a property of the
+        wording, and pid 4970's table is the table. Predicts F1 LONG and F2 ABSENT again on p5.
+
+    (B) RATE. Size sets a PROBABILITY that an arbitrary rewrite lands. Within a process a wording
+        is frozen (which is why redraws reproduce), but across processes it is a FRESH DRAW.
+        Predicts F1 and F2 are each ~a coin weighted by the +15..+19 rate, independent of what
+        happened on p4 — most likely BOTH ABSENT.
+
+    ⚠️ THE EXTREMES CANNOT SEPARATE THESE AND I AM NOT COUNTING THEM AS EVIDENCE. paraphrase +20
+    is LONG on 3 of 3 and L6 +14 is ABSENT on 4 of 4, but (B) predicts exactly that too, because
+    its rate is ~1 at the top and ~0.13 at the bottom. The ONLY discriminating evidence in the
+    whole archive is the MIDDLE of the scale, and there the single data point favours (B):
+    L4 (+5) is ABBREVIATED on p1, LONG on p2, ABBREVIATED on p3.
+
+    Weight going in: (B) 0.65 / (A) 0.35. I am drawing the arms I expect to fail to replicate.
+
+PROTOCOL (both gates unchanged, in this order, no exceptions)
+    1. Probe fresh processes with specs/ledger-origorder-baseline.yaml until one returns ABSENT.
+       Max 10 probes. LONG is uninformative. ABBREVIATED-at-baseline is informative under the
+       standing definition but DISCARDED here: this pair is a movement FROM ABSENT and cannot be
+       read from halfway up. Every probe, kept AND discarded, goes in logs/PROBE-LEDGER.txt.
+    2. SCREEN with specs/ledger-ownplacebo.yaml (+54 rendered, content-free, SAME purpose, larger
+       than every arm below). A process that flips is DISCARDED and recorded. Only
+       ABSENT-at-baseline AND screen-null may host arms.
+    3. On the eligible process, RESTART=0 throughout, IN THIS ORDER:
+
+           base (= the probe from step 1) · screen +54
+           · L6 +14 (low anchor) · paraphrase +20 (high anchor)
+           · F1 +15 · F2 +17
+           · base-close
+           · [budget] F4 +20 · F3 +19 · base-close-2
+
+       ANCHORS FIRST, unchanged from 13 August: without them on THIS process the rungs are
+       uninterpretable, and a session that runs out of budget must end with the anchors drawn.
+       F1 leads the pair because it is the arm both sharp contrasts run through.
+       base-close sits BEFORE the optional arms so that the registered four are guarded even if
+       the session ends there.
+
+ENDPOINT — three-valued per arm: ABSENT / ABBREVIATED / LONG, plus the sha256 of models.go.
+    Scored AS-DRAWN. The endpoint is the DECLARATION, not byte-identity; sha is reported
+    alongside because cross-process byte-identity is itself one of the registered quantities.
+    "Above ABSENT" and "LONG" are tallied SEPARATELY for every claim, because the binary reading
+    is what hid the ABBREVIATED state until 10 August.
+
+REGISTERED
+    P(an eligible process within 10 baseline probes)               = 0.65
+    Given one is found:
+    P(base ABSENT is byte-identical 3a78b0d8)                      = 0.85   (8 of 8 so far)
+
+    ANCHORS — replication of things already seen 3 and 4 times
+    P(L6 +14 is ABSENT)                                            = 0.80   (4 of 4)
+    P(paraphrase +20 is LONG)                                      = 0.75   (3 of 3)
+    P(paraphrase writes 649bdef7 | it is LONG)                     = 0.80   (3 of 3)
+    P(BOTH anchors reproduce, i.e. the scale exists on this process)= 0.65
+
+    PRIMARY — the two arms that have only ever been drawn on pid 4970
+    P(F1 +15 is LONG)                                              = 0.45
+    P(F1 is above ABSENT)                                          = 0.50
+    P(F1 writes ef8c15d6 | it is LONG)                             = 0.80
+    P(F2 +17 is LONG)                                              = 0.20
+    P(F2 is above ABSENT)                                          = 0.25
+
+    THE CONTRAST ITSELF — this is the registered quantity the day turns on
+    P(F1 STRICTLY ABOVE F2 on the ordered scale — contrast reproduces) = 0.40
+    P(F1 and F2 land on the SAME value — contrast vanishes)            = 0.45
+    P(F2 STRICTLY ABOVE F1 — contrast REVERSES)                        = 0.15
+    P(both ABSENT specifically — the (B) modal outcome)                = 0.35
+
+    SIDE QUANTITIES
+    P(some arm in the gap comes back ABBREVIATED)                  = 0.25
+        (never once observed in +15..+19; 5 arms drawn there, all ABSENT or LONG)
+    P(F4 and paraphrase are BOTH LONG but write DIFFERENT files | both drawn) = 0.55
+        (this is p4's finding that reaching LONG is not writing one file; a second process
+         showing it would make it a result rather than an observation)
+
+BRANCHES — written now so no result can be read into whatever I hoped for
+    F1 LONG and F2 ABSENT  (the contrast reproduces)
+        -> account (A) gains sharply and MY REGISTERED WEIGHT WAS WRONG. A one-word difference in
+           a fixed slot would then be a PORTABLE property of the wording, which makes the p4 pair
+           the most mechanically informative object in the campaign and the next draws belong on
+           the words themselves, not on more processes. I would report this as the result that
+           most damages the account I am working from.
+    both ABSENT  (the contrast vanishes downward)
+        -> account (B). F1's LONG was a property of pid 4970, not of "all reliably". The 13 August
+           headline stands and STRENGTHENS: the sharpest pair in the campaign does not survive a
+           change of process, so a spec rule read off ONE process is unreliable even when it was
+           drawn twice byte-identical. The practical rule hardens: determinism within a process is
+           NOT evidence of portability, and every published one-process contrast is downgraded.
+    both LONG  (the contrast vanishes upward)
+        -> F2's ABSENT was the process-specific half. Same conclusion as above for (B), reached
+           from the other side, and it additionally says the gap's rate is much higher on p5 than
+           on p4 — which would make PROCESS, not size and not wording, the dominant term. That
+           deserves its own prereg and I will not extend the session to chase it.
+    F2 above F1  (reversal)
+        -> the strongest arbitrariness result available here: the ordering is not even stable in
+           sign across processes. Redraw BOTH before writing anything down.
+    anchors do NOT reproduce (L6 not ABSENT, or paraphrase not LONG)
+        -> report the pair against THIS process's anchors only, flag the series as
+           anchor-conditional, and do NOT relabel any arm against p4's anchors.
+    F1 or F2 lands ABBREVIATED
+        -> the gap gets its first three-valued row; report it as a rung of the scale and NOT as a
+           weak LONG. "Above ABSENT" is the tally that moves, "LONG" is not.
+
+REDRAW RULE, REGISTERED IN ADVANCE RATHER THAN AFTER THE SURPRISE
+    Any arm whose verdict DIFFERS from its pid-4970 verdict is redrawn once, RESTART=0, before it
+    is written into any log. This is not optional and it is not conditional on which direction the
+    difference goes — 13 August had to amend its own prereg mid-session to add exactly this, and
+    registering it up front is the cheaper version of that lesson.
+
+VOID
+    · repair activity in any arm's log (the probe already refuses on it)
+    · a server restart between arms
+    · base-close differing from base
+    · no eligible process within 10 probes -> that IS the result, recorded, and no arm is run
+
+⚠️ NOT A PREDICTION, A CONSTRAINT: probes are ~3.5-5 minutes and finding an eligible process has
+cost 1 to 12 draws across the last four sessions. If the budget runs out, the ANCHORS and the PAIR
+are what will have run; F3 and F4 are explicitly optional and their absence is not a gap.
+
+⚠️ SCORING IS AS-DRAWN and the table is assembled by `_arm_table.py --prefix p5- --pid <PID>`,
+which cross-checks four independent records per arm and REFUSES on any mismatch. The pooled counts
+come from `_size_floor_tally.py`. Nothing in the result log is hand-counted — that rule exists
+because hand counting has produced a wrong number eight times in this campaign.
