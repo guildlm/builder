@@ -140,3 +140,15 @@ up the scale. The narrowing is written into that experiment's prereg as an amend
 2026-08-13T22:42:24  pid=4970    label=f-F1-redraw        spec=ledger-linefloor-1.yaml      VERDICT=LONG
 2026-08-13T22:47:05  pid=4970    label=f-F3-redraw        spec=ledger-linefloor-3.yaml      VERDICT=ABSENT
 2026-08-13T22:51:51  pid=4970    label=f-baseclose2       spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-15T14:59:08  pid=23514   label=p5-b1              spec=ledger-origorder-baseline.yaml VERDICT=LONG
+2026-08-15T15:05:18  pid=36921   label=p5-b2              spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-15T15:13:23  pid=36921   label=p5-screen1         spec=ledger-ownplacebo.yaml       VERDICT=ABSENT
+2026-08-15T15:19:45  pid=36921   label=p5-L6              spec=ledger-linedose-6.yaml       VERDICT=ABSENT
+2026-08-15T15:27:05  pid=36921   label=p5-paraphrase      spec=ledger-sentinelline-placebo.yaml VERDICT=LONG
+2026-08-15T15:33:21  pid=36921   label=p5-F1              spec=ledger-linefloor-1.yaml      VERDICT=ABSENT
+2026-08-15T15:39:57  pid=36921   label=p5-F2              spec=ledger-linefloor-2.yaml      VERDICT=ABSENT
+2026-08-15T15:46:09  pid=36921   label=p5-baseclose       spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-15T15:51:36  pid=36921   label=p5-F1-redraw       spec=ledger-linefloor-1.yaml      VERDICT=ABSENT
+2026-08-15T15:57:06  pid=36921   label=p5-F4              spec=ledger-linefloor-4.yaml      VERDICT=ABSENT
+2026-08-15T15:59:52  pid=36921   label=p5-F4-redraw       spec=ledger-linefloor-4.yaml      VERDICT=ABSENT
+2026-08-15T16:04:39  pid=36921   label=p5-F3              spec=ledger-linefloor-3.yaml      VERDICT=ABSENT

@@ -151,3 +151,61 @@ are what will have run; F3 and F4 are explicitly optional and their absence is n
 which cross-checks four independent records per arm and REFUSES on any mismatch. The pooled counts
 come from `_size_floor_tally.py`. Nothing in the result log is hand-counted — that rule exists
 because hand counting has produced a wrong number eight times in this campaign.
+
+--------------------------------------------------------------------------------------------
+AMENDMENT 1 — written after the registered arms and BEFORE either arm below is drawn
+15 August, pid 36921 still alive and still eligible.
+
+WHAT HAPPENED. The contrast did not transport, and it did not transport in a stronger way than
+the prereg imagined. On pid 36921 the ENTIRE adverb family is ABSENT at every size drawn:
+
+    L6          +14  "all readily"        ABSENT   3a78b0d8
+    F1          +15  "all reliably"       ABSENT   3a78b0d8   <- LONG x2 on p4; redrawn, ABSENT x2
+    F2          +17  "all so readily"     ABSENT   3a78b0d8
+    F3          +19  "all very readily"   ABSENT   3a78b0d8
+    F4          +20  "all quite readily"  ABSENT   3a78b0d8   <- LONG on p4; redrawn, ABSENT x2
+    paraphrase  +20  "every one of them"  LONG     649bdef7   <- LONG on 4 of 4 processes
+
+F4 is the first on-line arm at +20 or above EVER to come back ABSENT (the pooled tally was 10 of
+10). And it is ABSENT on the same process, in the same two regions, at the SAME +20, on which the
+paraphrase is LONG. So size is not sufficient at fixed region count — the 13 August prereg named
+that branch as "the outcome that most damages the account I am working from", and it has now
+happened on the process where the account had the least room to hide.
+
+THE QUESTION THAT REPLACES THE SIZE QUESTION. Every arm that is ABSENT here is built from the
+SAME construction ("all <adverb>"). The one arm that flips is built differently. That suggests the
+axis is the CONSTRUCTION FAMILY, not the size — and it is directly testable with two specs that
+already exist and have never been drawn on this process:
+
+    A+C       +21   heading + parenthesis, names BARE, no `var`   LONG on p1, p3
+    shipped   +51   heading + `var ErrX` + (each errors.New)      LONG on p1, p2, p3
+
+⚠️ THIS IS THE PRACTICAL RULE'S OWN ARM. 13 August's shipped advice was "if you cannot afford to
+draw the neighbours, pick the BIG rewrite." pid 36921 is the first process on which the adverb
+family fails even at +20, so it is the first fair test of whether that advice survives where the
+small edits do not. If the big rewrite is ALSO null here, the advice I published is wrong.
+
+DRAW, RESTART=0, same process, in this order: A+C +21 · shipped +51 · base-close-2.
+A+C leads because it is the smaller and the less certain of the two.
+
+REGISTERED
+    P(shipped +51 is LONG)                                    = 0.85   (3 of 3)
+    P(A+C +21 is LONG)                                        = 0.75   (2 of 2)
+    P(BOTH are LONG)                                          = 0.70
+    P(a clean construction split — both LONG, with all five
+      adverb arms ABSENT and the paraphrase LONG)             = 0.65
+    P(shipped writes ef8c15d6 | it is LONG)                   = 0.80   (3 of 3)
+
+BRANCHES
+    both LONG -> the split on this process is by CONSTRUCTION FAMILY, not by size: three
+        differently-built rewrites at +20, +21 and +51 all flip, and five arms of one construction
+        at +14 through +20 all fail. That is a better description than "size sets a rate", it is
+        the first axis this campaign has found that is not a length, and it makes the adverb family
+        a NEGATIVE result about one construction rather than evidence about small edits generally.
+        It also RESCUES the practical advice — but only for the big-rewrite half.
+    either ABSENT -> even the large rewrites are process-dependent, the 13 August practical rule is
+        itself downgraded rather than confirmed, and the honest summary becomes that NOTHING about
+        a spec edit's effect is portable except the paraphrase's 4-of-4, which would then be the
+        single most anomalous object in the archive and the obvious next target.
+    both LONG but shipped writes a file other than ef8c15d6 -> report the endpoint as the
+        DECLARATION and note the third-file family has widened again.
