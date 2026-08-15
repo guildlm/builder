@@ -1,0 +1,154 @@
+RESULT — the size law was a CONSTRUCTION law in disguise, and the sharpest pair did not transport
+=================================================================================================
+15 August · pid 36921 (p5), the FIFTH screened process · 14 draws · THREE byte-identical baselines
+Prereg `2d05b2f` committed BEFORE the first probe. Amendment 1 `9842314` committed BEFORE the two
+arms it registers. Table assembled by `_arm_table.py --prefix p5- --pid 36921`; every pooled count
+computed by `_size_floor_tally.py`. Nothing below is hand-counted.
+
+THE PROCESS EARNED ITS ARMS (both standing gates, in order)
+    probe 1  pid 23514  baseline  LONG    -> uninformative, discarded, in PROBE-LEDGER
+    probe 2  pid 36921  baseline  ABSENT  -> informative
+             pid 36921  screen +54 content-free, same purpose, larger than every arm  ABSENT
+    Eligible on the second probe. Registered P(eligible within 10) = 0.65, HIT.
+
+THE TABLE (as-drawn, three-valued, sha of models.go)
+
+    arm            spec                        delta  verdict   sha
+    base           origorder-baseline            +0   ABSENT    3a78b0d8
+    screen         ownplacebo                   +54   ABSENT    3a78b0d8
+    L6             linedose-6   "all readily"   +14   ABSENT    3a78b0d8
+    paraphrase     sentinelline-placebo         +20   LONG      649bdef7
+    F1             linefloor-1  "all reliably"  +15   ABSENT    3a78b0d8
+    F2             linefloor-2  "all so ~"      +17   ABSENT    3a78b0d8
+    base-close     origorder-baseline            +0   ABSENT    3a78b0d8
+    F1-redraw      linefloor-1                  +15   ABSENT    3a78b0d8
+    F4             linefloor-4  "all quite ~"   +20   ABSENT    3a78b0d8
+    F4-redraw      linefloor-4                  +20   ABSENT    3a78b0d8
+    F3             linefloor-3  "all very ~"    +19   ABSENT    3a78b0d8
+    A+C            origorder-ac                 +21   LONG      ef8c15d6
+    shipped        origorder                    +51   LONG      ef8c15d6
+    base-close-2   origorder-baseline            +0   ABSENT    3a78b0d8
+
+1. THE SHARPEST PAIR IN THE CAMPAIGN DOES NOT TRANSPORT
+    On pid 4970, F1 (+15) was LONG twice byte-identical and F2 (+17) was ABSENT — one word apart
+    in a slot deliberately held fixed. On pid 36921 BOTH are ABSENT, and F1 was redrawn ABSENT
+    byte-identical. So F1 is deterministic on both processes and its verdict is OPPOSITE between
+    them.
+
+        registered P(F1 LONG)                     0.45   MISS
+        registered P(contrast reproduces)         0.40   MISS
+        registered P(F1 and F2 land the same)     0.45   HIT
+        registered P(both ABSENT specifically)    0.35   HIT
+        weight going in: rate account 0.65 / wording account 0.35
+
+    ⚠️ THE GENERAL LESSON, AND IT IS THE HARSHEST FORM THIS CAMPAIGN HAS REACHED:
+    DETERMINISM WITHIN A PROCESS IS NOT EVIDENCE OF PORTABILITY. The same spec, drawn twice on
+    each of two screened processes, byte-identical within each and opposite between them. Every
+    "I A/B'd it and it reproduced" result in this archive is compatible with that shape, and the
+    only thing that separates a real rule from this one is drawing it on a second process.
+
+2. ⚠️⚠️ THE HEADLINE — THE SIZE LAW WAS A CONSTRUCTION LAW IN DISGUISE
+    The one regularity that survived 13 August was "on-line edits of +20 or more reach LONG",
+    10 of 10 at the time. It is now 13 of 15, and BOTH exceptions are the same arm: F4, drawn
+    twice on p5. Splitting the SAME rows by construction turns one ragged rule into two clean ones
+    (computed, on-line arms only, pooled over 5 processes / 65 ledger rows):
+
+        construction family    size                  n   reached LONG   above ABSENT
+        other rewrite          >=+20                12     12 of 12       12 of 12
+        quantifier ladder      >=+20                 3      1 of 3         1 of 3
+        quantifier ladder      the gap (+15..+19)    9      2 of 9         2 of 9
+        quantifier ladder      <=+14                 6      0 of 6         0 of 6
+        other rewrite          <=+14                10      2 of 10        5 of 10
+
+    The whole ladder — five wordings of "Sentinel error values, all <adverb> matchable" — is 3 of
+    18 across the campaign, and ALL THREE of those are on pid 4970. On every other screened
+    process it is 0 for 12.
+
+    WHY THE SIZE LAW EVER LOOKED TRUE: until 13 August, every LARGE arm in the archive was a
+    substantive rewrite and every SMALL arm was a tweak. Size and substance had never been
+    separated, so a rule stated in the language of size fitted a fact about substance. The ladder
+    was built to decouple them and is the first family of large edits that are NOT substantive
+    rewrites — and it is inert.
+
+3. THE CLEANEST REFUTATION OF SIZE-AS-CAUSE THE CAMPAIGN HAS PRODUCED
+    On ONE process, at the IDENTICAL +20, in the IDENTICAL two regions, sharing a BYTE-IDENTICAL
+    first region and a byte-identical name list:
+
+        F4          +20  "all quite readily"   ABSENT  3a78b0d8   (drawn twice)
+        paraphrase  +20  "every one of them"   LONG    649bdef7
+
+    13 August's prereg named this branch in advance as "the outcome that most damages the account
+    I am working from". It has now happened, on the process with the least room to hide it, with
+    the null arm drawn twice. Beside it, from the same session: a +54 content-free edit one
+    sentence ABOVE does nothing, and the +51 shipped rewrite ON the line flips it. The instrument
+    is neither insensitive nor size-driven.
+
+4. ✅ WHAT DOES TRANSPORT — AND THE PRACTICAL RULE SURVIVES, SHARPENED
+    Every substantive rewrite of the declaration line drawn on this process flipped it, each
+    writing the bytes it wrote elsewhere:
+
+        paraphrase  +20  LONG  649bdef7   4 of 4 processes
+        A+C         +21  LONG  ef8c15d6   3 of 3 processes
+        shipped     +51  LONG  ef8c15d6   4 of 4 processes
+
+        registered P(shipped LONG) 0.85 HIT · P(A+C LONG) 0.75 HIT · P(both) 0.70 HIT
+        registered P(a clean construction split) 0.65 HIT
+        registered P(shipped writes ef8c15d6) 0.80 HIT
+
+    📌 THE RULE, IN ITS STRONGEST SUPPORTED FORM:
+       SUBSTANTIVELY REWRITE THE DECLARATION LINE. Padding it does nothing at ANY size — not at
+       +14, not at +20 — and once you condition on that, how big the edit is predicts nothing.
+       "Make the edit bigger" was never the mechanism; it was a proxy for "make it a real rewrite",
+       and the proxy fails exactly where it was tested against a size-matched control.
+
+    ⚠️ THE LIMIT OF CLAIM 2, STATED RATHER THAN BURIED: "construction family" here is ONE specific
+    construction against everything else. The ladder's five wordings share a builder and a shape;
+    the other arms differ from each other in many ways. This is evidence that a size-matched INERT
+    family exists — which is what makes the +20 comparison valid — and NOT yet evidence of a
+    general construction axis. Calling it one would repeat 6 August's error of shipping a rule
+    whose description outran its controls.
+
+5. 🔧 THE FAMILY CHECK REFUSED ON ITS FIRST REAL RUN — 9th instrument catch, 4th pre-publication
+    The family is DECLARED and independently DERIVED from the spec's own rendered purpose, and a
+    disagreement stops the tally. The first derivation tested for the substring
+    "Sentinel error values, all " and refused immediately: L3 (+6, noun phrase alone, quantifier
+    left as a bare "all") and L4 (which also rewrites "with" -> "via") both contain it and neither
+    is a rung. ⚠️ L4 IS THE CAMPAIGN'S ONE KNOWN CROSS-PROCESS-UNSTABLE ARM (ABBREVIATED on p1,
+    LONG on p2, ABBREVIATED on p3) — a loose signature would have imported it into the family
+    being reported as uniformly null, and the family table would have looked merely noisy instead
+    of clean. Both arms are now pinned by name in the self-test.
+    📌 A substring is not a construction. The check that caught it is the one that had a second,
+    independent source for the same fact.
+
+6. SCORING — every registered number, as drawn
+    HIT   P(eligible within 10 probes) 0.65 · P(base 3a78b0d8) 0.85 (9 of 9)
+    HIT   P(L6 ABSENT) 0.80 (5 of 5) · P(paraphrase LONG) 0.75 (4 of 4)
+    HIT   P(paraphrase writes 649bdef7) 0.80 · P(both anchors reproduce) 0.65
+    MISS  P(F1 LONG) 0.45 · P(F1 above ABSENT) 0.50 · P(contrast reproduces) 0.40
+    HIT   P(F2 LONG) 0.20 · P(F2 above ABSENT) 0.25 · P(same value) 0.45 · P(both ABSENT) 0.35
+    HIT   P(no gap arm ABBREVIATED) — registered 0.25 that one would; none did
+    MISS  P(F4 and paraphrase both LONG, different files) 0.55 — F4 was ABSENT instead, which is
+          a bigger result than the one the number was reaching for
+    HIT   all five Amendment 1 quantities
+
+    ⚠️ The registered weight (rate 0.65 / wording 0.35) called the PAIR correctly and both accounts
+    got claim 2 wrong: a pure rate account predicts F4 LONG at +20, and it was ABSENT twice.
+
+VOID CHECKS
+    · no repair activity in any arm's log (the probe refuses on it; every arm passed)
+    · no server restart between arms — one pid, 36921, throughout
+    · base, base-close and base-close-2 all ABSENT and all 3a78b0d8
+    · every arm whose verdict differed from its pid-4970 verdict was redrawn, per the rule
+      registered UP FRONT this time rather than by mid-session amendment: F1 and F4, both
+      byte-identical on redraw
+
+⏭️ OPEN / NEXT
+    (0) The ladder is inert on 4 of 5 processes and flips on ONE. pid 4970 is dead, so p4's three
+        LONGs can never be re-examined on their own process. Draw the ladder on a SIXTH process:
+        if it is inert again, p4 is the outlier and the family is a clean negative control worth
+        keeping; if it flips, "inert" is itself process-conditional and claim 2 weakens to a rate.
+    (1) A SECOND inert family would turn claim 2 from one construction into an axis. Build one
+        that pads the line differently (not adverbs) at +20, and register it against the paraphrase.
+    (2) Process A's switch intermediate arms have still never run on a screened process.
+    (3) The store ladder is still scored two-valued and needs re-scoring three-valued.
+    (4) fleet-enabled build stall stop (1/785).

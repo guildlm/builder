@@ -32,6 +32,7 @@ it cannot locate a floor. The floor has to be bracketed against ONE process's ow
 
 import argparse
 import pathlib
+import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
@@ -45,7 +46,7 @@ BASELINE = "specs/ledger-origorder-baseline.yaml"
 # screen). Nothing else is poolable: 10 August's placebo screen disqualified 3 of 4 informative
 # processes, and the unscreened series cannot separate treatment from process.
 SERIES = [("p1", "46375", "s-"), ("p2", "71833", "r2-"), ("p3", "4691", "p3-"),
-          ("p4", "4970", "f-")]
+          ("p4", "4970", "f-"), ("p5", "36921", "p5-")]
 
 # ⚠️ DECLARED, NOT INFERRED. Every spec that can appear in these series is named here with where
 # its edit lands relative to the declaration line in models.go's purpose.
@@ -71,6 +72,51 @@ LOCATION = {
     "ledger-jobstrip-placebo.yaml": "other-purpose",
 }
 
+# ⚠️ CONSTRUCTION FAMILY — added 15 August, when pid 36921 returned ABSENT for all FIVE arms of one
+# construction (+14 through +20) and LONG for all THREE arms that are built differently, including
+# one at the IDENTICAL +20 in the IDENTICAL two regions. Size cannot express that split; this can.
+#
+# ⚠️ DECLARED **AND** DERIVED, AND A DISAGREEMENT STOPS THE TALLY. The location table above is
+# declared-only because "where the edit lands" is not recoverable from the spec text. Family IS
+# recoverable — it is literally what the heading says — so declaring it alone would throw away a
+# free check. The ladder's signature is the byte-identical noun phrase followed by the extended
+# quantifier; every rung of it renders "Sentinel error values, all <adverb> matchable", and no
+# other arm in the archive does.
+# ⚠️ A SUBSTRING IS NOT A CONSTRUCTION. The first version of this derivation tested for
+# "Sentinel error values, all " and REFUSED on its first real run, correctly: L3 (+6, the noun
+# phrase alone, quantifier left as a bare "all") and L4 (which also rewrites "with" -> "via")
+# both contain that substring and neither is a rung. A rung is the whole shape — region one
+# rewritten, region two extended by a NON-EMPTY adverb, and nothing else in the heading touched.
+# L4 is the arm whose verdict varies across processes, so a loose signature would have quietly
+# imported the campaign's one known unstable arm into the family being called uniformly null.
+LADDER_RE = re.compile(r"Sentinel error values, all (\w[\w ]*) matchable with errors\.Is")
+FAMILY = {
+    "ledger-linedose-6.yaml": "quantifier ladder",    # +14  "all readily"
+    "ledger-linefloor-1.yaml": "quantifier ladder",   # +15  "all reliably"
+    "ledger-linefloor-2.yaml": "quantifier ladder",   # +17  "all so readily"
+    "ledger-linefloor-3.yaml": "quantifier ladder",   # +19  "all very readily"
+    "ledger-linefloor-4.yaml": "quantifier ladder",   # +20  "all quite readily"
+}
+
+
+def family_of(spec: str) -> str:
+    """Declared family, cross-checked against the spec's own rendered purpose."""
+    declared = FAMILY.get(spec, "other rewrite")
+    p = HERE / "specs" / spec
+    if not p.is_file():
+        raise _arm_table.Refuse(f"{spec}: no such spec, cannot verify its family")
+    import yaml
+    purpose = ""
+    for f in yaml.safe_load(p.read_text())["files"]:
+        if f["path"] == "internal/models/models.go":
+            purpose = f["purpose"]
+    derived = "quantifier ladder" if LADDER_RE.search(purpose) else "other rewrite"
+    if declared != derived:
+        raise _arm_table.Refuse(
+            f"{spec}: declared family {declared!r} but its purpose says {derived!r} — one of the "
+            f"two is wrong and guessing which is how a family table becomes fiction")
+    return declared
+
 
 def rows_for(name, pid, prefix):
     rows = _arm_table.build(HERE, prefix, BASELINE, pid=pid)
@@ -81,7 +127,49 @@ def rows_for(name, pid, prefix):
                 f"{name}/{r['label']}: spec {spec} has no declared location — add it to LOCATION "
                 f"rather than letting it fall into a bucket by accident")
         r["series"], r["location"] = name, LOCATION[spec]
+        r["family"] = family_of(spec)
     return rows
+
+
+def cross(rows):
+    """(family, size bucket) -> counts, pooled, ON-LINE arms only.
+
+    ⚠️ THIS IS THE TABLE THE 15 AUGUST CLAIM RESTS ON and it exists because I derived its headline
+    number in my head first. "On-line arms of >=+20 reach LONG 13 of 15" is true and useless: the
+    two exceptions are both the same ladder arm, and splitting the same rows by construction turns
+    a ragged size rule into two clean ones. Computing it is not optional.
+    """
+    out = {}
+    for r in rows:
+        if r["location"] != "on-line":
+            continue
+        d = int(r["delta"])
+        bucket = "<=+14" if d <= 14 else (">=+20" if d >= 20 else "the gap (+15..+19)")
+        c = out.setdefault((r["family"], bucket), {"n": 0, "long": 0, "nonnull": 0, "arms": []})
+        c["n"] += 1
+        c["long"] += r["verdict"] == "LONG"
+        c["nonnull"] += r["verdict"] != "ABSENT"
+        c["arms"].append(f"{r['series']}/{r['label']} {r['delta']} {r['verdict'].split(':')[0]}")
+    return out
+
+
+def by_family(rows):
+    """(series, family) -> counts, over ON-LINE treated arms only.
+
+    ⚠️ RESTRICTED TO ON-LINE ARMS ON PURPOSE. The ladder only ever edits the declaration line, so
+    pooling it against off-line arms would compare a construction with a location and credit the
+    difference to whichever of the two the sentence happened to name.
+    """
+    out = {}
+    for r in rows:
+        if r["location"] != "on-line":
+            continue
+        c = out.setdefault((r["series"], r["family"]), {"n": 0, "long": 0, "nonnull": 0, "arms": []})
+        c["n"] += 1
+        c["long"] += r["verdict"] == "LONG"
+        c["nonnull"] += r["verdict"] != "ABSENT"
+        c["arms"].append(f"{r['label']} {r['delta']} {r['verdict'].split(':')[0]}")
+    return out
 
 
 def tally(rows):
@@ -134,6 +222,33 @@ def main() -> int:
         lo = sum(c["long"] for k, c in t.items() if k[0] == loc)
         nn = sum(c["nonnull"] for k, c in t.items() if k[0] == loc)
         print(f"    {loc:<14} {'ALL SIZES':<20} {n:>3}  {lo:>6} of {n:<4}  {nn:>6} of {n:<4}")
+
+    # THE CONSTRUCTION SPLIT, per process, on-line arms only. Per process rather than pooled
+    # because 11 August established the wording->outcome map is process-specific, and a pooled
+    # family table would hide exactly the thing 15 August found: the split is CLEAN on one
+    # process and absent on another.
+    print(f"\n    {'process':<9} {'construction family':<22} {'n':>3}  "
+          f"{'reached LONG':>13}  {'above ABSENT':>13}   sizes")
+    f = by_family(rows)
+    for key in sorted(f, key=lambda k: (k[0], k[1])):
+        c = f[key]
+        sizes = ",".join(sorted((a.split()[1] for a in c["arms"]), key=lambda s: int(s)))
+        print(f"    {key[0]:<9} {key[1]:<22} {c['n']:>3}  "
+              f"{c['long']:>6} of {c['n']:<4}  {c['nonnull']:>6} of {c['n']:<4}   {sizes}")
+        if a.verbose:
+            for arm in c["arms"]:
+                print(f"        {arm}")
+
+    print(f"\n    {'construction family':<22} {'size':<20} {'n':>3}  "
+          f"{'reached LONG':>13}  {'above ABSENT':>13}")
+    x = cross(rows)
+    for key in sorted(x, key=lambda k: (k[0], k[1])):
+        c = x[key]
+        print(f"    {key[0]:<22} {key[1]:<20} {c['n']:>3}  "
+              f"{c['long']:>6} of {c['n']:<4}  {c['nonnull']:>6} of {c['n']:<4}")
+        if a.verbose:
+            for arm in c["arms"]:
+                print(f"        {arm}")
     return 0
 
 
@@ -184,6 +299,62 @@ def self_test() -> int:
     finally:
         _arm_table.build = saved
     del types
+
+    # 3. FAMILY must be derived from the spec on disk, not taken on the declaration's word
+    chk("a ladder rung derives as the ladder",
+        family_of("ledger-linefloor-4.yaml"), "quantifier ladder")
+    chk("the +14 low anchor is the same construction as the rungs",
+        family_of("ledger-linedose-6.yaml"), "quantifier ladder")
+    # ⚠️ the paraphrase shares the ladder's NOUN PHRASE and must still not be counted as a rung —
+    # that shared region is precisely why the two are comparable, and precisely how a sloppy
+    # substring test would swallow the one arm the split turns on.
+    chk("the +20 paraphrase is NOT a ladder rung",
+        family_of("ledger-sentinelline-placebo.yaml"), "other rewrite")
+    chk("A+C is not a ladder rung", family_of("ledger-origorder-ac.yaml"), "other rewrite")
+    # ⚠️ THE TWO ARMS THAT BROKE THE FIRST DERIVATION, pinned so they cannot break it again.
+    chk("L3 (+6, noun phrase alone, bare 'all') is NOT a rung — the adverb slot is empty",
+        family_of("ledger-linedose-3.yaml"), "other rewrite")
+    chk("L4 (also rewrites 'with'->'via') is NOT a rung — it touches a third region",
+        family_of("ledger-linedose-4.yaml"), "other rewrite")
+    chk("the shipped arm is not a ladder rung", family_of("ledger-origorder.yaml"), "other rewrite")
+
+    # 4. a declaration that disagrees with the spec text must STOP the tally
+    FAMILY["ledger-sentinelline-placebo.yaml"] = "quantifier ladder"
+    try:
+        family_of("ledger-sentinelline-placebo.yaml")
+        ok = False
+        print("  FAIL a declared/derived family disagreement did NOT stop the tally")
+    except _arm_table.Refuse:
+        print("  ok   a declared/derived family disagreement stops the tally")
+    finally:
+        del FAMILY["ledger-sentinelline-placebo.yaml"]
+
+    # 5. the family table must ignore off-line arms rather than credit them to a construction
+    ff = by_family([
+        {"series": "x", "label": "a", "delta": "+20", "verdict": "LONG",
+         "location": "on-line", "family": "other rewrite"},
+        {"series": "x", "label": "b", "delta": "+20", "verdict": "ABSENT",
+         "location": "on-line", "family": "quantifier ladder"},
+        {"series": "x", "label": "c", "delta": "+54", "verdict": "ABSENT",
+         "location": "off-line", "family": "other rewrite"},
+    ])
+    chk("off-line arms are excluded from the family table",
+        ff[("x", "other rewrite")]["n"], 1)
+    xx = cross([
+        {"series": "x", "label": "a", "delta": "+20", "verdict": "LONG",
+         "location": "on-line", "family": "other rewrite"},
+        {"series": "x", "label": "b", "delta": "+20", "verdict": "ABSENT",
+         "location": "on-line", "family": "quantifier ladder"},
+        {"series": "x", "label": "c", "delta": "+54", "verdict": "LONG",
+         "location": "off-line", "family": "other rewrite"},
+    ])
+    chk("the cross-tab splits one size bucket by family",
+        (xx[("other rewrite", ">=+20")]["long"], xx[("quantifier ladder", ">=+20")]["long"]),
+        (1, 0))
+    chk("the cross-tab excludes off-line arms too",
+        sum(c["n"] for c in xx.values()), 2)
+    chk("the two on-line families are kept apart",
+        (ff[("x", "quantifier ladder")]["long"], ff[("x", "other rewrite")]["long"]), (0, 1))
 
     # 3. the four floor rungs must be declared BEFORE they are drawn, or the first table that
     #    includes them refuses in the middle of a live series
