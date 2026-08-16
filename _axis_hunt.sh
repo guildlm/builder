@@ -24,7 +24,9 @@ cd "$(dirname "$0")"
 
 PORT="${PORT:-8137}"
 PREFIX="${PREFIX:-ax2-}"
-MAX="${MAX:-10}"
+MAX="${MAX:-10}"          # CLASSIFYING baseline probes — see AMENDMENT 2 in the prereg
+ATTEMPTS="${ATTEMPTS:-30}"  # hard stop, so a GPU that kills everything cannot loop forever
+START="${START:-1}"       # label numbering continues across relaunches; a reused label is fatal
 DRAW="${DRAW:-1}"
 BASE_SPEC="specs/ledger-origorder-baseline.yaml"
 SCREEN_SPEC="specs/ledger-ownplacebo.yaml"
@@ -33,12 +35,24 @@ verdict_of () {  # verdict_of <probe stdout>  -> the VERDICT field, or the empty
   sed -n 's/.*VERDICT: \([A-Z-]*\).*/\1/p' <<<"$1" | tail -1
 }
 
-for ((i = 1; i <= MAX; i++)); do
-  echo "=== baseline probe $i of $MAX ==="
+spent=0
+for ((i = START; i < START + ATTEMPTS; i++)); do
+  (( spent < MAX )) || break
+  echo "=== baseline probe attempt $i · classifying probes spent $spent of $MAX ==="
   out=$(SPEC="$BASE_SPEC" PORT="$PORT" ./_probe_process_sentinel.sh "${PREFIX}b${i}" 2>&1)
   v=$(verdict_of "$out")
   pid=$(PORT="$PORT" ./_server_pid.sh 2>/dev/null || echo "")
   echo "  baseline verdict: ${v:-<none>}  (pid ${pid:-<gone>})"
+
+  # ⚠️ A PROBE THE GPU KILLED CLASSIFIES NOTHING AND DOES NOT SPEND THE BUDGET — prereg
+  # AMENDMENT 2, written before the budget bound. It never reached a declarer, so it carries none
+  # of the information that makes this campaign's central claim conditional. ATTEMPTS is the
+  # separate, cruder guard that keeps a dying machine from looping forever.
+  case "$v" in
+    VOID-*|NO-FILE|"") echo "  -> void, classifies nothing; re-probing WITHOUT spending budget"
+                       continue ;;
+  esac
+  spent=$((spent + 1))
 
   case "$v" in
     ABSENT) ;;
@@ -51,7 +65,16 @@ for ((i = 1; i <= MAX; i++)); do
         ./_probe_process_sentinel.sh "${PREFIX}screen${i}" 2>&1)
   s=$(verdict_of "$out")
   echo "  screen verdict: ${s:-<none>}"
-  if [[ "$s" != "ABSENT" && "$s" != ABBREVIATED* ]]; then
+  # ⚠️ NULL MEANS ABSENT, AND THIS LINE HAD IT WRONG UNTIL 17 AUGUST 00:4x. It read
+  #     if [[ "$s" != "ABSENT" && "$s" != ABBREVIATED* ]]
+  # i.e. it would have accepted a process whose CONTENT-FREE edit moved the declarer to
+  # ABBREVIATED. That is not a null — 11 August's whole correction was that ABBREVIATED is ABOVE
+  # ABSENT and that off-line edits which look inert in a binary reading are not inert at
+  # three-valued resolution. A process the placebo moves has already told you it moves for
+  # nothing, which is exactly what the screen exists to detect. No screen returned ABBREVIATED
+  # tonight, so nothing was admitted under the loose test; it is fixed before the next relaunch
+  # rather than after it mattered.
+  if [[ "$s" != "ABSENT" ]]; then
     echo "  -> NOT eligible (the content-free edit moved it, or the draw voided); re-probing"
     continue
   fi
@@ -65,5 +88,5 @@ done
 
 # ⚠️ THIS IS A RESULT, NOT A FAILURE, and the prereg says so: no eligible process within the
 # probe budget is recorded and no arm is run.
-echo "=== NO ELIGIBLE PROCESS in $MAX baseline probes — that is the registered outcome ==="
+echo "=== NO ELIGIBLE PROCESS in $MAX CLASSIFYING baseline probes — that is the registered outcome ==="
 exit 1
