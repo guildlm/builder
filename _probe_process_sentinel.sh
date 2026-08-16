@@ -108,7 +108,21 @@ wait "$DRAW" 2>/dev/null
 echo "  draw stopped after ${waited}s"
 
 if [[ ! -s "$OUT/$TARGET" ]]; then
-  echo "  VERDICT: NO-FILE — models.go never landed in ${TIMEOUT_S}s"
+  # ⚠️ "THE MODEL NEVER WROTE IT" AND "THE PROCESS UNDER TEST DIED" ARE NOT THE SAME ROW, and
+  # until 16 August both were recorded as NO-FILE. That night pid 68231 was killed mid-arm by the
+  # Metal driver (kIOGPUCommandBufferCallbackErrorImpactingInteractivity) and the ledger row for
+  # that arm was indistinguishable from a slow draw — in a campaign whose every claim is
+  # conditional on process identity, "the process is gone" is the single most important thing a
+  # row can say. It is now its own verdict, and the runner aborts the series on it.
+  if ! kill -0 "$PID" 2>/dev/null; then
+    echo "  VERDICT: VOID-SERVER-DIED — server pid $PID is gone; this arm classifies NOTHING"
+    record VOID-SERVER-DIED
+    exit 5
+  fi
+  # ⚠️ AND THE NUMBER IS THE ONE THAT HAPPENED. The old line printed ${TIMEOUT_S} unconditionally,
+  # so an arm whose draw exited after 465s reported "never landed in 1500s" — a false number in a
+  # log, which is the exact failure this repo has a standing rule against.
+  echo "  VERDICT: NO-FILE — models.go never landed; gave up after ${waited}s (limit ${TIMEOUT_S}s)"
   record NO-FILE
   exit 5
 fi

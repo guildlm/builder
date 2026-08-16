@@ -157,3 +157,18 @@ up the scale. The narrowing is written into that experiment's prereg as an amend
 2026-08-15T16:23:42  pid=36921   label=p5-baseclose2      spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
 2026-08-16T21:56:04  pid=68231   label=ax-b1              spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
 2026-08-16T22:07:47  pid=68231   label=ax-screen1         spec=ledger-ownplacebo.yaml       VERDICT=ABSENT
+2026-08-16T22:14:42  pid=68231   label=ax-paraphrase      spec=ledger-sentinelline-placebo.yaml VERDICT=LONG
+2026-08-16T22:22:31  pid=68231   label=ax-F4              spec=ledger-linefloor-4.yaml      VERDICT=NO-FILE
+
+⚠️ 2026-08-16 — pid 68231 WAS KILLED MID-ARM BY THE GPU DRIVER, NOT BY THE PROTOCOL.
+The row `ax-F4 ... VERDICT=NO-FILE` above is not a slow draw and not a model that declined to
+write the file: mlx_lm.server died during that arm with
+    libc++abi: terminating due to uncaught exception of type std::runtime_error:
+    [METAL] Command buffer execution failed: Impacting Interactivity
+(logs/mlx-server-restart-214717.out, prompt cache at 5.20 GB across 10 sequences). The runner's
+pid re-check aborted the series at the next arm rather than drawing it against whatever process
+came up later. THE THREE ROWS BEFORE IT STAND AS DRAWN — ax-b1 ABSENT 3a78b0d8, ax-screen1 null,
+ax-paraphrase LONG 649bdef7 — and the axis arms were never reached on this process.
+⚠️ The probe now records VOID-SERVER-DIED for exactly this case; NO-FILE is reserved for a draw
+that ran to its limit with a live server. This row predates that fix and is left as it was
+written, which is why it needs this note.

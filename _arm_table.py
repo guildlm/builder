@@ -108,9 +108,44 @@ def differs_elsewhere(base: pathlib.Path, spec: pathlib.Path, target: str) -> bo
     return any(k != target and pa.get(k) != pb.get(k) for k in set(pa) | set(pb))
 
 
+# ⚠️ VERDICTS THAT CLASSIFY NOTHING. A row with one of these is not an arm — the draw failed, or
+# the process died under it, or the tree was repaired. Added 16 August, when the Metal driver
+# killed pid 68231 in the middle of an arm and the resulting VOID row stopped the whole table:
+# every arm drawn on that process became unreadable because ONE row had no tree. Dropping them
+# silently would be worse than refusing, so they are dropped LOUDLY — see `Rows.dropped`, which
+# render() prints and the tally reprints. A void row that DOES have a tree still refuses: then the
+# verdict and the artefact disagree, and that is the thing this tool exists to catch.
+NON_CLASSIFYING = ("NO-FILE", "VOID-REPAIRED", "VOID-CLASSIFIER", "VOID-SERVER-DIED")
+
+
+class Rows(list):
+    """The classifying arms — which REMEMBERS what it dropped, so nothing leaves without a line."""
+
+    dropped = ()
+
+
 def build(root: pathlib.Path, prefix: str, baseline: str, target: str = TARGET,
-          pid: str = "") -> list:
+          pid: str = "") -> Rows:
     rows = read_ledger(root / "logs" / "PROBE-LEDGER.txt", prefix, pid)
+
+    dropped = []
+    kept = []
+    for r in rows:
+        if r["verdict"] in NON_CLASSIFYING:
+            tree = root / "generated" / f"probe-{r['label']}" / target
+            if tree.is_file():
+                raise Refuse(
+                    f"{r['label']}: the ledger says {r['verdict']} — a verdict that means no arm "
+                    f"was measured — but a tree exists at {tree}. One of the two is lying and "
+                    f"guessing which is how a void draw becomes a data point")
+            dropped.append(r)
+        else:
+            kept.append(r)
+    rows = kept
+    if not rows:
+        raise Refuse(f"every row with prefix {prefix!r}"
+                     + (f" on pid {pid}" if pid else "")
+                     + f" is non-classifying ({', '.join(r['verdict'] for r in dropped)})")
 
     pids = {r["pid"] for r in rows}
     if len(pids) > 1:
@@ -149,7 +184,9 @@ def build(root: pathlib.Path, prefix: str, baseline: str, target: str = TARGET,
 
         out.append({"label": r["label"], "pid": r["pid"], "spec": r["spec"], "delta": delta,
                     "elsewhere": elsewhere, "verdict": now, "sha": sha, "ts": r["ts"]})
-    return out
+    result = Rows(out)
+    result.dropped = tuple(dropped)
+    return result
 
 
 def render(rows: list) -> str:
@@ -163,6 +200,9 @@ def render(rows: list) -> str:
     if any(r.get("elsewhere") for r in rows):
         lines.append("    * the delta is measured AT THE TARGET; this spec's edit is at a "
                      "DIFFERENT purpose, so +0 here does not mean no edit")
+    for d in getattr(rows, "dropped", ()):
+        lines.append(f"    DROPPED  {d['label']}  {d['spec']}  {d['verdict']} — classifies "
+                     f"nothing, counted nowhere, printed here so it is not invisible")
     return "\n".join(lines)
 
 
@@ -229,6 +269,38 @@ def self_test() -> int:
             chk("missing tree refuses", False)
         except Refuse:
             pass
+
+    # ⚠️ THE 16 AUGUST CASE: a draw the process died under. It must not stop the table, must not
+    # be counted, and must not vanish — all three, or the next crash costs a session's arms.
+    with tempfile.TemporaryDirectory() as tmp:
+        root = fixture(tmp, "LONG", 'ErrInsufficientFunds = errors.New("x")')
+        (root / "logs" / "PROBE-LEDGER.txt").write_text(
+            "2026-01-01T00:00:00  pid=1  label=t-a  spec=treated.yaml VERDICT=LONG\n"
+            "2026-01-01T00:00:01  pid=1  label=t-dead spec=treated.yaml VERDICT=VOID-SERVER-DIED\n")
+        rows = build(root, "t-", "specs/base.yaml")
+        chk("a void row does not stop the table", len(rows) == 1)
+        chk("the void row is remembered", [d["label"] for d in rows.dropped] == ["t-dead"])
+        chk("and render names it", "DROPPED" in render(rows) and "t-dead" in render(rows))
+
+    # a void row that HAS a tree is a contradiction and must still refuse
+    with tempfile.TemporaryDirectory() as tmp:
+        root = fixture(tmp, "NO-FILE", 'ErrInsufficientFunds = errors.New("x")')
+        try:
+            build(root, "t-", "specs/base.yaml")
+            chk("a void verdict with a tree refuses", False)
+        except Refuse as e:
+            chk("that refusal names the contradiction", "no arm was measured" in str(e))
+
+    # and a series that is ONLY void rows is not a table with zero arms, it is a refusal
+    with tempfile.TemporaryDirectory() as tmp:
+        root = fixture(tmp, "LONG", 'x', drop_tree=True)
+        (root / "logs" / "PROBE-LEDGER.txt").write_text(
+            "2026-01-01T00:00:00  pid=1  label=t-a  spec=treated.yaml VERDICT=NO-FILE\n")
+        try:
+            build(root, "t-", "specs/base.yaml")
+            chk("an all-void series refuses", False)
+        except Refuse as e:
+            chk("it says why", "non-classifying" in str(e))
 
     with tempfile.TemporaryDirectory() as tmp:
         root = fixture(tmp, "LONG", 'ErrInsufficientFunds = errors.New("x")')
