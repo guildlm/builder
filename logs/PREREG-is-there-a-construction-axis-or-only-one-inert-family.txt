@@ -240,3 +240,30 @@ NEW ORDER (registered arms only; the optional list is unchanged):
 in it has been drawn on the new process, no registered probability is touched, and the reordering
 is in the direction that gets the RISKIEST arms measured first — the opposite of the direction
 that would protect a favoured outcome.
+
+--------------------------------------------------------------------------------------------
+AMENDMENT 2 — written while the hunt is running and BEFORE any eligible process is found
+16 August. This is a bookkeeping decision about the PROBE BUDGET, made at the only honest moment:
+before I know whether the budget will bind, and before any arm of the new series exists.
+
+THE SITUATION. The machine's GPU watchdog is killing mlx_lm.server mid-draw
+(kIOGPUCommandBufferCallbackErrorImpactingInteractivity). Three of the first four baseline probes
+of the ax2- series died that way, one after passing the baseline gate and dying on the screen.
+
+THE DECISION. A probe that ends VOID-SERVER-DIED **classifies no process** — it is not a
+discarded LONG, it is not a discarded ABBREVIATED, it is an attempt that produced no verdict at
+all. The registered budget ("max 10 probes") is a budget on CLASSIFYING baseline probes, and void
+attempts do not consume it. The ledger records every attempt either way; the two counts are
+reported separately in the result log, so a reader can apply whichever rule they prefer.
+
+⚠️ WHY THIS IS NOT A LICENCE TO PROBE FOREVER: the discarded-probe count is what makes the
+campaign's central claim CONDITIONAL ("among processes whose declarer gets the name wrong..."),
+and a void attempt carries none of that information because it never reached a declarer. The
+conditional claim is unaffected by how many times the GPU died. The effort cap stands at 10
+classifying baseline probes and is not being raised.
+
+⚠️ THE HUNT SCRIPT AS RUN TONIGHT COUNTS ALL ATTEMPTS, including void ones, against its loop
+limit — i.e. it is STRICTER than this amendment, not looser. It was not edited mid-run, because
+bash reads a script lazily and editing a running one is how a protocol silently becomes a
+different protocol halfway through. If it exhausts, the relaunch will count classifying probes
+only, and the result log will say which rule produced the process that hosted the arms.

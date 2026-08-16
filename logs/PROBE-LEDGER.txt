@@ -172,3 +172,7 @@ ax-paraphrase LONG 649bdef7 — and the axis arms were never reached on this pro
 ⚠️ The probe now records VOID-SERVER-DIED for exactly this case; NO-FILE is reserved for a draw
 that ran to its limit with a live server. This row predates that fix and is left as it was
 written, which is why it needs this note.
+2026-08-16T22:33:00  pid=7482    label=ax2-b1             spec=ledger-origorder-baseline.yaml VERDICT=VOID-SERVER-DIED
+2026-08-16T22:42:55  pid=8319    label=ax2-b2             spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-16T22:46:39  pid=8319    label=ax2-screen2        spec=ledger-ownplacebo.yaml       VERDICT=VOID-SERVER-DIED
+2026-08-16T22:52:42  pid=10172   label=ax2-b3             spec=ledger-origorder-baseline.yaml VERDICT=VOID-SERVER-DIED
