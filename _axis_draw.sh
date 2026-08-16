@@ -26,30 +26,33 @@ cd "$(dirname "$0")"
 PORT="${PORT:-8137}"
 PID="${PID:-}"
 ONLY="${ONLY:-registered}"
+# ⚠️ THE PREFIX IS A PARAMETER BECAUSE A SERIES IS A PROCESS. pid 68231 died mid-series on
+# 16 August; its three drawn rows keep the `ax-` prefix and the next process gets its own. A
+# prefix reused across two pids is the collision _arm_table.py caught on 11 August.
+PREFIX="${PREFIX:-ax-}"
 
 [[ -n "$PID" ]] || { echo "REFUSING: set PID to the eligible process (see the ledger)"; exit 2; }
 
-# label:spec — the registered order. base-close arms sit where the prereg puts them: after the
-# anchors, after the new pair, and after the redraws, so each block is bracketed by a baseline
-# that must come back ABSENT and byte-identical or the block is void.
+# suffix:spec — the order registered in AMENDMENT 1 (16 August): the anchor, then the two arms
+# that have never been drawn anywhere, then the well-known one. base-close arms bracket each
+# block; each must come back ABSENT and byte-identical or the block it closes is void.
 REGISTERED=(
-  "ax-paraphrase:specs/ledger-sentinelline-placebo.yaml"   # HIGH ANCHOR, replace family, 4 of 4
-  "ax-F4:specs/ledger-linefloor-4.yaml"                    # pad anchor, ladder's 6th process
-  "ax-baseclose:specs/ledger-origorder-baseline.yaml"
-  "ax-R1:specs/ledger-consaxis-rep1.yaml"                  # NEW, replace  "each one of these"
-  "ax-G1:specs/ledger-consaxis-pad1.yaml"                  # NEW, pad      "all of them below"
-  "ax-baseclose2:specs/ledger-origorder-baseline.yaml"
-  "ax-R1-redraw:specs/ledger-consaxis-rep1.yaml"           # registered: BOTH new arms redraw
-  "ax-G1-redraw:specs/ledger-consaxis-pad1.yaml"
-  "ax-baseclose3:specs/ledger-origorder-baseline.yaml"
+  "paraphrase:specs/ledger-sentinelline-placebo.yaml"   # HIGH ANCHOR, replace family, 5 of 5
+  "R1:specs/ledger-consaxis-rep1.yaml"                  # NEW, replace  "each one of these"
+  "G1:specs/ledger-consaxis-pad1.yaml"                  # NEW, pad      "all of them below"
+  "baseclose:specs/ledger-origorder-baseline.yaml"
+  "F4:specs/ledger-linefloor-4.yaml"                    # pad anchor, ladder's 6th process
+  "R1-redraw:specs/ledger-consaxis-rep1.yaml"           # registered: BOTH new arms redraw
+  "G1-redraw:specs/ledger-consaxis-pad1.yaml"
+  "baseclose2:specs/ledger-origorder-baseline.yaml"
 )
 
 # explicitly optional in the prereg; their absence is not a gap
 OPTIONAL=(
-  "ax-L6:specs/ledger-linedose-6.yaml"                     # +14 low anchor, ABSENT 6 of 6
-  "ax-F1:specs/ledger-linefloor-1.yaml"                    # +15, the sharpest single arm
-  "ax-shipped:specs/ledger-origorder.yaml"                 # +51 positive control
-  "ax-baseclose4:specs/ledger-origorder-baseline.yaml"
+  "L6:specs/ledger-linedose-6.yaml"                     # +14 low anchor, ABSENT 6 of 6
+  "F1:specs/ledger-linefloor-1.yaml"                    # +15, the sharpest single arm
+  "shipped:specs/ledger-origorder.yaml"                 # +51 positive control
+  "baseclose3:specs/ledger-origorder-baseline.yaml"
 )
 
 case "$ONLY" in
@@ -58,9 +61,9 @@ case "$ONLY" in
   *) echo "REFUSING: ONLY must be 'registered' or 'optional'"; exit 2 ;;
 esac
 
-echo "=== axis series on pid $PID · ${#ARMS[@]} arms · $ONLY ==="
+echo "=== axis series on pid $PID · ${#ARMS[@]} arms · $ONLY · prefix $PREFIX ==="
 for entry in "${ARMS[@]}"; do
-  label="${entry%%:*}"
+  label="${PREFIX}${entry%%:*}"
   spec="${entry#*:}"
 
   now=$(PORT="$PORT" ./_server_pid.sh) || { echo "ABORT: cannot identify the server"; exit 3; }
@@ -74,4 +77,4 @@ for entry in "${ARMS[@]}"; do
   RESTART=0 ROLE=treated SPEC="$spec" PORT="$PORT" ./_probe_process_sentinel.sh "$label" \
     | sed -n 's/^  VERDICT/  VERDICT/p;s/^  REFUSING/  REFUSING/p;s/^  draw stopped/  draw stopped/p'
 done
-echo "=== done · assemble with: .venv/bin/python ./_arm_table.py --prefix ax- --pid $PID ==="
+echo "=== done · assemble with: .venv/bin/python ./_arm_table.py --prefix $PREFIX --pid $PID ==="
