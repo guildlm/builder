@@ -1,0 +1,194 @@
+RESULT — TWO ELIGIBLE PROCESSES DIED BEFORE A SINGLE AXIS ARM
+==============================================================================================
+16-17 August. Prereg: logs/PREREG-is-there-a-construction-axis-or-only-one-inert-family.txt
+(committed 787d70c, before the first probe; amendments 1-3 and one in-place correction, each
+committed before the arms they cover — none of which were ever drawn).
+
+⚠️ THE HEADLINE IS A NEGATIVE ONE AND IT IS NOT THE HYPOTHESIS'S FAULT. The construction axis was
+NOT tested tonight. Neither R1 nor G1 — the two arms the whole design turns on — was ever drawn,
+because the machine's GPU watchdog killed mlx_lm.server in the middle of 13 of 28 draws, including
+both eligible processes. What follows is what the night actually bought, separated into what was
+MEASURED, what was CORRECTED, and what is now READY. Nothing here is evidence about the axis.
+
+----------------------------------------------------------------------------------------------
+1. WHAT THE PROBING BOUGHT — counted by `_draw_hazard.py --session`, not by memory
+----------------------------------------------------------------------------------------------
+    processes probed                 17
+    ABSENT at baseline (informative)  8
+      of those, lost when the SCREEN draw died     4
+      of those, discarded because the SCREEN FLIPPED THEM     2
+    ELIGIBLE (both gates)             2
+      pid 68231    arms drawn 2   ended: died
+      pid 29821    arms drawn 1   ended: died
+    treated arms ATTEMPTED            3
+    treated arms that MEASURED one    1
+    rows that classify something     15 of 28
+
+The registered probe budget (10 CLASSIFYING baseline probes; amendment 2 exempted the ones the
+GPU killed, and that amendment was written before the budget bound) is SPENT. The registered
+outcome for exhausting it is "that IS the result, recorded, and no arm is run".
+
+⚠️ P(an eligible process within 10 probes) = 0.65 → HIT, twice over. The prereg's failure mode was
+"no eligible process"; what happened was "two eligible processes and no surviving series", which
+it did not contemplate. That gap is the night's methodological finding, not an excuse.
+
+----------------------------------------------------------------------------------------------
+2. THE ONE ARM THAT WAS MEASURED — the anchor, and it reproduced
+----------------------------------------------------------------------------------------------
+`_arm_table.py --prefix ax- --pid 68231` (four independent records cross-checked per row):
+
+    arm            spec                              delta  verdict     sha
+    ax-b1          ledger-origorder-baseline.yaml       +0   ABSENT      3a78b0d8
+    ax-screen1     ledger-ownplacebo.yaml              +54   ABSENT      3a78b0d8
+    ax-paraphrase  ledger-sentinelline-placebo.yaml    +20   LONG        649bdef7
+    DROPPED  ax-F4  ledger-linefloor-4.yaml  NO-FILE — classifies nothing, counted nowhere
+
+    P(paraphrase +20 is LONG)                = 0.80  → HIT
+    P(paraphrase writes 649bdef7 | LONG)     = 0.80  → HIT
+    P(base ABSENT is byte-identical 3a78b0d8)= 0.85  → HIT on this process
+
+So the paraphrase is now LONG on 5 of 5 screened processes, writing the same bytes every time,
+and `_size_floor_tally.py` counts it at exactly +20 as 5 of 5. That is the single most reliable
+object in this archive — and section 5 is about why that is now the most suspicious fact in it,
+rather than the most reassuring.
+
+⚠️ THE SCREEN ON pid 68231 WROTE THE SAME BYTES AS ITS BASELINE (3a78b0d8). The +54 content-free
+edit did not move one character of the declaration. That is the strongest form the screen has
+ever taken on a process that then went on to flip for a +20 edit, and it is worth more than the
+verdict alone: null here means byte-null, not merely same-class.
+
+----------------------------------------------------------------------------------------------
+3. THE HAZARD, MEASURED — and the amendment it falsified
+----------------------------------------------------------------------------------------------
+    position on its process       draws   died  no-file  rate
+    1st draw (fresh restart)         17      7        0    41%
+    draw 2 (RESTART=0)                8      5        0    62%
+    draw 3 (RESTART=0)                2      1        0    50%
+    draw 4 (RESTART=0)                1      0        1   100%
+
+    FIRST draws 7 of 17 lost (41%)   ·   LATER draws 6 of 11 lost (55%)
+
+Cause, from the server logs: `libc++abi: terminating due to uncaught exception of type
+std::runtime_error: [METAL] Command buffer execution failed: Impacting Interactivity`. The macOS
+GPU watchdog is killing long compute command buffers under contention. It is not the model, not
+the spec, and not the protocol — and it is invisible to every check this campaign owns except the
+one that noticed the process was gone.
+
+📌 **AMENDMENT 3 SAID THE OPPOSITE AND IT WAS MINE.** Off eleven rows counted by eye I wrote that
+the deaths were position-independent and that "the prompt-cache-growth story I would have guessed
+is not what the ledger says". Four rows later it was 25% against 57%. The amendment is left in
+place with the correction under it. NINTH hand-counted number this campaign has had to fix, and
+the first one caught the same night, before any result log quoted it — which is only true because
+the fix was to build `_draw_hazard.py` rather than to recount.
+
+⚠️ WHAT THE HAZARD NUMBER DOES NOT SAY: position and spec are confounded by the design. Every arm
+after the first is RESTART=0, and on this hunt every second draw was the same +54 screen spec —
+the longest prompt in the set. n=11 cannot separate "later draws die" from "that spec dies". The
+tool prints both tables side by side for that reason.
+
+----------------------------------------------------------------------------------------------
+4. THE UNTREATED BASELINE IS **NOT** ALWAYS BYTE-IDENTICAL — 7 of 8, and the 8th is instructive
+----------------------------------------------------------------------------------------------
+Across the eight ABSENT-at-baseline trees drawn tonight on eight different processes:
+
+    3a78b0d8   7 of 8      <- the archive's untreated declaration
+    6522418c   1 of 8      <- pid 12198
+
+Before tonight this was 8 of 8 and the registered probability said 0.85. The odd tree is still
+ABSENT — the classifier agrees, checked — and what differs is OUTSIDE the declaration:
+
+    +  balance money.Money        (an extra unexported field on Account)
+    -  func (a Account) Validate()  ->  func (a *Account) Validate()   (pointer receivers)
+
+📌 This is the 10 August correction arriving from a new direction: **the endpoint is the
+DECLARATION, not byte-identity.** A campaign that had quietly started treating "3a78b0d8" as the
+definition of an untreated draw would have called this process anomalous; it is not anomalous, it
+is a process that wrote the same declaration inside a different file. Byte-identity is a bonus
+when it is available and never the criterion.
+
+----------------------------------------------------------------------------------------------
+5. THE ARCHIVE RECOMPUTED UNDER THE PROPOSED AXIS — the number that motivated the design
+----------------------------------------------------------------------------------------------
+`_size_floor_tally.py` now derives a construction AXIS from each spec's rendered text (declared
+per spec AND derived, disagreement stops the tally) instead of only asking "is this the adverb
+ladder?". Pooled over six screened processes, on-line arms:
+
+    construction AXIS          size                   n   reached LONG   above ABSENT
+    quantifier pad             <=+14                  7       0 of 7          0 of 7
+    quantifier pad             the gap (+15..+19)     9       2 of 9          2 of 9
+    quantifier pad             >=+20                  3       1 of 3          1 of 3
+    quantifier replacement     >=+20                  5       5 of 5          5 of 5
+
+    SIZE-MATCHED at exactly +20 — the comparison with no size term left in it
+    quantifier pad             3 arms    1 LONG   (p4 LONG · p5 ABSENT x2)
+    quantifier replacement     5 arms    5 LONG   (p1, p3, p4, p5, p6)
+
+📌 **AND THE WHOLE RIGHT-HAND COLUMN IS ONE SENTENCE.** All five replacement rows are the SAME
+SPEC — the paraphrase — drawn once per process. A family of one wording is not a family, so the
+clean-looking split above is exactly as consistent with "this one sentence flips the model" as
+with any axis. THAT is what R1 ("each one of these", never drawn) was built to break, and it is
+why the night's failure is a real cost rather than a delay: the archive cannot answer this
+question with any arm it already contains.
+
+----------------------------------------------------------------------------------------------
+6. FOUR INSTRUMENT CATCHES, none of them about the hypothesis
+----------------------------------------------------------------------------------------------
+(a) THE PROBE CALLED A DEAD SERVER "NO-FILE" AND PRINTED A TIMEOUT THAT HAD NOT ELAPSED. A draw
+    that stopped at 465s reported "never landed in 1500s". Now: VOID-SERVER-DIED is its own
+    verdict — in a campaign whose every claim is conditional on process identity, "the process is
+    gone" is the most important thing a row can say — and the number printed is the one that
+    happened.
+(b) ONE NON-CLASSIFYING ROW STOPPED THE ENTIRE ARM TABLE, which meant a single GPU kill made
+    every arm already drawn on that process unreadable. Void rows are now dropped LOUDLY
+    (`Rows.dropped`, printed by render and by the tally); a void row that HAS a tree still
+    refuses, because then the verdict and the artefact contradict each other.
+(c) THE ELIGIBILITY GATE WOULD HAVE ACCEPTED AN ABBREVIATED SCREEN. Null means ABSENT: a process
+    the content-free edit moves has already announced that it moves for nothing. This violated 11
+    August's own correction (ABBREVIATED is ABOVE ABSENT) and was fixed before any process was
+    admitted under it — no screen returned ABBREVIATED tonight, so nothing was let in.
+(d) THE LABEL PREFIX `p6-` WAS ALREADY TAKEN — 6 August, pid 38950, same spec, same ABSENT
+    verdict. Caught before the first probe by checking the ledger, which is the same collision
+    `_arm_table.py` caught with `p3-` on 11 August. Tonight's series is `ax-`/`ax2-`.
+
+----------------------------------------------------------------------------------------------
+7. WHAT IS READY, AND WHAT THE NEXT SESSION SHOULD DO
+----------------------------------------------------------------------------------------------
+Built, self-tested, committed, and NEVER DRAWN:
+
+    G1  specs/ledger-consaxis-pad1.yaml   +20  "all of them below"   pad, non-adverbial
+    R1  specs/ledger-consaxis-rep1.yaml   +20  "each one of these"   replacement, second wording
+
+Both verified by `_mkvariant_construction_axis.py --self-test`: 17-character slots, exactly +20,
+region one byte-identical to the ladder's, exactly two substitutions restore the baseline, family
+DERIVED from the rendered text. The prereg, its three amendments and its correction stand as
+written; the arms are unchanged; the registered probabilities are unspent.
+
+⏭️ NEXT, in order:
+  (0) Draw R1 and G1 on the first eligible process, with the paraphrase anchor first — i.e. run
+      exactly `_axis_hunt.sh`, which now hunts and draws as one job because an eligible process
+      that sits idle is one that can die idle.
+  (1) The GPU hazard is an environment property, not a protocol one. If it persists, the honest
+      options are: draw when the machine is otherwise idle, or accept that a series longer than
+      three arms will rarely complete and design series that short. ⚠️ DO NOT change the server's
+      launch flags to make it more robust — every process in this archive was launched by the
+      same `_server_restart.sh`, and a differently-configured server is a different object.
+  (2) The ladder's sixth process (open item 0 from 15 August) is still unanswered: F4 was drawn
+      twice tonight and killed both times.
+
+----------------------------------------------------------------------------------------------
+8. REGISTERED PREDICTIONS — scored, including the ones that cannot be
+----------------------------------------------------------------------------------------------
+    P(eligible process within 10 classifying probes)  0.65  HIT (two)
+    P(base ABSENT byte-identical 3a78b0d8)            0.85  HIT on p6 · 7 of 8 across the night
+    P(paraphrase +20 LONG)                            0.80  HIT
+    P(paraphrase writes 649bdef7 | LONG)              0.80  HIT
+    P(a given ABSENT process also passes the screen)  0.50  1 of 3 completed screens passed
+    P(R1 LONG) · P(G1 ABSENT) · P(clean 2x2) · P(F4 ABSENT) · P(R1 above G1) · everything else
+                                                            NOT REACHED — no arm was drawn
+
+460 pytest / 0 fail · 69 instruments / 0 fail.
+
+📌 I typed "70 instruments" in the line above from memory and `_selftest_all.sh` says 69. TENTH
+hand-typed number, caught before commit by running the thing rather than trusting the count of
+what I remembered adding. It is a trivial number and that is the point: the rule is not "check
+the important ones".
