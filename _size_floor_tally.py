@@ -47,7 +47,12 @@ BASELINE = "specs/ledger-origorder-baseline.yaml"
 # screen). Nothing else is poolable: 10 August's placebo screen disqualified 3 of 4 informative
 # processes, and the unscreened series cannot separate treatment from process.
 SERIES = [("p1", "46375", "s-"), ("p2", "71833", "r2-"), ("p3", "4691", "p3-"),
-          ("p4", "4970", "f-"), ("p5", "36921", "p5-")]
+          ("p4", "4970", "f-"), ("p5", "36921", "p5-"),
+          # p6 is a THREE-ROW series: baseline, screen, anchor. The GPU killed the process on its
+          # fourth draw, before any axis arm. It is listed because its anchor row is real and
+          # counts, and leaving it out because the session was cut short is how a pooled table
+          # quietly becomes a table of the sessions that went well.
+          ("p6", "68231", "ax-")]
 
 # ⚠️ DECLARED, NOT INFERRED. Every spec that can appear in these series is named here with where
 # its edit lands relative to the declaration line in models.go's purpose.
@@ -201,8 +206,13 @@ def axis_of(spec: str) -> str:
     return declared
 
 
+DROPPED = []   # ⚠️ module-level ONLY so main() can print what every series threw away
+
+
 def rows_for(name, pid, prefix):
     rows = _arm_table.build(HERE, prefix, BASELINE, pid=pid)
+    for d in getattr(rows, "dropped", ()):
+        DROPPED.append((name, d["label"], d["spec"], d["verdict"]))
     for r in rows:
         spec = r["spec"]
         if spec not in LOCATION:
@@ -327,7 +337,12 @@ def main() -> int:
             print(f"REFUSING ({name}, pid {pid}): {e}")
             return 2
 
-    print(f"  pooled over {len(SERIES)} screened processes, {len(rows)} ledger rows\n")
+    print(f"  pooled over {len(SERIES)} screened processes, {len(rows)} ledger rows")
+    # ⚠️ PRINTED EVERY RUN, not only when it is convenient. A draw the GPU killed counts nowhere,
+    # and a table that silently omits it looks exactly like a table where it never happened.
+    for series, label, spec, verdict in DROPPED:
+        print(f"    dropped: {series}/{label} ({spec}) {verdict} — classifies nothing")
+    print()
     print(f"    {'location':<14} {'size':<20} {'n':>3}  {'reached LONG':>13}  {'above ABSENT':>13}")
     t = tally(rows)
     for key in sorted(t, key=lambda k: (k[0], k[1])):
