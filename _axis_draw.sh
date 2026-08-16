@@ -41,11 +41,11 @@ REGISTERED=(
   "R1:specs/ledger-consaxis-rep1.yaml"                  # NEW, replace  "each one of these"
   "G1:specs/ledger-consaxis-pad1.yaml"                  # NEW, pad      "all of them below"
   "baseclose:specs/ledger-origorder-baseline.yaml"
-  "F4:specs/ledger-linefloor-4.yaml"                    # pad anchor, ladder's 6th process
-  "R1-redraw:specs/ledger-consaxis-rep1.yaml"           # registered: BOTH new arms redraw
-  "G1-redraw:specs/ledger-consaxis-pad1.yaml"
+  "R1-redraw:specs/ledger-consaxis-rep1.yaml"           # registered: BOTH new arms redraw, and
+  "G1-redraw:specs/ledger-consaxis-pad1.yaml"           # without them the axis claim cannot be made
   "baseclose2:specs/ledger-origorder-baseline.yaml"
-)
+  "F4:specs/ledger-linefloor-4.yaml"                    # LAST (amendment 3): a third reading of an
+)                                                       # arm two processes already answered
 
 # explicitly optional in the prereg; their absence is not a gap
 OPTIONAL=(
