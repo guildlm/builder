@@ -207,3 +207,36 @@ cross-checks four independent records per arm and REFUSES on any mismatch. The p
 counts come from `_size_floor_tally.py`, whose axis column is declared per spec AND derived from
 the spec text, with a disagreement stopping the tally. Nothing in the result log is hand-counted —
 that rule exists because hand counting has produced a wrong number nine times in this campaign.
+
+--------------------------------------------------------------------------------------------
+AMENDMENT 1 — written after pid 68231 died and BEFORE the next process is probed
+16 August. Nothing about the hypothesis, the arms, or the registered numbers changes. What
+changes is the ORDER, and the reason is an observed hazard rather than a result.
+
+WHAT HAPPENED. pid 68231 was eligible on the FIRST probe (ABSENT 3a78b0d8 at baseline, null on
+the +54 content-free screen), the high anchor came back LONG 649bdef7 — the paraphrase's fifth
+process, fifth time, same bytes — and the GPU driver then killed the server in the middle of the
+SECOND arm. The series ended with the anchor drawn and neither new arm reached.
+
+THE HAZARD IS NOW A MEASURED QUANTITY, NOT A WORRY: a process can die at any arm, and the arms
+that have never been drawn are the ones a death is expensive for. The old order spent the second
+slot on F4 — an arm already drawn on two processes — while R1 and G1, which no process has ever
+seen, sat in slots four and five.
+
+NEW ORDER (registered arms only; the optional list is unchanged):
+
+    base · screen · paraphrase +20 (HIGH ANCHOR) · R1 +20 · G1 +20 · base-close
+         · F4 +20 · R1-redraw · G1-redraw · base-close-2
+
+    paraphrase stays first because without it on THIS process nothing below is interpretable —
+    that is the whole point of an anchor and it does not move for convenience.
+    R1 stays ahead of G1 for the reason already registered: a null there ends the hypothesis and
+    makes G1 unreadable.
+    F4 moves BEHIND the new pair. It is not needed to read G1 — G1's contrast is against the
+    paraphrase, same process, same +20, same two regions — and it is the arm the archive already
+    knows most about (ABSENT x2 on p5, LONG on p4).
+
+⚠️ THIS AMENDMENT CANNOT LAUNDER A RESULT AND HERE IS WHY, STATED SO IT CAN BE CHECKED: no arm
+in it has been drawn on the new process, no registered probability is touched, and the reordering
+is in the direction that gets the RISKIEST arms measured first — the opposite of the direction
+that would protect a favoured outcome.
