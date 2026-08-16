@@ -1,0 +1,202 @@
+PREREG — is there a CONSTRUCTION AXIS, or is there only one inert family?
+================================================================================
+16 August, committed BEFORE the first probe of the day. pid 36921 (p5) died with the machine, so
+nothing can be added to it; p1-p4 are long dead. This needs a SIXTH process, screened the same way.
+
+⚠️ THIS IS NOT A SIZE QUESTION AND NOT A RESCUE OF ONE. The size account died on 13 and 15 August.
+Every arm below is +20, on the same line, in the same two regions, with the same five names.
+
+WHAT 15 AUGUST ESTABLISHED, AND THE LIMIT IT WROTE DOWN ITSELF
+    Splitting the archive by CONSTRUCTION rather than size gave two clean rules where the size
+    table had one ragged one. But the split was "the adverb ladder" against "everything else",
+    and everything else differs from the ladder in several ways at once — bigger, or naming
+    `var`, or moving more regions. That log's own words: this is ONE construction against the
+    rest, "evidence that a size-matched INERT family exists, not yet a general construction axis."
+
+    Computed now by `_size_floor_tally.py` (5 screened processes, 65 rows, on-line arms):
+
+        quantifier pad          <=+14      0 of 7 LONG
+        quantifier pad       +15..+19      2 of 9
+        quantifier pad          >=+20      1 of 3       <- 3 of 19 overall, ALL THREE on pid 4970
+        quantifier replacement  >=+20      4 of 4       <- but ONE WORDING drawn on four processes
+        not a slot arm          >=+20      7 of 7       (the big rewrites)
+
+    ⚠️ THE WEAKNESS THAT MOTIVATES TODAY, stated as a number rather than a worry: the entire
+    "replacement" column is the SAME SPEC — the paraphrase — drawn once per process. A family of
+    one wording is not a family. Everything that looks like a construction effect in that table
+    is equally consistent with "this one sentence flips it and the others do not".
+
+THE AXIS THIS PROPOSES. Take the declaration heading and look only at the quantifier slot:
+
+        Sentinel errors, all matchable with errors.Is: <five names>
+                         ^^^
+
+    PAD      keep "all" as the head and append to it        ("all quite readily")
+    REPLACE  remove "all", put a different phrase there     ("every one of them")
+
+    Held FIXED across all four arms: the size (+20), the region count (2), the region identity
+    (noun phrase + slot), the tail ("matchable with errors.Is:"), the name list, and the absence
+    of any added information. Varied: whether the base quantifier survives.
+
+        family        slot                  arm                        status before today
+        pad           "all quite readily"   F4   ledger-linefloor-4    ABSENT x2 on p5, LONG on p4
+        pad           "all of them below"   G1   ledger-consaxis-pad1  NEVER DRAWN
+        replace       "every one of them"   paraphrase                 LONG on 4 of 4 processes
+        replace       "each one of these"   R1   ledger-consaxis-rep1  NEVER DRAWN
+
+    The two new specs were built and verified by `_mkvariant_construction_axis.py --self-test`:
+    each slot is 17 characters, each delta is exactly +20, region one is byte-identical to the
+    ladder's, restoring the base from the arm takes exactly two substitutions, and the family is
+    DERIVED from the rendered text, not from the file name. The tally imports that same derivation
+    rather than carrying a copy of the rule.
+
+⚠️ THE ARCHIVE ROW THAT ARGUES AGAINST ME, NAMED BEFORE THE DRAW. L5 (+13) renders "Sentinel
+error values, all of them matchable VIA errors.Is:" — it retains "all" and pads it
+non-adverbially, exactly as G1 does, and it is LONG on p1 (ABSENT on p2 and p3). It is excluded
+from the pad family by SHAPE — it rewrites the tail as well, so it moves three regions where
+every arm here moves two — and that exclusion is asserted mechanically in both tools' self-tests.
+It is nonetheless the row that would have predicted G1 LONG, and if G1 comes back LONG I will
+have been wrong in the direction I was warned about.
+
+THE THREE ACCOUNTS THIS SEPARATES (stated first so no result can be fitted afterwards)
+
+    (A) AXIS. What matters is whether the quantifier is replaced or merely padded. Predicts
+        R1 LONG and G1 ABSENT. The 15 August split generalises, the practical rule gets a
+        mechanical description, and there are then TWO inert families sharing a shape.
+    (B) ONE ANOMALOUS SENTENCE. "Every one of them" flips this model and nothing else small does.
+        Predicts R1 ABSENT (and G1 ABSENT). The construction split collapses to a fact about one
+        wording, and 15 August's "family" language was already too strong.
+    (C) WORDING-ARBITRARY. Neither family means anything; each wording is its own coin, weighted
+        by nothing the campaign has identified. Predicts no coherent pattern, and specifically
+        allows G1 LONG.
+
+    Weight going in: (A) 0.45 / (B) 0.30 / (C) 0.25. I am drawing R1 first precisely because it
+    is the arm that kills (A) fastest.
+
+PROTOCOL (both gates unchanged, in this order, no exceptions)
+    1. Probe fresh processes with specs/ledger-origorder-baseline.yaml until one returns ABSENT.
+       Max 10 probes. LONG is uninformative. ABBREVIATED-at-baseline is DISCARDED here: every arm
+       below is a movement FROM ABSENT and cannot be read from halfway up. Every probe, kept AND
+       discarded, goes in logs/PROBE-LEDGER.txt.
+    2. SCREEN with specs/ledger-ownplacebo.yaml (+54 rendered, content-free, SAME purpose, larger
+       than every arm below). A process that flips is DISCARDED and recorded. Only
+       ABSENT-at-baseline AND screen-null may host arms.
+    3. On the eligible process, RESTART=0 throughout, IN THIS ORDER:
+
+           base (= the probe from step 1) · screen +54
+           · paraphrase +20   (HIGH ANCHOR, replace family, 4 of 4)
+           · F4 +20           (pad anchor, and the ladder's sixth process)
+           · base-close
+           · R1 +20           (NEW, replace family)
+           · G1 +20           (NEW, pad family)
+           · base-close-2
+           · R1-redraw · G1-redraw · base-close-3
+           · [budget] L6 +14 · F1 +15 · shipped +51
+
+       ANCHORS FIRST, unchanged: without paraphrase and F4 on THIS process the new arms are
+       uninterpretable, and a session that runs out of budget must end with the anchors drawn.
+       R1 leads the new pair because a null there ends the day's hypothesis immediately and makes
+       G1 unreadable (a null among nulls says nothing).
+
+    ⚠️ NO NEW ARM'S VERDICT ENTERS A RESULT LOG WITHOUT ITS REDRAW. If the session ends first,
+    that arm is reported as SINGLE-DRAW and is excluded from the axis claim rather than counted
+    with a caveat. Within-process determinism has been verified for the old arms and for NEITHER
+    of the new ones.
+
+ENDPOINT — three-valued per arm: ABSENT / ABBREVIATED / LONG, plus the sha256 of models.go.
+    Scored AS-DRAWN. The endpoint is the DECLARATION, not byte-identity; the sha is reported
+    because cross-process byte-identity is itself a registered quantity. "Above ABSENT" and
+    "LONG" are tallied SEPARATELY for every claim.
+
+REGISTERED
+    P(an eligible process within 10 baseline probes)                = 0.65
+    P(a given ABSENT-at-baseline process also passes the screen)    = 0.50   (1 of 4 on 10 Aug,
+                                                                              then 2 of 2 since)
+    Given an eligible process:
+    P(base ABSENT is byte-identical 3a78b0d8)                       = 0.85
+
+    ANCHORS
+    P(paraphrase +20 is LONG)                                       = 0.80   (4 of 4)
+    P(paraphrase writes 649bdef7 | it is LONG)                      = 0.80   (4 of 4)
+    P(F4 +20 is ABSENT)                                             = 0.70   (ABSENT x2 on p5,
+                                                                              LONG on p4)
+    P(BOTH anchors behave as above — the 15 Aug contrast reproduces)= 0.55
+
+    PRIMARY — the two arms that have never been drawn anywhere
+    P(R1 +20 is LONG)                                               = 0.55
+    P(R1 is above ABSENT)                                           = 0.65
+    P(G1 +20 is ABSENT)                                             = 0.70
+    P(G1 is above ABSENT)                                           = 0.30
+
+    THE AXIS ITSELF — the registered quantity the day turns on
+    P(clean 2x2: both replacements LONG and both pads ABSENT)       = 0.35
+    P(the axis survives in the weaker form: R1 strictly above G1)   = 0.50
+    P(R1 and G1 land on the SAME value — no axis in this pair)      = 0.35
+    P(G1 strictly above R1 — the axis REVERSES)                     = 0.15
+
+    SIDE QUANTITIES
+    P(R1 writes 649bdef7 | it is LONG)                              = 0.40
+    P(any arm today writes a sha not yet in the archive)            = 0.20
+    P(either new arm's redraw DISAGREES with its first draw)        = 0.15   (0 of 6 redraws in
+                                                                              the campaign have)
+    P(L6 +14 is ABSENT | drawn)                                     = 0.85   (6 of 6)
+
+BRANCHES — written now so no result can be read into whatever I hoped for
+    R1 LONG and G1 ABSENT (clean 2x2)
+        -> account (A). The construction split generalises past the one family that suggested it:
+           two wordings that replace the quantifier flip, two that pad it do not, at one size, in
+           one slot. 15 August's claim 2 becomes an AXIS, and the shipped practical rule gets a
+           mechanical form for the first time: REPLACE the quantifier, do not extend it. I would
+           still hold that this is one slot on one line of one spec — an axis, not a law.
+    R1 ABSENT (the replacement family breaks)
+        -> account (B), and this is the result most damaging to today's hypothesis. "Replacement"
+           would then not be a family either, and the whole construction story reduces to: one
+           particular sentence flips this model, everything else at that size does not. The
+           paraphrase becomes the single most anomalous object in the archive and the only
+           sensible next target, and I would say plainly that 15 August's family language was
+           already too strong. G1 is then uninterpretable and is reported, not used.
+    G1 LONG (the pad family breaks)
+        -> there is no second inert family; "inert" was a property of adverbs, or of those five
+           wordings, and L5's LONG on p1 was the warning. 15 August's claim 2 stays exactly as
+           narrow as its own limit note said, and the axis language is withdrawn rather than
+           weakened.
+    BOTH new arms LONG
+        -> the only inert thing in the archive is the adverb ladder specifically. That is a
+           stranger and narrower claim than an axis, and it makes the ladder a negative control
+           about adverbs rather than about padding. It also means the pad/replace distinction is
+           not what the ladder was measuring.
+    BOTH new arms ABSENT
+        -> as (B) above, arrived at from the other side, with the additional fact that a new
+           replacement wording is null while the old one is LONG on five processes. That would
+           make WORDING dominant over every structural variable this campaign has tried.
+    anchors do NOT reproduce (paraphrase not LONG, or F4 LONG)
+        -> report everything against THIS process's anchors only, flag the series as
+           anchor-conditional, and do NOT relabel any arm against another process's anchors. If
+           F4 is LONG, the ladder is not inert on 2 of 6 processes and "inert" is itself
+           process-conditional — that is a real result and it is reported as one, not as noise.
+    any arm lands ABBREVIATED
+        -> report it as the middle rung it is. "Above ABSENT" moves, "LONG" does not.
+
+REDRAW RULE, REGISTERED IN ADVANCE
+    · BOTH new arms (R1, G1) are redrawn once, RESTART=0, regardless of outcome — their
+      within-process determinism is unknown, and the axis rests on them.
+    · Any established arm whose verdict differs from that spec's modal verdict across processes
+      is redrawn once before it is written down.
+    · If budget forces a choice, the arm whose verdict CONTRADICTS the axis prediction is redrawn
+      first. Registered now so the choice is not made by what I would rather see confirmed.
+
+VOID
+    · repair activity in any arm's log (the probe already refuses on it)
+    · a server restart between arms
+    · base-close differing from base
+    · no eligible process within 10 probes -> that IS the result, recorded, and no arm is run
+
+⚠️ NOT A PREDICTION, A CONSTRAINT: probes are ~3.5-5 minutes and finding an eligible process has
+cost 1 to 12 draws across the last five sessions. If the budget runs out, the ANCHORS and R1 are
+what will have run; L6, F1 and shipped are explicitly optional and their absence is not a gap.
+
+⚠️ SCORING IS AS-DRAWN. The table is assembled by `_arm_table.py --prefix p6- --pid <PID>`, which
+cross-checks four independent records per arm and REFUSES on any mismatch. The pooled and axis
+counts come from `_size_floor_tally.py`, whose axis column is declared per spec AND derived from
+the spec text, with a disagreement stopping the tally. Nothing in the result log is hand-counted —
+that rule exists because hand counting has produced a wrong number nine times in this campaign.

@@ -38,6 +38,7 @@ import sys
 sys.path.insert(0, str(pathlib.Path(__file__).parent))
 
 import _arm_table  # noqa: E402
+import _mkvariant_construction_axis as _consaxis  # noqa: E402
 
 HERE = pathlib.Path(__file__).parent
 BASELINE = "specs/ledger-origorder-baseline.yaml"
@@ -66,6 +67,8 @@ LOCATION = {
     "ledger-linefloor-2.yaml": "on-line",
     "ledger-linefloor-3.yaml": "on-line",
     "ledger-linefloor-4.yaml": "on-line",
+    "ledger-consaxis-pad1.yaml": "on-line",      # +20, "all of them below"  (pad, non-adverbial)
+    "ledger-consaxis-rep1.yaml": "on-line",      # +20, "each one of these"  (replacement)
     "ledger-ownplacebo.yaml": "off-line",        # +54, sentences ABOVE, names no sentinel
     "ledger-belowline-placebo.yaml": "off-line",  # +21, one sentence BELOW, names ErrInvalid
     "ledger-jobstrip.yaml": "other-purpose",      # three files away, in store.go
@@ -98,6 +101,56 @@ FAMILY = {
     "ledger-linefloor-4.yaml": "quantifier ladder",   # +20  "all quite readily"
 }
 
+# ⚠️ THE AXIS — added 16 August. The family table above answers "is this arm the adverb ladder?",
+# which is a question about ONE construction, and 15 August's own limit note said so: one inert
+# family is an anecdote about a family. The axis asks the GENERAL question the ladder was only an
+# instance of — does the arm KEEP the base quantifier and pad it, or REPLACE it? — and it is
+# derived by the same module that builds the new arms, so the tally and the specs cannot drift
+# apart into two different definitions of the same word.
+#
+#   quantifier pad          slot starts with the token "all" and is longer than it
+#   quantifier replacement  slot is of the right shape but "all" is gone
+#   no quantifier edit      slot is exactly "all" (the noun-phrase-only arms, and the baseline)
+#   not a quantifier-slot arm   the heading shape does not match at all (tail rewritten, or the
+#                               whole line rebuilt, or the edit is not on the line)
+#
+# ⚠️ DECLARED FOR **EVERY** SPEC THE TALLY WILL COUNT, and a disagreement with the derivation
+# stops the tally, exactly as with FAMILY. The declaration is not redundant: it is what makes
+# adding a spec to LOCATION force a decision about what construction it is, instead of letting
+# the regex decide silently. The check that matters is that the two never disagree.
+AXIS = {
+    "ledger-origorder-baseline.yaml": "no quantifier edit",
+    "ledger-linedose-3.yaml": "no quantifier edit",        # +6, noun phrase alone
+    "ledger-linedose-2.yaml": "quantifier pad",            # +8, "all of them", tail intact
+    "ledger-linedose-6.yaml": "quantifier pad",            # +14 adverb
+    "ledger-linefloor-1.yaml": "quantifier pad",           # +15 adverb
+    "ledger-linefloor-2.yaml": "quantifier pad",           # +17 adverb
+    "ledger-linefloor-3.yaml": "quantifier pad",           # +19 adverb
+    "ledger-linefloor-4.yaml": "quantifier pad",           # +20 adverb
+    "ledger-consaxis-pad1.yaml": "quantifier pad",         # +20 NON-adverbial  <- new
+    "ledger-sentinelline-placebo.yaml": "quantifier replacement",   # +20 "every one of them"
+    "ledger-consaxis-rep1.yaml": "quantifier replacement",          # +20 "each one of these"
+    # ⚠️ L5 (+13) retains "all" and pads it non-adverbially and is LONG on p1 — it is NOT a pad
+    # arm here because it also rewrites the tail (with -> via) and therefore moves three regions.
+    # It is the archive row most hostile to the pad hypothesis and it is declared, not omitted.
+    "ledger-linedose-5.yaml": "not a quantifier-slot arm",
+    "ledger-linedose-1.yaml": "not a quantifier-slot arm",  # -1, tail only
+    "ledger-linedose-4.yaml": "not a quantifier-slot arm",  # +5, the cross-process-unstable arm
+    # the two big rewrites replace the whole heading ("Exported sentinels, ..."), so the shape
+    # this axis is about is not present in them at all
+    "ledger-origorder.yaml": "not a quantifier-slot arm",
+    "ledger-origorder-ac.yaml": "not a quantifier-slot arm",
+    # ⚠️ THESE FIVE LEAVE THE QUANTIFIER SLOT ALONE and that is a fact about them worth recording
+    # rather than hiding under "not applicable": varonly rewrites the NAME LIST, the two placebos
+    # and the two jobstrip arms edit somewhere else entirely. The heading they carry is the
+    # baseline's, byte for byte.
+    "ledger-origorder-varonly.yaml": "no quantifier edit",
+    "ledger-ownplacebo.yaml": "no quantifier edit",
+    "ledger-belowline-placebo.yaml": "no quantifier edit",
+    "ledger-jobstrip.yaml": "no quantifier edit",
+    "ledger-jobstrip-placebo.yaml": "no quantifier edit",
+}
+
 
 def family_of(spec: str) -> str:
     """Declared family, cross-checked against the spec's own rendered purpose."""
@@ -118,6 +171,36 @@ def family_of(spec: str) -> str:
     return declared
 
 
+def axis_of(spec: str) -> str:
+    """Declared construction axis, cross-checked against the arm's own rendered purpose.
+
+    ⚠️ THE DERIVATION IS IMPORTED, NOT REIMPLEMENTED. `_mkvariant_construction_axis.family_of` is
+    the function that decides what the specs ARE when they are built; if the tally carried its own
+    copy of the rule, the two could drift and the table would be classifying arms by a definition
+    that no longer builds them. This campaign has already published one table whose classifier was
+    a re-typed copy of another one.
+    """
+    declared = AXIS.get(spec)
+    if declared is None:
+        raise _arm_table.Refuse(
+            f"{spec}: no declared construction axis — add it to AXIS. The regex would happily "
+            f"classify it, and a construction nobody decided on is how one arm becomes a family")
+    p = HERE / "specs" / spec
+    if not p.is_file():
+        raise _arm_table.Refuse(f"{spec}: no such spec, cannot verify its axis")
+    import yaml
+    purpose = ""
+    for f in yaml.safe_load(p.read_text())["files"]:
+        if f["path"] == "internal/models/models.go":
+            purpose = f["purpose"]
+    derived = _consaxis.family_of(purpose)
+    if declared != derived:
+        raise _arm_table.Refuse(
+            f"{spec}: declared axis {declared!r} but its purpose derives as {derived!r} — the "
+            f"declaration and the text disagree and neither wins by default")
+    return declared
+
+
 def rows_for(name, pid, prefix):
     rows = _arm_table.build(HERE, prefix, BASELINE, pid=pid)
     for r in rows:
@@ -128,7 +211,49 @@ def rows_for(name, pid, prefix):
                 f"rather than letting it fall into a bucket by accident")
         r["series"], r["location"] = name, LOCATION[spec]
         r["family"] = family_of(spec)
+        r["axis"] = axis_of(spec)
     return rows
+
+
+def by_axis(rows):
+    """(axis, size bucket) -> counts, ON-LINE treated arms only.
+
+    ⚠️ THIS IS THE TABLE 15 AUGUST COULD NOT BUILD. Its split was "the adverb ladder" against
+    "everything else", and everything else differed from the ladder in several ways at once. Here
+    the two families are defined by ONE property of the same slot, so the rows that used to sit in
+    "other rewrite" for four different reasons get separated by what they actually do.
+    """
+    out = {}
+    for r in rows:
+        if r["location"] != "on-line":
+            continue
+        d = int(r["delta"])
+        bucket = "<=+14" if d <= 14 else (">=+20" if d >= 20 else "the gap (+15..+19)")
+        c = out.setdefault((r["axis"], bucket), {"n": 0, "long": 0, "nonnull": 0, "arms": []})
+        c["n"] += 1
+        c["long"] += r["verdict"] == "LONG"
+        c["nonnull"] += r["verdict"] != "ABSENT"
+        c["arms"].append(f"{r['series']}/{r['label']} {r['delta']} {r['verdict'].split(':')[0]}")
+    return out
+
+
+def size_matched(rows, delta=20):
+    """The arms at EXACTLY one size, split by axis — the only comparison free of the size term.
+
+    Everything else in this file pools sizes inside a bucket, and a bucket that spans +20 to +51
+    can always be accused of hiding a size effect inside it. At a single delta there is nothing
+    left to hide: same size, same two regions, same names, different construction.
+    """
+    out = {}
+    for r in rows:
+        if r["location"] != "on-line" or int(r["delta"]) != delta:
+            continue
+        c = out.setdefault(r["axis"], {"n": 0, "long": 0, "nonnull": 0, "arms": []})
+        c["n"] += 1
+        c["long"] += r["verdict"] == "LONG"
+        c["nonnull"] += r["verdict"] != "ABSENT"
+        c["arms"].append(f"{r['series']}/{r['label']} {r['spec']} {r['verdict'].split(':')[0]}")
+    return out
 
 
 def cross(rows):
@@ -249,6 +374,28 @@ def main() -> int:
         if a.verbose:
             for arm in c["arms"]:
                 print(f"        {arm}")
+
+    print(f"\n    {'construction AXIS':<26} {'size':<20} {'n':>3}  "
+          f"{'reached LONG':>13}  {'above ABSENT':>13}")
+    y = by_axis(rows)
+    for key in sorted(y, key=lambda k: (k[0], k[1])):
+        c = y[key]
+        print(f"    {key[0]:<26} {key[1]:<20} {c['n']:>3}  "
+              f"{c['long']:>6} of {c['n']:<4}  {c['nonnull']:>6} of {c['n']:<4}")
+        if a.verbose:
+            for arm in c["arms"]:
+                print(f"        {arm}")
+
+    z = size_matched(rows, 20)
+    print(f"\n    SIZE-MATCHED at exactly +20 — the comparison with no size term left in it")
+    if not z:
+        print("      (no on-line arms at +20 in the series listed above)")
+    for key in sorted(z):
+        c = z[key]
+        print(f"    {key:<26} {'+20 exactly':<20} {c['n']:>3}  "
+              f"{c['long']:>6} of {c['n']:<4}  {c['nonnull']:>6} of {c['n']:<4}")
+        for arm in c["arms"]:
+            print(f"        {arm}")
     return 0
 
 
@@ -361,6 +508,75 @@ def self_test() -> int:
     for k in ("1", "2", "3", "4"):
         chk(f"linefloor-{k} has a declared location",
             LOCATION.get(f"ledger-linefloor-{k}.yaml"), "on-line")
+
+    # 6. THE AXIS. Same contract as FAMILY — declared AND derived, disagreement is fatal — and the
+    #    same trap it fell into once: the arms that must NOT be swept in are checked by name.
+    chk("the adverb rung derives as a pad", axis_of("ledger-linefloor-4.yaml"), "quantifier pad")
+    chk("the NEW non-adverbial arm derives as a pad",
+        axis_of("ledger-consaxis-pad1.yaml"), "quantifier pad")
+    chk("the paraphrase derives as a replacement",
+        axis_of("ledger-sentinelline-placebo.yaml"), "quantifier replacement")
+    chk("the NEW second replacement derives as one",
+        axis_of("ledger-consaxis-rep1.yaml"), "quantifier replacement")
+    # ⚠️ L5 IS THE ROW THAT WOULD FALSIFY THE PAD HYPOTHESIS IF IT WERE IN THE FAMILY. It retains
+    # "all" and pads it, it is +13, and it is LONG on p1. It is out because it moves a third
+    # region, and that exclusion is pinned here so it cannot be quietly relaxed later.
+    chk("L5 (pads 'all' but ALSO rewrites the tail) is NOT a pad arm",
+        axis_of("ledger-linedose-5.yaml"), "not a quantifier-slot arm")
+    chk("L3 (noun phrase only) is neither pad nor replacement",
+        axis_of("ledger-linedose-3.yaml"), "no quantifier edit")
+    chk("L2 (+8, 'all of them', tail intact) IS a pad arm — the pad family predates today",
+        axis_of("ledger-linedose-2.yaml"), "quantifier pad")
+    chk("the shipped rewrite is off this axis entirely",
+        axis_of("ledger-origorder.yaml"), "not a quantifier-slot arm")
+
+    try:
+        axis_of("ledger-tagfix.yaml")
+        ok = False
+        print("  FAIL a spec with no declared axis did NOT stop the tally")
+    except _arm_table.Refuse:
+        print("  ok   a spec with no declared axis stops the tally")
+
+    AXIS["ledger-linefloor-4.yaml"] = "quantifier replacement"
+    try:
+        axis_of("ledger-linefloor-4.yaml")
+        ok = False
+        print("  FAIL a declared/derived AXIS disagreement did NOT stop the tally")
+    except _arm_table.Refuse:
+        print("  ok   a declared/derived AXIS disagreement stops the tally")
+    finally:
+        AXIS["ledger-linefloor-4.yaml"] = "quantifier pad"
+
+    # ⚠️ EVERY SPEC THE TALLY CAN COUNT NEEDS BOTH DECLARATIONS, checked here rather than in the
+    # middle of a live series: LOCATION was added mid-session once and refused on a drawn arm.
+    for spec in LOCATION:
+        chk(f"{spec} has a declared axis too", spec in AXIS, True)
+
+    ax = by_axis([
+        {"series": "x", "label": "a", "delta": "+20", "verdict": "LONG",
+         "location": "on-line", "axis": "quantifier replacement"},
+        {"series": "x", "label": "b", "delta": "+20", "verdict": "ABSENT",
+         "location": "on-line", "axis": "quantifier pad"},
+        {"series": "x", "label": "c", "delta": "+20", "verdict": "LONG",
+         "location": "off-line", "axis": "quantifier pad"},
+    ])
+    chk("the axis table splits one size bucket two ways",
+        (ax[("quantifier replacement", ">=+20")]["long"], ax[("quantifier pad", ">=+20")]["long"]),
+        (1, 0))
+    chk("the axis table excludes off-line arms", sum(c["n"] for c in ax.values()), 2)
+
+    sm = size_matched([
+        {"series": "x", "label": "a", "spec": "s", "delta": "+20", "verdict": "LONG",
+         "location": "on-line", "axis": "quantifier replacement"},
+        {"series": "x", "label": "b", "spec": "s", "delta": "+21", "verdict": "LONG",
+         "location": "on-line", "axis": "quantifier replacement"},
+        {"series": "x", "label": "c", "spec": "s", "delta": "+20", "verdict": "ABBREVIATED:E",
+         "location": "on-line", "axis": "quantifier pad"},
+    ], 20)
+    chk("the size-matched table takes ONLY the exact delta",
+        (sm["quantifier replacement"]["n"], sm["quantifier pad"]["n"]), (1, 1))
+    chk("and it keeps ABBREVIATED out of the LONG column",
+        (sm["quantifier pad"]["long"], sm["quantifier pad"]["nonnull"]), (0, 1))
 
     print("SELF-TEST", "OK" if ok else "FAILED")
     return 0 if ok else 1
