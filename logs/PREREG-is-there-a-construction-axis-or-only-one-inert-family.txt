@@ -195,7 +195,14 @@ VOID
 cost 1 to 12 draws across the last five sessions. If the budget runs out, the ANCHORS and R1 are
 what will have run; L6, F1 and shipped are explicitly optional and their absence is not a gap.
 
-⚠️ SCORING IS AS-DRAWN. The table is assembled by `_arm_table.py --prefix p6- --pid <PID>`, which
+⚠️ LABEL PREFIX CORRECTION, made BEFORE the first probe and left visible rather than rewritten.
+The obvious prefix for a sixth process is `p6-`, and `p6-` is ALREADY TAKEN: on 6 August it meant
+"the sixth process of that day", pid 38950, and there is a `p6-base` row in the ledger with the
+same spec and the same ABSENT verdict this series will produce. That is the exact collision
+`_arm_table.py` caught on 11 August with `p3-`. Today's series is labelled `ax-` (axis) and the
+prefix was checked against the ledger and against generated/ before anything was drawn.
+
+⚠️ SCORING IS AS-DRAWN. The table is assembled by `_arm_table.py --prefix ax- --pid <PID>`, which
 cross-checks four independent records per arm and REFUSES on any mismatch. The pooled and axis
 counts come from `_size_floor_tally.py`, whose axis column is declared per spec AND derived from
 the spec text, with a disagreement stopping the tally. Nothing in the result log is hand-counted —
