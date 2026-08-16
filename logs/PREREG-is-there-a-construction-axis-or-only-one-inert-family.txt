@@ -267,3 +267,35 @@ limit — i.e. it is STRICTER than this amendment, not looser. It was not edited
 bash reads a script lazily and editing a running one is how a protocol silently becomes a
 different protocol halfway through. If it exhausts, the relaunch will count classifying probes
 only, and the result log will say which rule produced the process that hosted the arms.
+
+--------------------------------------------------------------------------------------------
+AMENDMENT 3 — written before the next eligible process is found, with the hazard now MEASURED
+16 August. Same rule as Amendment 1 and the same direction; what is new is that the hazard is a
+number instead of an impression.
+
+TONIGHT'S DRAWS, counted from the ledger rather than remembered: 11 attempted, 5 killed by the
+GPU watchdog (~45%). The deaths are NOT concentrated on later arms — two processes died on their
+FIRST draw, two on their second, one on its fourth — so the prompt-cache-growth story I would
+have guessed is not what the ledger says, and no reordering can dodge the hazard. It can only
+decide what gets measured before a coin lands.
+
+WHAT THAT CHANGES. At ~0.55 survival per draw, an eight-arm series completes about 1 time in 40.
+The prereg's own rule decides the ordering for me: "NO NEW ARM'S VERDICT ENTERS A RESULT LOG
+WITHOUT ITS REDRAW." A series that dies after F4 but before the redraws yields NOTHING about the
+axis — F4 is a third reading of an arm already drawn on two processes, while the redraws are the
+precondition for the two arms that have never been drawn at all to count for anything.
+
+NEW ORDER (registered arms; optional list unchanged):
+
+    base · screen · paraphrase (ANCHOR) · R1 · G1 · base-close
+         · R1-redraw · G1-redraw · base-close-2 · F4
+
+    i.e. F4 moves from fifth to last. Nothing else moves, no probability changes, and the anchor
+    stays first for the reason Amendment 1 gave: a null arm on a process with no anchor is
+    uninterpretable, and 5 of 5 eligible processes have flipped for the paraphrase, which is a
+    high prior but not a measurement of THIS process.
+
+⚠️ THE COST, STATED PLAINLY: if the series dies late, the ladder's sixth process — open item (0)
+from 15 August — does not get answered tonight, and the axis does. That is a real trade and I am
+making it deliberately, because the axis question is the one this prereg is about and the
+transport question can be asked of any future eligible process with a single arm.

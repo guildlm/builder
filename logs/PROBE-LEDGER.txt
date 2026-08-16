@@ -176,3 +176,6 @@ written, which is why it needs this note.
 2026-08-16T22:42:55  pid=8319    label=ax2-b2             spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
 2026-08-16T22:46:39  pid=8319    label=ax2-screen2        spec=ledger-ownplacebo.yaml       VERDICT=VOID-SERVER-DIED
 2026-08-16T22:52:42  pid=10172   label=ax2-b3             spec=ledger-origorder-baseline.yaml VERDICT=VOID-SERVER-DIED
+2026-08-16T22:59:10  pid=11157   label=ax2-b4             spec=ledger-origorder-baseline.yaml VERDICT=LONG
+2026-08-16T23:10:41  pid=12198   label=ax2-b5             spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-16T23:13:50  pid=12198   label=ax2-screen5        spec=ledger-ownplacebo.yaml       VERDICT=VOID-SERVER-DIED
