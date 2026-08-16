@@ -155,3 +155,5 @@ up the scale. The narrowing is written into that experiment's prereg as an amend
 2026-08-15T16:10:56  pid=36921   label=p5-ac              spec=ledger-origorder-ac.yaml     VERDICT=LONG
 2026-08-15T16:17:07  pid=36921   label=p5-shipped         spec=ledger-origorder.yaml        VERDICT=LONG
 2026-08-15T16:23:42  pid=36921   label=p5-baseclose2      spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-16T21:56:04  pid=68231   label=ax-b1              spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-16T22:07:47  pid=68231   label=ax-screen1         spec=ledger-ownplacebo.yaml       VERDICT=ABSENT
