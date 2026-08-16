@@ -299,3 +299,32 @@ NEW ORDER (registered arms; optional list unchanged):
 from 15 August — does not get answered tonight, and the axis does. That is a real trade and I am
 making it deliberately, because the axis question is the one this prereg is about and the
 transport question can be asked of any future eligible process with a single arm.
+
+--------------------------------------------------------------------------------------------
+⚠️ CORRECTION TO AMENDMENT 3 — same night, four rows later, computed instead of eyeballed
+16 August. Amendment 3 states: "The deaths are NOT concentrated on later arms ... so the
+prompt-cache-growth story I would have guessed is not what the ledger says." THAT SENTENCE IS
+WRONG, and it was wrong when I wrote it in the weak sense that eleven rows could not support it.
+Computed by the new `_draw_hazard.py` (self-tested) over the 15 rows since midnight:
+
+    1st draw (fresh restart)      8 draws   2 lost   25%
+    draw 2 (RESTART=0)            5 draws   3 lost   60%
+    draw 3 (RESTART=0)            1 draw    0 lost
+    draw 4 (RESTART=0)            1 draw    1 lost
+    FIRST 2 of 8 (25%)  ·  LATER 4 of 7 (57%)
+
+So the hazard IS higher after the restart-fresh draw, by roughly a factor of two, and my
+committed sentence said the opposite. The amendment is left in place, wrong sentence and all,
+with this correction under it — that is how every superseded claim in this campaign is handled.
+
+⚠️ WHAT THE NUMBER DOES **NOT** LICENCE. Position and spec are confounded by the design itself:
+every arm after the first is drawn RESTART=0, and on this hunt every second draw was the SAME
+SPEC (the +54 screen), which is the one spec here with a bigger prompt than the baseline. The
+tool prints both tables side by side because "later draws die more" and "the screen spec dies
+more" are the same seven rows read two ways, and n=7 cannot separate them.
+
+⚠️ WHAT IT DOES CHANGE, and it is not the arm order: nothing about the ORDER of the arms follows
+from this — a hazard that rises with position makes every arm after the anchor more expensive,
+but it does not reorder them, and Amendment 3's reordering was justified by the redraw rule, not
+by the (mis)counted position claim. The order stands. What changes is my expectation of how much
+of the series will exist by morning, which is not a protocol parameter and is not registered.
