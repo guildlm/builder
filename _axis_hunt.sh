@@ -40,6 +40,15 @@ for ((i = START; i < START + ATTEMPTS; i++)); do
   (( spent < MAX )) || break
   echo "=== baseline probe attempt $i · classifying probes spent $spent of $MAX ==="
   out=$(SPEC="$BASE_SPEC" PORT="$PORT" ./_probe_process_sentinel.sh "${PREFIX}b${i}" 2>&1)
+  # ⚠️ A REFUSAL IS NOT A VOID DRAW. On 17 August a killed launch left one guildlm-build orphan
+  # in flight; every subsequent probe exited 8 ("a draw is in flight") in under a second, this
+  # loop read the empty verdict as "void, classifies nothing" and spent all 30 ATTEMPTS in ~20s
+  # without a single draw. A probe that refuses never started; retrying it changes nothing.
+  if grep -q "REFUSING" <<<"$out"; then
+    echo "  ABORT: the probe refused — fix the cause, then relaunch with START=$((i + 1))"
+    grep "REFUSING" <<<"$out"
+    exit 6
+  fi
   v=$(verdict_of "$out")
   pid=$(PORT="$PORT" ./_server_pid.sh 2>/dev/null || echo "")
   echo "  baseline verdict: ${v:-<none>}  (pid ${pid:-<gone>})"
@@ -63,6 +72,11 @@ for ((i = START; i < START + ATTEMPTS; i++)); do
   echo "=== screen on pid $pid ==="
   out=$(RESTART=0 ROLE=screen SPEC="$SCREEN_SPEC" PORT="$PORT" \
         ./_probe_process_sentinel.sh "${PREFIX}screen${i}" 2>&1)
+  if grep -q "REFUSING" <<<"$out"; then
+    echo "  ABORT: the screen probe refused — fix the cause, then relaunch with START=$((i + 1))"
+    grep "REFUSING" <<<"$out"
+    exit 6
+  fi
   s=$(verdict_of "$out")
   echo "  screen verdict: ${s:-<none>}"
   # ⚠️ NULL MEANS ABSENT, AND THIS LINE HAD IT WRONG UNTIL 17 AUGUST 00:4x. It read
