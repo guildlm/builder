@@ -367,3 +367,12 @@ WHAT THIS AMENDMENT REGISTERS, and why it is not a licence to probe until someth
 
 ⚠️ WHAT A RELAUNCH CANNOT DO: a process found under it hosts the same arms, in the same order,
 scored the same way, against the same registered probabilities. No probability moves.
+
+⚠️ TIMING CORRECTION TO AMENDMENT 4 — same minute, checked against the ledger. The amendment
+says it was written "while the relaunched hunt is on its FIRST baseline probe and BEFORE any
+verdict under it has been read". The READ half is true; the first half is not: the ax3-b25 row
+(pid 16225, ABSENT) carries 20:52:22 and the amendment's commit a3e7af4 carries 20:52:57. The
+verdict existed for 35 seconds before the amendment was committed and was read immediately after.
+It is a baseline verdict, not an arm, it does not touch any registered probability, and the
+amendment changes no probability — but "before" was the claim and the clock says otherwise, so
+the sentence stays and this sits under it.
