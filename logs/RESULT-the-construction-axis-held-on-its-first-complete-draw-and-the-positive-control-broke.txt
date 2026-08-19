@@ -1,0 +1,238 @@
+RESULT — THE CONSTRUCTION AXIS HELD ON ITS FIRST COMPLETE DRAW, AND THE POSITIVE CONTROL BROKE
+==============================================================================================
+19 August. Prereg: logs/PREREG-is-there-a-construction-axis-or-only-one-inert-family.txt
+(committed 787d70c before the first probe; amendments 1-3 + a correction, all before the arms
+they cover; amendment 4 + a timing correction committed this session before any verdict was read).
+
+⚠️ ONE PROCESS. Everything below the 2x2 is measured on a single eligible process, pid 16225 (p7),
+found on the FIRST classifying baseline probe of the ax3- relaunch (label b25). The prereg turned
+on R1 and G1 being drawn ANYWHERE for the first time; they are now drawn, twice each, on one
+process that also carries all three anchors and four byte-identical baselines. The axis is
+SUPPORTED here; its generality across processes is exactly this one clean process plus the
+archive's mixed pad column, and section 4 is the reason that distinction is load-bearing.
+
+----------------------------------------------------------------------------------------------
+1. THE SERIES — `_arm_table.py --prefix ax3- --pid 16225`, four records cross-checked per row
+----------------------------------------------------------------------------------------------
+    arm                 spec                              delta  verdict                     sha
+    ax3-b25             ledger-origorder-baseline.yaml        +0  ABSENT                      3a78b0d8
+    ax3-screen25        ledger-ownplacebo.yaml               +54  ABSENT                      3a78b0d8
+    ax3-paraphrase      ledger-sentinelline-placebo.yaml     +20  LONG                        649bdef7
+    ax3-R1              ledger-consaxis-rep1.yaml            +20  LONG                        649bdef7
+    ax3-G1              ledger-consaxis-pad1.yaml            +20  ABSENT                      3a78b0d8
+    ax3-baseclose       ledger-origorder-baseline.yaml        +0  ABSENT                      3a78b0d8
+    ax3-R1-redraw       ledger-consaxis-rep1.yaml            +20  LONG                        649bdef7
+    ax3-G1-redraw       ledger-consaxis-pad1.yaml            +20  ABSENT                      3a78b0d8
+    ax3-baseclose2      ledger-origorder-baseline.yaml        +0  ABSENT                      3a78b0d8
+    ax3-F4              ledger-linefloor-4.yaml              +20  ABSENT                      3a78b0d8
+    ax3-L6              ledger-linedose-6.yaml               +14  ABSENT                      3a78b0d8
+    ax3-F1              ledger-linefloor-1.yaml              +15  ABSENT                      3a78b0d8
+    ax3-shipped         ledger-origorder.yaml                +51  ABBREVIATED:ErrInsufficient  cb873e76
+    ax3-baseclose3      ledger-origorder-baseline.yaml        +0  ABSENT                      3a78b0d8
+    ax3-shipped-redraw  ledger-origorder.yaml                +51  ABBREVIATED:ErrInsufficient  cb873e76
+    ax3-baseclose4      ledger-origorder-baseline.yaml        +0  ABSENT                      3a78b0d8
+
+Sixteen draws, zero GPU deaths (section 5). Five baseline draws (the opening probe and four base-closes) all wrote
+3a78b0d8 — the archive's untreated declaration. The +54 content-free screen wrote 3a78b0d8 too:
+byte-null, the strongest form the screen can take, the same form it took on pid 68231.
+
+----------------------------------------------------------------------------------------------
+2. THE REGISTERED 2x2 — clean, and both new arms byte-identical across their redraws
+----------------------------------------------------------------------------------------------
+    family        arm                          +20   verdict (drawn twice)   sha
+    replace       paraphrase "every one of them"  LONG                       649bdef7   (anchor)
+    replace       R1 "each one of these"          LONG  · LONG               649bdef7   NEW
+    pad           G1 "all of them below"          ABSENT · ABSENT            3a78b0d8   NEW
+    pad           F4 "all quite readily"          ABSENT                     3a78b0d8   (adverb)
+
+This is exactly the shape the prereg registered as account (A) — REPLACE the quantifier and it
+flips, PAD it and it does not — at one size, in one slot, with the tail, the name list and the
+region count all held fixed. Registered P(clean 2x2) = 0.35 → HIT.
+
+📌 THE PREREG'S OWN CENTRAL WEAKNESS IS BROKEN. Its words, 16 August: "the entire replacement
+column is the SAME SPEC — the paraphrase — drawn once per process. A family of one wording is not
+a family." R1 is a SECOND replacement wording, built to differ from the paraphrase in the slot and
+nowhere else, and it is LONG — writing the IDENTICAL bytes (649bdef7) the paraphrase writes. Two
+different replacement wordings converge on one file; two different pad wordings (G1 non-adverbial,
+F4 adverbial) converge on the baseline's file. On THIS process the pad/replace split is not merely
+a three-valued verdict, it is a choice between two fixed byte sequences: replace -> 649bdef7,
+pad -> 3a78b0d8 (= untreated). The replacement column is no longer one sentence.
+
+----------------------------------------------------------------------------------------------
+3. THE SIZE-MATCHED COMPARISON, RECOMPUTED — `_size_floor_tally.py` (7 processes, 79 rows)
+----------------------------------------------------------------------------------------------
+    construction AXIS          size                   n   reached LONG   above ABSENT
+    no quantifier edit         <=+14                  1       0 of 1          0 of 1   
+    no quantifier edit         >=+20                  1       1 of 1          1 of 1   
+    not a quantifier-slot arm  <=+14                  8       2 of 8          5 of 8   
+    not a quantifier-slot arm  >=+20                  9       7 of 9          9 of 9   
+    quantifier pad             <=+14                  8       0 of 8          0 of 8   
+    quantifier pad             >=+20                  6       1 of 6          1 of 6   
+    quantifier pad             the gap (+15..+19)    10       2 of 10         2 of 10  
+    quantifier replacement     >=+20                  8       8 of 8          8 of 8   
+
+    SIZE-MATCHED at exactly +20 — the comparison with no size term left in it
+    quantifier pad             +20 exactly            6       1 of 6          1 of 6   
+        p4/f-F4 ledger-linefloor-4.yaml LONG
+        p5/p5-F4 ledger-linefloor-4.yaml ABSENT
+        p5/p5-F4-redraw ledger-linefloor-4.yaml ABSENT
+        p7/ax3-G1 ledger-consaxis-pad1.yaml ABSENT
+        p7/ax3-G1-redraw ledger-consaxis-pad1.yaml ABSENT
+        p7/ax3-F4 ledger-linefloor-4.yaml ABSENT
+    quantifier replacement     +20 exactly            8       8 of 8          8 of 8   
+    SIZE-MATCHED at exactly +20 — the comparison with no size term left in it
+    quantifier pad             +20 exactly            6       1 of 6          1 of 6   
+        p4/f-F4 ledger-linefloor-4.yaml LONG
+        p5/p5-F4 ledger-linefloor-4.yaml ABSENT
+        p5/p5-F4-redraw ledger-linefloor-4.yaml ABSENT
+        p7/ax3-G1 ledger-consaxis-pad1.yaml ABSENT
+        p7/ax3-G1-redraw ledger-consaxis-pad1.yaml ABSENT
+        p7/ax3-F4 ledger-linefloor-4.yaml ABSENT
+    quantifier replacement     +20 exactly            8       8 of 8          8 of 8   
+        p1/s-lineplacebo ledger-sentinelline-placebo.yaml LONG
+        p3/p3-paraphrase ledger-sentinelline-placebo.yaml LONG
+        p4/f-paraphrase ledger-sentinelline-placebo.yaml LONG
+        p5/p5-paraphrase ledger-sentinelline-placebo.yaml LONG
+        p6/ax-paraphrase ledger-sentinelline-placebo.yaml LONG
+        p7/ax3-paraphrase ledger-sentinelline-placebo.yaml LONG
+        p7/ax3-R1 ledger-consaxis-rep1.yaml LONG
+        p7/ax3-R1-redraw ledger-consaxis-rep1.yaml LONG
+At exactly +20, with no size term left in the comparison: quantifier REPLACEMENT is 8 of 8 LONG
+(and the replacement column is now two wordings across six processes, not one across four), while
+quantifier PAD is 1 of 6 LONG.
+
+⚠️ THE ONE PAD LONG IS STILL THE SAME ROW IT HAS ALWAYS BEEN: p4/f-F4, pid 4970. Every pad-family
+LONG in the entire archive sits on that one dead process. G1 and F4 are ABSENT here (three pad
+draws, three ABSENT), F1 is ABSENT here (section 6), so "pad is inert" is now supported on five of
+six processes and contradicted on exactly one — which is why the honest statement is an AXIS on
+this process, not a law across processes. account (A)'s branch said this in advance: "I would
+still hold that this is one slot on one line of one spec — an axis, not a law."
+
+----------------------------------------------------------------------------------------------
+4. THE UNREGISTERED SURPRISE — the positive control broke, deterministically
+----------------------------------------------------------------------------------------------
+The shipped arm (+51, the "Exported sentinels" heading with `var ErrX = errors.New(...)` shown in
+full) is the campaign's positive control: LONG on 4 of 4 screened processes before tonight. On p7
+it came back ABBREVIATED twice — `cb873e76` both times, the archive's known abbreviated file
+(p1's L4 and p3's below-line arm wrote the same bytes). Its declarer:
+
+    var ( ErrInvalid; ErrNotFound; ErrExists; ErrUnbalanced; ErrInsufficient )
+                                                              ^^^^^^^^^^^^^^^ the SHORT name
+
+⚠️ THIS WAS NOT REGISTERED — shipped is on the prereg's OPTIONAL list and no probability was
+assigned to its verdict, so this is an observation, not a scored prediction. It is reported
+because it is the first time the positive control has failed to reach LONG on a screened process,
+and because it happened on the SAME process, in the SAME session, where two +20 edits that show no
+declaration form at all DID reach LONG with the full name.
+
+TWO CONFOUNDS CHECKED, BOTH KILLED:
+  · POSITION. shipped ran at draws 13 and 15 here. It ran at draw 13 on p5 (pid 36921) and was
+    LONG. Same depth, opposite verdict -> "deep in the series" does not explain it.
+  · DETERMINISM. The registered redraw rule ("an established arm whose verdict differs from its
+    modal verdict is redrawn once before it is written down") was applied: shipped-redraw is
+    ABBREVIATED, byte-identical. So this is a stable property of pid 16225, not a fluke.
+
+📌 WHAT IT DOES TO THE PRACTICAL RULE. The shipped rule was "rewrite the declaration line
+substantially and it flips". On p7 the substantial rewrite that SHOWS the var-block form produced
+the SHORT name inside that very form, while the two edits that only REPLACE the quantifier phrase
+(and show no form) produced the long name. That is consistent with the campaign's standing
+demotion of the shipped rule's DESCRIPTION (10-11 August): what transports is rewriting the line,
+and the shipped phrasing is one member of that family, not the mechanism. It is the first process
+on which that member and the replacement members DISAGREE, and the disagreement runs against the
+shipped phrasing.
+
+----------------------------------------------------------------------------------------------
+5. THE HAZARD DID NOT FIRE — `_draw_hazard.py --since 2026-08-19 --session`
+----------------------------------------------------------------------------------------------
+    processes probed                  1
+    ABSENT at baseline (informative)  1
+      of those, lost when the SCREEN draw died     0
+      of those, discarded because the SCREEN FLIPPED THEM   0
+    ELIGIBLE (both gates)             1
+      pid 16225    arms drawn 10   ended: ok
+    treated arms ATTEMPTED           10
+    treated arms that MEASURED one   10
+    rows that classify something     16 of 16
+    ABSENT baselines on disk          5
+      3a78b0d8  5 of 5   <- the archive's untreated declaration
+Zero of sixteen draws died. The 16-17 August sessions lost 13 of 28 to the macOS GPU watchdog
+(`[METAL] ... Impacting Interactivity`) and both eligible processes then died before an axis arm;
+tonight the same launch flags, the same specs and the same protocol ran the whole series intact.
+That is the point of the standing rule NOT to change the server's launch flags to make it robust:
+the hazard is an environment property (machine contention), it comes and goes, and every process
+in the archive must remain the same object. Nothing was changed; the machine was simply quiet.
+
+Cumulative for this prereg across every relaunch (amendment 4 committed the log to both counts):
+21 processes probed, 10 ABSENT-at-baseline, 3 eligible (68231 died, 29821 died, 16225 completed),
+10 treated arms attempted and 8 measured. The registered search budget was 10 CLASSIFYING baseline
+probes; p7 was found on the first classifying probe of the relaunch, so the relaunch itself spent
+one. P(eligible within 10 classifying probes) = 0.65 -> HIT.
+
+----------------------------------------------------------------------------------------------
+6. REGISTERED PREDICTIONS — scored AS-DRAWN
+----------------------------------------------------------------------------------------------
+    ANCHORS
+    P(paraphrase +20 LONG)                          0.80  HIT   (now 6 of 6 processes)
+    P(paraphrase writes 649bdef7 | LONG)            0.80  HIT
+    P(F4 +20 ABSENT)                                0.70  HIT
+    P(BOTH anchors reproduce the 15 Aug contrast)   0.55  HIT   (paraphrase LONG, F4 ABSENT)
+    P(base ABSENT byte-identical 3a78b0d8)          0.85  HIT   (5 of 5 baselines on p7)
+    P(a given ABSENT process passes the screen)     0.50  1 of 1 this session
+
+    PRIMARY — the two arms never drawn before
+    P(R1 +20 LONG)                                  0.55  HIT
+    P(R1 above ABSENT)                              0.65  HIT
+    P(G1 +20 ABSENT)                                0.70  HIT
+    P(G1 above ABSENT)                              0.30  did not occur (G1 was ABSENT) -> leaned right
+
+    THE AXIS ITSELF
+    P(clean 2x2: both replacements LONG, both pads ABSENT)   0.35  HIT
+    P(axis survives weaker form: R1 strictly above G1)       0.50  HIT   (LONG > ABSENT)
+    P(R1 and G1 land on the SAME value — no axis)            0.35  did not occur
+    P(G1 strictly above R1 — the axis REVERSES)              0.15  did not occur
+
+    SIDE QUANTITIES
+    P(R1 writes 649bdef7 | LONG)                    0.40  HIT
+    P(any arm writes a sha not in the archive)      0.20  did not occur (cb873e76/649bdef7/3a78b0d8 all known)
+    P(either new arm's redraw DISAGREES)            0.15  did not occur (both byte-identical)
+    P(L6 +14 ABSENT | drawn)                        0.85  HIT
+
+Every PRIMARY and AXIS prediction resolved in the registered direction. The one arm the prereg did
+NOT register a verdict for — shipped — is the one that surprised (section 4).
+
+----------------------------------------------------------------------------------------------
+7. INSTRUMENT CATCH — the ladder regex called G1 a rung on its first real row
+----------------------------------------------------------------------------------------------
+`_size_floor_tally.py` REFUSED the moment p7 was added: it declared G1 "other rewrite", the
+derivation said "quantifier ladder", and it stopped rather than guess. The derivation was a
+SHAPE-only test — `Sentinel error values, all <words> matchable` — and G1 ("all of them below")
+was built to have exactly that shape minus the adverb. But the family it tests for is the ADVERB
+ladder (15 August), whose five rungs are "readily/reliably/so readily/very readily/quite readily";
+the regex just never encoded "adverb". It now requires the pad to END IN A -ly WORD. G1 and R1 are
+NOT rungs (they are the AXIS's pad and replace), all five true rungs still derive as the ladder,
+and every one of those facts is pinned in the self-test so the loosening cannot come back. A
+non-adverbial pad having the ladder's shape is precisely what the axis exists to separate from it,
+so the refusal was the tool doing its job on the first arm that could trip it.
+
+Same shape as 15 August's catch (the substring `"Sentinel error values, all "` swallowed L3/L4)
+and the fix is the same in kind: a signature that matches the WHOLE construction, not a fragment
+of it. `_axis_hunt.sh` also had its ELIGIBLE line print the label index as a probe count ("after
+25 baseline probes" for a first-probe find); label and classifying-probe count are now separate.
+
+----------------------------------------------------------------------------------------------
+8. WHAT IS OPEN
+----------------------------------------------------------------------------------------------
+  (0) THE AXIS IS ON ONE PROCESS. R1/G1 need a SECOND eligible process to become a cross-process
+      claim rather than a within-process one. The single most valuable next draw is R1+G1 (plus
+      the paraphrase anchor) on the next eligible process — `_axis_hunt.sh` runs it.
+  (1) THE SHIPPED-ARM ABBREVIATION on p7 is a new, unregistered, deterministic disagreement
+      between the shipped phrasing and the replacement phrasings. Worth a prereg of its own: is
+      the shipped var-block form ABBREVIATED on other processes where the paraphrase is LONG? If
+      so, the shipped member is the ODD member of the rewrite family, not its representative.
+  (2) THE LADDER'S CROSS-PROCESS STORY: F4 is now ABSENT on p5 (x2) and p7, LONG on p4. F1 (+15)
+      ABSENT on p5 (x2) and p7, LONG on p4. Every ladder LONG is on pid 4970. Either p4 is the
+      outlier or "inert" is process-conditional; one more process settles it.
+  (3) DO NOT change the server's launch flags. The hazard is environmental and intermittent;
+      tonight it did not fire. Draw when the machine is quiet.
+
+460 pytest / 0 fail · 69 instruments / 0 fail.
