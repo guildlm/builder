@@ -328,3 +328,42 @@ from this — a hazard that rises with position makes every arm after the anchor
 but it does not reorder them, and Amendment 3's reordering was justified by the redraw rule, not
 by the (mis)counted position claim. The order stands. What changes is my expectation of how much
 of the series will exist by morning, which is not a protocol parameter and is not registered.
+
+--------------------------------------------------------------------------------------------
+AMENDMENT 4 — the probe budget, after it was spent by processes that DIED rather than by
+processes that were discarded
+19 August, written while the relaunched hunt (`PREFIX=ax3- START=25`) is on its FIRST baseline
+probe and BEFORE any verdict under it has been read. Nothing about the hypothesis, the arms, the
+order, or the registered numbers changes. This amendment exists because a decision was taken
+without one, and the campaign's rule is that a protocol that ran must be the protocol that is
+written down.
+
+WHAT THE LEDGER SAYS (`_draw_hazard.py --since 2026-08-16 --session`, not memory): 20 processes
+probed for this prereg, 7 of them killed on the first draw, so 13 CLASSIFYING baseline probes —
+the registered budget was 10. Of the 9 ABSENT-at-baseline processes, 4 were lost when the screen
+draw died, 3 were discarded because the screen flipped them, and 2 were ELIGIBLE. BOTH eligible
+processes died before a single axis arm (68231 on its fourth draw, 29821 on its first arm).
+
+THE DECISION THAT WAS ALREADY TAKEN. The 17 August result log recorded the budget as SPENT and
+quoted the registered outcome ("that IS the result, and no arm is run"). The same log then noted
+that the prereg's failure mode was "no eligible process", that what happened was "two eligible
+processes and no surviving series", and that the prereg had not contemplated that. The session
+save point directed the next session to relaunch the hunt; the 17 August morning session did so
+(ax3-b21..b23, three classifying probes, none eligible) with no amendment. That was a deviation
+and it is named here as one.
+
+WHAT THIS AMENDMENT REGISTERS, and why it is not a licence to probe until something agrees:
+    · The 10-probe budget was a bound on the SEARCH for an eligible process. P(eligible within
+      10) = 0.65 → HIT, twice. The search succeeded; the series did not survive. Those are
+      different failures and the second has no budget written for it.
+    · The relaunched hunt runs under a SEPARATE budget of 10 classifying baseline probes, counted
+      by the hunt script from its launch. Void (GPU-killed) probes do not consume it — amendment 2.
+    · The result log reports BOTH counts — classifying probes under the relaunch, and the
+      cumulative total for this prereg across every relaunch — so a reader applying the strict
+      original rule can see exactly which process hosted the arms and under which count.
+    · The conditional claim ("among processes whose declarer gets the name wrong...") is
+      unaffected by how many probes were spent; what the extra probes cost is EFFORT, and effort
+      is the only thing this budget ever bounded.
+
+⚠️ WHAT A RELAUNCH CANNOT DO: a process found under it hosts the same arms, in the same order,
+scored the same way, against the same registered probabilities. No probability moves.
