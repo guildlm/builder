@@ -52,7 +52,11 @@ SERIES = [("p1", "46375", "s-"), ("p2", "71833", "r2-"), ("p3", "4691", "p3-"),
           # fourth draw, before any axis arm. It is listed because its anchor row is real and
           # counts, and leaving it out because the session was cut short is how a pooled table
           # quietly becomes a table of the sessions that went well.
-          ("p6", "68231", "ax-")]
+          ("p6", "68231", "ax-"),
+          # p7 is the FIRST process to host the complete registered axis series (19 August): three
+          # byte-identical baselines, a byte-null screen, the anchor, R1 and G1 each drawn twice,
+          # F4, and the optional arms. Found on the first classifying probe of the relaunch.
+          ("p7", "16225", "ax3-")]
 
 # ⚠️ DECLARED, NOT INFERRED. Every spec that can appear in these series is named here with where
 # its edit lands relative to the declaration line in models.go's purpose.
@@ -97,7 +101,17 @@ LOCATION = {
 # rewritten, region two extended by a NON-EMPTY adverb, and nothing else in the heading touched.
 # L4 is the arm whose verdict varies across processes, so a loose signature would have quietly
 # imported the campaign's one known unstable arm into the family being called uniformly null.
-LADDER_RE = re.compile(r"Sentinel error values, all (\w[\w ]*) matchable with errors\.Is")
+# ⚠️ AND A SHAPE IS NOT AN ADVERB. 19 August: the first row G1 ("all of them below") ever produced
+# stopped the tally, correctly — the regex above matched it as a rung, because it tested only the
+# SHAPE `all <words> matchable` and G1 was built to have exactly that shape minus the adverb. The
+# comment above says "extended by a NON-EMPTY adverb", and the five rungs all are ("readily",
+# "reliably", "so readily", "very readily", "quite readily"); the regex just never said so. It now
+# requires the padding to END IN AN ADVERB (a -ly word), which is what "the adverb ladder" has
+# meant since 15 August. A non-adverbial pad is the AXIS's business (pad vs replace, below), not
+# this family's, and that is the whole point of G1 existing. Verdict-independent: G1 is excluded
+# from the adverb ladder whatever it returned, and a future adverbial pad that is NOT declared a
+# rung will disagree with its default and stop the tally, which is the right failure.
+LADDER_RE = re.compile(r"Sentinel error values, all ((?:\w+ )*\w+ly) matchable with errors\.Is")
 FAMILY = {
     "ledger-linedose-6.yaml": "quantifier ladder",    # +14  "all readily"
     "ledger-linefloor-1.yaml": "quantifier ladder",   # +15  "all reliably"
@@ -479,6 +493,21 @@ def self_test() -> int:
     chk("L4 (also rewrites 'with'->'via') is NOT a rung — it touches a third region",
         family_of("ledger-linedose-4.yaml"), "other rewrite")
     chk("the shipped arm is not a ladder rung", family_of("ledger-origorder.yaml"), "other rewrite")
+    # ⚠️ THE ROW THAT BROKE THE SECOND DERIVATION (19 August), pinned. G1 has the ladder's SHAPE
+    # — "all <words> matchable" — and pads with no adverb. The 15 August family is the ADVERB
+    # ladder; the shape-only regex called G1 a rung on its first real row and the tally refused.
+    chk("G1 (+20, 'all of them below', NON-adverbial pad) is NOT a ladder rung",
+        family_of("ledger-consaxis-pad1.yaml"), "other rewrite")
+    chk("R1 (+20, 'each one of these', replacement) is NOT a ladder rung",
+        family_of("ledger-consaxis-rep1.yaml"), "other rewrite")
+    chk("all five rungs still derive as the ladder under the adverb test",
+        [family_of(f"ledger-linefloor-{i}.yaml") for i in (1, 2, 3)]
+        + [family_of("ledger-linefloor-4.yaml"), family_of("ledger-linedose-6.yaml")],
+        ["quantifier ladder"] * 5)
+    # and the AXIS, which is where a non-adverbial pad belongs, sees both new arms correctly
+    chk("G1 is a quantifier PAD on the axis", axis_of("ledger-consaxis-pad1.yaml"), "quantifier pad")
+    chk("R1 is a quantifier REPLACEMENT on the axis",
+        axis_of("ledger-consaxis-rep1.yaml"), "quantifier replacement")
 
     # 4. a declaration that disagrees with the spec text must STOP the tally
     FAMILY["ledger-sentinelline-placebo.yaml"] = "quantifier ladder"

@@ -93,7 +93,11 @@ for ((i = START; i < START + ATTEMPTS; i++)); do
     continue
   fi
 
-  echo "=== ELIGIBLE: pid $pid (baseline ABSENT, screen $s) after $i baseline probes ==="
+  # ⚠️ $i is the LABEL index, which continues across relaunches; $spent is the count that the
+  # budget is about. On 19 August this line said "after 25 baseline probes" for a process found
+  # on the FIRST classifying probe of its launch (label b25) — a hand-readable number that was
+  # wrong by 24. Both are printed now, and named.
+  echo "=== ELIGIBLE: pid $pid (baseline ABSENT, screen $s) — label ${PREFIX}b${i}, $spent classifying probe(s) spent under this launch ==="
   if [[ "$DRAW" == "1" ]]; then
     PID="$pid" PREFIX="$PREFIX" PORT="$PORT" ./_axis_draw.sh
   fi
