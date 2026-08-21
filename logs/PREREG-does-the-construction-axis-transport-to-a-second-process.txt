@@ -1,0 +1,227 @@
+PREREG — does the CONSTRUCTION AXIS transport to a second process, and was the broken positive
+         control a fact about pid 16225?
+================================================================================
+21 August, committed BEFORE the first probe of the day. pid 16225 (p7) died with the machine
+(uptime 8h41m at the time of writing, nothing is listening on 8137), so nothing can be added to
+it; p1-p6 are long dead. This needs an EIGHTH process, screened exactly the same way.
+
+⚠️ THIS PREREG DOES NOT RE-ASK 19 AUGUST'S QUESTION. That one asked whether a pad/replace axis
+exists at all, and it was answered on ONE process with every registered prediction resolving in
+the registered direction. This one asks the only question that answer left open, and it is the
+question this campaign has been wrong about before: does it TRANSPORT?
+
+WHAT 19 AUGUST ESTABLISHED (pid 16225, 16 draws, zero GPU deaths, every new arm drawn twice
+byte-identical), computed by `_size_floor_tally.py`, not remembered:
+
+    replace  paraphrase "every one of them"  +20  LONG          649bdef7   (anchor, 6 of 6 procs)
+    replace  R1         "each one of these"  +20  LONG · LONG   649bdef7   (first ever draw)
+    pad      G1         "all of them below"  +20  ABSENT·ABSENT 3a78b0d8   (first ever draw)
+    pad      F4         "all quite readily"  +20  ABSENT        3a78b0d8
+
+    Size-matched at exactly +20 across the whole archive: pad 1 of 6 LONG, replacement 8 of 8.
+    The one pad-LONG is p4/f-F4 (pid 4970) — every pad-LONG in the archive sits on that one
+    dead process.
+
+⚠️ THE PRECEDENT THAT ARGUES AGAINST TONIGHT'S HYPOTHESIS, NAMED BEFORE THE DRAW. 15 August:
+F1 (+15, "all reliably") is LONG TWICE BYTE-IDENTICAL on pid 4970 and ABSENT TWICE BYTE-IDENTICAL
+on pid 36921. Same spec, same slot, deterministic within each process, opposite between them.
+That is the exact shape a p7-local 2x2 would have, and it is why the 19 August log wrote its own
+limit down: "an axis on this process, not a cross-process law". Every arm below exists to decide
+between those two readings, and the archive contains no row that can.
+
+THE ACCOUNTS THIS SEPARATES (stated first so no result can be fitted afterwards)
+
+    (A) TRANSPORTING AXIS. Replacing the quantifier flips the declarer; padding it does not, and
+        this is a property of the SPEC TEXT, so it reproduces on any eligible process.
+        Predicts R1 LONG and G1 ABSENT on p8.
+    (B) PROCESS-CONDITIONAL AXIS. The 2x2 was real and was pid 16225's. Predicts R1 and G1 land
+        on some other pattern here — most likely both ABSENT, since ABSENT is where an untreated
+        process sits and only the paraphrase has ever moved every process.
+        Under (B) the replacement "family" is again carried entirely by the paraphrase (6 of 6),
+        and R1's two LONG draws become a fact about one process rather than about a construction.
+    (C) WORDING-ARBITRARY. Each wording is its own coin; the 2x2 was a 1-in-4 arrangement of two
+        coins. Predicts no coherent relation between the two processes, and specifically allows
+        G1 LONG here.
+
+    Weight going in: (A) 0.50 / (B) 0.30 / (C) 0.20.
+    ⚠️ (A) is up from 0.45 on 16 August ONLY because R1 was drawn and was LONG twice. It is not
+    up because the 2x2 "looked clean" — a clean 2x2 on one process is what (B) predicts too.
+
+THE SECOND QUESTION, REGISTERED HERE FOR THE FIRST TIME — THE BROKEN POSITIVE CONTROL
+    On p7 the shipped spec (+51, `ledger-origorder.yaml`) came back ABBREVIATED:ErrInsufficient
+    TWICE, byte-identical (cb873e76), after LONG on 4 of 4 earlier processes. It was drawn at
+    draws 13 and 15; p5 drew it at draw 13 and got LONG, which kills position, and the redraw
+    kills within-process noise. It was NOT registered on 19 August (shipped is on the optional
+    list), so it gets its own registered prediction now, before it is drawn again.
+
+    THE THING THAT MAKES IT INTERESTING, stated as the archive states it: shipped is the ONLY
+    spec here that SHOWS the declaration form (`var ErrX = errors.New(...)`), and on p7 the model
+    wrote the SHORT name INSIDE that very form, while two +20 replace arms that show no form at
+    all wrote the LONG name. If that reproduces on a fresh process, then showing the form is not
+    merely "a wrong description of a real effect" (10 August's correction) — the shipped phrasing
+    is the ABERRANT member of the rewrite family, pulling the declarer only halfway up, and it
+    should stop being called this campaign's positive control.
+
+    ⚠️ THE CHEAPER READING, and it is the one the campaign's own history favours: verdicts are
+    process-conditional for almost every arm ever drawn (F1, F4, L4, L5 all reverse across
+    processes), so ABBREVIATED-on-p7 may be one more instance of that and nothing new.
+
+PROTOCOL (both gates unchanged, in this order, no exceptions — same scripts, same specs)
+    1. Probe fresh processes with specs/ledger-origorder-baseline.yaml until one returns ABSENT.
+       Budget: 10 CLASSIFYING baseline probes, counted from tonight's launch. LONG is
+       uninformative and discarded; ABBREVIATED-at-baseline is DISCARDED here as well, because
+       every arm below is a movement FROM ABSENT and cannot be read from halfway up. Void
+       (GPU-killed) probes classify nothing and do not consume the budget — that is amendment 2
+       of the 16 August prereg, inherited unchanged and named here so it is not a silent import.
+       Every probe, kept AND discarded, goes in logs/PROBE-LEDGER.txt.
+    2. SCREEN with specs/ledger-ownplacebo.yaml (+54 rendered, content-free, SAME purpose, larger
+       than every arm below). A process the screen moves has zero discriminating power. Only
+       ABSENT-at-baseline AND screen-ABSENT may host arms.
+    3. On the eligible process, RESTART=0 throughout, IN THIS ORDER:
+
+           base (= the probe from step 1) · screen +54
+           · paraphrase +20   (ANCHOR, replace family, LONG 6 of 6 processes)
+           · R1 +20           (PRIMARY, replace family, LONG x2 on one process)
+           · G1 +20           (PRIMARY, pad family, ABSENT x2 on one process)
+           · base-close
+           · shipped +51      (the broken positive control, drawn EARLY here on purpose)
+           · R1-redraw · G1-redraw · base-close-2
+           · shipped-redraw · base-close-3
+           · [budget] F4 +20 · F1 +15 · L6 +14
+
+       WHY shipped MOVES UP from the optional tail to the fifth treated slot, registered as a
+       deliberate choice: on p7 it sat at draw 13, and "deep in the series" is the one confound
+       that a second late draw could not remove. Drawing it fifth means an ABBREVIATED here is
+       ABBREVIATED at a depth where p1, p3 and p5 were LONG. It is the only reordering in this
+       prereg and it moves an arm EARLIER, i.e. it makes the surprising verdict easier to
+       reproduce and harder to explain away, not the reverse.
+
+       ANCHOR STAYS FIRST, unchanged and for the unchanged reason: without the paraphrase on THIS
+       process every null below is uninterpretable.
+       R1 STAYS AHEAD OF G1, unchanged: a null there is the fastest kill of (A), and G1 among
+       nulls says nothing.
+
+    ⚠️ NO ARM'S VERDICT ENTERS THE AXIS CLAIM WITHOUT ITS REDRAW ON THIS PROCESS. R1, G1 and
+    shipped are each redrawn once, RESTART=0, regardless of outcome. Determinism has been shown
+    for these three on pid 16225 and 15 August is the standing proof that within-process
+    determinism does not transport — so it is re-established here, not assumed. An arm that gets
+    one draw is reported as SINGLE-DRAW and excluded from the transport claim.
+
+ENDPOINT — three-valued per arm: ABSENT / ABBREVIATED / LONG, plus the sha256 of models.go.
+    Scored AS-DRAWN. The endpoint is the DECLARATION, not byte-identity (17 August: one of eight
+    untreated baselines differs OUTSIDE the declaration and is still ABSENT). The sha is reported
+    because cross-process byte-identity is itself a registered quantity. "Above ABSENT" and
+    "LONG" are tallied SEPARATELY for every claim.
+
+REGISTERED
+    P(an eligible process within 10 classifying baseline probes)    = 0.65   (0.65 registered on
+                                                                              16 Aug, HIT twice)
+    P(a given ABSENT-at-baseline process also passes the screen)    = 0.50
+    Given an eligible process:
+    P(base ABSENT is byte-identical 3a78b0d8)                       = 0.85   (7 of 8)
+
+    ANCHOR
+    P(paraphrase +20 is LONG)                                       = 0.85   (6 of 6)
+    P(paraphrase writes 649bdef7 | it is LONG)                      = 0.85   (6 of 6)
+
+    PRIMARY — the transport question
+    P(R1 +20 is LONG)                                               = 0.65
+    P(R1 is above ABSENT)                                           = 0.72
+    P(G1 +20 is ABSENT)                                             = 0.70
+    P(G1 is above ABSENT)                                           = 0.30
+    P(the 2x2 REPRODUCES: R1 LONG and G1 ABSENT on this process)    = 0.48
+    P(the weaker form survives: R1 strictly above G1)               = 0.62
+    P(R1 and G1 land on the SAME value — no axis on this process)   = 0.32
+    P(G1 strictly above R1 — the axis REVERSES here)                = 0.06
+    P(BOTH the anchor and the 2x2 reproduce)                        = 0.42
+
+    THE POSITIVE CONTROL
+    P(shipped +51 is LONG)                                          = 0.55   (4 of 5 processes)
+    P(shipped is ABBREVIATED)                                       = 0.35
+    P(shipped is ABSENT)                                            = 0.10
+    P(shipped ABBREVIATED writes cb873e76 | it is ABBREVIATED)      = 0.80
+    P(shipped disagrees with paraphrase on this process)            = 0.38   (i.e. p7's split
+                                                                              reproduces at all)
+
+    SIDE QUANTITIES
+    P(R1 writes 649bdef7 | it is LONG)                              = 0.70   (2 of 2 on p7, and
+                                                                              the paraphrase's
+                                                                              bytes 6 of 6)
+    P(any arm tonight writes a sha not yet in the archive)          = 0.20
+    P(any redraw DISAGREES with its first draw)                     = 0.15   (0 of 10 redraws in
+                                                                              the campaign have)
+    P(at least one draw is killed by the GPU watchdog tonight)      = 0.45   (13 of 28 on 16-17
+                                                                              Aug, 0 of 16 on
+                                                                              19 Aug — the hazard
+                                                                              is intermittent and
+                                                                              environmental)
+    P(F4 +20 is ABSENT | drawn)                                     = 0.75   (ABSENT on p5 x2 and
+                                                                              p7, LONG on p4)
+
+BRANCHES — written now so no result can be read into whatever I hoped for
+    R1 LONG and G1 ABSENT again (the 2x2 reproduces)
+        -> account (A). The axis stops being a fact about pid 16225 and becomes a claim about the
+           spec text: two wordings that REPLACE the quantifier flip the declarer on two
+           independent processes, two that PAD it do not. This is the first structural rule in
+           the campaign to survive a transport test, and it is the strongest form the practical
+           advice has ever had: REPLACE the quantifier, do not extend it. ⚠️ Even then it is two
+           processes and one slot on one line of one spec, and I will say so in the log.
+    R1 ABSENT
+        -> account (B) or (C), and this is the result most damaging to tonight's hypothesis. The
+           replacement family collapses back onto the paraphrase alone, R1's p7 LONGs become a
+           process fact, and 19 August's "the prereg's central weakness is broken" is itself
+           broken — it would mean two replace wordings converge on one process and diverge across
+           processes, which is 15 August's F1 lesson arriving at the family level.
+    G1 LONG
+        -> the pad family is not inert here. Combined with p4's F4-LONG that would make pad-LONG
+           a thing that happens on some processes and not others, i.e. "inert" is
+           process-conditional, and the axis language is withdrawn rather than weakened.
+    both new arms ABSENT
+        -> the process is anchor-conditional-flat: only the paraphrase moves it. Reported as (B),
+           with the additional fact that R1 is null on a process where the paraphrase is LONG —
+           which would separate two replace wordings for the first time.
+    the anchor does NOT reproduce (paraphrase not LONG)
+        -> report everything against THIS process's anchor only, flag the series as
+           anchor-conditional, do NOT relabel any arm against another process's anchors, and note
+           that the paraphrase's 6-of-6 run ended, which is a result in its own right.
+    shipped ABBREVIATED again
+        -> the positive control is broken on two independent processes and the shipped phrasing
+           is the aberrant member of the rewrite family, not its representative. 6 August's rule
+           gets a THIRD correction: showing the declaration form is not neutral, it pulls the
+           declarer to the SHORT name inside the form it shows.
+    shipped LONG
+        -> p7's ABBREVIATED was process-conditional like nearly every other arm in this campaign.
+           Reported as such, and the "aberrant member" reading is withdrawn, not kept as a maybe.
+    shipped ABSENT
+        -> unregistered-in-direction and would be the first time the largest edit in the archive
+           did nothing at all; it would be reported as the outlier it is and redrawn.
+    any arm lands ABBREVIATED
+        -> reported as the middle rung it is. "Above ABSENT" moves, "LONG" does not.
+
+VOID
+    · repair activity in any arm's log (the probe already refuses on it)
+    · a server restart between arms (`_axis_draw.sh` re-checks the pid before every arm)
+    · base-close differing from base
+    · no eligible process within 10 classifying baseline probes -> that IS the result, recorded,
+      and no arm is run
+
+⚠️ WHAT TONIGHT CANNOT SETTLE, written before it can be read as a hedge: two processes is not a
+population. If the 2x2 reproduces, the honest claim is "on both processes that hosted it", and
+the campaign has already seen a 4-of-4 run (F1's own family, the size story) dissolve on the
+fifth. What a second process buys is the difference between a claim about ONE object and a claim
+that has been tested for transport at all — which is exactly the difference 15 August showed is
+not free.
+
+⚠️ SCORING IS AS-DRAWN. The table is assembled by `_arm_table.py --prefix ax4- --pid <PID>`,
+which cross-checks four independent records per arm and REFUSES on any mismatch. The pooled and
+axis counts come from `_size_floor_tally.py`, whose axis column is declared per spec AND derived
+from the spec text. Nothing in the result log is hand-counted — that rule exists because hand
+counting has produced a wrong number ten times in this campaign.
+
+⚠️ LABEL PREFIX. `ax4-` was checked against logs/PROBE-LEDGER.txt and against generated/ before
+anything was drawn: it appears nowhere. The series prefixes so far are p1..p6/f/s/r2/js/u9 and
+`ax-` (pid 68231), `ax2-` (the 16 Aug hunt), `ax3-` (pid 16225).
+
+⚠️ THE SERVER'S LAUNCH FLAGS ARE NOT TOUCHED. Every process in the archive was born from the same
+`_server_restart.sh`; a differently-configured server is a different object, and making it robust
+to the GPU watchdog would silently end the comparability of the whole campaign.
