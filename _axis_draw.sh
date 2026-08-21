@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Draw the construction-axis arms on ONE eligible process, in the registered order.
 #
-#     PID=68231 ./_axis_draw.sh            # the registered nine
+#     PID=68231 ./_axis_draw.sh                      # the 19 Aug registered eight
 #     PID=68231 ONLY=optional ./_axis_draw.sh
+#     PID=<p8>  ONLY=transport ./_axis_draw.sh       # 21 Aug: the transport series (see below)
 #
 # WHY A RUNNER EXISTS AT ALL. Nine arms at ~10 minutes each is 90 minutes of typing the same
 # command with one field changed, and 5 August is the precedent this campaign keeps citing: the
@@ -55,10 +56,45 @@ OPTIONAL=(
   "baseclose3:specs/ledger-origorder-baseline.yaml"
 )
 
+# ⚠️ THE 19 AUGUST LIST ABOVE IS LEFT EXACTLY AS IT RAN. It is the order that produced pid 16225's
+# series and the result log points at it; editing it in place would make that claim uncheckable.
+# The list below is a SECOND named order, registered on 21 August in
+# logs/PREREG-does-the-construction-axis-transport-to-a-second-process.txt, for the process that
+# tests whether the axis TRANSPORTS. Two differences from REGISTERED, both registered as
+# deliberate before any probe:
+#   · shipped +51 moves from the optional tail into the FIFTH treated slot. On pid 16225 it landed
+#     ABBREVIATED at draws 13 and 15; "deep in the series" is the one confound a second late draw
+#     could not remove, so it is drawn early here. This moves the surprising arm EARLIER, which
+#     makes it easier to reproduce and harder to explain away.
+#   · shipped is REDRAWN, because it is now an arm the axis story depends on rather than a control
+#     nobody expected to move.
+# F4 stays optional and last: two processes already answered it and it is not needed to read G1.
+TRANSPORT=(
+  "paraphrase:specs/ledger-sentinelline-placebo.yaml"   # ANCHOR, replace family, LONG 6 of 6
+  "R1:specs/ledger-consaxis-rep1.yaml"                  # PRIMARY, replace  "each one of these"
+  "G1:specs/ledger-consaxis-pad1.yaml"                  # PRIMARY, pad      "all of them below"
+  "baseclose:specs/ledger-origorder-baseline.yaml"
+  "shipped:specs/ledger-origorder.yaml"                 # +51, the control that broke on p7
+  "R1-redraw:specs/ledger-consaxis-rep1.yaml"
+  "G1-redraw:specs/ledger-consaxis-pad1.yaml"
+  "baseclose2:specs/ledger-origorder-baseline.yaml"
+  "shipped-redraw:specs/ledger-origorder.yaml"
+  "baseclose3:specs/ledger-origorder-baseline.yaml"
+)
+
+TRANSPORT_OPTIONAL=(
+  "F4:specs/ledger-linefloor-4.yaml"                    # +20 pad anchor, the ladder's 4th process
+  "F1:specs/ledger-linefloor-1.yaml"                    # +15, the sharpest single arm
+  "L6:specs/ledger-linedose-6.yaml"                     # +14 low anchor, ABSENT 7 of 7
+  "baseclose4:specs/ledger-origorder-baseline.yaml"
+)
+
 case "$ONLY" in
-  registered) ARMS=("${REGISTERED[@]}") ;;
-  optional)   ARMS=("${OPTIONAL[@]}") ;;
-  *) echo "REFUSING: ONLY must be 'registered' or 'optional'"; exit 2 ;;
+  registered)         ARMS=("${REGISTERED[@]}") ;;
+  optional)           ARMS=("${OPTIONAL[@]}") ;;
+  transport)          ARMS=("${TRANSPORT[@]}") ;;
+  transport-optional) ARMS=("${TRANSPORT_OPTIONAL[@]}") ;;
+  *) echo "REFUSING: ONLY must be registered | optional | transport | transport-optional"; exit 2 ;;
 esac
 
 echo "=== axis series on pid $PID · ${#ARMS[@]} arms · $ONLY · prefix $PREFIX ==="

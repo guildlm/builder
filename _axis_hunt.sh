@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 # Find an eligible process for the axis series and hand it STRAIGHT to the draw.
 #
-#     PREFIX=ax2- ./_axis_hunt.sh            # up to 10 baseline probes, then screen, then draw
-#     PREFIX=ax2- MAX=10 DRAW=0 ./_axis_hunt.sh   # find one and stop
+#     PREFIX=ax2- ./_axis_hunt.sh                      # up to 10 baseline probes, screen, then draw
+#     PREFIX=ax2- MAX=10 DRAW=0 ./_axis_hunt.sh         # find one and stop
+#     PREFIX=ax4- ORDER=transport ./_axis_hunt.sh       # 21 Aug: the transport series
 #
 # WHY THE HUNT AND THE DRAW ARE ONE JOB. Every minute an eligible process sits idle is a minute
 # it can die in, and on 16 August one did — the Metal driver killed pid 68231 between the anchor
@@ -28,6 +29,7 @@ MAX="${MAX:-10}"          # CLASSIFYING baseline probes — see AMENDMENT 2 in t
 ATTEMPTS="${ATTEMPTS:-30}"  # hard stop, so a GPU that kills everything cannot loop forever
 START="${START:-1}"       # label numbering continues across relaunches; a reused label is fatal
 DRAW="${DRAW:-1}"
+ORDER="${ORDER:-registered}"  # which arm list _axis_draw.sh runs; 21 Aug's transport series is `transport`
 BASE_SPEC="specs/ledger-origorder-baseline.yaml"
 SCREEN_SPEC="specs/ledger-ownplacebo.yaml"
 
@@ -99,7 +101,11 @@ for ((i = START; i < START + ATTEMPTS; i++)); do
   # wrong by 24. Both are printed now, and named.
   echo "=== ELIGIBLE: pid $pid (baseline ABSENT, screen $s) — label ${PREFIX}b${i}, $spent classifying probe(s) spent under this launch ==="
   if [[ "$DRAW" == "1" ]]; then
-    PID="$pid" PREFIX="$PREFIX" PORT="$PORT" ./_axis_draw.sh
+    # ⚠️ THE ARM LIST IS PASSED EXPLICITLY, NOT INHERITED. _axis_draw.sh defaults to ONLY=registered
+    # (the 19 August order) and would have picked up an exported ONLY from this shell silently —
+    # i.e. which protocol ran would have depended on how the hunt was invoked, which is the exact
+    # class of mistake the runner exists to prevent. ORDER names the registered list for the night.
+    PID="$pid" PREFIX="$PREFIX" PORT="$PORT" ONLY="$ORDER" ./_axis_draw.sh
   fi
   exit 0
 done
