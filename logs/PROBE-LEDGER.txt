@@ -242,3 +242,7 @@ written, which is why it needs this note.
 2026-08-21T20:15:06  pid=83628   label=ax4-baseclose2     spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
 2026-08-21T20:20:37  pid=83628   label=ax4-shipped-redraw spec=ledger-origorder.yaml        VERDICT=LONG
 2026-08-21T20:23:22  pid=83628   label=ax4-baseclose3     spec=ledger-origorder-baseline.yaml VERDICT=ABSENT
+2026-08-21T20:28:44  pid=83628   label=ax4-F4             spec=ledger-linefloor-4.yaml      VERDICT=ABBREVIATED:ErrInsufficient
+2026-08-21T20:34:35  pid=83628   label=ax4-F1             spec=ledger-linefloor-1.yaml      VERDICT=ABBREVIATED:ErrInsufficient
+2026-08-21T20:40:42  pid=83628   label=ax4-L6             spec=ledger-linedose-6.yaml       VERDICT=ABSENT
+2026-08-21T20:46:51  pid=83628   label=ax4-baseclose4     spec=ledger-origorder-baseline.yaml VERDICT=ABSENT

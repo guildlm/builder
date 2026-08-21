@@ -89,12 +89,30 @@ TRANSPORT_OPTIONAL=(
   "baseclose4:specs/ledger-origorder-baseline.yaml"
 )
 
+# ⚠️ THE MODAL-VERDICT REDRAW, and it is a RULE, not a reaction to a surprise. The 16 August
+# prereg registers it: "Any established arm whose verdict differs from that spec's modal verdict
+# across processes is redrawn once BEFORE IT IS WRITTEN DOWN." On pid 83628 both ladder arms came
+# back ABBREVIATED where the modal verdict of each is ABSENT (F4: LONG on p4, ABSENT on p5 twice
+# and p7; F1: LONG twice on p4, ABSENT twice on p5 and once on p7). They are redrawn here for the
+# same reason R1 and G1 were: a verdict that moves the tally is not reported off a single draw.
+# ⚠️ IT CANNOT BE A CLEAN POSITION CONTROL AND THIS LIST DOES NOT PRETEND TO BE ONE. These arms
+# were drawn 13th and 14th and a redraw is necessarily LATER still; what a redraw tests is
+# within-process determinism, not whether depth caused the abbreviation. Only an early draw on
+# ANOTHER process can test that, and it is written into the open items instead of faked here.
+TRANSPORT_REDRAW=(
+  "F4-redraw:specs/ledger-linefloor-4.yaml"
+  "F1-redraw:specs/ledger-linefloor-1.yaml"
+  "baseclose5:specs/ledger-origorder-baseline.yaml"
+)
+
 case "$ONLY" in
   registered)         ARMS=("${REGISTERED[@]}") ;;
   optional)           ARMS=("${OPTIONAL[@]}") ;;
   transport)          ARMS=("${TRANSPORT[@]}") ;;
   transport-optional) ARMS=("${TRANSPORT_OPTIONAL[@]}") ;;
-  *) echo "REFUSING: ONLY must be registered | optional | transport | transport-optional"; exit 2 ;;
+  transport-redraw)   ARMS=("${TRANSPORT_REDRAW[@]}") ;;
+  *) echo "REFUSING: ONLY must be registered | optional | transport | transport-optional |"
+     echo "          transport-redraw"; exit 2 ;;
 esac
 
 echo "=== axis series on pid $PID · ${#ARMS[@]} arms · $ONLY · prefix $PREFIX ==="
