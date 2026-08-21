@@ -56,7 +56,13 @@ SERIES = [("p1", "46375", "s-"), ("p2", "71833", "r2-"), ("p3", "4691", "p3-"),
           # p7 is the FIRST process to host the complete registered axis series (19 August): three
           # byte-identical baselines, a byte-null screen, the anchor, R1 and G1 each drawn twice,
           # F4, and the optional arms. Found on the first classifying probe of the relaunch.
-          ("p7", "16225", "ax3-")]
+          ("p7", "16225", "ax3-"),
+          # p8 is the TRANSPORT process (21 August): the first time the axis series was drawn on a
+          # SECOND process, under logs/PREREG-does-the-construction-axis-transport-to-a-second-
+          # process.txt. Found on the 10th classifying baseline probe, i.e. exactly at the
+          # registered budget — five of the six ABSENT-at-baseline processes before it were
+          # discarded because the CONTENT-FREE screen flipped them.
+          ("p8", "83628", "ax4-")]
 
 # ⚠️ DECLARED, NOT INFERRED. Every spec that can appear in these series is named here with where
 # its edit lands relative to the declaration line in models.go's purpose.
