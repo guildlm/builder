@@ -1,0 +1,208 @@
+PREREG — is the MIDDLE RUNG a fact about DEPTH or about the PROCESS? (and the axis's third
+         process rides along)
+================================================================================
+26 August, committed BEFORE the first probe of the night. No server is up (8137 empty); p7 and
+p8 are dead; nothing can be added to either. This needs a NINTH process, screened exactly the
+same way as every process since 10 August.
+
+THE QUESTION THIS NIGHT EXISTS FOR. On p8 (21 August) the two ladder arms came back
+ABBREVIATED:ErrInsufficient, cb873e76, each twice byte-identical — a verdict neither spec had
+ever produced (F4: LONG on p4, ABSENT on p5 x2 and p7; F1: LONG x2 on p4, ABSENT x2 on p5 and
+once on p7). They sat at draws 13-14 and their registered redraws at 17-18, and d4bb474 wrote
+the limit down BEFORE the redraws were drawn: a redraw is necessarily LATER still, so it tests
+within-process determinism, NOT whether depth caused the abbreviation. "Only an early draw on
+ANOTHER process can test that, and it is written into the open items instead of faked here."
+This is that draw, and it is designed as a WITHIN-PROCESS pair so the answer cannot be eaten by
+process-conditionality:
+
+    F4 and F1 are drawn EARLY (draws 4 and 5 of the series, right after the anchor)
+    AND AGAIN LATE (draws 13 and 14 — F4-late sits at draw 13 BY CONSTRUCTION, the exact
+    depth it occupied on p8).
+
+    If depth causes the middle rung, early and late should DIFFER on one process.
+    If the process causes it, they should AGREE — at whatever value this process picks.
+
+WHAT THE 21 AUGUST NIGHT ESTABLISHED, computed (`_transport_table.py`, `_size_floor_tally.py`),
+not remembered:
+    · the pad/replace axis reproduced on a second process byte-for-byte: R1 LONG x2 649bdef7,
+      G1 ABSENT x2 3a78b0d8 on BOTH p7 and p8; at exactly +20, replacement 11/11 LONG, pad 1/10.
+    · ledger-origorder.yaml ("the positive control") is a SPLIT arm — LONG on 5 processes,
+      ABBREVIATED x2 on p7 — and is NOT called a control in this document. The only never-split
+      arm is the paraphrase (7 of 7 processes, one file). THE PARAPHRASE IS THE CONTROL.
+    · the pad family split WITHIN p8: G1 on the floor, F4 on the middle rung, both
+      deterministic. So "pad is inert" is already dead at three-valued resolution; what stands
+      is "pad does not reach LONG off pid 4970".
+
+THE ACCOUNTS THIS SEPARATES (stated first so no result can be fitted afterwards)
+
+    (D) DEPTH. Something accumulates in a process across draws, and the ladder's middle rung on
+        p8 was that accumulation surfacing at draws 13+. Predicts: F4-early/F1-early land where
+        this process's ladder "really" is (most likely ABSENT, the modal verdict), and F4-late
+        (draw 13) DISAGREES upward — the first within-process position effect of the campaign.
+    (E) PROCESS. Each process fixes a ladder value at birth (p4 LONG, p5/p7 ABSENT, p8
+        ABBREVIATED); depth is irrelevant. Predicts: early and late AGREE, at whichever value
+        this process drew — and the p8 depth story dies the way shipped's did on 21 August.
+    (F) ARBITRARY-PER-DRAW. The ladder is a coin on every draw. Predicts: some pair among
+        {early, early-redraw, late} disagrees WITHOUT the early-vs-late structure (D) predicts.
+        The campaign has never seen this (every redraw ever has agreed byte-identically), which
+        is why it gets the smallest weight — but 15 August is the standing warning against
+        pricing it at zero.
+
+    Weight going in: (E) 0.60 / (D) 0.25 / (F) 0.15.
+    ⚠️ (E) is favoured because every cross-process reversal in this campaign (F1, F4, L4, L5,
+    shipped) has been deterministic within its process, and no within-process disagreement has
+    ever been observed at ANY position. (D) gets real weight only because no arm has ever been
+    drawn both early and late on one process — this design exists because that cell is empty.
+
+WHAT RIDES ALONG, at four draws' cost:
+    · R1 + G1 on a THIRD process (with redraws): the axis claim is two-process; a third either
+      extends it or ends it. Registered below, but SECONDARY — if the night is cut short, the
+      ladder pairs come first (they are why this night exists; drawn before R1/G1 in the order).
+    · shipped, OPTIONAL and last, explicitly NOT as a control: one more row for the split table.
+
+PROTOCOL (both gates unchanged, same scripts, same specs, RESTART=0 throughout the series)
+    1. Probe fresh processes with specs/ledger-origorder-baseline.yaml until one returns ABSENT.
+       Budget: 10 CLASSIFYING baseline probes. LONG discarded; ABBREVIATED-at-baseline discarded
+       (every arm is a movement FROM ABSENT); void (GPU-killed) probes spend nothing (16 Aug
+       amendment 2, inherited and named). Every probe, kept AND discarded, goes in the ledger.
+    2. SCREEN with specs/ledger-ownplacebo.yaml (+54, content-free, same purpose). Only
+       ABSENT-at-baseline AND screen-ABSENT hosts arms.
+    3. On the eligible process, IN THIS ORDER (`_axis_draw.sh`, ONLY=earlylate, committed with
+       this prereg BEFORE the first probe):
+
+           draw  3   paraphrase +20      ANCHOR — the campaign's control, 7 of 7
+           draw  4   F4 +20              EARLY  (p8 drew it 13th)
+           draw  5   F1 +15              EARLY  (p8 drew it 14th)
+           draw  6   base-close
+           draw  7   F4-redraw           early determinism
+           draw  8   F1-redraw           early determinism
+           draw  9   base-close-2
+           draw 10   R1 +20              the axis's third process
+           draw 11   G1 +20
+           draw 12   base-close-3
+           draw 13   F4-late             THE SLOT — p8's exact depth for this spec
+           draw 14   F1-late             (p8's exact depth for F1)
+           draw 15   R1-redraw
+           draw 16   G1-redraw
+           draw 17   base-close-4
+           [optional tail] shipped +51 · L6 +14 · shipped-redraw · base-close-5
+
+       WHY THE LADDER COMES BEFORE THE AXIS ARMS, registered as a deliberate choice: the ladder
+       pair is the registered PRIMARY of this night and eligible processes die (p6 died on its
+       first arm; 16-17 Aug killed two). If the process dies mid-series, what is lost must be
+       the secondary, not the reason the night exists. R1/G1 sit at 10-11 — still EARLIER than
+       the depth said to matter, so their transport reading is not confounded by the design.
+
+    ⚠️ CONDITIONAL REDRAW, registered now so it is a rule and not a reaction: if F4-late or
+    F1-late DISAGREES with its own early draw, BOTH late arms are redrawn once
+    (F4-late-redraw / F1-late-redraw, ONLY=earlylate-redraw, then base-close) BEFORE any verdict
+    is written down — the exact d4bb474 mechanism. A disagreement confirmed by redraw is
+    account (D)'s evidence; an unconfirmed one is a single draw and is reported as such.
+
+    ⚠️ NO NEW-ARM VERDICT WITHOUT ITS REDRAW. F4/F1-early, R1, G1 each have a same-process
+    redraw in the order. F4-late/F1-late are DELIBERATELY single-drawn unless the conditional
+    above fires: their job is position, their determinism at this depth is what p8 already
+    established, and an unconditional late-redraw would push the series past the depth it is
+    trying to measure. This asymmetry is registered here, in advance, as a limit of the design.
+
+ENDPOINT — three-valued per arm (ABSENT / ABBREVIATED / LONG) + sha256 of models.go. Scored
+    AS-DRAWN. The endpoint is the DECLARATION, not byte-identity. Table by
+    `_arm_table.py --prefix ax5- --pid <PID>`; cross-process reads by `_transport_table.py`;
+    axis counts by `_size_floor_tally.py`; night accounting by `_draw_hazard.py`. Nothing
+    hand-counted.
+
+REGISTERED
+    P(an eligible process within 10 classifying baseline probes)    = 0.65   (HIT three times
+                                                                              at this number)
+    P(a given ABSENT-at-baseline process also passes the screen)    = 0.35   (registered 0.50
+                                                                              twice; observed
+                                                                              1 of 6 on 21 Aug,
+                                                                              1 of 4 on 10 Aug)
+    Given an eligible process:
+    P(base ABSENT is byte-identical 3a78b0d8)                       = 0.85
+    P(paraphrase +20 is LONG)                                       = 0.85   (7 of 7)
+    P(paraphrase writes 649bdef7 | LONG)                            = 0.85
+
+    PRIMARY — the ladder pair
+    P(F4-early ABSENT)                                              = 0.50   (modal: 2 of 4
+                                                                              processes)
+    P(F4-early ABBREVIATED)                                         = 0.25
+    P(F4-early LONG)                                                = 0.25
+    P(F1-early lands on the SAME verdict as F4-early)               = 0.80   (they have never
+                                                                              split on any
+                                                                              process: 4 of 4)
+    P(F4-late AGREES with F4-early | both drawn)                    = 0.80   <- THE QUESTION
+    P(F1-late AGREES with F1-early | both drawn)                    = 0.80
+    P(both pairs agree — account (E) resolved in one night)         = 0.72
+    P(a disagreement, and its direction is early-low/late-high)     = 0.15   <- account (D)'s
+                                                                              signature
+    P(a disagreement in the OTHER direction)                        = 0.05
+    P(early-redraw disagrees with early — account (F) fires there)  = 0.10
+
+    SECONDARY — the axis's third process
+    P(R1 +20 is LONG)                                               = 0.70   (2 processes, 4/4)
+    P(G1 +20 is ABSENT)                                             = 0.72
+    P(the 2x2 holds again: R1 LONG and G1 ABSENT)                   = 0.55
+    P(R1 and G1 SAME value — the axis fails to extend)              = 0.25
+    P(G1 strictly above R1 — reversal)                              = 0.05
+
+    TAIL AND HYGIENE
+    P(shipped +51 LONG | drawn)                                     = 0.60   (5 of 6 processes)
+    P(any redraw disagrees with its first draw)                     = 0.12   (0 of 15 ever)
+    P(any arm writes a sha new to the archive)                      = 0.15
+    P(at least one GPU-watchdog kill tonight)                       = 0.35   (13/28, then 0/16,
+                                                                              then 0/32)
+
+BRANCHES — written now so no result can be read into whatever I hoped for
+    early ABBREVIATED, late ABBREVIATED (pairs agree at p8's value)
+        -> (E). The middle rung is a process fact and DEPTH IS DEAD for the ladder the same way
+           it died for shipped: opposite verdicts at matched depths across processes, same
+           verdict at different depths within one. The ladder becomes a three-valued
+           process-conditional arm, full stop.
+    early ABSENT, late ABSENT (pairs agree at the modal value)
+        -> (E) for THIS process, but ⚠️ the p8 depth question is NOT answered — an
+           ABSENT-process cannot show a depth effect it never expresses. Reported exactly so:
+           consistent with (E), silent on (D), and the design goes back on the open list to
+           wait for the next ABBREVIATED-ladder process. NOT reported as "depth killed".
+    early ABSENT, late ABBREVIATED (confirmed by the conditional redraw)
+        -> (D). The first within-process position effect of the campaign, and it retroactively
+           reframes p8's ladder AND p7's shipped as depth phenomena. This is the branch most
+           damaging to (E)'s 0.60 and it is named now: if it lands, the transport table's
+           "deterministic within process" column has been TRUE ONLY BECAUSE redraws are
+           near-in-time, and every single-draw arm in the archive is weaker than reported.
+    early LONG (either arm)
+        -> p4's pattern returns off p4. "Every ladder-LONG is on pid 4970" dies, and with it the
+           cleanest support for "pad never reaches LONG off one dead process" — the axis's pad
+           column becomes a rate, and the 21 August practical rule is REWEAKENED in the log's
+           first section, not in a footnote.
+    early and its own redraw disagree
+        -> (F) fires. The late draws still run, but the night's primary claim becomes "the
+           ladder is not deterministic on this process" and no depth reading is attempted.
+    R1 not LONG or G1 not ABSENT
+        -> the axis fails to extend at n=3; reported per the same branches as 21 August
+           (family split / reversal / flat), and the practical rule keeps its two-process
+           scope EXPLICITLY in the log's first paragraph.
+    the anchor does not reproduce
+        -> the series is anchor-conditional; every null is uninterpretable; report against this
+           process's anchor only and record that the paraphrase's 7-of-7 ended.
+
+VOID
+    · repair activity in any arm's log (the probe refuses on it)
+    · a server restart between arms (`_axis_draw.sh` re-checks the pid before every arm)
+    · base-close differing from base
+    · no eligible process within 10 classifying probes -> that IS the result, recorded
+    ⚠️ if the process dies AFTER the early block but BEFORE the late block, the early verdicts
+    stand (they have their redraws) and the night is reported as "position unanswered" — the
+    exact failure 21 August's baseclose5 taught this campaign to write down in advance.
+
+⚠️ WHAT TONIGHT CANNOT SETTLE. One process's early/late pair separates (D) from (E) ONLY on a
+process that expresses something other than the floor. Two agreeing ABSENT pairs leave the
+question exactly where it is. And (E) resolved here is still n=1 for the within-process
+position claim — the design transports, the answer may not, and 15 August is still the proof.
+
+⚠️ LABEL PREFIX. `ax5-` checked against logs/PROBE-LEDGER.txt and generated/ before anything
+was drawn: zero occurrences of either. Series so far: p1..p6/f/s/r2/js/u9, `ax-`, `ax2-`,
+`ax3-` (pid 16225), `ax4-` (pid 83628).
+
+⚠️ THE SERVER'S LAUNCH FLAGS ARE NOT TOUCHED. Same `_server_restart.sh` as every process in the
+archive; a differently-configured server is a different object.

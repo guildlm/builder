@@ -105,14 +105,66 @@ TRANSPORT_REDRAW=(
   "baseclose5:specs/ledger-origorder-baseline.yaml"
 )
 
+# THE 26 AUGUST ORDER, registered in
+# logs/PREREG-is-the-middle-rung-a-fact-about-depth-or-about-the-process.txt and committed with
+# it BEFORE the first probe. The night's primary is the WITHIN-PROCESS EARLY/LATE PAIR on the two
+# ladder arms that came back ABBREVIATED on p8 at draws 13-14: d4bb474 wrote down that a redraw
+# is necessarily late and only an early draw on ANOTHER process can test depth — this list is
+# that draw. Design constraints, all registered:
+#   · the ladder pair comes BEFORE the axis arms: it is the primary, and eligible processes die
+#     mid-series (p6 died on its first arm) — what a death costs must be the secondary.
+#   · F4-late sits at DRAW 13 of the series BY CONSTRUCTION (count: base, screen, then this
+#     list) — the exact depth ledger-linefloor-4.yaml occupied on p8; F1-late at 14, likewise.
+#   · F4-late/F1-late are DELIBERATELY single-drawn (their job is position; determinism at this
+#     depth is what p8 established). If either disagrees with its own early draw, BOTH are
+#     redrawn via ONLY=earlylate-redraw BEFORE any verdict is written down — the conditional is
+#     registered in the prereg, so firing it is a rule, not a reaction.
+#   · ledger-origorder.yaml appears ONLY in the optional tail and is not called a control
+#     anywhere in this list: it is a SPLIT arm (LONG on 5 processes, ABBREVIATED on 1). The
+#     paraphrase (7 of 7, one file) is the control.
+EARLYLATE=(
+  "paraphrase:specs/ledger-sentinelline-placebo.yaml"   # ANCHOR/CONTROL, 7 of 7
+  "F4:specs/ledger-linefloor-4.yaml"                    # PRIMARY, EARLY (p8 drew it 13th)
+  "F1:specs/ledger-linefloor-1.yaml"                    # PRIMARY, EARLY (p8 drew it 14th)
+  "baseclose:specs/ledger-origorder-baseline.yaml"
+  "F4-redraw:specs/ledger-linefloor-4.yaml"             # early determinism
+  "F1-redraw:specs/ledger-linefloor-1.yaml"
+  "baseclose2:specs/ledger-origorder-baseline.yaml"
+  "R1:specs/ledger-consaxis-rep1.yaml"                  # SECONDARY: the axis's THIRD process
+  "G1:specs/ledger-consaxis-pad1.yaml"
+  "baseclose3:specs/ledger-origorder-baseline.yaml"
+  "F4-late:specs/ledger-linefloor-4.yaml"               # THE SLOT — draw 13, p8's exact depth
+  "F1-late:specs/ledger-linefloor-1.yaml"               # draw 14
+  "R1-redraw:specs/ledger-consaxis-rep1.yaml"
+  "G1-redraw:specs/ledger-consaxis-pad1.yaml"
+  "baseclose4:specs/ledger-origorder-baseline.yaml"
+)
+
+EARLYLATE_OPTIONAL=(
+  "shipped:specs/ledger-origorder.yaml"                 # +51, a SPLIT arm, one more row — NOT a control
+  "L6:specs/ledger-linedose-6.yaml"                     # +14 low anchor
+  "shipped-redraw:specs/ledger-origorder.yaml"
+  "baseclose5:specs/ledger-origorder-baseline.yaml"
+)
+
+# fires ONLY under the registered conditional: a late arm disagreed with its own early draw
+EARLYLATE_REDRAW=(
+  "F4-late-redraw:specs/ledger-linefloor-4.yaml"
+  "F1-late-redraw:specs/ledger-linefloor-1.yaml"
+  "baseclose6:specs/ledger-origorder-baseline.yaml"
+)
+
 case "$ONLY" in
   registered)         ARMS=("${REGISTERED[@]}") ;;
   optional)           ARMS=("${OPTIONAL[@]}") ;;
   transport)          ARMS=("${TRANSPORT[@]}") ;;
   transport-optional) ARMS=("${TRANSPORT_OPTIONAL[@]}") ;;
   transport-redraw)   ARMS=("${TRANSPORT_REDRAW[@]}") ;;
+  earlylate)          ARMS=("${EARLYLATE[@]}") ;;
+  earlylate-optional) ARMS=("${EARLYLATE_OPTIONAL[@]}") ;;
+  earlylate-redraw)   ARMS=("${EARLYLATE_REDRAW[@]}") ;;
   *) echo "REFUSING: ONLY must be registered | optional | transport | transport-optional |"
-     echo "          transport-redraw"; exit 2 ;;
+     echo "          transport-redraw | earlylate | earlylate-optional | earlylate-redraw"; exit 2 ;;
 esac
 
 echo "=== axis series on pid $PID · ${#ARMS[@]} arms · $ONLY · prefix $PREFIX ==="
