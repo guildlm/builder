@@ -1,0 +1,220 @@
+RESULT — the axis TRANSPORTED, while the arms around it took ALL THREE verdicts
+================================================================================
+21 August (finalized 26 August — the session that drew the series ended between the ladder
+redraws and this log; see the bracket warning in section 3). Prereg
+logs/PREREG-does-the-construction-axis-transport-to-a-second-process.txt, committed 13b19d3
+BEFORE the first probe of the night; the arm order committed 2a526c8, also before the first
+probe; the modal-verdict redraw list committed d4bb474 BEFORE the redraws it names were drawn.
+Process p8 = pid 83628, found on the 10th classifying baseline probe — exactly at the registered
+budget. 18 draws on it, ZERO GPU deaths in the night's 32 ledger rows (`_draw_hazard.py --since
+2026-08-21`: 32 of 32 rows classify; registered P(at least one watchdog kill) = 0.45 → MISS,
+the second zero night in a row after 13-of-28 on 16-17 August).
+
+⚠️ pid 83628 IS DEAD. It was still up when the redraws finished at 21:00; when this log was
+finalized nothing was listening on 8137. The last registered row of the redraw list
+(baseclose5) was NEVER drawn — what that does and does not void is written in section 3, not
+smoothed over.
+
+THE ONE-LINE VERSION. The pad/replace axis was drawn on a SECOND process and reproduced exactly:
+R1 LONG twice, G1 ABSENT twice, every byte identical to pid 16225's. In the same series the
+positive control came back LONG twice — so 19 August's broken control was a fact about that
+process — and the two ladder arms came back ABBREVIATED, a verdict neither had ever produced,
+each confirmed byte-identical by its registered modal-verdict redraw: the first specs in this
+campaign to take ALL THREE values across processes.
+
+--------------------------------------------------------------------------------------------
+THE SERIES AS DRAWN (`_arm_table.py --prefix ax4- --pid 83628`, four records cross-checked per
+row; nothing below is typed from a terminal)
+
+    draw  1 of 18   ax4-b10                +0  ABSENT                      3a78b0d8
+    draw  2 of 18   ax4-screen10          +54  ABSENT                      3a78b0d8
+    draw  3 of 18   ax4-paraphrase        +20  LONG                        649bdef7
+    draw  4 of 18   ax4-R1                +20  LONG                        649bdef7
+    draw  5 of 18   ax4-G1                +20  ABSENT                      3a78b0d8
+    draw  6 of 18   ax4-baseclose          +0  ABSENT                      3a78b0d8
+    draw  7 of 18   ax4-shipped           +51  LONG                        ef8c15d6
+    draw  8 of 18   ax4-R1-redraw         +20  LONG                        649bdef7
+    draw  9 of 18   ax4-G1-redraw         +20  ABSENT                      3a78b0d8
+    draw 10 of 18   ax4-baseclose2         +0  ABSENT                      3a78b0d8
+    draw 11 of 18   ax4-shipped-redraw    +51  LONG                        ef8c15d6
+    draw 12 of 18   ax4-baseclose3         +0  ABSENT                      3a78b0d8
+    draw 13 of 18   ax4-F4                +20  ABBREVIATED:ErrInsufficient cb873e76
+    draw 14 of 18   ax4-F1                +15  ABBREVIATED:ErrInsufficient cb873e76
+    draw 15 of 18   ax4-L6                +14  ABSENT                      3a78b0d8
+    draw 16 of 18   ax4-baseclose4         +0  ABSENT                      3a78b0d8
+    draw 17 of 18   ax4-F4-redraw         +20  ABBREVIATED:ErrInsufficient cb873e76
+    draw 18 of 18   ax4-F1-redraw         +15  ABBREVIATED:ErrInsufficient cb873e76
+
+    FOUR base-closes, all ABSENT, all 3a78b0d8, bracketing every block up to draw 16. The +54
+    content-free screen wrote the BASELINE's bytes — the strongest form a null takes here.
+
+--------------------------------------------------------------------------------------------
+(1) ⭐ THE AXIS TRANSPORTED. This is the registered primary and it resolved in the registered
+    direction, on an independently screened process, with no byte anywhere out of place.
+
+    New instrument, `_transport_table.py` (written and committed BEFORE any verdict tonight, 12
+    self-tests, its real-archive assertion pinned on two DEAD processes so it can never be
+    "fixed" after a result):
+
+        ledger-consaxis-rep1.yaml  (R1, replace)  ->  STABLE   (2 processes)
+            p7  16225  2 draws  LONG    LONG/649bdef7  LONG/649bdef7
+            p8  83628  2 draws  LONG    LONG/649bdef7  LONG/649bdef7
+        ledger-consaxis-pad1.yaml  (G1, pad)      ->  STABLE   (2 processes)
+            p7  16225  2 draws  ABSENT  ABSENT/3a78b0d8  ABSENT/3a78b0d8
+            p8  83628  2 draws  ABSENT  ABSENT/3a78b0d8  ABSENT/3a78b0d8
+        ledger-sentinelline-placebo.yaml (paraphrase, replace) -> STABLE (7 processes, all
+            649bdef7)
+
+    Size-matched at exactly +20, region count, region identity, tail and name list held fixed
+    (`_size_floor_tally.py`, family declared AND derived from the spec text; the counts below
+    INCLUDE the two ladder redraws from section 3):
+
+        quantifier replacement  +20 exactly   11 draws   11 of 11 LONG   11 of 11 above ABSENT
+        quantifier pad          +20 exactly   10 draws    1 of 10 LONG    3 of 10 above ABSENT
+
+    📌 THE PRACTICAL RULE, in the strongest form the campaign has ever been able to state it:
+    REWRITE THE DECLARATION LINE BY REPLACING ITS QUANTIFIER, NOT BY EXTENDING IT. Two different
+    replacement wordings, on two independently screened processes, produce the same file down to
+    the byte. No pad wording at the identical size has ever reached that file off pid 4970: one
+    pad sits on the baseline's bytes here, the other stops at the middle rung (section 3).
+
+    ⚠️ THE LIMIT, WRITTEN HERE RATHER THAN LEFT TO A READER: this is TWO processes for R1 and G1,
+    ONE slot on ONE line of ONE spec, and TWO wordings per family. It is a transported axis, not
+    a law about prompts. 15 August is the standing proof that 4-of-4 runs dissolve on the fifth.
+
+--------------------------------------------------------------------------------------------
+(2) ⚠️ THE POSITIVE CONTROL CAME BACK — AND THE TRANSPORT TABLE SHOWS IT WAS NEVER A CONTROL.
+    Registered last night as its own question: P(shipped LONG) = 0.55, P(ABBREVIATED) = 0.35.
+    It came back LONG TWICE, ef8c15d6, the bytes it wrote on p1, p2, p3 and p5.
+
+    The registered branch for this outcome said, in advance, that the "aberrant member of the
+    rewrite family" reading is WITHDRAWN rather than kept as a maybe. It is withdrawn.
+
+    The prereg moved shipped from the optional tail into the fifth treated slot precisely so that
+    depth could not explain a repeat. What the ledger says about depth now, computed:
+
+        p5  36921  draw 13 of 14   LONG          ef8c15d6
+        p7  16225  draw 13 of 16   ABBREVIATED   cb873e76
+        p7  16225  draw 15 of 16   ABBREVIATED   cb873e76
+        p8  83628  draw  7 of 18   LONG          ef8c15d6
+        p8  83628  draw 11 of 18   LONG          ef8c15d6
+
+    Two processes give opposite verdicts at draw 13; p8 gives LONG at 11, within two draws of
+    p7's 13. Depth is dead from both sides.
+
+    📌 WHAT SURVIVES IS BIGGER THAN WHAT DIED. `ledger-origorder.yaml` — the arm this campaign
+    has called "the positive control" since 6 August — is a SPLIT arm: LONG on five processes,
+    ABBREVIATED twice byte-identical on one. A control that varies by process cannot certify a
+    process. The only arm that has ever behaved like a control is the paraphrase: STABLE across
+    all 7 processes that drew it, same bytes every time. The campaign has been using the wrong
+    arm for the job and the new instrument is what made that visible in one screen.
+
+--------------------------------------------------------------------------------------------
+(3) ⚠️⚠️ THE LADDER LANDED ON THE MIDDLE RUNG — TWICE, BYTE-IDENTICAL, AND ONLY THE REDRAW RULE
+    KEPT IT OUT OF THIS LOG UNTIL IT WAS CONFIRMED.
+
+    F4 (+20, "all quite readily") ABBREVIATED:ErrInsufficient, cb873e76 — and again on its
+    modal-verdict redraw. F1 (+15, "all reliably") ABBREVIATED, cb873e76 — and again on its
+    redraw. L6 (+14) ABSENT. Registered P(F4 ABSENT | drawn) = 0.75 → MISS; the registered
+    "any arm lands ABBREVIATED" branch applies as written: it is the middle rung, "above ABSENT"
+    moves, "LONG" does not. The redraws were REGISTERED before they were drawn (d4bb474, the
+    16 August modal-verdict rule: a verdict that differs from the spec's cross-process modal
+    verdict is redrawn once BEFORE it is written down) — this section exists only because both
+    confirmed.
+
+    What the transport table now shows for these two specs, and for no other spec in the
+    archive (`_transport_table.py`):
+
+        ledger-linefloor-4.yaml  ->  SPLIT  (4 processes)
+            p4  LONG/ef8c15d6 · p5  ABSENT x2 · p7  ABSENT · p8  ABBREVIATED x2 /cb873e76
+        ledger-linefloor-1.yaml  ->  SPLIT  (4 processes)
+            p4  LONG x2 /ef8c15d6 · p5  ABSENT x2 · p7  ABSENT · p8  ABBREVIATED x2 /cb873e76
+
+    THE FIRST SPECS IN THE CAMPAIGN TO TAKE ALL THREE VALUES ACROSS PROCESSES — each value
+    deterministic within its process. 15 August said within-process determinism is not evidence
+    of portability; these two arms are now that sentence drawn as a table.
+
+    📌 AND THE PAD FAMILY SPLIT ON A SINGLE PROCESS. On p8, at the same +20, in the same slot:
+    G1 ("all of them below") ABSENT twice — F4 ("all quite readily") ABBREVIATED twice. "Pad is
+    inert" is FALSE on p8 at three-valued resolution. What survives is exactly the axis claim as
+    registered: no pad wording reaches LONG (1 of 10, the sole LONG on dead pid 4970), while
+    replacement is 11 of 11. The axis separates LONG from not-LONG; it does not promise the pads
+    all sit on the floor.
+
+    ⭐ THE ABBREVIATED FILE IS ONE FILE. cb873e76 — what p8's ladder wrote — is byte-identical to
+    what p7's SHIPPED wrote (transport table above), and it is the file 10 August found SEVEN
+    times in the archive (logs/RESULT-the-file-my-five-character-edit-produced-is-in-the-archive-
+    seven-times.txt). Different specs, different processes, one abbreviated tree: the middle rung
+    is an ATTRACTOR the corpus already contains, reached from different directions on different
+    processes.
+
+    ⚠️ THE MISSING BRACKET, STATED PLAINLY. The registered redraw list had THREE rows: F4-redraw,
+    F1-redraw, baseclose5. The first two were drawn (20:54 and 21:00 ledger stamps, 26 minutes
+    after their first draws); the session then ended and the machine later took the server with
+    it — baseclose5 was NEVER drawn, and p8 is dead, so it never can be. The registered void
+    condition "base-close differing from base" therefore CANNOT BE CHECKED for draws 17-18: they
+    are bracketed from before (baseclose4, ABSENT/3a78b0d8, eight minutes prior) but not from
+    after. What softens this, computed rather than hoped: all four base-closes on p8 are
+    byte-identical to its baseline, and both redraws reproduced their own first draws to the
+    byte — the failure mode the closing bracket exists to catch (a process that has drifted
+    mid-block) would have had to arise, produce EXACTLY the file the same arms produced 26
+    minutes earlier, and vanish. The two redraw rows are reported with that caveat attached,
+    not as if the bracket existed.
+
+--------------------------------------------------------------------------------------------
+(4) THE NIGHT'S ACCOUNTING, AND THE SCREEN DID MOST OF THE WORK. `_draw_hazard.py --since
+    2026-08-21 --session`, nothing hand-counted:
+
+        processes probed                      10
+        ABSENT at baseline (informative)       6
+        of those, FLIPPED BY THE +54 SCREEN    5
+        eligible (both gates)                  1   (pid 83628)
+        treated arms attempted / measured  12/12
+        rows that classify                 32/32
+        ABSENT baselines on disk, 3a78b0d8 10/10
+
+    Registered P(a given ABSENT-at-baseline process also passes the screen) = 0.50; observed
+    1 of 6. The placebo-flip is the COMMON case, not the anomaly — five of six processes that
+    look perfectly informative at baseline would have turned every treated arm into a positive
+    arm. The 10 August rule (a process must EARN its treated arms) is not hygiene, it is
+    carrying the whole campaign.
+
+    The registered scorecard, every row resolved:
+        eligible within 10 classifying probes     0.65  HIT (on the 10th — the boundary)
+        base ABSENT byte-identical 3a78b0d8       0.85  HIT
+        paraphrase LONG / writes 649bdef7    0.85/0.85  HIT / HIT   (now 7 of 7 processes)
+        R1 LONG                                   0.65  HIT (x2)
+        G1 ABSENT                                 0.70  HIT (x2)
+        the 2x2 REPRODUCES                        0.48  HIT
+        anchor AND 2x2 both reproduce             0.42  HIT
+        shipped LONG                              0.55  HIT (x2)
+        shipped disagrees with paraphrase         0.38  NO
+        F4 ABSENT | drawn                         0.75  MISS (ABBREVIATED)
+        any arm writes a sha new to the archive   0.20  NO  (all four files known)
+        any redraw disagrees with its first draw  0.15  NO  (five redraws tonight — R1, G1,
+                                                             shipped, F4, F1 — every one
+                                                             byte-identical to its first draw;
+                                                             the campaign's redraw-disagreement
+                                                             count is still ZERO)
+        at least one GPU-watchdog kill            0.45  MISS (0 of 32)
+
+----------------------------------------------------------------------------------------------
+WHAT IS OPEN
+----------------------------------------------------------------------------------------------
+  (0) THE LADDER'S MIDDLE RUNG IS DEPTH-CONFOUNDED, and d4bb474 said so before the redraws: on
+      p8 the ladder arms sat at draws 13-14 and 17-18, and a redraw is necessarily LATER still.
+      A redraw tests within-process determinism, not whether depth caused the abbreviation. The
+      one draw that separates them: F4 (or F1) EARLY — inside the first five treated slots — on
+      the next eligible process, exactly the reordering the prereg used on shipped tonight.
+  (1) THE PAD FAMILY NOW HAS INTERNAL STRUCTURE: G1 and F4 disagree on p8 (floor vs middle
+      rung, both deterministic). A third pad wording, or F4 drawn early, decides whether the
+      middle rung is F4's property, the ladder's, or the depth's.
+  (2) SHIPPED IS LONG ON 5 OF 6 PROCESSES with p7 the sole (byte-identical, twice) exception —
+      p7 is the outlier now. The "aberrant member" reading is withdrawn per the registered
+      branch. The PARAPHRASE is the only never-split arm (7 of 7, one file) — it is the
+      campaign's control from here on, and `ledger-origorder.yaml` should stop being called one.
+  (3) DO NOT change the server's launch flags. The hazard is environmental and intermittent
+      (13 of 28, then 0 of 16, then 0 of 32); a differently-configured server is a different
+      object.
+
+460 pytest / 0 fail · 70 instruments / 0 fail.
