@@ -1,0 +1,63 @@
+=== baseline probe attempt 1 · classifying probes spent 0 of 10 ===
+  baseline verdict: LONG  (pid 14638)
+  -> discarded, re-probing
+=== baseline probe attempt 2 · classifying probes spent 1 of 10 ===
+  baseline verdict: LONG  (pid 15120)
+  -> discarded, re-probing
+=== baseline probe attempt 3 · classifying probes spent 2 of 10 ===
+  baseline verdict: ABSENT  (pid 15566)
+=== screen on pid 15566 ===
+  screen verdict: LONG
+  -> NOT eligible (the content-free edit moved it, or the draw voided); re-probing
+=== baseline probe attempt 4 · classifying probes spent 3 of 10 ===
+  baseline verdict: ABSENT  (pid 16456)
+=== screen on pid 16456 ===
+  screen verdict: ABSENT
+=== ELIGIBLE: pid 16456 (baseline ABSENT, screen ABSENT) — label ax5-b4, 4 classifying probe(s) spent under this launch ===
+=== axis series on pid 16456 · 15 arms · earlylate · prefix ax5- ===
+--- ax5-paraphrase (specs/ledger-sentinelline-placebo.yaml) ---
+  draw stopped after 185s
+  VERDICT: LONG   (server pid 16456)
+--- ax5-F4 (specs/ledger-linefloor-4.yaml) ---
+  draw stopped after 180s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-F1 (specs/ledger-linefloor-1.yaml) ---
+  draw stopped after 190s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-baseclose (specs/ledger-origorder-baseline.yaml) ---
+  draw stopped after 175s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-F4-redraw (specs/ledger-linefloor-4.yaml) ---
+  draw stopped after 180s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-F1-redraw (specs/ledger-linefloor-1.yaml) ---
+  draw stopped after 185s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-baseclose2 (specs/ledger-origorder-baseline.yaml) ---
+  draw stopped after 185s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-R1 (specs/ledger-consaxis-rep1.yaml) ---
+  draw stopped after 180s
+  VERDICT: LONG   (server pid 16456)
+--- ax5-G1 (specs/ledger-consaxis-pad1.yaml) ---
+  draw stopped after 175s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-baseclose3 (specs/ledger-origorder-baseline.yaml) ---
+  draw stopped after 175s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-F4-late (specs/ledger-linefloor-4.yaml) ---
+  draw stopped after 170s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-F1-late (specs/ledger-linefloor-1.yaml) ---
+  draw stopped after 170s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-R1-redraw (specs/ledger-consaxis-rep1.yaml) ---
+  draw stopped after 170s
+  VERDICT: LONG   (server pid 16456)
+--- ax5-G1-redraw (specs/ledger-consaxis-pad1.yaml) ---
+  draw stopped after 170s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-baseclose4 (specs/ledger-origorder-baseline.yaml) ---
+  draw stopped after 170s
+  VERDICT: ABSENT   (server pid 16456)
+=== done · assemble with: .venv/bin/python ./_arm_table.py --prefix ax5- --pid 16456 ===

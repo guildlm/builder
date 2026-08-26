@@ -1,0 +1,146 @@
+RESULT — the early/late pairs AGREED ON THE FLOOR, and the axis took a THIRD process
+================================================================================
+26 August. Prereg logs/PREREG-is-the-middle-rung-a-fact-about-depth-or-about-the-process.txt,
+committed 20aecd8 with its arm order (ONLY=earlylate in `_axis_draw.sh`) BEFORE the first probe.
+Process p9 = pid 16456, found on the 4th classifying baseline probe (budget 10). 21 draws on it
+— the FULL registered list AND the full optional tail, including baseclose5 this time — ZERO GPU
+deaths in the night's 25 ledger rows (`_draw_hazard.py --since 2026-08-26`: 25 of 25 classify;
+registered P(at least one kill) = 0.35 → MISS, the THIRD zero night in a row).
+
+THE ONE-LINE VERSION. The night's primary question — is the ladder's middle rung a fact about
+DEPTH or about the PROCESS — landed on the one registered branch that answers it for THIS
+process and leaves the p8 question standing: F4 and F1 came back ABSENT at draws 4-5, ABSENT on
+their redraws, and ABSENT again at draws 13-14 — p8's exact depth — every row on the baseline's
+bytes. Position moved NOTHING on a process that expresses nothing. Around that null, everything
+registered as secondary landed: R1/G1 reproduced the 2x2 on a THIRD process byte-for-byte, the
+paraphrase went to 8 of 8, and shipped was LONG twice — p7 is now the split table's sole
+exception.
+
+--------------------------------------------------------------------------------------------
+THE SERIES AS DRAWN (`_arm_table.py --prefix ax5- --pid 16456`, four records cross-checked per
+row; nothing below is typed from a terminal)
+
+    draw  1 of 21   ax5-b4              +0  ABSENT   3a78b0d8
+    draw  2 of 21   ax5-screen4        +54  ABSENT   3a78b0d8
+    draw  3 of 21   ax5-paraphrase     +20  LONG     649bdef7
+    draw  4 of 21   ax5-F4             +20  ABSENT   3a78b0d8   <- EARLY (p8 drew it 13th)
+    draw  5 of 21   ax5-F1             +15  ABSENT   3a78b0d8   <- EARLY
+    draw  6 of 21   ax5-baseclose       +0  ABSENT   3a78b0d8
+    draw  7 of 21   ax5-F4-redraw      +20  ABSENT   3a78b0d8
+    draw  8 of 21   ax5-F1-redraw      +15  ABSENT   3a78b0d8
+    draw  9 of 21   ax5-baseclose2      +0  ABSENT   3a78b0d8
+    draw 10 of 21   ax5-R1             +20  LONG     649bdef7
+    draw 11 of 21   ax5-G1             +20  ABSENT   3a78b0d8
+    draw 12 of 21   ax5-baseclose3      +0  ABSENT   3a78b0d8
+    draw 13 of 21   ax5-F4-late        +20  ABSENT   3a78b0d8   <- THE SLOT: p8's exact depth
+    draw 14 of 21   ax5-F1-late        +15  ABSENT   3a78b0d8   <- p8's exact depth for F1
+    draw 15 of 21   ax5-R1-redraw      +20  LONG     649bdef7
+    draw 16 of 21   ax5-G1-redraw      +20  ABSENT   3a78b0d8
+    draw 17 of 21   ax5-baseclose4      +0  ABSENT   3a78b0d8
+    draw 18 of 21   ax5-shipped        +51  LONG     ef8c15d6
+    draw 19 of 21   ax5-L6             +14  ABSENT   3a78b0d8
+    draw 20 of 21   ax5-shipped-redraw +51  LONG     ef8c15d6
+    draw 21 of 21   ax5-baseclose5      +0  ABSENT   3a78b0d8
+
+    FIVE base-closes, all ABSENT, all 3a78b0d8, bracketing every block INCLUDING the tail — the
+    bracket 21 August could not draw exists here. The conditional late-redraw (registered) did
+    not fire: no late arm disagreed with its early draw.
+
+--------------------------------------------------------------------------------------------
+(1) THE PRIMARY RESOLVED ON ITS REGISTERED SILENT BRANCH, AND IT IS REPORTED AS THAT BRANCH
+    WROTE IT, NOT AS THE ANSWER IT ISN'T. The prereg: "early ABSENT, late ABSENT -> (E) for
+    THIS process, but the p8 depth question is NOT answered — an ABSENT-process cannot show a
+    depth effect it never expresses... NOT reported as 'depth killed'." That is tonight.
+
+    What the night DID buy, computed:
+    · POSITION-INVARIANCE ON ONE MORE PROCESS, NOW AT TWO DEPTHS. F4 is ABSENT at draw 4, 7 and
+      13 on p9; F1 at 5, 8 and 14. No arm in the archive had ever been drawn both early and
+      late on one process — that cell is no longer empty, it is just filled at the floor.
+    · THE STRONG FORM OF (D) IS DEAD. Account (D) said "something accumulates in a process
+      across draws and surfaced at draws 13+". Taken process-independently, that predicted
+      ABBREVIATED at p9's draw 13. It did not happen. What survives of (D) is only a
+      depth-x-process interaction — which is empirically indistinguishable from (E) until an
+      ABBREVIATED-ladder process hosts an early draw. The prereg's weight (E) 0.60 stands as
+      the leading account; the design goes back on the open list to wait for the process that
+      can bite it.
+    · THE BASE RATE THAT SETS THE WAIT: the ladder has now taken ABSENT on 3 of 5 processes
+      (p5, p7, p9), LONG on one (p4), ABBREVIATED on one (p8). The next early/late night has
+      roughly a 1-in-5 chance of landing on a process that expresses anything.
+
+    Registered rows, resolved: P(F4-early ABSENT) = 0.50 HIT · P(F1 same verdict as F4) = 0.80
+    HIT · P(F4-late agrees) = 0.80 HIT · P(F1-late agrees) = 0.80 HIT · P(both pairs agree —
+    (E) in one night) = 0.72 HIT ON THIS PROCESS with the branch's own caveat attached ·
+    P(early-redraw disagrees) = 0.10 NO.
+
+--------------------------------------------------------------------------------------------
+(2) ⭐ THE AXIS IS NOW A THREE-PROCESS FACT, AND EVERY BYTE IS STILL IN PLACE.
+    (`_transport_table.py`, p9 declared into the pooled SERIES first — the tally's self-test
+    re-run before any number below was read):
+
+        ledger-consaxis-rep1.yaml  (R1, replace)  ->  STABLE  (3 processes, 6 draws,
+                                                       all LONG/649bdef7)
+        ledger-consaxis-pad1.yaml  (G1, pad)      ->  STABLE  (3 processes, 6 draws,
+                                                       all ABSENT/3a78b0d8)
+        ledger-sentinelline-placebo.yaml          ->  STABLE  (8 processes, all LONG/649bdef7)
+
+    Size-matched at exactly +20 (`_size_floor_tally.py`):
+
+        quantifier replacement  +20 exactly   14 draws   14 of 14 LONG   14 of 14 above ABSENT
+        quantifier pad          +20 exactly   15 draws    1 of 15 LONG    3 of 15 above ABSENT
+
+    Registered: P(R1 LONG) = 0.70 HIT (x2) · P(G1 ABSENT) = 0.72 HIT (x2) · P(2x2 holds) =
+    0.55 HIT. The practical rule is unchanged in words and stronger in count: REPLACE the
+    quantifier, do not extend it. ⚠️ Three processes for R1/G1, eight for the paraphrase, one
+    slot on one line of one spec — the standing limit travels with the claim.
+
+--------------------------------------------------------------------------------------------
+(3) THE LADDER'S CROSS-PROCESS MAP, NOW WITH A POSITION COLUMN. linefloor-4 and linefloor-1
+    remain the campaign's only three-valued specs, five processes each:
+
+        p4 LONG · p5 ABSENT · p7 ABSENT · p8 ABBREVIATED x2 · p9 ABSENT x3 (draws 4, 7, 13)
+
+    Every value deterministic within its process, and on p9 deterministic ACROSS POSITION too.
+    15 August's sentence — within-process determinism is not evidence of portability — now has
+    its complement written down: within-process determinism apparently INCLUDES position, on
+    the one process where that has been tested. n=1, floor-only, and said so.
+
+--------------------------------------------------------------------------------------------
+(4) SHIPPED IS LONG ON SIX OF SEVEN, AND THE CONTROL LANGUAGE STAYS RETIRED. LONG twice,
+    ef8c15d6, registered P = 0.60 HIT. `ledger-origorder.yaml` is now split 6 LONG / 1
+    ABBREVIATED (p7, twice, byte-identical) — p7 is the outlier, and nothing tonight was
+    called a positive control: the paraphrase did that job, 8 of 8.
+
+--------------------------------------------------------------------------------------------
+(5) THE NIGHT'S ACCOUNTING (`_draw_hazard.py --since 2026-08-26 --session`):
+
+        processes probed                       4
+        ABSENT at baseline (informative)       2
+        of those, FLIPPED BY THE +54 SCREEN    1   (pid 15566 — the screen came back LONG)
+        eligible (both gates)                  1   (pid 16456)
+        treated arms attempted / measured  14/14
+        rows that classify                 25/25
+        ABSENT baselines on disk, 3a78b0d8  7/7
+
+    Remaining registered rows: eligible within 10 (0.65) HIT on the 4th · screen-pass (0.35)
+    observed 1 of 2 · base 3a78b0d8 (0.85) HIT · paraphrase LONG/bytes (0.85/0.85) HIT/HIT ·
+    any redraw disagrees (0.12) NO — five redraws tonight, every one byte-identical to its
+    first draw, campaign count still ZERO · new sha (0.15) NO — every file tonight is one of
+    the archive's four · GPU kill (0.35) MISS (0 of 25).
+
+----------------------------------------------------------------------------------------------
+WHAT IS OPEN
+----------------------------------------------------------------------------------------------
+  (0) THE EARLY/LATE DESIGN WAITS FOR A PROCESS THAT EXPRESSES SOMETHING. It is built, it ran
+      end to end, and it can only separate (D)-as-interaction from (E) on a process whose
+      ladder is not on the floor — base rate so far 2 of 5 (one LONG, one ABBREVIATED). The
+      cheap version: any future eligible process draws F4 EARLY by default; if it comes back
+      above ABSENT, THAT is the night to run the full pair.
+  (1) THE PAD FAMILY'S INTERNAL SPLIT (G1 floor / F4 middle rung, p8) did not recur on p9 —
+      both pads on the floor here. Still one process's fact; a third pad wording is still
+      unbuilt.
+  (2) R1/G1 AT n=3 AND THE PARAPHRASE AT n=8 are the two strongest regularities the campaign
+      owns. The next transport draw is cheap insurance every eligible night.
+  (3) DO NOT change the server's launch flags. Three zero nights (0/16, 0/32, 0/25) after
+      13-of-28; the hazard is environmental and intermittent, not gone.
+
+460 pytest / 0 fail · 70 instruments / 0 fail.

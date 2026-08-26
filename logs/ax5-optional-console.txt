@@ -1,0 +1,14 @@
+=== axis series on pid 16456 · 4 arms · earlylate-optional · prefix ax5- ===
+--- ax5-shipped (specs/ledger-origorder.yaml) ---
+  draw stopped after 140s
+  VERDICT: LONG   (server pid 16456)
+--- ax5-L6 (specs/ledger-linedose-6.yaml) ---
+  draw stopped after 175s
+  VERDICT: ABSENT   (server pid 16456)
+--- ax5-shipped-redraw (specs/ledger-origorder.yaml) ---
+  draw stopped after 100s
+  VERDICT: LONG   (server pid 16456)
+--- ax5-baseclose5 (specs/ledger-origorder-baseline.yaml) ---
+  draw stopped after 140s
+  VERDICT: ABSENT   (server pid 16456)
+=== done · assemble with: .venv/bin/python ./_arm_table.py --prefix ax5- --pid 16456 ===

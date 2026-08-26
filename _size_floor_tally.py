@@ -62,7 +62,13 @@ SERIES = [("p1", "46375", "s-"), ("p2", "71833", "r2-"), ("p3", "4691", "p3-"),
           # process.txt. Found on the 10th classifying baseline probe, i.e. exactly at the
           # registered budget — five of the six ABSENT-at-baseline processes before it were
           # discarded because the CONTENT-FREE screen flipped them.
-          ("p8", "83628", "ax4-")]
+          ("p8", "83628", "ax4-"),
+          # p9 is the EARLY/LATE process (26 August): F4 and F1 drawn at draws 4-5 AND again at
+          # draws 13-14 — p8's exact depth for those specs — under
+          # logs/PREREG-is-the-middle-rung-a-fact-about-depth-or-about-the-process.txt. Found on
+          # the 4th classifying probe; the labels ax5-F4-late / ax5-F1-late are the same specs as
+          # ax5-F4 / ax5-F1 at a registered different position, which is the whole design.
+          ("p9", "16456", "ax5-")]
 
 # ⚠️ DECLARED, NOT INFERRED. Every spec that can appear in these series is named here with where
 # its edit lands relative to the declaration line in models.go's purpose.
